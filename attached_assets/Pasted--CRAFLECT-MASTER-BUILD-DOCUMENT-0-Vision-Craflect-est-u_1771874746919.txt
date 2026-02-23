@@ -1,0 +1,275 @@
+📄 CRAFLECT — MASTER BUILD DOCUMENT
+0. Vision
+
+Craflect est une plateforme SaaS permettant de :
+
+décider quoi publier
+
+générer du contenu multi-formats
+
+automatiser la distribution
+
+analyser la performance
+
+construire une intelligence contenu basée sur la donnée
+
+Trajectoire :
+
+Content Creator → Growth System → Intelligence Platform.
+
+1. Utilisateurs
+
+Créateurs long-form
+Agences contenu
+Ghostwriters
+Fondateurs
+
+Puis :
+
+Marques
+Médias
+Enterprise
+
+2. Modules produit
+Ingestion contenu
+
+Upload vidéo/audio/texte/lien
+Transcription
+Segmentation
+
+Repurposing Engine
+
+Shorts
+Posts
+Hooks
+Titres
+Descriptions
+
+Daily Content Brief
+
+Sujets
+Hooks
+Scripts
+Formats
+Timing
+
+Feature signature.
+
+Library
+
+Sources
+Assets générés
+Templates
+Briefs
+
+Scheduler
+
+Programmation
+Préparation multi-plateformes
+Export fallback
+
+Analytics
+
+Vues
+Engagement
+Top contenus
+
+Intelligence (phase 2+)
+
+Scoring
+Benchmarks
+Insights
+Trend radar
+API
+
+3. UX écrans
+
+Onboarding
+Dashboard utilisateur
+Upload
+Génération
+Library
+Scheduler
+Analytics
+Insights
+
+4. Dashboards
+Dashboard Utilisateur
+
+Daily brief
+Contenus générés
+Performances
+Planning
+Historique
+
+Dashboard Admin / Fondateur
+
+MAU
+Rétention
+MRR
+Churn
+ARPU
+NRR
+Dataset size
+Niches
+Signaux viraux
+Usage brief
+Agences
+
+5. Architecture technique
+
+Frontend
+Next.js + Tailwind + shadcn
+
+Backend
+Node API
+
+Workers
+Transcription
+Vidéo
+Batch
+Scoring
+
+Storage
+S3
+
+DB
+Postgres Supabase
+
+Provider abstraction layer IA
+
+6. Schéma SQL
+CREATE TABLE users (id UUID PRIMARY KEY,email TEXT,created_at TIMESTAMP DEFAULT NOW());
+
+CREATE TABLE workspaces (id UUID PRIMARY KEY,owner_id UUID,name TEXT,created_at TIMESTAMP DEFAULT NOW());
+
+CREATE TABLE content_sources (id UUID PRIMARY KEY,workspace_id UUID,type TEXT,title TEXT,file_url TEXT,transcript TEXT,created_at TIMESTAMP DEFAULT NOW());
+
+CREATE TABLE generated_content (id UUID PRIMARY KEY,source_id UUID,format TEXT,hook_type TEXT,text TEXT,video_url TEXT,created_at TIMESTAMP DEFAULT NOW());
+
+CREATE TABLE briefs (id UUID PRIMARY KEY,workspace_id UUID,topic TEXT,hook TEXT,script TEXT,format TEXT,created_at TIMESTAMP DEFAULT NOW());
+
+CREATE TABLE performance (id UUID PRIMARY KEY,generated_content_id UUID,platform TEXT,views INT,engagement FLOAT,retention FLOAT,created_at TIMESTAMP DEFAULT NOW());
+
+CREATE TABLE events (id UUID PRIMARY KEY,user_id UUID,event_name TEXT,metadata JSONB,created_at TIMESTAMP DEFAULT NOW());
+
+7. Structure dossiers Replit
+/app/frontend
+/app/backend/api
+/app/backend/services
+/app/backend/workers
+/app/db
+/app/events
+/prompts
+/agents
+/config
+
+8. Prompts IA
+Daily Brief
+
+Generate topics, hooks, script, format, timing in JSON.
+
+Repurpose
+
+Extract engaging moments and generate shorts + posts.
+
+Hooks
+
+Generate 10 viral hooks.
+
+9. Architecture Agents
+
+Strategy Agent → décide
+Repurpose Agent → produit
+Analytics Agent → apprend
+Orchestrator → boucle
+
+Pipeline :
+
+Upload → Brief → Repurpose → Publish → Performance → Insights
+
+10. Data & KPI
+Produit
+
+MAU
+Rétention
+Usage brief
+Contenus générés
+
+Business
+
+MRR
+ARR
+ARPU
+Churn
+NRR
+Conversion
+
+Data moat
+
+Contenus analysés
+Dataset size
+Niches
+Signaux
+
+11. Instrumentation
+
+Events :
+
+content_uploaded
+batch_generated
+brief_viewed
+brief_used
+content_published
+analytics_viewed
+
+12. Sécurité
+
+Propriété contenu utilisateur
+Anonymisation dataset
+Suppression données
+Stockage sécurisé
+
+13. Anti-dépendance
+
+Multi providers IA
+Ingestion multi sources
+Fallback manuel
+Dataset interne
+
+14. Roadmap
+
+Phase 1
+Content Creator → 20K MRR
+
+Phase 2
+Growth system
+
+Phase 3
+Intelligence platform
+
+15. Règle produit
+
+Toute feature doit augmenter :
+
+rétention
+dataset
+ou ARPU
+
+16. Exit readiness
+
+Conserver :
+
+KPI mensuels
+Cohortes
+Architecture
+Schéma data
+Roadmap
+Contrats
+
+Signaux :
+
+Rétention
+Dataset
+Agences
+Insights adoptés
