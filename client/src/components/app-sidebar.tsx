@@ -24,8 +24,8 @@ import { useAuth } from "@/hooks/use-auth";
 
 const mainItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
-  { title: "Library", url: "/library", icon: Library },
-  { title: "Daily Brief", url: "/briefs", icon: Sparkles },
+  { title: "Content", url: "/library", icon: Library },
+  { title: "Briefs", url: "/briefs", icon: Sparkles },
   { title: "Analytics", url: "/analytics", icon: BarChart3 },
 ];
 
