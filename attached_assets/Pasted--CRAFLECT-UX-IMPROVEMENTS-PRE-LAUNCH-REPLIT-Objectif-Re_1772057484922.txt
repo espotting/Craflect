@@ -1,0 +1,127 @@
+📄 CRAFLECT — UX IMPROVEMENTS PRE-LAUNCH (REPLIT)
+Objectif
+
+Renforcer la clarté du parcours utilisateur, mettre en évidence la prochaine action, rendre visible le travail de l’IA et introduire la notion d’apprentissage produit.
+
+1️⃣ Clarifier le CTA principal par écran
+Règle
+
+Chaque écran doit avoir un bouton dominant.
+
+Implémentation
+
+Dashboard → CTA principal : Generate content
+
+Content → CTA principal : Upload source
+
+Brief → CTA principal : Generate content from brief
+
+Analytics → CTA principal : Create similar content
+
+Les autres actions deviennent secondaires (outline / ghost).
+
+2️⃣ Rendre la génération IA visible (moment wow)
+Ajouter état “processing IA”
+
+Lors du clic Generate :
+
+skeleton loading sur la carte contenu
+
+animation spark / pulse
+
+message : AI is analyzing your content…
+
+Ajouter preview progressif
+
+Afficher :
+
+hooks générés
+
+script court
+
+statut READY
+
+Objectif : montrer que l’IA travaille.
+
+3️⃣ Introduire la notion d’apprentissage
+Ajouter bloc global (Dashboard + Analytics)
+
+Texte :
+
+The AI is learning from your performance. Recommendations will improve.
+
+Ajouter badge sur contenus
+
+From Brief
+
+AI Suggested
+
+High learning impact
+
+But : rendre la data visible.
+
+4️⃣ Ajouter “Next Best Action” sur Dashboard
+
+Créer un bloc dédié en haut :
+
+Titre : Next best action
+
+Exemples :
+
+Generate content from today’s brief
+
+Publish your first post
+
+Upload another source
+
+Avec bouton direct.
+
+Objectif : supprimer hésitation utilisateur.
+
+5️⃣ Améliorer timeline conversion (Analytics)
+
+Ajouter :
+
+statut coloré (Done / Pending / Learning)
+
+lien direct vers contenu associé
+
+message si performance manquante :
+Publish to unlock insights
+
+6️⃣ Micro-interactions à implémenter
+
+Confetti léger première génération
+
+Badge High Potential animé
+
+Hover preview contenu
+
+Progress bar IA processing
+
+Toast “Content ready”
+
+7️⃣ États vides intelligents
+
+Remplacer messages statiques par :
+
+explication valeur
+
+CTA clair
+
+exemple contenu
+
+Ex :
+“Upload a video to generate your first week of content.”
+
+Résultat attendu
+
+L’utilisateur doit :
+
+comprendre quoi faire immédiatement
+
+voir l’IA travailler
+
+sentir que le système apprend
+
+revenir pour améliorer ses résultats
