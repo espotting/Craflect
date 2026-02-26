@@ -69,10 +69,12 @@ export default function Analytics() {
                 ))}
               </div>
               
-              <div className="mt-8 flex flex-col items-center justify-center p-12 border-2 border-dashed border-white/5 rounded-2xl bg-white/[0.01]">
-                <p className="text-white/40 text-sm mb-4 italic">Publish content to start learning what works.</p>
-                <Button variant="outline" className="border-white/10 text-white rounded-xl">Create content</Button>
-              </div>
+                <div className="mt-8 flex flex-col items-center justify-center p-12 border-2 border-dashed border-white/5 rounded-2xl bg-white/[0.01]">
+                  <p className="text-white/40 text-sm mb-4 italic">Publish content to start learning what works.</p>
+                  <Button className="bg-primary hover:bg-primary/90 text-white rounded-xl px-8 h-12 font-bold shadow-lg shadow-primary/20">
+                    Create similar content
+                  </Button>
+                </div>
             </CardContent>
           </Card>
 

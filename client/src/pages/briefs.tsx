@@ -52,8 +52,8 @@ export default function Briefs() {
               </div>
 
               <div className="flex items-center gap-4 pt-4">
-                <Button className="flex-1 bg-primary hover:bg-primary/90 text-white rounded-xl h-12 font-bold">
-                  Generate content from this brief
+                <Button className="flex-1 bg-primary hover:bg-primary/90 text-white rounded-xl h-12 font-bold shadow-lg shadow-primary/20">
+                  Generate content from brief
                 </Button>
                 <Button variant="outline" size="icon" className="w-12 h-12 border-white/10 text-white hover:bg-white/5 rounded-xl">
                   <Save className="w-5 h-5" />

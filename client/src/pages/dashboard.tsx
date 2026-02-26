@@ -107,6 +107,31 @@ export default function Dashboard() {
   return (
     <DashboardLayout>
       <div className="space-y-8">
+        {/* Next Best Action */}
+        <Card className="glass-card border-primary/20 bg-primary/5 border-2 shadow-lg shadow-primary/5">
+          <CardContent className="p-6 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center animate-pulse">
+                <Sparkles className="w-6 h-6 text-primary" />
+              </div>
+              <div>
+                <h3 className="text-lg font-display font-bold text-white">Next best action</h3>
+                <p className="text-sm text-white/60">Generate content from today’s brief to stay consistent.</p>
+              </div>
+            </div>
+            <Button className="bg-primary hover:bg-primary/90 text-white rounded-xl h-12 px-8 font-bold shadow-xl shadow-primary/20 group">
+              Generate content
+              <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* AI Learning Notification */}
+        <div className="flex items-center gap-3 p-4 rounded-xl bg-white/5 border border-white/10 text-xs text-white/50">
+          <div className="w-2 h-2 rounded-full bg-primary animate-ping" />
+          The AI is learning from your performance. Recommendations will improve automatically.
+        </div>
+
         {/* Cockpit Header */}
         <div className="flex items-center justify-between">
           <div>

@@ -34,7 +34,7 @@ export default function Library() {
             <h1 className="font-display text-4xl font-bold text-white mb-2 text-glow">Content Library</h1>
             <p className="text-white/50">Manage your source materials and transformations.</p>
           </div>
-          <Button className="bg-primary hover:bg-primary/90 text-white rounded-xl shadow-lg shadow-primary/20 neon-border h-11 px-6">
+          <Button className="bg-primary hover:bg-primary/90 text-white rounded-xl shadow-lg shadow-primary/20 neon-border h-11 px-8 font-bold">
             <Plus className="w-5 h-5 mr-2" />
             Upload Source
           </Button>
