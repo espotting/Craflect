@@ -1,0 +1,172 @@
+✅ BRIEF REPLIT — Dashboard v1 optimal (Craflect)
+🎯 Objectif du Dashboard
+
+Le dashboard doit répondre immédiatement à 3 questions :
+
+Qu’est-ce qui marche dans ma niche ?
+
+Que dois-je créer maintenant ?
+
+Où en est mon contenu ?
+
+Tout le reste = secondaire → déplacé vers Insights / Library / Analytics.
+
+🧱 Structure Dashboard v1 (ordre exact)
+1️⃣ Bloc principal — Latest Insight (hero)
+
+C’est le centre du dashboard.
+
+Contenu :
+
+titre insight
+
+résumé court (2 lignes max)
+
+2-3 tags (format / angle)
+
+bouton principal → View insight
+
+bouton secondaire → Generate content
+
+But :
+👉 rappeler la valeur produit en permanence
+
+2️⃣ Bloc Next Best Action (très important)
+
+Carte simple :
+
+Titre :
+Next best action
+
+Texte dynamique :
+
+Generate your first brief
+
+Create content from latest insight
+
+Add more sources
+
+Bouton unique :
+
+👉 Continue
+
+But :
+👉 guider sans réfléchir
+
+3️⃣ Bloc Progress / Learning state
+
+Carte compacte :
+
+Sources analyzed (X)
+
+Insights generated (X)
+
+Content created (X)
+
+petite phrase :
+
+The AI gets smarter as you add content.
+
+But :
+👉 créer momentum
+
+4️⃣ Bloc Latest Generated Content
+
+Liste courte :
+
+3 derniers briefs/scripts
+
+statut
+
+bouton View all
+
+Si vide :
+
+👉 CTA Generate your first content
+
+❌ À retirer du Dashboard
+
+Déplacer ailleurs :
+
+analytics détaillées
+
+scores multiples
+
+hooks ranking
+
+formats ranking
+
+recommandations longues
+
+pipeline complexe
+
+scheduler
+
+graphs
+
+métriques réelles
+
+👉 Tout ça → pages dédiées
+
+Le dashboard = cockpit simple.
+
+🧠 Logique UX importante
+
+Dashboard = décision rapide
+
+Insights = compréhension
+
+Library = matière
+
+Analytics = optimisation
+
+🎨 UI règles
+
+Maximum 4 blocs visibles
+
+Pas de scroll long
+
+Une seule couleur accent (violet)
+
+CTA principal toujours visible
+
+Texte court
+
+⚙️ États vides obligatoires
+Nouvel utilisateur
+
+→ Generate your first analysis
+
+Insight existant mais pas de contenu
+
+→ Generate content from insight
+
+Contenu existant
+
+→ Continue creating
+
+🚀 Micro amélioration clé
+
+Ajouter en haut :
+
+Petite barre :
+
+Your AI is learning from your niche.
+
+C’est important psychologiquement.
+
+📌 Résumé pour dev Replit
+
+Simplifier le dashboard pour qu’il affiche uniquement :
+
+Latest insight (hero)
+
+Next best action
+
+Progress stats simples
+
+Latest generated content
+
+Supprimer toute analyse détaillée du dashboard.
+
+L’objectif est une navigation claire et orientée action.
