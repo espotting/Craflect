@@ -3,7 +3,6 @@ import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
 import { Sparkles, ArrowRight, Layers, Workflow, Zap, Sun, Moon } from "lucide-react";
-import { FcGoogle } from "react-icons/fc";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/hooks/use-theme";
 import logoLight from "@/assets/logo-light.png";
@@ -50,12 +49,11 @@ export default function Landing() {
             {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </button>
           <Button 
-            className="rounded-full px-8 bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 shadow-sm transition-all hover:scale-105 hover:shadow-md gap-2.5 font-medium"
-            onClick={() => window.location.href = "/api/login"}
+            className="rounded-full px-8 bg-primary hover:bg-primary/90 text-white border-0 shadow-lg shadow-primary/20 transition-all hover:scale-105 font-medium"
+            onClick={() => setLocation("/auth")}
             data-testid="button-signin-nav"
           >
-            <FcGoogle className="w-5 h-5" />
-            Sign in with Google
+            Sign in
           </Button>
         </div>
       </nav>
@@ -87,11 +85,10 @@ export default function Landing() {
             <Button 
               size="lg"
               className="w-full sm:w-auto rounded-full px-10 h-14 bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-white font-semibold text-lg shadow-xl shadow-primary/25 neon-border transition-all hover:-translate-y-1 gap-3"
-              onClick={() => window.location.href = "/api/login"}
+              onClick={() => setLocation("/auth")}
               data-testid="button-get-started"
             >
-              <FcGoogle className="w-5 h-5" />
-              Get Started with Google
+              Get Started Free
               <ArrowRight className="w-5 h-5" />
             </Button>
           </div>
