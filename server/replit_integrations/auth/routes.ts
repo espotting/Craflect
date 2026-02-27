@@ -108,6 +108,28 @@ export function registerAuthRoutes(app: Express): void {
     }
   });
 
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { email } = z.object({ email: z.string().email("Invalid email address") }).parse(req.body);
+
+      const existing = await authStorage.getUserByEmail(email);
+      if (!existing) {
+        return res.status(400).json({ message: "No account found with this email. Please sign up first." });
+      }
+
+      const code = await authStorage.createVerificationCode(email);
+      console.log(`[AUTH] Login code for ${email}: ${code}`);
+
+      res.json({ message: "Verification code sent" });
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      console.error("Login error:", err);
+      res.status(500).json({ message: "Login failed" });
+    }
+  });
+
   app.post("/api/auth/resend", async (req, res) => {
     try {
       const { email } = z.object({ email: z.string().email() }).parse(req.body);

@@ -37,7 +37,7 @@ export default function Landing() {
 
       <nav className="relative z-10 w-full px-6 py-6 flex items-center justify-between max-w-7xl mx-auto">
         <div className="flex items-center gap-3">
-          <img src={isDark ? logoTransparent : logoLight} alt="Craflect" className="h-10 w-auto" data-testid="logo-landing" />
+          <img src={isDark ? logoTransparent : logoLight} alt="Craflect" className="h-8 w-auto object-contain" data-testid="logo-landing" />
         </div>
         <div className="flex items-center gap-3">
           <button

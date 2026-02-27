@@ -6,7 +6,7 @@ import { useLocation } from "wouter";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Mail, Loader2, Sun, Moon, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Mail, Loader2, Sun, Moon, CheckCircle2, LogIn } from "lucide-react";
 import { FcGoogle } from "react-icons/fc";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -14,7 +14,7 @@ import { queryClient } from "@/lib/queryClient";
 import logoLight from "@/assets/logo-light.png";
 import logoTransparent from "@/assets/logo-transparent.png";
 
-type AuthStep = "choose" | "email-form" | "verify-code";
+type AuthStep = "choose" | "email-form" | "login-form" | "verify-code";
 
 export default function Auth() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -29,6 +29,7 @@ export default function Auth() {
   const [code, setCode] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [resending, setResending] = useState(false);
+  const [isLoginFlow, setIsLoginFlow] = useState(false);
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
@@ -48,10 +49,27 @@ export default function Auth() {
         firstName: firstName.trim(),
         lastName: lastName.trim() || undefined,
       });
+      setIsLoginFlow(false);
       setStep("verify-code");
       toast({ title: "Code sent", description: `A verification code has been sent to ${email}` });
     } catch (err: any) {
       toast({ title: "Error", description: err.message || "Registration failed", variant: "destructive" });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleLoginSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim()) return;
+    setSubmitting(true);
+    try {
+      await apiRequest("POST", "/api/auth/login", { email: email.trim() });
+      setIsLoginFlow(true);
+      setStep("verify-code");
+      toast({ title: "Code sent", description: `A verification code has been sent to ${email}` });
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message || "Login failed", variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -64,7 +82,7 @@ export default function Auth() {
     try {
       await apiRequest("POST", "/api/auth/verify", { email, code });
       await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-      toast({ title: "Welcome!", description: "Your email has been verified." });
+      toast({ title: "Welcome!", description: isLoginFlow ? "You're signed in." : "Your email has been verified." });
       setLocation("/dashboard");
     } catch (err: any) {
       toast({ title: "Invalid code", description: err.message || "Please check your code and try again", variant: "destructive" });
@@ -89,7 +107,7 @@ export default function Auth() {
     <div className="min-h-screen bg-background flex flex-col">
       <nav className="w-full px-6 py-6 flex items-center justify-between max-w-7xl mx-auto">
         <button onClick={() => setLocation("/")} className="flex items-center gap-3 hover:opacity-80 transition-opacity" data-testid="link-back-home">
-          <img src={isDark ? logoTransparent : logoLight} alt="Craflect" className="h-10 w-auto" />
+          <img src={isDark ? logoTransparent : logoLight} alt="Craflect" className="h-8 w-auto object-contain" />
         </button>
         <button
           onClick={toggleTheme}
@@ -119,7 +137,7 @@ export default function Auth() {
               >
                 <div className="text-center">
                   <h1 className="font-display text-3xl font-bold text-foreground mb-3">Welcome to Craflect</h1>
-                  <p className="text-muted-foreground">Choose how you'd like to sign in or create your account.</p>
+                  <p className="text-muted-foreground">Sign in to your account or create a new one.</p>
                 </div>
 
                 <div className="space-y-4">
@@ -141,6 +159,16 @@ export default function Auth() {
                   <Button
                     variant="outline"
                     className="w-full h-14 rounded-xl border-border text-foreground hover:bg-accent gap-3 font-medium text-base transition-all"
+                    onClick={() => setStep("login-form")}
+                    data-testid="button-email-login"
+                  >
+                    <LogIn className="w-5 h-5" />
+                    Log in with Email
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    className="w-full h-14 rounded-xl border-border text-foreground hover:bg-accent gap-3 font-medium text-base transition-all"
                     onClick={() => setStep("email-form")}
                     data-testid="button-email-auth"
                   >
@@ -148,6 +176,61 @@ export default function Auth() {
                     Sign up with Email
                   </Button>
                 </div>
+              </motion.div>
+            )}
+
+            {step === "login-form" && (
+              <motion.div
+                key="login-form"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3 }}
+                className="space-y-8"
+              >
+                <div>
+                  <button
+                    onClick={() => setStep("choose")}
+                    className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
+                    data-testid="button-back-choose-login"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                    Back
+                  </button>
+                  <h1 className="font-display text-3xl font-bold text-foreground mb-3">Log in</h1>
+                  <p className="text-muted-foreground">Enter your email and we'll send you a verification code.</p>
+                </div>
+
+                <form onSubmit={handleLoginSubmit} className="space-y-5">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-muted-foreground">Email address</label>
+                    <Input
+                      type="email"
+                      placeholder="john@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="bg-background border-border text-foreground h-12 rounded-xl focus-visible:ring-primary"
+                      required
+                      autoFocus
+                      data-testid="input-login-email"
+                    />
+                  </div>
+                  <Button
+                    type="submit"
+                    disabled={submitting || !email.trim()}
+                    className="w-full h-12 rounded-xl bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-white font-medium"
+                    data-testid="button-send-login-code"
+                  >
+                    {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Send verification code"}
+                  </Button>
+                </form>
+
+                <p className="text-center text-sm text-muted-foreground">
+                  Don't have an account?{" "}
+                  <button onClick={() => setStep("email-form")} className="text-primary hover:text-primary/80 font-medium" data-testid="link-go-signup">
+                    Sign up
+                  </button>
+                </p>
               </motion.div>
             )}
 
@@ -219,6 +302,13 @@ export default function Auth() {
                     {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Send verification code"}
                   </Button>
                 </form>
+
+                <p className="text-center text-sm text-muted-foreground">
+                  Already have an account?{" "}
+                  <button onClick={() => setStep("login-form")} className="text-primary hover:text-primary/80 font-medium" data-testid="link-go-login">
+                    Log in
+                  </button>
+                </p>
               </motion.div>
             )}
 
@@ -233,7 +323,7 @@ export default function Auth() {
               >
                 <div>
                   <button
-                    onClick={() => setStep("email-form")}
+                    onClick={() => setStep(isLoginFlow ? "login-form" : "email-form")}
                     className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
                     data-testid="button-back-email"
                   >
