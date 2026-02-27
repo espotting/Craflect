@@ -49,11 +49,19 @@ export default function Landing() {
             {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </button>
           <Button 
+            variant="ghost"
+            className="rounded-full px-6 text-foreground hover:bg-white/10 dark:hover:bg-white/10 font-medium transition-all"
+            onClick={() => setLocation("/auth?mode=login")}
+            data-testid="button-login-nav"
+          >
+            Log in
+          </Button>
+          <Button 
             className="rounded-full px-8 bg-primary hover:bg-primary/90 text-white border-0 shadow-lg shadow-primary/20 transition-all hover:scale-105 font-medium"
             onClick={() => setLocation("/auth")}
             data-testid="button-signin-nav"
           >
-            Sign in
+            Sign up
           </Button>
         </div>
       </nav>

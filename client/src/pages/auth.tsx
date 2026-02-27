@@ -22,7 +22,9 @@ export default function Auth() {
   const { isDark, toggleTheme } = useTheme();
   const { toast } = useToast();
 
-  const [step, setStep] = useState<AuthStep>("choose");
+  const params = new URLSearchParams(window.location.search);
+  const initialMode = params.get("mode") === "login" ? "login-form" as AuthStep : "choose" as AuthStep;
+  const [step, setStep] = useState<AuthStep>(initialMode);
   const [email, setEmail] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
