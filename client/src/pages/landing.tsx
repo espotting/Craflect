@@ -15,12 +15,9 @@ import {
   Zap,
   TrendingUp,
   BarChart3,
-  Clock,
-  MessageSquare,
   Link2,
   Search,
   FileText,
-  ChevronRight,
 } from "lucide-react";
 import { SiTiktok, SiInstagram, SiYoutube } from "react-icons/si";
 import { Button } from "@/components/ui/button";
@@ -45,29 +42,6 @@ const MOCK_BRIEF = {
   platforms: ["TikTok", "Reels", "Shorts"],
 };
 
-function useInView(threshold = 0.15) {
-  const ref = useRef<HTMLDivElement>(null);
-  const hasAnimated = useRef(false);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && !hasAnimated.current) {
-          hasAnimated.current = true;
-          el.classList.add("in-view");
-        }
-      },
-      { threshold }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [threshold]);
-
-  return ref;
-}
-
 function SectionReveal({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
   return (
     <motion.div
@@ -79,6 +53,18 @@ function SectionReveal({ children, className = "", delay = 0 }: { children: Reac
     >
       {children}
     </motion.div>
+  );
+}
+
+function AnimatedBar({ width, delay = 0 }: { width: string; delay?: number }) {
+  return (
+    <motion.div
+      className="h-full bg-primary rounded-full"
+      initial={{ width: 0 }}
+      whileInView={{ width }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.8, delay, ease: "easeOut" }}
+    />
   );
 }
 
@@ -130,7 +116,7 @@ export default function Landing() {
 
       <main className="relative z-10 flex-1 flex flex-col">
 
-        <section className="relative flex flex-col items-center justify-center px-4 text-center pt-12 sm:pt-20 pb-16 sm:pb-24">
+        <section className="relative flex flex-col items-center justify-center px-4 text-center pt-12 sm:pt-20 pb-12 sm:pb-16">
           <div className="absolute inset-0 z-0 pointer-events-none">
             <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/5 dark:bg-primary/10 rounded-full blur-[150px] -translate-y-1/2 translate-x-1/3" />
             <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-secondary/5 dark:bg-secondary/10 rounded-full blur-[120px] translate-y-1/3 -translate-x-1/3" />
@@ -189,80 +175,96 @@ export default function Landing() {
           </motion.div>
         </section>
 
-        <section className="px-4 py-12 sm:py-16 max-w-5xl mx-auto w-full">
+        <section className="px-4 py-10 sm:py-12 max-w-3xl mx-auto w-full">
           <SectionReveal>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+            <div className="text-center space-y-3">
+              <h2 className="font-display text-xl sm:text-2xl font-bold text-foreground" data-testid="text-insight-statement">
+                Reverse-engineer what performs before you create.
+              </h2>
+              <p className="text-sm sm:text-base text-muted-foreground max-w-xl mx-auto leading-relaxed">
+                Craflect analyzes real short-form video performance to generate content based on proven patterns.
+              </p>
+            </div>
+          </SectionReveal>
+        </section>
+
+        <section className="px-4 pb-10 sm:pb-12 max-w-4xl mx-auto w-full">
+          <SectionReveal>
+            <div className="grid grid-cols-4 gap-2 sm:gap-3">
               {[
-                { icon: Eye, title: "Observe", desc: "Paste any video or competitor" },
+                { icon: Eye, title: "Observe", desc: "Add video or competitor" },
                 { icon: Brain, title: "Understand", desc: "Detect winning patterns" },
                 { icon: Target, title: "Recommend", desc: "Get actionable ideas" },
                 { icon: Pencil, title: "Produce", desc: "Generate optimized scripts" },
               ].map((item, i) => (
                 <motion.div
                   key={i}
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={{ opacity: 0, y: 15 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
-                  transition={{ duration: 0.4, delay: i * 0.1 }}
-                  className="p-4 sm:p-5 rounded-xl bg-card border border-border hover:border-primary/30 transition-colors group"
+                  transition={{ duration: 0.3, delay: i * 0.08 }}
+                  className="p-3 sm:p-4 rounded-lg bg-muted/40 dark:bg-muted/20 border border-border/50 text-center group hover:border-primary/20 transition-colors"
                   data-testid={`card-engine-${i}`}
                 >
-                  <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center mb-3 group-hover:bg-primary/20 transition-colors">
-                    <item.icon className="w-4.5 h-4.5 text-primary" />
+                  <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center mx-auto mb-2 group-hover:bg-primary/15 transition-colors">
+                    <item.icon className="w-4 h-4 text-primary" />
                   </div>
-                  <h3 className="text-sm sm:text-base font-display font-bold text-foreground mb-1">{item.title}</h3>
-                  <p className="text-xs sm:text-sm text-muted-foreground leading-snug">{item.desc}</p>
+                  <h3 className="text-xs sm:text-sm font-display font-bold text-foreground">{item.title}</h3>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 leading-snug">{item.desc}</p>
                 </motion.div>
               ))}
             </div>
           </SectionReveal>
         </section>
 
-        <section className="px-4 py-16 sm:py-24 bg-muted/30 dark:bg-muted/10 border-y border-border">
-          <div className="max-w-5xl mx-auto w-full">
+        <section className="px-4 py-16 sm:py-24 relative">
+          <div className="absolute inset-0 bg-muted/40 dark:bg-muted/15 border-y border-border pointer-events-none" />
+          <div className="absolute inset-0 pointer-events-none">
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] bg-primary/3 dark:bg-primary/5 rounded-full blur-[200px]" />
+          </div>
+
+          <div className="max-w-6xl mx-auto w-full relative z-10">
             <SectionReveal>
               <div className="text-center mb-10 sm:mb-14">
-                <Badge variant="outline" className="mb-4 text-primary border-primary/30">
-                  <Eye className="w-3.5 h-3.5 mr-1.5" />
-                  Product Preview
-                </Badge>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 dark:bg-primary/15 text-primary text-[10px] sm:text-xs font-bold uppercase tracking-widest mb-4">
+                  <Eye className="w-3 h-3" />
+                  Real product preview
+                </span>
                 <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-bold text-foreground mb-3" data-testid="text-proof-title">
                   See what Craflect generates
                 </h2>
-                <p className="text-muted-foreground text-sm sm:text-base max-w-lg mx-auto">
+                <p className="text-muted-foreground text-sm sm:text-base max-w-md mx-auto">
                   Real output from analyzing short-form video content.
                 </p>
               </div>
             </SectionReveal>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 sm:gap-6">
               <SectionReveal delay={0.1} className="lg:col-span-1">
-                <Card className="border-border bg-card h-full">
-                  <CardContent className="p-5 sm:p-6 space-y-5">
+                <Card className="border-border bg-card shadow-lg dark:shadow-primary/5 h-full hover:shadow-xl transition-shadow">
+                  <CardContent className="p-5 sm:p-6 space-y-4">
                     <div className="flex items-center gap-2">
                       <BarChart3 className="w-4 h-4 text-primary" />
-                      <h3 className="text-sm font-bold uppercase tracking-widest text-primary">Niche Insights</h3>
+                      <h3 className="text-xs font-bold uppercase tracking-widest text-primary">Niche Insights</h3>
                     </div>
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 dark:bg-muted/30 border border-border">
-                        <span className="text-xs text-muted-foreground">Top format</span>
-                        <span className="text-sm font-semibold text-foreground" data-testid="text-mock-format">Face-cam storytelling</span>
-                      </div>
-                      <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 dark:bg-muted/30 border border-border">
-                        <span className="text-xs text-muted-foreground">Avg duration</span>
-                        <span className="text-sm font-semibold text-foreground" data-testid="text-mock-duration">32s</span>
-                      </div>
-                      <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 dark:bg-muted/30 border border-border">
-                        <span className="text-xs text-muted-foreground">Hook style</span>
-                        <span className="text-sm font-semibold text-foreground" data-testid="text-mock-hook-style">Curiosity-driven</span>
-                      </div>
-                      <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 dark:bg-muted/30 border border-border">
-                        <span className="text-xs text-muted-foreground">Avg score</span>
+                    <div className="space-y-2.5">
+                      {[
+                        { label: "Top format", value: "Face-cam storytelling", testid: "text-mock-format" },
+                        { label: "Avg duration", value: "32s", testid: "text-mock-duration" },
+                        { label: "Hook style", value: "Curiosity-driven", testid: "text-mock-hook-style" },
+                      ].map((row) => (
+                        <div key={row.label} className="flex items-center justify-between p-2.5 rounded-md bg-muted/50 dark:bg-muted/30 border border-border/60">
+                          <span className="text-[11px] text-muted-foreground">{row.label}</span>
+                          <span className="text-xs sm:text-sm font-semibold text-foreground" data-testid={row.testid}>{row.value}</span>
+                        </div>
+                      ))}
+                      <div className="flex items-center justify-between p-2.5 rounded-md bg-muted/50 dark:bg-muted/30 border border-border/60">
+                        <span className="text-[11px] text-muted-foreground">Avg score</span>
                         <div className="flex items-center gap-2">
-                          <div className="w-16 h-1.5 rounded-full bg-muted overflow-hidden">
-                            <div className="h-full bg-primary rounded-full" style={{ width: "78%" }} />
+                          <div className="w-14 h-1.5 rounded-full bg-muted overflow-hidden">
+                            <AnimatedBar width="78%" delay={0.3} />
                           </div>
-                          <span className="text-sm font-semibold text-foreground">78</span>
+                          <span className="text-xs sm:text-sm font-semibold text-foreground">78</span>
                         </div>
                       </div>
                     </div>
@@ -271,32 +273,36 @@ export default function Landing() {
               </SectionReveal>
 
               <SectionReveal delay={0.2} className="lg:col-span-1">
-                <Card className="border-border bg-card h-full">
-                  <CardContent className="p-5 sm:p-6 space-y-5">
+                <Card className="border-border bg-card shadow-lg dark:shadow-primary/5 h-full hover:shadow-xl transition-shadow">
+                  <CardContent className="p-5 sm:p-6 space-y-4">
                     <div className="flex items-center gap-2">
                       <Zap className="w-4 h-4 text-primary" />
-                      <h3 className="text-sm font-bold uppercase tracking-widest text-primary">Winning Hooks</h3>
+                      <h3 className="text-xs font-bold uppercase tracking-widest text-primary">Winning Hooks</h3>
                     </div>
-                    <div className="space-y-2.5">
+                    <div className="space-y-2">
                       {MOCK_HOOKS.map((hook, i) => (
-                        <div
+                        <motion.div
                           key={i}
-                          className="flex items-start gap-3 p-3 rounded-lg bg-muted/50 dark:bg-muted/30 border border-border"
+                          initial={{ opacity: 0, x: -10 }}
+                          whileInView={{ opacity: 1, x: 0 }}
+                          viewport={{ once: true }}
+                          transition={{ duration: 0.3, delay: 0.3 + i * 0.1 }}
+                          className="flex items-start gap-2.5 p-2.5 rounded-md bg-muted/50 dark:bg-muted/30 border border-border/60 hover:border-primary/20 transition-colors group"
                           data-testid={`mock-hook-${i}`}
                         >
-                          <span className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold flex-shrink-0 mt-0.5">
+                          <span className="w-5 h-5 rounded-full bg-primary/10 group-hover:bg-primary/20 text-primary flex items-center justify-center text-[10px] font-bold flex-shrink-0 mt-0.5 transition-colors">
                             {i + 1}
                           </span>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm text-foreground leading-snug">{hook.text}</p>
+                            <p className="text-xs sm:text-sm text-foreground leading-snug">{hook.text}</p>
                             <div className="flex items-center gap-2 mt-1.5">
-                              <div className="w-12 h-1 rounded-full bg-muted overflow-hidden">
-                                <div className="h-full bg-primary rounded-full" style={{ width: `${hook.score}%` }} />
+                              <div className="w-10 h-1 rounded-full bg-muted overflow-hidden">
+                                <AnimatedBar width={`${hook.score}%`} delay={0.5 + i * 0.1} />
                               </div>
-                              <span className="text-[10px] text-muted-foreground font-medium">{hook.score}/100</span>
+                              <span className="text-[10px] text-muted-foreground font-medium">{hook.score}</span>
                             </div>
                           </div>
-                        </div>
+                        </motion.div>
                       ))}
                     </div>
                   </CardContent>
@@ -304,12 +310,12 @@ export default function Landing() {
               </SectionReveal>
 
               <SectionReveal delay={0.3} className="lg:col-span-1">
-                <Card className="border-primary/20 bg-card h-full relative overflow-hidden">
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 dark:bg-primary/10 rounded-full blur-[60px] -translate-y-1/2 translate-x-1/2 pointer-events-none" />
-                  <CardContent className="p-5 sm:p-6 space-y-5 relative z-10">
+                <Card className="border-primary/20 bg-card shadow-lg shadow-primary/5 dark:shadow-primary/10 h-full relative overflow-hidden hover:shadow-xl hover:shadow-primary/10 transition-shadow">
+                  <div className="absolute top-0 right-0 w-40 h-40 bg-primary/5 dark:bg-primary/10 rounded-full blur-[60px] -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+                  <CardContent className="p-5 sm:p-6 space-y-4 relative z-10">
                     <div className="flex items-center gap-2">
                       <FileText className="w-4 h-4 text-primary" />
-                      <h3 className="text-sm font-bold uppercase tracking-widest text-primary">Generated Brief</h3>
+                      <h3 className="text-xs font-bold uppercase tracking-widest text-primary">Generated Brief</h3>
                     </div>
                     <div className="space-y-3">
                       <div>
@@ -342,10 +348,10 @@ export default function Landing() {
             </div>
 
             <SectionReveal delay={0.4}>
-              <div className="flex justify-center mt-8 sm:mt-10">
+              <div className="flex justify-center mt-10 sm:mt-12">
                 <Button
                   size="lg"
-                  className="rounded-full px-8 h-12 bg-primary hover:bg-primary/90 text-white font-semibold shadow-lg shadow-primary/20 transition-all hover:-translate-y-0.5 gap-2"
+                  className="rounded-full px-8 h-13 bg-primary hover:bg-primary/90 text-white font-semibold text-base shadow-lg shadow-primary/20 transition-all hover:-translate-y-0.5 gap-2"
                   onClick={() => setLocation("/auth")}
                   data-testid="button-generate-first-brief"
                 >
@@ -357,52 +363,34 @@ export default function Landing() {
           </div>
         </section>
 
-        <section className="px-4 py-16 sm:py-24 max-w-4xl mx-auto w-full">
+        <section className="px-4 py-16 sm:py-20 max-w-4xl mx-auto w-full">
           <SectionReveal>
-            <div className="text-center mb-10 sm:mb-12">
-              <h2 className="font-display text-3xl sm:text-4xl font-bold text-foreground mb-3" data-testid="text-positioning-title">
+            <div className="text-center mb-8 sm:mb-10">
+              <p className="text-xs sm:text-sm font-medium uppercase tracking-widest text-primary mb-2">Why Craflect is different</p>
+              <h2 className="font-display text-2xl sm:text-3xl font-bold text-foreground" data-testid="text-positioning-title">
                 Not another content generator
               </h2>
-              <p className="text-muted-foreground text-sm sm:text-base max-w-lg mx-auto">
-                Craflect understands your niche before creating.
-              </p>
             </div>
           </SectionReveal>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             {[
-              {
-                icon: Brain,
-                title: "Pattern intelligence",
-                desc: "Detects winning hooks, formats, and structures from real performance data.",
-              },
-              {
-                icon: TrendingUp,
-                title: "Niche learning",
-                desc: "Gets smarter with every video analyzed. Recommendations improve automatically.",
-              },
-              {
-                icon: Sparkles,
-                title: "Continuous optimization",
-                desc: "Every brief adapts to what's currently working in your niche.",
-              },
-              {
-                icon: BarChart3,
-                title: "Cross-platform short-form",
-                desc: "One analysis covers TikTok, Reels, and Shorts simultaneously.",
-              },
+              { icon: Brain, title: "Pattern intelligence", desc: "Detects winning hooks, formats, and structures from real data." },
+              { icon: TrendingUp, title: "Niche learning", desc: "Gets smarter with every video analyzed." },
+              { icon: Sparkles, title: "Continuous optimization", desc: "Every brief adapts to what's working now." },
+              { icon: BarChart3, title: "Cross-platform short-form", desc: "One analysis covers TikTok, Reels, and Shorts." },
             ].map((item, i) => (
-              <SectionReveal key={i} delay={i * 0.1}>
+              <SectionReveal key={i} delay={i * 0.08}>
                 <div
-                  className="flex items-start gap-4 p-5 rounded-xl bg-card border border-border hover:border-primary/20 transition-colors"
+                  className="flex items-start gap-3 p-4 rounded-lg bg-card border border-border hover:border-primary/20 transition-colors"
                   data-testid={`card-positioning-${i}`}
                 >
-                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    <item.icon className="w-5 h-5 text-primary" />
+                  <div className="w-9 h-9 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <item.icon className="w-4 h-4 text-primary" />
                   </div>
                   <div>
-                    <h3 className="text-base font-display font-bold text-foreground mb-1">{item.title}</h3>
-                    <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                    <h3 className="text-sm font-display font-bold text-foreground">{item.title}</h3>
+                    <p className="text-xs text-muted-foreground mt-0.5">{item.desc}</p>
                   </div>
                 </div>
               </SectionReveal>
@@ -410,56 +398,41 @@ export default function Landing() {
           </div>
         </section>
 
-        <section className="px-4 py-16 sm:py-24 bg-muted/30 dark:bg-muted/10 border-t border-border">
+        <section className="px-4 py-16 sm:py-20 bg-muted/30 dark:bg-muted/10 border-t border-border">
           <div className="max-w-4xl mx-auto w-full">
             <SectionReveal>
-              <div className="text-center mb-10 sm:mb-14">
-                <h2 className="font-display text-3xl sm:text-4xl font-bold text-foreground mb-3" data-testid="text-howitworks-title">
+              <div className="text-center mb-10 sm:mb-12">
+                <h2 className="font-display text-2xl sm:text-3xl font-bold text-foreground mb-2" data-testid="text-howitworks-title">
                   How it works
                 </h2>
-                <p className="text-muted-foreground text-sm sm:text-base">Three steps to your first optimized content.</p>
+                <p className="text-sm text-muted-foreground">Three steps. Your first brief in under 60 seconds.</p>
               </div>
             </SectionReveal>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 sm:gap-12">
               {[
-                {
-                  step: "1",
-                  icon: Link2,
-                  title: "Add a video or creator",
-                  desc: "Paste a TikTok, Reel, or Short URL. Or a creator profile to analyze their niche.",
-                },
-                {
-                  step: "2",
-                  icon: Search,
-                  title: "Craflect analyzes your niche",
-                  desc: "AI extracts hooks, formats, structures, and identifies what makes content perform.",
-                },
-                {
-                  step: "3",
-                  icon: FileText,
-                  title: "Generate optimized content",
-                  desc: "Get briefs, hooks, and scripts built on proven patterns from your niche.",
-                },
+                { step: "1", icon: Link2, title: "Add a video or creator", desc: "Paste any TikTok, Reel, or Short URL." },
+                { step: "2", icon: Search, title: "Craflect analyzes your niche", desc: "AI extracts hooks, formats, and patterns." },
+                { step: "3", icon: FileText, title: "Generate optimized content", desc: "Get briefs and scripts based on what works." },
               ].map((item, i) => (
-                <SectionReveal key={i} delay={i * 0.15}>
+                <SectionReveal key={i} delay={i * 0.12}>
                   <div className="flex flex-col items-center text-center" data-testid={`card-howitworks-${i}`}>
                     <div className="relative mb-5">
-                      <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center">
-                        <item.icon className="w-6 h-6 text-primary" />
+                      <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center">
+                        <item.icon className="w-7 h-7 text-primary" />
                       </div>
-                      <span className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center shadow-lg shadow-primary/30">
+                      <span className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center shadow-lg shadow-primary/30">
                         {item.step}
                       </span>
                     </div>
-                    <h3 className="text-base sm:text-lg font-display font-bold text-foreground mb-2">{item.title}</h3>
-                    <p className="text-sm text-muted-foreground leading-relaxed max-w-xs">{item.desc}</p>
+                    <h3 className="text-base font-display font-bold text-foreground mb-1">{item.title}</h3>
+                    <p className="text-sm text-muted-foreground max-w-[220px]">{item.desc}</p>
                   </div>
                 </SectionReveal>
               ))}
             </div>
 
-            <SectionReveal delay={0.5}>
+            <SectionReveal delay={0.4}>
               <div className="flex justify-center mt-10 sm:mt-14">
                 <Button
                   size="lg"
@@ -467,7 +440,7 @@ export default function Landing() {
                   onClick={() => setLocation("/auth")}
                   data-testid="button-bottom-cta"
                 >
-                  Get started free
+                  Generate your first brief
                   <ArrowRight className="w-5 h-5" />
                 </Button>
               </div>

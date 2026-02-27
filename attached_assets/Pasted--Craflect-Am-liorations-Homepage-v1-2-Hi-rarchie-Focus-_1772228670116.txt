@@ -1,0 +1,154 @@
+📄 Craflect — Améliorations Homepage v1.2 (Hiérarchie & Focus produit)
+🎯 Objectif
+
+Améliorer la lecture de la page pour que l’utilisateur comprenne immédiatement :
+
+Craflect analyse → apprend → génère.
+
+La section Product Preview (Proof) doit devenir le point focal principal après le hero.
+
+Aucune nouvelle section majeure — uniquement des ajustements de layout et d’emphase.
+
+✅ 1 — Ajouter une phrase insight produit (NOUVEAU bloc léger)
+Placement
+
+Entre le Hero et les cartes Engine.
+
+Contenu
+
+Titre court :
+
+Reverse-engineer ce qui performe avant de créer.
+
+Texte court :
+
+Craflect analyse la performance réelle des vidéos short-form pour générer du contenu basé sur des patterns éprouvés.
+
+UI
+
+bloc centré
+
+séparateur subtil
+
+animation fade légère
+
+But : clarifier immédiatement la différenciation produit.
+
+✅ 2 — Réduire le poids visuel des cartes Engine
+
+On conserve les 4 cartes mais elles deviennent une transition.
+
+Changements
+
+cartes plus compactes
+
+padding réduit
+
+fond plus léger
+
+texte très court (1 ligne)
+
+Exemple :
+
+Observe — Ajouter vidéo ou concurrent
+Understand — Détecter patterns gagnants
+Recommend — Recevoir idées actionnables
+Produce — Générer scripts optimisés
+
+Objectif : expliquer le moteur sans concurrencer la section Proof.
+
+⭐ 3 — Mettre en avant la section Product Preview (PRIORITÉ)
+
+Cette section devient la star après le hero.
+
+Changements layout
+
+largeur augmentée
+
+plus d’espace vertical
+
+conteneur légèrement plus sombre
+
+shadow/glow subtil
+
+mobile : scroll horizontal type carousel
+
+Ajouter label au-dessus du titre
+
+Aperçu réel du produit
+
+Interaction (recommandé)
+
+hover highlights
+
+animation barres de score
+
+skeleton loading
+
+Objectif : donner l’impression d’utiliser déjà l’outil.
+
+✅ 4 — Renforcer la section Positioning
+
+On garde les cartes mais :
+
+Ajouter un sous-titre :
+
+Pourquoi Craflect est différent
+
+Réduire la densité de texte.
+
+Focus :
+
+Pattern intelligence
+Apprentissage niche
+Optimisation continue
+Cross-platform short-form
+
+✅ 5 — Simplifier “How it works”
+
+On conserve 3 étapes.
+
+Changements
+
+texte plus court
+
+icônes plus visibles
+
+plus d’espace
+
+CTA mis en avant
+
+CTA :
+
+Générer votre premier brief
+
+🎨 Règles hiérarchie visuelle
+
+Hero → très dominant
+Product Preview → deuxième plus dominant
+Le reste → support
+
+Aucune section ne doit rivaliser avec Product Preview.
+
+🧠 Principe UX
+
+L’utilisateur doit comprendre :
+
+L’outil réfléchit avant de générer.
+
+🔧 Tâches dev
+
+Ajouter composant InsightStatement
+Modifier styles EngineCards
+Refactor container ProductPreview (taille, fond, motion)
+Ajuster spacing Positioning
+Simplifier copy HowItWorks
+
+Aucun changement backend.
+
+📊 Impact KPI attendu
+
+Scroll depth ↑
+Signup après preview ↑
+Activation session ↑
+Bounce ↓
