@@ -6,7 +6,8 @@ import {
   Settings, 
   LogOut,
   Sun,
-  Moon
+  Moon,
+  Shield
 } from "lucide-react";
 import { useLocation } from "wouter";
 import {
@@ -23,6 +24,7 @@ import {
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/hooks/use-theme";
+import { Progress } from "@/components/ui/progress";
 import logoTransparent from "@/assets/logo-transparent.png";
 import logoLight from "@/assets/logo-light.png";
 
@@ -90,12 +92,49 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
+        {!user?.onboardingCompleted && (
+          <SidebarGroup>
+            <SidebarGroupLabel className="text-muted-foreground uppercase tracking-wider text-xs font-semibold mb-2">
+              Getting Started
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <button
+                onClick={() => setLocation("/welcome")}
+                className="w-full p-3 rounded-md bg-primary/5 border border-primary/20 space-y-2 text-left hover-elevate"
+                data-testid="button-onboarding-progress"
+              >
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground font-medium">Setup progress</span>
+                  <span className="text-primary font-bold">0%</span>
+                </div>
+                <Progress value={0} className="h-1 bg-muted" />
+                <p className="text-xs text-muted-foreground">Complete onboarding to unlock all features</p>
+              </button>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
         <SidebarGroup className="mt-auto">
           <SidebarGroupLabel className="text-muted-foreground uppercase tracking-wider text-xs font-semibold mb-2">
             System
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
+              {user?.isAdmin && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton 
+                    asChild 
+                    isActive={location === "/admin"}
+                    className={location === "/admin" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-accent"}
+                    onClick={() => setLocation("/admin")}
+                  >
+                    <button className="flex items-center gap-3 w-full" data-testid="nav-admin">
+                      <Shield className="w-5 h-5" />
+                      <span className="font-medium">Admin</span>
+                    </button>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
               {settingsItems.map((item) => {
                 const isActive = location === item.url;
                 return (

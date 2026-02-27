@@ -6,6 +6,8 @@ interface User {
   firstName: string | null;
   lastName: string | null;
   profileImageUrl: string | null;
+  isAdmin: boolean;
+  onboardingCompleted: boolean;
   createdAt: string | null;
   updatedAt: string | null;
 }

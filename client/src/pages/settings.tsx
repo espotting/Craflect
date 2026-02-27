@@ -1,18 +1,50 @@
 import { DashboardLayout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { User, Bell, Shield, Key, Sun, Moon } from "lucide-react";
+import { User, Bell, Shield, Key, Sun, Moon, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/hooks/use-theme";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 export default function Settings() {
   const { user } = useAuth();
   const { theme, toggleTheme, isDark } = useTheme();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const [firstName, setFirstName] = useState(user?.firstName || "");
+  const [lastName, setLastName] = useState(user?.lastName || "");
+
+  const saveMutation = useMutation({
+    mutationFn: async (data: { firstName: string; lastName: string }) => {
+      const res = await fetch("/api/auth/user", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to save");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      toast({ title: "Settings saved", description: "Your profile has been updated." });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to save settings.", variant: "destructive" });
+    },
+  });
+
+  const handleSave = () => {
+    saveMutation.mutate({ firstName, lastName });
+  };
 
   return (
     <DashboardLayout>
       <div className="mb-10">
-        <h1 className="font-display text-4xl font-bold text-foreground mb-2">Settings</h1>
+        <h1 className="font-display text-4xl font-bold text-foreground mb-2" data-testid="text-settings-title">Settings</h1>
         <p className="text-muted-foreground">Manage your account and platform preferences.</p>
       </div>
 
@@ -48,7 +80,7 @@ export default function Settings() {
                 <img src={user.profileImageUrl} alt="" className="w-20 h-20 rounded-full shadow-lg" data-testid="img-avatar" />
               ) : (
                 <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-primary to-secondary flex items-center justify-center text-2xl font-bold text-white shadow-lg neon-border">
-                  {user?.firstName?.[0] || user?.email?.[0] || "U"}
+                  {firstName?.[0] || user?.email?.[0] || "U"}
                 </div>
               )}
               <div>
@@ -59,13 +91,25 @@ export default function Settings() {
               </div>
             </div>
 
-            <div className="grid gap-2">
-              <label className="text-sm font-medium text-muted-foreground">Full Name</label>
-              <Input 
-                className="bg-background border-border text-foreground h-12 rounded-xl focus-visible:ring-primary"
-                defaultValue={user?.firstName ? `${user.firstName} ${user.lastName || ''}` : ""}
-                data-testid="input-name"
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <label className="text-sm font-medium text-muted-foreground">First Name</label>
+                <Input 
+                  className="bg-background border-border text-foreground h-12 rounded-xl focus-visible:ring-primary"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  data-testid="input-first-name"
+                />
+              </div>
+              <div className="grid gap-2">
+                <label className="text-sm font-medium text-muted-foreground">Last Name</label>
+                <Input 
+                  className="bg-background border-border text-foreground h-12 rounded-xl focus-visible:ring-primary"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  data-testid="input-last-name"
+                />
+              </div>
             </div>
             
             <div className="grid gap-2">
@@ -76,7 +120,7 @@ export default function Settings() {
                 defaultValue={user?.email || ""}
                 data-testid="input-email"
               />
-              <p className="text-xs text-muted-foreground mt-1">Managed via Google account.</p>
+              <p className="text-xs text-muted-foreground mt-1">Managed via your authentication provider.</p>
             </div>
 
             <div className="grid gap-2">
@@ -93,7 +137,13 @@ export default function Settings() {
             </div>
 
             <div className="pt-6">
-              <Button className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl px-8 h-11 neon-border" data-testid="button-save-settings">
+              <Button 
+                onClick={handleSave}
+                disabled={saveMutation.isPending}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl px-8 h-11 neon-border" 
+                data-testid="button-save-settings"
+              >
+                {saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                 Save Changes
               </Button>
             </div>

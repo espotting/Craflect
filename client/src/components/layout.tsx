@@ -7,14 +7,20 @@ import { Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading } = useAuth();
-  const [, setLocation] = useLocation();
+  const { isAuthenticated, isLoading, user } = useAuth();
+  const [location, setLocation] = useLocation();
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       setLocation("/");
     }
   }, [isLoading, isAuthenticated, setLocation]);
+
+  useEffect(() => {
+    if (!isLoading && isAuthenticated && user && !user.onboardingCompleted && location !== "/welcome") {
+      setLocation("/welcome");
+    }
+  }, [isLoading, isAuthenticated, user, location, setLocation]);
 
   if (isLoading) {
     return (

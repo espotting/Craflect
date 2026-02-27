@@ -19,6 +19,8 @@ export const users = pgTable("users", {
   profileImageUrl: varchar("profile_image_url"),
   emailVerified: boolean("email_verified").default(false),
   authProvider: varchar("auth_provider").default("email"),
+  isAdmin: boolean("is_admin").default(false),
+  onboardingCompleted: boolean("onboarding_completed").default(false),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
