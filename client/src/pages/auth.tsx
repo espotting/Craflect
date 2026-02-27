@@ -118,31 +118,6 @@ export default function Auth() {
     }
   };
 
-  const PasswordInput = ({ autoFocus = false, testId = "input-password" }: { autoFocus?: boolean; testId?: string }) => (
-    <div className="relative">
-      <Input
-        type={showPassword ? "text" : "password"}
-        placeholder="••••••••"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        className="bg-background border-border text-foreground h-12 rounded-xl focus-visible:ring-primary pr-12"
-        required
-        minLength={8}
-        autoFocus={autoFocus}
-        data-testid={testId}
-      />
-      <button
-        type="button"
-        onClick={() => setShowPassword(!showPassword)}
-        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-        tabIndex={-1}
-        data-testid="button-toggle-password"
-      >
-        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-      </button>
-    </div>
-  );
-
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <nav className="w-full px-6 py-6 flex items-center justify-between max-w-7xl mx-auto">
@@ -254,7 +229,27 @@ export default function Auth() {
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-muted-foreground">Password</label>
-                    <PasswordInput testId="input-login-password" />
+                    <div className="relative">
+                      <Input
+                        type={showPassword ? "text" : "password"}
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="bg-background border-border text-foreground h-12 rounded-xl focus-visible:ring-primary pr-12"
+                        required
+                        minLength={8}
+                        data-testid="input-login-password"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                        tabIndex={-1}
+                        data-testid="button-toggle-password-login"
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
                   </div>
                   <Button
                     type="submit"
@@ -336,7 +331,27 @@ export default function Auth() {
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-muted-foreground">Password</label>
-                    <PasswordInput testId="input-register-password" />
+                    <div className="relative">
+                      <Input
+                        type={showPassword ? "text" : "password"}
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="bg-background border-border text-foreground h-12 rounded-xl focus-visible:ring-primary pr-12"
+                        required
+                        minLength={8}
+                        data-testid="input-register-password"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                        tabIndex={-1}
+                        data-testid="button-toggle-password-register"
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
                     <p className="text-xs text-muted-foreground">Minimum 8 characters</p>
                   </div>
                   <Button
