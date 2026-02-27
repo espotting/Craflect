@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
 import { Sparkles, ArrowRight, Layers, Workflow, Zap, Sun, Moon } from "lucide-react";
-import { SiGoogle } from "react-icons/si";
+import { FcGoogle } from "react-icons/fc";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/hooks/use-theme";
 import logoLight from "@/assets/logo-light.png";
@@ -50,11 +50,11 @@ export default function Landing() {
             {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </button>
           <Button 
-            className="rounded-full px-8 bg-white dark:bg-white/10 hover:bg-gray-100 dark:hover:bg-white/20 text-foreground dark:text-white border border-border dark:border-white/10 backdrop-blur-md transition-all hover:scale-105 gap-2"
+            className="rounded-full px-8 bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 shadow-sm transition-all hover:scale-105 hover:shadow-md gap-2.5 font-medium"
             onClick={() => window.location.href = "/api/login"}
             data-testid="button-signin-nav"
           >
-            <SiGoogle className="w-4 h-4" />
+            <FcGoogle className="w-5 h-5" />
             Sign in with Google
           </Button>
         </div>
@@ -90,7 +90,7 @@ export default function Landing() {
               onClick={() => window.location.href = "/api/login"}
               data-testid="button-get-started"
             >
-              <SiGoogle className="w-5 h-5" />
+              <FcGoogle className="w-5 h-5" />
               Get Started with Google
               <ArrowRight className="w-5 h-5" />
             </Button>
