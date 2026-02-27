@@ -1,7 +1,7 @@
-import { motion } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
-import { useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
 import {
   Sparkles,
   ArrowRight,
@@ -18,6 +18,7 @@ import {
   Link2,
   Search,
   FileText,
+  Play,
 } from "lucide-react";
 import { SiTiktok, SiInstagram, SiYoutube } from "react-icons/si";
 import { Button } from "@/components/ui/button";
@@ -72,6 +73,7 @@ export default function Landing() {
   const { isAuthenticated, isLoading } = useAuth();
   const [, setLocation] = useLocation();
   const { isDark, toggleTheme } = useTheme();
+  const [showSticky, setShowSticky] = useState(false);
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
@@ -79,10 +81,36 @@ export default function Landing() {
     }
   }, [isLoading, isAuthenticated, setLocation]);
 
+  useEffect(() => {
+    const onScroll = () => setShowSticky(window.scrollY > 500);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   if (isLoading || isAuthenticated) return null;
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden flex flex-col">
+
+      <motion.div
+        initial={{ y: -60 }}
+        animate={{ y: showSticky ? 0 : -60 }}
+        transition={{ duration: 0.25, ease: "easeOut" }}
+        className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border"
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
+          <img src={isDark ? logoTransparent : logoLight} alt="Craflect" className="h-6 w-auto" />
+          <Button
+            className="rounded-full px-6 h-9 bg-primary hover:bg-primary/90 text-white text-sm font-medium shadow-md shadow-primary/20 gap-2"
+            onClick={() => setLocation("/auth")}
+            data-testid="button-sticky-cta"
+          >
+            <Play className="w-3.5 h-3.5" />
+            Analyze a video
+          </Button>
+        </div>
+      </motion.div>
+
       <nav className="relative z-10 w-full px-4 sm:px-6 py-5 flex items-center justify-between max-w-7xl mx-auto">
         <div className="flex items-center gap-3">
           <img src={isDark ? logoTransparent : logoLight} alt="Craflect" className="h-8 w-auto object-contain" data-testid="logo-landing" />
@@ -116,7 +144,7 @@ export default function Landing() {
 
       <main className="relative z-10 flex-1 flex flex-col">
 
-        <section className="relative flex flex-col items-center justify-center px-4 text-center pt-12 sm:pt-20 pb-12 sm:pb-16">
+        <section className="relative flex flex-col items-center justify-center px-4 text-center pt-10 sm:pt-16 pb-8 sm:pb-12">
           <div className="absolute inset-0 z-0 pointer-events-none">
             <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/5 dark:bg-primary/10 rounded-full blur-[150px] -translate-y-1/2 translate-x-1/3" />
             <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-secondary/5 dark:bg-secondary/10 rounded-full blur-[120px] translate-y-1/3 -translate-x-1/3" />
@@ -142,11 +170,11 @@ export default function Landing() {
               Create it for me
             </h1>
 
-            <p className="text-base sm:text-lg md:text-xl text-muted-foreground mb-6 max-w-2xl mx-auto leading-relaxed">
+            <p className="text-base sm:text-lg md:text-xl text-muted-foreground mb-5 max-w-2xl mx-auto leading-relaxed">
               Identify winning short-form video patterns in your niche and turn them into optimized content.
             </p>
 
-            <div className="flex items-center justify-center gap-4 mb-10">
+            <div className="flex items-center justify-center gap-4 mb-8">
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <SiTiktok className="w-3.5 h-3.5" style={{ color: isDark ? "rgba(178, 225, 232, 0.75)" : "rgba(0, 0, 0, 0.7)" }} />
                 <span>TikTok</span>
@@ -169,30 +197,27 @@ export default function Landing() {
               onClick={() => setLocation("/auth")}
               data-testid="button-get-started"
             >
-              Get started free
+              Paste your first video
               <ArrowRight className="w-5 h-5" />
             </Button>
+
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5, duration: 0.5 }}
+              className="mt-6 text-xs sm:text-sm text-muted-foreground/70 font-medium tracking-wide"
+              data-testid="text-flow-line"
+            >
+              Paste a video → Get insights → Generate content
+            </motion.p>
           </motion.div>
         </section>
 
-        <section className="px-4 py-10 sm:py-12 max-w-3xl mx-auto w-full">
-          <SectionReveal>
-            <div className="text-center space-y-3">
-              <h2 className="font-display text-xl sm:text-2xl font-bold text-foreground" data-testid="text-insight-statement">
-                Reverse-engineer what performs before you create.
-              </h2>
-              <p className="text-sm sm:text-base text-muted-foreground max-w-xl mx-auto leading-relaxed">
-                Craflect analyzes real short-form video performance to generate content based on proven patterns.
-              </p>
-            </div>
-          </SectionReveal>
-        </section>
-
-        <section className="px-4 pb-10 sm:pb-12 max-w-4xl mx-auto w-full">
+        <section className="px-4 pt-8 pb-6 sm:pt-10 sm:pb-8 max-w-4xl mx-auto w-full">
           <SectionReveal>
             <div className="grid grid-cols-4 gap-2 sm:gap-3">
               {[
-                { icon: Eye, title: "Observe", desc: "Add video or competitor" },
+                { icon: Eye, title: "Observe", desc: "Paste video or competitor" },
                 { icon: Brain, title: "Understand", desc: "Detect winning patterns" },
                 { icon: Target, title: "Recommend", desc: "Get actionable ideas" },
                 { icon: Pencil, title: "Produce", desc: "Generate optimized scripts" },
@@ -203,7 +228,7 @@ export default function Landing() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.3, delay: i * 0.08 }}
-                  className="p-3 sm:p-4 rounded-lg bg-muted/40 dark:bg-muted/20 border border-border/50 text-center group hover:border-primary/20 transition-colors"
+                  className="p-3 sm:p-3.5 rounded-lg bg-muted/30 dark:bg-muted/15 border border-transparent text-center group hover:border-primary/15 transition-colors"
                   data-testid={`card-engine-${i}`}
                 >
                   <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center mx-auto mb-2 group-hover:bg-primary/15 transition-colors">
@@ -217,15 +242,15 @@ export default function Landing() {
           </SectionReveal>
         </section>
 
-        <section className="px-4 py-16 sm:py-24 relative">
-          <div className="absolute inset-0 bg-muted/40 dark:bg-muted/15 border-y border-border pointer-events-none" />
+        <section className="px-4 py-20 sm:py-28 relative">
+          <div className="absolute inset-0 bg-muted/30 dark:bg-[hsl(var(--card)/0.5)] border-y border-border/50 pointer-events-none" />
           <div className="absolute inset-0 pointer-events-none">
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] bg-primary/3 dark:bg-primary/5 rounded-full blur-[200px]" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[700px] bg-primary/3 dark:bg-primary/5 rounded-full blur-[200px]" />
           </div>
 
           <div className="max-w-6xl mx-auto w-full relative z-10">
             <SectionReveal>
-              <div className="text-center mb-10 sm:mb-14">
+              <div className="text-center mb-12 sm:mb-16">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 dark:bg-primary/15 text-primary text-[10px] sm:text-xs font-bold uppercase tracking-widest mb-4">
                   <Eye className="w-3 h-3" />
                   Real product preview
@@ -233,47 +258,60 @@ export default function Landing() {
                 <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-bold text-foreground mb-3" data-testid="text-proof-title">
                   See what Craflect generates
                 </h2>
-                <p className="text-muted-foreground text-sm sm:text-base max-w-md mx-auto">
+                <p className="text-muted-foreground text-sm max-w-md mx-auto">
                   Real output from analyzing short-form video content.
                 </p>
               </div>
             </SectionReveal>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 sm:gap-6">
+
               <SectionReveal delay={0.1} className="lg:col-span-1">
-                <Card className="border-border bg-card shadow-lg dark:shadow-primary/5 h-full hover:shadow-xl transition-shadow">
+                <Card className="border-border/60 bg-card shadow-lg dark:shadow-primary/5 h-full hover:shadow-xl transition-shadow">
                   <CardContent className="p-5 sm:p-6 space-y-4">
-                    <div className="flex items-center gap-2">
-                      <BarChart3 className="w-4 h-4 text-primary" />
-                      <h3 className="text-xs font-bold uppercase tracking-widest text-primary">Niche Insights</h3>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <BarChart3 className="w-4 h-4 text-primary" />
+                        <h3 className="text-xs font-bold uppercase tracking-widest text-primary">Niche Insights</h3>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <SiTiktok className="w-3 h-3" style={{ color: isDark ? "rgba(178, 225, 232, 0.6)" : "rgba(0, 0, 0, 0.5)" }} />
+                        <SiInstagram className="w-3 h-3" style={{ color: "rgba(214, 100, 144, 0.6)" }} />
+                        <SiYoutube className="w-3 h-3" style={{ color: "rgba(220, 60, 60, 0.6)" }} />
+                      </div>
                     </div>
-                    <div className="space-y-2.5">
+                    <div className="space-y-2">
                       {[
                         { label: "Top format", value: "Face-cam storytelling", testid: "text-mock-format" },
                         { label: "Avg duration", value: "32s", testid: "text-mock-duration" },
                         { label: "Hook style", value: "Curiosity-driven", testid: "text-mock-hook-style" },
                       ].map((row) => (
-                        <div key={row.label} className="flex items-center justify-between p-2.5 rounded-md bg-muted/50 dark:bg-muted/30 border border-border/60">
+                        <div key={row.label} className="flex items-center justify-between p-2.5 rounded-md bg-muted/40 dark:bg-muted/20">
                           <span className="text-[11px] text-muted-foreground">{row.label}</span>
                           <span className="text-xs sm:text-sm font-semibold text-foreground" data-testid={row.testid}>{row.value}</span>
                         </div>
                       ))}
-                      <div className="flex items-center justify-between p-2.5 rounded-md bg-muted/50 dark:bg-muted/30 border border-border/60">
-                        <span className="text-[11px] text-muted-foreground">Avg score</span>
+                      <div className="flex items-center justify-between p-2.5 rounded-md bg-muted/40 dark:bg-muted/20">
+                        <span className="text-[11px] text-muted-foreground">AI score</span>
                         <div className="flex items-center gap-2">
                           <div className="w-14 h-1.5 rounded-full bg-muted overflow-hidden">
                             <AnimatedBar width="78%" delay={0.3} />
                           </div>
-                          <span className="text-xs sm:text-sm font-semibold text-foreground">78</span>
+                          <span className="text-xs sm:text-sm font-bold text-primary">78</span>
                         </div>
                       </div>
+                    </div>
+                    <div className="pt-1">
+                      <Badge variant="outline" className="text-[9px] px-2 py-0.5 border-primary/20 text-muted-foreground" data-testid="badge-real-data">
+                        Based on real performance data
+                      </Badge>
                     </div>
                   </CardContent>
                 </Card>
               </SectionReveal>
 
               <SectionReveal delay={0.2} className="lg:col-span-1">
-                <Card className="border-border bg-card shadow-lg dark:shadow-primary/5 h-full hover:shadow-xl transition-shadow">
+                <Card className="border-border/60 bg-card shadow-lg dark:shadow-primary/5 h-full hover:shadow-xl transition-shadow">
                   <CardContent className="p-5 sm:p-6 space-y-4">
                     <div className="flex items-center gap-2">
                       <Zap className="w-4 h-4 text-primary" />
@@ -287,7 +325,7 @@ export default function Landing() {
                           whileInView={{ opacity: 1, x: 0 }}
                           viewport={{ once: true }}
                           transition={{ duration: 0.3, delay: 0.3 + i * 0.1 }}
-                          className="flex items-start gap-2.5 p-2.5 rounded-md bg-muted/50 dark:bg-muted/30 border border-border/60 hover:border-primary/20 transition-colors group"
+                          className="flex items-start gap-2.5 p-2.5 rounded-md bg-muted/40 dark:bg-muted/20 hover:bg-muted/60 dark:hover:bg-muted/30 transition-colors group"
                           data-testid={`mock-hook-${i}`}
                         >
                           <span className="w-5 h-5 rounded-full bg-primary/10 group-hover:bg-primary/20 text-primary flex items-center justify-center text-[10px] font-bold flex-shrink-0 mt-0.5 transition-colors">
@@ -348,10 +386,10 @@ export default function Landing() {
             </div>
 
             <SectionReveal delay={0.4}>
-              <div className="flex justify-center mt-10 sm:mt-12">
+              <div className="flex justify-center mt-12 sm:mt-14">
                 <Button
                   size="lg"
-                  className="rounded-full px-8 h-13 bg-primary hover:bg-primary/90 text-white font-semibold text-base shadow-lg shadow-primary/20 transition-all hover:-translate-y-0.5 gap-2"
+                  className="rounded-full px-8 h-12 bg-primary hover:bg-primary/90 text-white font-semibold text-base shadow-lg shadow-primary/20 transition-all hover:-translate-y-0.5 gap-2"
                   onClick={() => setLocation("/auth")}
                   data-testid="button-generate-first-brief"
                 >
@@ -363,61 +401,26 @@ export default function Landing() {
           </div>
         </section>
 
-        <section className="px-4 py-16 sm:py-20 max-w-4xl mx-auto w-full">
-          <SectionReveal>
-            <div className="text-center mb-8 sm:mb-10">
-              <p className="text-xs sm:text-sm font-medium uppercase tracking-widest text-primary mb-2">Why Craflect is different</p>
-              <h2 className="font-display text-2xl sm:text-3xl font-bold text-foreground" data-testid="text-positioning-title">
-                Not another content generator
-              </h2>
-            </div>
-          </SectionReveal>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-            {[
-              { icon: Brain, title: "Pattern intelligence", desc: "Detects winning hooks, formats, and structures from real data." },
-              { icon: TrendingUp, title: "Niche learning", desc: "Gets smarter with every video analyzed." },
-              { icon: Sparkles, title: "Continuous optimization", desc: "Every brief adapts to what's working now." },
-              { icon: BarChart3, title: "Cross-platform short-form", desc: "One analysis covers TikTok, Reels, and Shorts." },
-            ].map((item, i) => (
-              <SectionReveal key={i} delay={i * 0.08}>
-                <div
-                  className="flex items-start gap-3 p-4 rounded-lg bg-card border border-border hover:border-primary/20 transition-colors"
-                  data-testid={`card-positioning-${i}`}
-                >
-                  <div className="w-9 h-9 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    <item.icon className="w-4 h-4 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-display font-bold text-foreground">{item.title}</h3>
-                    <p className="text-xs text-muted-foreground mt-0.5">{item.desc}</p>
-                  </div>
-                </div>
-              </SectionReveal>
-            ))}
-          </div>
-        </section>
-
-        <section className="px-4 py-16 sm:py-20 bg-muted/30 dark:bg-muted/10 border-t border-border">
+        <section className="px-4 py-20 sm:py-28">
           <div className="max-w-4xl mx-auto w-full">
             <SectionReveal>
-              <div className="text-center mb-10 sm:mb-12">
+              <div className="text-center mb-12 sm:mb-16">
                 <h2 className="font-display text-2xl sm:text-3xl font-bold text-foreground mb-2" data-testid="text-howitworks-title">
                   How it works
                 </h2>
-                <p className="text-sm text-muted-foreground">Three steps. Your first brief in under 60 seconds.</p>
+                <p className="text-sm text-muted-foreground">Your first brief in under 60 seconds.</p>
               </div>
             </SectionReveal>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 sm:gap-12">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-10 sm:gap-14">
               {[
-                { step: "1", icon: Link2, title: "Add a video or creator", desc: "Paste any TikTok, Reel, or Short URL." },
-                { step: "2", icon: Search, title: "Craflect analyzes your niche", desc: "AI extracts hooks, formats, and patterns." },
-                { step: "3", icon: FileText, title: "Generate optimized content", desc: "Get briefs and scripts based on what works." },
+                { step: "1", icon: Link2, title: "Paste a URL", desc: "Drop any TikTok, Reel, or Short link." },
+                { step: "2", icon: Search, title: "AI analyzes patterns", desc: "Hooks, formats, and performance data extracted." },
+                { step: "3", icon: FileText, title: "Get your brief", desc: "Ready-to-use scripts based on what works." },
               ].map((item, i) => (
                 <SectionReveal key={i} delay={i * 0.12}>
                   <div className="flex flex-col items-center text-center" data-testid={`card-howitworks-${i}`}>
-                    <div className="relative mb-5">
+                    <div className="relative mb-6">
                       <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center">
                         <item.icon className="w-7 h-7 text-primary" />
                       </div>
@@ -426,29 +429,70 @@ export default function Landing() {
                       </span>
                     </div>
                     <h3 className="text-base font-display font-bold text-foreground mb-1">{item.title}</h3>
-                    <p className="text-sm text-muted-foreground max-w-[220px]">{item.desc}</p>
+                    <p className="text-sm text-muted-foreground max-w-[200px]">{item.desc}</p>
                   </div>
                 </SectionReveal>
               ))}
             </div>
+          </div>
+        </section>
 
-            <SectionReveal delay={0.4}>
-              <div className="flex justify-center mt-10 sm:mt-14">
-                <Button
-                  size="lg"
-                  className="rounded-full px-10 h-14 bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-white font-semibold text-lg shadow-xl shadow-primary/25 transition-all hover:-translate-y-1 gap-3"
-                  onClick={() => setLocation("/auth")}
-                  data-testid="button-bottom-cta"
-                >
-                  Generate your first brief
-                  <ArrowRight className="w-5 h-5" />
-                </Button>
+        <section className="px-4 py-14 sm:py-18 bg-muted/20 dark:bg-muted/10 border-y border-border/50">
+          <div className="max-w-3xl mx-auto w-full">
+            <SectionReveal>
+              <div className="text-center mb-6">
+                <p className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-primary mb-2">Why Craflect is different</p>
+                <h2 className="font-display text-xl sm:text-2xl font-bold text-foreground" data-testid="text-positioning-title">
+                  Not another content generator
+                </h2>
               </div>
+            </SectionReveal>
+            <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
+              {[
+                { icon: Brain, title: "Pattern intelligence" },
+                { icon: TrendingUp, title: "Niche learning" },
+                { icon: Sparkles, title: "Continuous optimization" },
+                { icon: BarChart3, title: "Cross-platform short-form" },
+              ].map((item, i) => (
+                <SectionReveal key={i} delay={i * 0.06}>
+                  <div
+                    className="flex items-center gap-2.5 p-3 sm:p-3.5 rounded-lg bg-card border border-transparent hover:border-primary/15 transition-colors"
+                    data-testid={`card-positioning-${i}`}
+                  >
+                    <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <item.icon className="w-4 h-4 text-primary" />
+                    </div>
+                    <span className="text-xs sm:text-sm font-display font-bold text-foreground">{item.title}</span>
+                  </div>
+                </SectionReveal>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="px-4 py-20 sm:py-24">
+          <div className="max-w-2xl mx-auto text-center">
+            <SectionReveal>
+              <h2 className="font-display text-2xl sm:text-3xl font-bold text-foreground mb-4">
+                Ready to analyze your niche?
+              </h2>
+              <p className="text-sm text-muted-foreground mb-8 max-w-md mx-auto">
+                Paste your first video and see what Craflect discovers.
+              </p>
+              <Button
+                size="lg"
+                className="rounded-full px-10 h-14 bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-white font-semibold text-lg shadow-xl shadow-primary/25 transition-all hover:-translate-y-1 gap-3"
+                onClick={() => setLocation("/auth")}
+                data-testid="button-bottom-cta"
+              >
+                Paste your first video
+                <ArrowRight className="w-5 h-5" />
+              </Button>
             </SectionReveal>
           </div>
         </section>
 
-        <footer className="px-4 py-8 border-t border-border">
+        <footer className="px-4 py-8 border-t border-border/50">
           <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <img src={isDark ? logoTransparent : logoLight} alt="Craflect" className="h-6 w-auto" />

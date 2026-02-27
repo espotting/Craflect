@@ -1,0 +1,125 @@
+✅ BRIEF REPLIT — Optimisation Home Craflect (UX + Conversion)
+🎯 Objectif
+
+Rendre la Home plus lisible, plus rapide à comprendre et plus orientée action sans supprimer de contenu.
+
+1️⃣ Simplifier la hiérarchie des sections
+Structure cible :
+
+Hero (message + CTA)
+
+Framework produit (Observe → Understand → Recommend → Produce)
+
+Product preview (insights / hooks / brief)
+
+How it works (3 étapes)
+
+CTA final
+
+👉 La section “Not another content generator” doit être :
+
+raccourcie
+
+ou déplacée plus bas (preuve / différenciation)
+
+2️⃣ Réduire la sensation de densité visuelle
+À implémenter
+
+Augmenter l’espace vertical entre sections
+
+Limiter les bordures lourdes sur toutes les cartes
+
+Alterner sections fond clair / fond sombre pour respirer
+
+Réduire le texte secondaire (phrases plus courtes)
+
+Objectif : impression de simplicité.
+
+3️⃣ Clarifier le flow mental utilisateur
+
+L’utilisateur doit comprendre en 5 secondes :
+
+👉 Je colle une vidéo
+👉 L’IA analyse
+👉 J’obtiens un brief
+👉 Je crée du contenu
+
+Ajout recommandé
+
+Sous le hero :
+
+Petite ligne :
+
+“Paste a video → Get insights → Generate content”
+
+Micro UX mais énorme impact conversion.
+
+4️⃣ Transformer la Home en funnel d’action
+
+Le CTA principal ne doit pas juste dire “Get started”.
+
+Il doit pousser vers l’expérience wow.
+
+Modifier CTA
+
+Option recommandée :
+
+“Analyze a video”
+
+“Paste your first video”
+
+“Generate your first brief”
+
+5️⃣ Renforcer la preuve produit
+
+Dans la section Product preview :
+
+Ajouter :
+
+Score IA visible
+
+Badge “Based on real performance data”
+
+Mention multi-platform (TikTok / Reels / Shorts)
+
+Objectif : crédibilité intelligence.
+
+6️⃣ Réduire la redondance Observe vs How it works
+
+Actuellement les deux expliquent la même chose.
+
+Solution :
+
+Observe → vision produit
+
+How it works → action concrète
+
+Donc reformuler How it works plus opérationnel.
+
+7️⃣ Ajouter un CTA sticky
+
+Recommandé :
+
+Bouton flottant en haut :
+
+“Analyze video”
+
+Très efficace SaaS AI.
+
+🧠 Principe clé à respecter
+
+Ne pas enlever d’info.
+Créer des niveaux de lecture :
+
+Niveau 1 → comprendre
+
+Niveau 2 → croire
+
+Niveau 3 → agir
+
+⭐ Conclusion produit
+
+La Home est déjà très bonne.
+Le travail maintenant = design cognitif, pas design graphique.
+
+Tu passes d’une belle landing → à une landing qui convertit.
