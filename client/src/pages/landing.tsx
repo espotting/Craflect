@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
-import { Sparkles, ArrowRight, Layers, Workflow, Zap, Sun, Moon } from "lucide-react";
+import { Sparkles, ArrowRight, Layers, Workflow, Zap, Sun, Moon, UserCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/hooks/use-theme";
 import logoLight from "@/assets/logo-light.png";
@@ -48,14 +48,14 @@ export default function Landing() {
           >
             {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </button>
-          <Button 
-            variant="ghost"
-            className="rounded-full px-6 text-foreground hover:bg-white/10 dark:hover:bg-white/10 font-medium transition-all"
+          <button
             onClick={() => setLocation("/auth?mode=login")}
+            className="p-2.5 rounded-full bg-white/10 dark:bg-white/10 hover:bg-white/20 dark:hover:bg-white/20 text-foreground backdrop-blur-md transition-all border border-border dark:border-white/10"
+            title="Log in"
             data-testid="button-login-nav"
           >
-            Log in
-          </Button>
+            <UserCircle2 className="w-5 h-5" />
+          </button>
           <Button 
             className="rounded-full px-8 bg-primary hover:bg-primary/90 text-white border-0 shadow-lg shadow-primary/20 transition-all hover:scale-105 font-medium"
             onClick={() => setLocation("/auth")}

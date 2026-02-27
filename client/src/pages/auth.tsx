@@ -161,16 +161,6 @@ export default function Auth() {
                   <Button
                     variant="outline"
                     className="w-full h-14 rounded-xl border-border text-foreground hover:bg-accent gap-3 font-medium text-base transition-all"
-                    onClick={() => setStep("login-form")}
-                    data-testid="button-email-login"
-                  >
-                    <LogIn className="w-5 h-5" />
-                    Log in with Email
-                  </Button>
-
-                  <Button
-                    variant="outline"
-                    className="w-full h-14 rounded-xl border-border text-foreground hover:bg-accent gap-3 font-medium text-base transition-all"
                     onClick={() => setStep("email-form")}
                     data-testid="button-email-auth"
                   >
