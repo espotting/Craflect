@@ -174,20 +174,23 @@ export default function Landing() {
               Identify winning short-form video patterns in your niche and turn them into optimized content.
             </p>
 
-            <div className="flex items-center justify-center gap-4 mb-8">
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <SiTiktok className="w-3.5 h-3.5" style={{ color: isDark ? "rgba(178, 225, 232, 0.75)" : "rgba(0, 0, 0, 0.7)" }} />
-                <span>TikTok</span>
-              </div>
-              <span className="text-muted-foreground/30">·</span>
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <SiInstagram className="w-3.5 h-3.5" style={{ color: "rgba(214, 100, 144, 0.75)" }} />
-                <span>Reels</span>
-              </div>
-              <span className="text-muted-foreground/30">·</span>
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <SiYoutube className="w-3.5 h-3.5" style={{ color: "rgba(220, 60, 60, 0.75)" }} />
-                <span>Shorts</span>
+            <div className="flex flex-col items-center gap-2 mb-8">
+              <span className="text-[11px] text-muted-foreground/70 tracking-wide">Analyze content from</span>
+              <div className="flex items-center justify-center gap-4">
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <SiTiktok className="w-3.5 h-3.5" style={{ color: isDark ? "rgba(178, 225, 232, 0.75)" : "rgba(0, 0, 0, 0.7)" }} />
+                  <span>TikTok</span>
+                </div>
+                <span className="text-muted-foreground/30">•</span>
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <SiInstagram className="w-3.5 h-3.5" style={{ color: "rgba(214, 100, 144, 0.75)" }} />
+                  <span>Reels</span>
+                </div>
+                <span className="text-muted-foreground/30">•</span>
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <SiYoutube className="w-3.5 h-3.5" style={{ color: "rgba(220, 60, 60, 0.75)" }} />
+                  <span>Shorts</span>
+                </div>
               </div>
             </div>
 
