@@ -556,12 +556,17 @@ export default function Welcome() {
                         </div>
                         <div>
                           <h2 className="text-2xl font-display font-bold text-foreground" data-testid="text-step-title">
-                            Paste a video / profile URL
+                            Add videos or creators from your niche
                           </h2>
                           <p className="text-sm text-muted-foreground">
-                            Add content from your niche. We'll analyze what makes it perform.
+                            We'll detect patterns across multiple videos — hooks, formats, and structures that drive performance.
                           </p>
                         </div>
+                      </div>
+
+                      <div className="p-3 rounded-md bg-primary/5 dark:bg-primary/10 border border-primary/20 text-sm text-foreground/80">
+                        <Sparkles className="w-4 h-4 text-primary inline mr-2" />
+                        Best results with 3–10 sources. Add your own videos, competitors, or viral content from your niche.
                       </div>
 
                       <div className="space-y-3">
@@ -616,13 +621,8 @@ export default function Welcome() {
                           data-testid="button-onboarding-add-url"
                         >
                           <Plus className="w-4 h-4 mr-2" />
-                          Add another URL
+                          Add more inspiration
                         </Button>
-                      </div>
-
-                      <div className="flex items-center gap-3 p-3 rounded-md bg-muted dark:bg-muted/50 border border-border text-sm text-muted-foreground">
-                        <BarChart3 className="w-4 h-4 text-primary flex-shrink-0" />
-                        Supports: TikTok videos, IG Reels, YouTube videos, creator profiles, competitor inspiration.
                       </div>
 
                       <div className="flex items-center gap-3">
@@ -643,7 +643,7 @@ export default function Welcome() {
                           {isSubmitting ? (
                             <Loader2 className="w-4 h-4 animate-spin mr-2" />
                           ) : null}
-                          Analyze content
+                          Find winning patterns
                           <ArrowRight className="w-4 h-4 ml-2" />
                         </Button>
                       </div>
