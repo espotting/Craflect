@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/hooks/use-theme";
@@ -6,7 +6,7 @@ import { useLocation } from "wouter";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Mail, Loader2, Sun, Moon, CheckCircle2, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, Mail, Loader2, Sun, Moon, CheckCircle2, Eye, EyeOff, Check, X } from "lucide-react";
 import { FcGoogle } from "react-icons/fc";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -15,6 +15,19 @@ import logoLight from "@/assets/logo-light.png";
 import logoTransparent from "@/assets/logo-transparent.png";
 
 type AuthStep = "choose" | "email-form" | "login-form" | "verify-code";
+
+function usePasswordValidation(password: string) {
+  return useMemo(() => ({
+    minLength: password.length >= 8,
+    hasUppercase: /[A-Z]/.test(password),
+    hasNumber: /[0-9]/.test(password),
+    hasSpecial: /[^A-Za-z0-9]/.test(password),
+  }), [password]);
+}
+
+function isPasswordValid(v: ReturnType<typeof usePasswordValidation>) {
+  return v.minLength && v.hasUppercase && v.hasNumber && v.hasSpecial;
+}
 
 export default function Auth() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -29,11 +42,19 @@ export default function Auth() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [code, setCode] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [resending, setResending] = useState(false);
   const [isLoginFlow, setIsLoginFlow] = useState(false);
+  const [passwordTouched, setPasswordTouched] = useState(false);
+  const [confirmTouched, setConfirmTouched] = useState(false);
+
+  const passwordChecks = usePasswordValidation(password);
+  const passwordValid = isPasswordValid(passwordChecks);
+  const passwordsMatch = password === confirmPassword;
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
@@ -45,7 +66,11 @@ export default function Auth() {
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim() || !firstName.trim() || !password.trim()) return;
+    if (!email.trim() || !firstName.trim() || !passwordValid) return;
+    if (!passwordsMatch) {
+      toast({ title: "Error", description: "Passwords do not match", variant: "destructive" });
+      return;
+    }
     setSubmitting(true);
     try {
       await apiRequest("POST", "/api/auth/register", {
@@ -117,6 +142,17 @@ export default function Auth() {
       setResending(false);
     }
   };
+
+  const PasswordRule = ({ met, label }: { met: boolean; label: string }) => (
+    <div className="flex items-center gap-2 text-xs" data-testid={`rule-${label.toLowerCase().replace(/\s+/g, '-')}`}>
+      {met ? (
+        <Check className="w-3.5 h-3.5 text-emerald-500" />
+      ) : (
+        <X className="w-3.5 h-3.5 text-muted-foreground/50" />
+      )}
+      <span className={met ? "text-emerald-500" : "text-muted-foreground/70"}>{label}</span>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -237,7 +273,6 @@ export default function Auth() {
                         onChange={(e) => setPassword(e.target.value)}
                         className="bg-background border-border text-foreground h-12 rounded-xl focus-visible:ring-primary pr-12"
                         required
-                        minLength={8}
                         data-testid="input-login-password"
                       />
                       <button
@@ -260,6 +295,21 @@ export default function Auth() {
                     {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Sign in"}
                   </Button>
                 </form>
+
+                <div className="relative flex items-center gap-4 py-1">
+                  <div className="flex-1 h-px bg-border" />
+                  <span className="text-xs text-muted-foreground uppercase tracking-widest font-medium">or</span>
+                  <div className="flex-1 h-px bg-border" />
+                </div>
+
+                <Button
+                  className="w-full h-12 rounded-xl bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 shadow-sm hover:shadow-md gap-3 font-medium text-sm transition-all"
+                  onClick={() => window.location.href = "/api/login"}
+                  data-testid="button-google-login"
+                >
+                  <FcGoogle className="w-5 h-5" />
+                  Log in with Google
+                </Button>
 
                 <p className="text-center text-sm text-muted-foreground">
                   Don't have an account?{" "}
@@ -336,10 +386,9 @@ export default function Auth() {
                         type={showPassword ? "text" : "password"}
                         placeholder="••••••••"
                         value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="bg-background border-border text-foreground h-12 rounded-xl focus-visible:ring-primary pr-12"
+                        onChange={(e) => { setPassword(e.target.value); setPasswordTouched(true); }}
+                        className={`bg-background border-border text-foreground h-12 rounded-xl focus-visible:ring-primary pr-12 ${passwordTouched && !passwordValid ? "border-destructive focus-visible:ring-destructive" : ""}`}
                         required
-                        minLength={8}
                         data-testid="input-register-password"
                       />
                       <button
@@ -352,11 +401,54 @@ export default function Auth() {
                         {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
-                    <p className="text-xs text-muted-foreground">Minimum 8 characters</p>
+                    {passwordTouched && (
+                      <div className="grid grid-cols-2 gap-1.5 pt-1" data-testid="password-rules">
+                        <PasswordRule met={passwordChecks.minLength} label="8 characters min" />
+                        <PasswordRule met={passwordChecks.hasUppercase} label="1 uppercase letter" />
+                        <PasswordRule met={passwordChecks.hasNumber} label="1 number" />
+                        <PasswordRule met={passwordChecks.hasSpecial} label="1 special character" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-muted-foreground">Confirm password</label>
+                    <div className="relative">
+                      <Input
+                        type={showConfirmPassword ? "text" : "password"}
+                        placeholder="••••••••"
+                        value={confirmPassword}
+                        onChange={(e) => { setConfirmPassword(e.target.value); setConfirmTouched(true); }}
+                        onPaste={(e) => e.preventDefault()}
+                        className={`bg-background border-border text-foreground h-12 rounded-xl focus-visible:ring-primary pr-12 ${confirmTouched && confirmPassword.length > 0 && !passwordsMatch ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                        required
+                        data-testid="input-confirm-password"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                        tabIndex={-1}
+                        data-testid="button-toggle-confirm-password"
+                      >
+                        {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                    {confirmTouched && confirmPassword.length > 0 && !passwordsMatch && (
+                      <p className="text-xs text-destructive flex items-center gap-1.5" data-testid="text-password-mismatch">
+                        <X className="w-3.5 h-3.5" />
+                        Passwords do not match
+                      </p>
+                    )}
+                    {confirmTouched && confirmPassword.length > 0 && passwordsMatch && (
+                      <p className="text-xs text-emerald-500 flex items-center gap-1.5" data-testid="text-password-match">
+                        <Check className="w-3.5 h-3.5" />
+                        Passwords match
+                      </p>
+                    )}
                   </div>
                   <Button
                     type="submit"
-                    disabled={submitting || !email.trim() || !firstName.trim() || password.length < 8}
+                    disabled={submitting || !email.trim() || !firstName.trim() || !passwordValid || !passwordsMatch || confirmPassword.length === 0}
                     className="w-full h-12 rounded-xl bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-white font-medium"
                     data-testid="button-send-code"
                   >
