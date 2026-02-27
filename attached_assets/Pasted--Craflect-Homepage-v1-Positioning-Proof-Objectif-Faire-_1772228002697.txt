@@ -1,0 +1,156 @@
+📄 Craflect — Homepage v1 (Positioning + Proof)
+🎯 Objectif
+
+Faire comprendre en <5s que Craflect analyse les vidéos short-form, identifie les patterns gagnants et génère du contenu optimisé.
+
+La homepage doit montrer le résultat, pas seulement expliquer le produit.
+
+✅ Section 1 — Hero (inchangé)
+
+Headline :
+
+Show me what works
+Tell me what to post
+Create it for me
+
+Sous-titre :
+
+Identify winning short-form video patterns in your niche and turn them into optimized content.
+
+Ajouter small label :
+
+Built for TikTok, Reels and Shorts
+
+CTA :
+
+Get started free
+
+✅ Section 2 — Engine Narrative (garder mais compacter)
+
+Observe
+Understand
+Recommend
+Produce
+
+Mais :
+
+réduire texte
+
+1 ligne par card
+
+focus action
+
+Exemple :
+
+Observe → Paste any video or competitor
+Understand → Detect winning patterns
+Recommend → Get actionable ideas
+Produce → Generate optimized scripts
+
+Objectif : expliquer le moteur rapidement.
+
+⭐ Section 3 — Proof of Product (CRITIQUE)
+
+Titre :
+
+See what Craflect generates
+
+Afficher mock résultat :
+
+Niche Insights
+
+Top format
+
+Avg duration
+
+Hook style
+
+Winning Hooks
+
+Liste de hooks générés
+
+Generated Brief
+
+Card :
+
+Title
+Hook
+Structure
+CTA
+Platform variants (TikTok / Reels / Shorts)
+
+CTA :
+
+Generate your first brief
+
+✅ Section 4 — Positioning
+
+Titre :
+
+Not another content generator
+
+Bullets :
+
+Pattern intelligence
+
+Niche learning
+
+Continuous optimization
+
+Cross-platform short-form
+
+But : clarifier différenciation.
+
+✅ Section 5 — How it works (simple)
+
+Add a video or creator
+
+Craflect analyzes your niche
+
+Generate optimized content
+
+Illustrations légères.
+
+🧠 UX Principle
+
+Progression :
+
+Promise → Engine → Proof → Differentiation → Action
+
+Pas plus de 5 sections.
+
+⚠️ Contraintes design
+
+éviter longues descriptions
+
+montrer visuel résultat
+
+motion subtile
+
+mobile first
+
+sections respirées
+
+✅ Dev components
+
+Hero
+EngineCards (compact)
+InsightPreview
+HookList
+BriefPreview
+PositioningList
+HowItWorks
+
+Mock data v1.
+
+✅ KPI
+
+Hero CTR
+Scroll to proof
+Proof → signup
+Time on page
+Onboarding start
+
+⭐ Guideline produit
+
+Les users doivent voir que Craflect comprend la niche avant de créer.
