@@ -18,12 +18,12 @@
     --popover-foreground: 210 40% 98%;
     --popover-border: 224 71% 12%;
 
-    /* Neon Blue Primary */
-    --primary: 217 100% 61%;
-    --primary-foreground: 210 40% 98%;
-    --primary-border: 217 100% 50%;
+    /* Craflect Purple Primary (#7C5CFF) */
+    --primary: 252 100% 68%;
+    --primary-foreground: 0 0% 100%;
+    --primary-border: 252 100% 50%;
 
-    /* Neon Purple Accent */
+    /* Neon Purple Accent (keeping as is or slightly adjusting) */
     --secondary: 270 100% 65%;
     --secondary-foreground: 210 40% 98%;
     --secondary-border: 270 100% 55%;

@@ -5,6 +5,8 @@ import { useEffect } from "react";
 import { Hexagon, Sparkles, ArrowRight, Layers, Workflow, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+import logoColor from "@assets/Logo_#7C5CFF_1772218168973.png";
+
 export default function Landing() {
   const { isAuthenticated, isLoading } = useAuth();
   const [, setLocation] = useLocation();
@@ -35,12 +37,7 @@ export default function Landing() {
       {/* Nav */}
       <nav className="relative z-10 w-full px-6 py-6 flex items-center justify-between max-w-7xl mx-auto">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg shadow-primary/20 neon-border">
-            <Hexagon className="w-6 h-6 text-white fill-white/20" />
-          </div>
-          <span className="font-display font-bold text-2xl tracking-tight text-white text-glow">
-            Craflect
-          </span>
+          <img src={logoColor} alt="Craflect" className="h-10 w-auto" />
         </div>
         <div>
           <Button 

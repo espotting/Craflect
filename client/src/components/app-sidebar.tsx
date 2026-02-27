@@ -21,6 +21,7 @@ import {
   SidebarHeader,
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/hooks/use-auth";
+import logoTransparent from "@assets/Logo_transparent_1772218168974.png";
 
 const mainItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
@@ -40,12 +41,7 @@ export function AppSidebar() {
   return (
     <Sidebar variant="inset" className="border-r border-white/5 bg-sidebar">
       <SidebarHeader className="p-4 flex flex-row items-center gap-2">
-        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg shadow-primary/20">
-          <Hexagon className="w-5 h-5 text-white fill-white/20" />
-        </div>
-        <span className="font-display font-bold text-xl tracking-tight text-white text-glow">
-          Craflect
-        </span>
+        <img src={logoTransparent} alt="Craflect" className="h-10 w-auto" />
       </SidebarHeader>
 
       <SidebarContent>
