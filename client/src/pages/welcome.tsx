@@ -22,6 +22,12 @@ import {
   TrendingUp,
   BarChart3,
   Target,
+  Eye,
+  Brain,
+  Zap,
+  Sun,
+  Moon,
+  LogOut,
 } from "lucide-react";
 import { SiTiktok, SiInstagram, SiYoutube } from "react-icons/si";
 import logoTransparent from "@/assets/logo-transparent.png";
@@ -143,16 +149,32 @@ function PlatformIcon({ platform, className }: { platform: string | null; classN
 }
 
 const STEPS = [
-  { label: "Create workspace", icon: FolderKanban },
-  { label: "Analyze content", icon: Link2 },
-  { label: "Your first insights", icon: Sparkles },
+  { label: "Workspace", icon: FolderKanban },
+  { label: "Add source", icon: Link2 },
+  { label: "AI analysis", icon: Brain },
+  { label: "First results", icon: Sparkles },
+];
+
+const LOADER_MESSAGES = [
+  { text: "Extracting video structure...", icon: Eye, delay: 0 },
+  { text: "Identifying hooks...", icon: Zap, delay: 2500 },
+  { text: "Detecting patterns in your niche...", icon: Brain, delay: 5000 },
+  { text: "Generating winning angles...", icon: Target, delay: 8000 },
+  { text: "Building your first content brief...", icon: Sparkles, delay: 11000 },
+];
+
+const MICRO_INSIGHTS = [
+  "Storytelling hooks perform best in your niche",
+  "Videos under 45s get higher retention",
+  "We found 3 winning patterns in your niche",
+  "Your top hook style is curiosity-driven",
 ];
 
 export default function Welcome() {
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, isLoading: authLoading, logout } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const { isDark } = useTheme();
+  const { isDark, toggleTheme } = useTheme();
 
   const [step, setStep] = useState(0);
   const [showIntro, setShowIntro] = useState(true);
@@ -161,17 +183,24 @@ export default function Welcome() {
   const [urls, setUrls] = useState<string[]>([""]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
-  const [insightsGenerated, setInsightsGenerated] = useState(false);
-  const [analysisPhase, setAnalysisPhase] = useState<"idle" | "ingesting" | "analyzing" | "generating" | "done">("idle");
-  const [insightData, setInsightData] = useState<{ topic?: string; hook?: string; format?: string; performanceScore?: number } | null>(null);
   const [createdSourceIds, setCreatedSourceIds] = useState<string[]>([]);
+
+  const [loaderMessageIndex, setLoaderMessageIndex] = useState(0);
+  const [microInsightIndex, setMicroInsightIndex] = useState(0);
+  const [showMicroInsight, setShowMicroInsight] = useState(false);
+
+  const [insightData, setInsightData] = useState<{
+    topic?: string;
+    hook?: string;
+    format?: string;
+    angles?: string[];
+    hooks?: string[];
+    formats?: string[];
+  } | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
       setLocation("/");
-    }
-    if (!authLoading && user?.onboardingCompleted) {
-      setLocation("/dashboard");
     }
   }, [authLoading, user, setLocation]);
 
@@ -179,6 +208,16 @@ export default function Welcome() {
     const timer = setTimeout(() => setShowIntro(false), 2500);
     return () => clearTimeout(timer);
   }, []);
+
+  const handleSkipOnboarding = useCallback(async () => {
+    try {
+      await apiRequest("PATCH", "/api/auth/user", { onboardingCompleted: true });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      setLocation("/dashboard");
+    } catch {
+      setLocation("/dashboard");
+    }
+  }, [setLocation]);
 
   const handleCreateWorkspace = useCallback(async () => {
     if (!workspaceName.trim()) return;
@@ -223,6 +262,7 @@ export default function Welcome() {
       setCreatedSourceIds(ids);
       toast({ title: "URLs added", description: `${sources.length} content source(s) ready for analysis.` });
       setStep(2);
+      runAnalysisPipeline(ids);
     } catch (err: any) {
       toast({ title: "Error", description: err.message || "Failed to ingest URLs", variant: "destructive" });
     } finally {
@@ -230,47 +270,77 @@ export default function Welcome() {
     }
   }, [validUrls, createdWorkspaceId, toast]);
 
-  const handleGenerateInsights = useCallback(async () => {
-    if (!createdWorkspaceId) return;
-    setIsSubmitting(true);
-    setAnalysisPhase("analyzing");
+  const runAnalysisPipeline = useCallback(async (sourceIds: string[]) => {
+    setLoaderMessageIndex(0);
+    setMicroInsightIndex(0);
+    setShowMicroInsight(false);
+
+    const loaderTimers: NodeJS.Timeout[] = [];
+    for (let i = 1; i < LOADER_MESSAGES.length; i++) {
+      const timer = setTimeout(() => {
+        setLoaderMessageIndex(i);
+      }, LOADER_MESSAGES[i].delay);
+      loaderTimers.push(timer);
+    }
+
+    const microTimer1 = setTimeout(() => {
+      setShowMicroInsight(true);
+      setMicroInsightIndex(0);
+    }, 4000);
+    const microTimer2 = setTimeout(() => setMicroInsightIndex(1), 7000);
+    const microTimer3 = setTimeout(() => setMicroInsightIndex(2), 10000);
+    const microTimer4 = setTimeout(() => setMicroInsightIndex(3), 13000);
+    loaderTimers.push(microTimer1, microTimer2, microTimer3, microTimer4);
+
     try {
-      for (const sourceId of createdSourceIds) {
+      for (const sourceId of sourceIds) {
         try {
           await apiRequest("POST", `/api/sources/${sourceId}/analyze`);
         } catch {
-          // continue with other sources
+          // continue
         }
       }
 
-      setAnalysisPhase("generating");
-      const res = await apiRequest("POST", `/api/workspaces/${createdWorkspaceId}/briefs/generate`);
-      const insight = await res.json();
+      if (createdWorkspaceId) {
+        const res = await apiRequest("POST", `/api/workspaces/${createdWorkspaceId}/briefs/generate`);
+        const insight = await res.json();
 
-      setInsightData({
-        topic: insight.topic,
-        hook: insight.hook,
-        format: insight.format,
-      });
+        let angles: string[] = [];
+        let hooks: string[] = [];
+        let formats: string[] = [];
+        try {
+          const insightsJson = typeof insight.insights === "string" ? JSON.parse(insight.insights) : insight.insights;
+          if (insightsJson) {
+            if (insightsJson.contentAngles) angles = insightsJson.contentAngles.map((a: any) => a.angle || a.name || a);
+            if (insightsJson.topHooks) hooks = insightsJson.topHooks.map((h: any) => h.hook || h.name || h);
+            if (insightsJson.winningFormats) formats = insightsJson.winningFormats.map((f: any) => f.format || f.name || f);
+          }
+        } catch {}
 
-      setAnalysisPhase("done");
-      setInsightsGenerated(true);
+        setInsightData({
+          topic: insight.topic,
+          hook: insight.hook,
+          format: insight.format,
+          angles: angles.slice(0, 3),
+          hooks: hooks.slice(0, 3),
+          formats: formats.slice(0, 3),
+        });
+      }
+
+      loaderTimers.forEach(clearTimeout);
       setShowConfetti(true);
-      toast({ title: "Insights generated!", description: "Your first performance analysis is ready." });
+      setStep(3);
 
       await apiRequest("PATCH", "/api/auth/user", { onboardingCompleted: true });
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-
-      setTimeout(() => {
-        setLocation("/dashboard");
-      }, 4000);
     } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Failed to generate insights", variant: "destructive" });
-      setAnalysisPhase("idle");
-    } finally {
-      setIsSubmitting(false);
+      loaderTimers.forEach(clearTimeout);
+      toast({ title: "Analysis error", description: err.message || "Something went wrong, but you can retry from the dashboard.", variant: "destructive" });
+      await apiRequest("PATCH", "/api/auth/user", { onboardingCompleted: true }).catch(() => {});
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      setStep(3);
     }
-  }, [createdWorkspaceId, createdSourceIds, toast, setLocation]);
+  }, [createdWorkspaceId, toast]);
 
   if (authLoading || !user) {
     return (
@@ -280,7 +350,7 @@ export default function Welcome() {
     );
   }
 
-  const progressValue = showIntro ? 0 : ((step + (insightsGenerated ? 1 : 0)) / 3) * 100;
+  const progressValue = showIntro ? 0 : ((step + (step === 3 ? 1 : 0)) / 4) * 100;
   const firstName = user.firstName || "Creator";
 
   return (
@@ -289,6 +359,28 @@ export default function Welcome() {
 
       <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/5 dark:bg-primary/10 rounded-full blur-[150px] -translate-y-1/2 translate-x-1/3 pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-secondary/5 dark:bg-secondary/10 rounded-full blur-[120px] translate-y-1/3 -translate-x-1/3 pointer-events-none" />
+
+      <div className="fixed top-4 right-4 z-40 flex items-center gap-2">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={toggleTheme}
+          className="text-muted-foreground hover:text-foreground"
+          data-testid="button-theme-toggle"
+        >
+          {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleSkipOnboarding}
+          className="text-muted-foreground hover:text-foreground text-xs"
+          data-testid="button-skip-onboarding"
+        >
+          Skip
+          <ArrowRight className="w-3 h-3 ml-1" />
+        </Button>
+      </div>
 
       <AnimatePresence mode="wait">
         {showIntro ? (
@@ -319,12 +411,12 @@ export default function Welcome() {
               Welcome, {firstName}
             </motion.h1>
             <motion.p
-              className="text-muted-foreground text-lg"
+              className="text-muted-foreground text-lg text-center max-w-md px-4"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.8, duration: 0.6 }}
             >
-              Let's set up your content intelligence engine in 3 steps.
+              Turn one video into weeks of content.
             </motion.p>
           </motion.div>
         ) : (
@@ -343,23 +435,23 @@ export default function Welcome() {
                   className="h-8 w-auto"
                 />
                 <span className="text-sm text-muted-foreground font-medium">
-                  Step {step + 1} of 3
+                  Step {Math.min(step + 1, 4)} of 4
                 </span>
               </div>
               <Progress value={progressValue} className="h-1.5 bg-muted" />
 
-              <div className="flex items-center gap-2 mt-6 mb-2 flex-wrap">
+              <div className="flex items-center gap-1 mt-6 mb-2 flex-wrap">
                 {STEPS.map((s, i) => {
-                  const done = i < step || (i === 2 && insightsGenerated);
-                  const active = i === step && !insightsGenerated;
+                  const done = i < step;
+                  const active = i === step;
                   return (
                     <div
                       key={i}
-                      className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors ${
                         done
-                          ? "bg-primary/10 text-primary"
+                          ? "bg-primary/10 dark:bg-primary/20 text-primary"
                           : active
-                          ? "bg-accent text-foreground"
+                          ? "bg-accent dark:bg-accent text-foreground"
                           : "text-muted-foreground"
                       }`}
                       data-testid={`step-indicator-${i}`}
@@ -386,7 +478,7 @@ export default function Welcome() {
                   exit={{ opacity: 0, x: -50 }}
                   transition={{ duration: 0.35 }}
                 >
-                  <Card className="border-border">
+                  <Card className="border-border bg-card">
                     <CardContent className="p-8 space-y-6">
                       <div className="flex items-center gap-3 mb-2">
                         <div className="w-10 h-10 rounded-md bg-primary/10 flex items-center justify-center">
@@ -397,9 +489,14 @@ export default function Welcome() {
                             Create your workspace
                           </h2>
                           <p className="text-sm text-muted-foreground">
-                            A workspace organizes content for a specific brand or project.
+                            A workspace organizes content for a specific brand or niche.
                           </p>
                         </div>
+                      </div>
+
+                      <div className="p-3 rounded-md bg-primary/5 dark:bg-primary/10 border border-primary/20 text-sm text-foreground/80">
+                        <Sparkles className="w-4 h-4 text-primary inline mr-2" />
+                        We'll analyze your niche and generate your first winning content ideas.
                       </div>
 
                       <div className="space-y-2">
@@ -431,7 +528,7 @@ export default function Welcome() {
                         {isSubmitting ? (
                           <Loader2 className="w-4 h-4 animate-spin mr-2" />
                         ) : null}
-                        Create workspace
+                        Continue
                         <ArrowRight className="w-4 h-4 ml-2" />
                       </Button>
                     </CardContent>
@@ -448,7 +545,7 @@ export default function Welcome() {
                   exit={{ opacity: 0, x: -50 }}
                   transition={{ duration: 0.35 }}
                 >
-                  <Card className="border-border">
+                  <Card className="border-border bg-card">
                     <CardContent className="p-8 space-y-6">
                       <div className="flex items-center gap-3 mb-2">
                         <div className="w-10 h-10 rounded-md bg-primary/10 flex items-center justify-center">
@@ -456,10 +553,10 @@ export default function Welcome() {
                         </div>
                         <div>
                           <h2 className="text-2xl font-display font-bold text-foreground" data-testid="text-step-title">
-                            Analyze content from your niche
+                            Paste a video / profile URL
                           </h2>
                           <p className="text-sm text-muted-foreground">
-                            Paste a video URL from your niche. We'll analyze what makes it perform.
+                            Add content from your niche. We'll analyze what makes it perform.
                           </p>
                         </div>
                       </div>
@@ -520,9 +617,9 @@ export default function Welcome() {
                         </Button>
                       </div>
 
-                      <div className="flex items-center gap-3 p-4 rounded-md bg-muted border border-border text-sm text-muted-foreground">
+                      <div className="flex items-center gap-3 p-3 rounded-md bg-muted dark:bg-muted/50 border border-border text-sm text-muted-foreground">
                         <BarChart3 className="w-4 h-4 text-primary flex-shrink-0" />
-                        Supported: TikTok, Instagram Reels, YouTube Shorts, and more.
+                        Supports: TikTok videos, IG Reels, YouTube videos, creator profiles, competitor inspiration.
                       </div>
 
                       <div className="flex items-center gap-3">
@@ -543,7 +640,7 @@ export default function Welcome() {
                           {isSubmitting ? (
                             <Loader2 className="w-4 h-4 animate-spin mr-2" />
                           ) : null}
-                          Analyze {validUrls.length} URL{validUrls.length !== 1 ? "s" : ""}
+                          Analyze content
                           <ArrowRight className="w-4 h-4 ml-2" />
                         </Button>
                       </div>
@@ -554,116 +651,216 @@ export default function Welcome() {
 
               {step === 2 && (
                 <motion.div
-                  key="step2"
+                  key="step2-loader"
                   className="w-full max-w-lg"
-                  initial={{ opacity: 0, x: 50 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -50 }}
-                  transition={{ duration: 0.35 }}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.4 }}
                 >
-                  <Card className="border-border">
-                    <CardContent className="p-8 space-y-6">
-                      <div className="flex items-center gap-3 mb-2">
-                        <div className="w-10 h-10 rounded-md bg-primary/10 flex items-center justify-center">
-                          <Sparkles className="w-5 h-5 text-primary" />
+                  <Card className="border-border bg-card overflow-hidden">
+                    <CardContent className="p-8 space-y-8">
+                      <div className="flex flex-col items-center text-center space-y-4">
+                        <div className="relative">
+                          <div className="w-20 h-20 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center">
+                            <Brain className="w-10 h-10 text-primary animate-pulse" />
+                          </div>
+                          <div className="absolute -inset-2 rounded-full border-2 border-primary/20 animate-ping" style={{ animationDuration: "2s" }} />
                         </div>
-                        <div>
-                          <h2 className="text-2xl font-display font-bold text-foreground" data-testid="text-step-title">
-                            {insightsGenerated ? "You're all set!" : "Your first insights"}
-                          </h2>
-                          <p className="text-sm text-muted-foreground">
-                            {insightsGenerated
-                              ? "Your content intelligence engine is ready. Redirecting to dashboard..."
-                              : "Watch the AI analyze performance patterns and generate actionable insights."}
-                          </p>
-                        </div>
+                        <h2 className="text-2xl font-display font-bold text-foreground" data-testid="text-loader-title">
+                          Analyzing your content...
+                        </h2>
+                        <p className="text-sm text-muted-foreground">
+                          Craflect is understanding your niche right now.
+                        </p>
                       </div>
 
-                      {insightsGenerated && insightData ? (
-                        <motion.div
-                          initial={{ scale: 0.8, opacity: 0 }}
-                          animate={{ scale: 1, opacity: 1 }}
-                          transition={{ duration: 0.5, ease: "easeOut" }}
-                          className="space-y-6"
-                        >
-                          <div className="p-5 rounded-md bg-muted border border-border space-y-4">
+                      <div className="space-y-3">
+                        {LOADER_MESSAGES.map((msg, i) => {
+                          const isActive = i === loaderMessageIndex;
+                          const isDone = i < loaderMessageIndex;
+                          const IconComp = msg.icon;
+                          return (
+                            <motion.div
+                              key={i}
+                              initial={{ opacity: 0, x: -10 }}
+                              animate={{ opacity: isDone || isActive ? 1 : 0.3, x: 0 }}
+                              transition={{ duration: 0.3, delay: i * 0.1 }}
+                              className={`flex items-center gap-3 p-3 rounded-md transition-colors ${
+                                isActive
+                                  ? "bg-primary/5 dark:bg-primary/10 border border-primary/20 text-foreground"
+                                  : isDone
+                                  ? "text-muted-foreground"
+                                  : "text-muted-foreground/40"
+                              }`}
+                              data-testid={`loader-step-${i}`}
+                            >
+                              {isDone ? (
+                                <Check className="w-4 h-4 text-primary flex-shrink-0" />
+                              ) : isActive ? (
+                                <Loader2 className="w-4 h-4 text-primary animate-spin flex-shrink-0" />
+                              ) : (
+                                <IconComp className="w-4 h-4 flex-shrink-0" />
+                              )}
+                              <span className="text-sm font-medium">{msg.text}</span>
+                            </motion.div>
+                          );
+                        })}
+                      </div>
+
+                      <AnimatePresence mode="wait">
+                        {showMicroInsight && (
+                          <motion.div
+                            key={`micro-${microInsightIndex}`}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            transition={{ duration: 0.4 }}
+                            className="p-4 rounded-md bg-primary/5 dark:bg-primary/10 border border-primary/20"
+                          >
                             <div className="flex items-start gap-3">
-                              <TrendingUp className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                              <div className="space-y-1">
-                                <p className="text-sm font-semibold text-foreground" data-testid="text-insight-topic">
-                                  {insightData.topic}
-                                </p>
-                                <p className="text-sm text-muted-foreground" data-testid="text-insight-hook">
-                                  {insightData.hook}
+                              <TrendingUp className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                              <div>
+                                <span className="text-[10px] uppercase tracking-widest text-primary font-bold">Insight preview</span>
+                                <p className="text-sm text-foreground mt-1" data-testid="text-micro-insight">
+                                  {MICRO_INSIGHTS[microInsightIndex]}
                                 </p>
                               </div>
                             </div>
-                            {insightData.format && (
-                              <div className="flex items-center gap-2">
-                                <Target className="w-4 h-4 text-muted-foreground" />
-                                <span className="text-xs text-muted-foreground">Recommended format:</span>
-                                <Badge variant="secondary" className="text-xs" data-testid="badge-insight-format">
-                                  {insightData.format}
-                                </Badge>
-                              </div>
-                            )}
-                          </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              )}
 
-                          <div className="flex flex-col items-center py-4">
-                            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                              <Check className="w-8 h-8 text-primary" />
-                            </div>
-                            <p className="text-lg font-display font-bold text-foreground mb-1" data-testid="text-onboarding-complete">
-                              Onboarding complete
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              Taking you to your dashboard...
-                            </p>
-                          </div>
-                        </motion.div>
-                      ) : (
-                        <>
-                          {analysisPhase !== "idle" && analysisPhase !== "done" && (
-                            <div className="flex flex-col items-center py-6 space-y-4">
-                              <Loader2 className="w-8 h-8 text-primary animate-spin" />
-                              <p className="text-sm text-muted-foreground font-medium" data-testid="text-analysis-status">
-                                {analysisPhase === "analyzing" && "Analyzing performance patterns..."}
-                                {analysisPhase === "generating" && "Generating insights from your content..."}
-                                {analysisPhase === "ingesting" && "Ingesting content..."}
-                              </p>
+              {step === 3 && (
+                <motion.div
+                  key="step3-results"
+                  className="w-full max-w-lg"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.5, ease: "easeOut" }}
+                >
+                  <Card className="border-primary/20 bg-card overflow-hidden relative">
+                    <div className="absolute top-0 right-0 w-48 h-48 bg-primary/5 dark:bg-primary/10 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+                    <CardContent className="p-8 space-y-6 relative z-10">
+                      <div className="flex flex-col items-center text-center space-y-3">
+                        <div className="w-16 h-16 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center">
+                          <Check className="w-8 h-8 text-primary" />
+                        </div>
+                        <h2 className="text-2xl font-display font-bold text-foreground" data-testid="text-results-title">
+                          Your first results are ready!
+                        </h2>
+                        <p className="text-sm text-muted-foreground">
+                          Here's what Craflect found in your niche.
+                        </p>
+                      </div>
+
+                      {insightData && (
+                        <div className="space-y-4">
+                          {insightData.topic && (
+                            <div className="p-4 rounded-md bg-muted dark:bg-muted/50 border border-border">
+                              <div className="flex items-start gap-3">
+                                <TrendingUp className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                                <div className="space-y-1">
+                                  <p className="text-sm font-semibold text-foreground" data-testid="text-result-topic">
+                                    {insightData.topic}
+                                  </p>
+                                  {insightData.hook && (
+                                    <p className="text-sm text-muted-foreground" data-testid="text-result-hook">
+                                      {insightData.hook}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
                             </div>
                           )}
 
-                          {analysisPhase === "idle" && (
-                            <>
-                              <div className="flex items-center gap-3 p-4 rounded-md bg-muted border border-border text-sm text-muted-foreground">
-                                <Sparkles className="w-4 h-4 text-primary flex-shrink-0" />
-                                The AI will analyze your content URLs, extract performance features, and identify winning patterns in your niche.
+                          {insightData.angles && insightData.angles.length > 0 && (
+                            <div className="space-y-2">
+                              <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                                <Target className="w-3.5 h-3.5" />
+                                Top content angles
+                              </h4>
+                              <div className="flex flex-wrap gap-2">
+                                {insightData.angles.map((angle, i) => (
+                                  <Badge key={i} variant="secondary" className="text-xs" data-testid={`badge-angle-${i}`}>
+                                    {typeof angle === "string" ? angle : String(angle)}
+                                  </Badge>
+                                ))}
                               </div>
-
-                              <div className="flex items-center gap-3">
-                                <Button
-                                  variant="outline"
-                                  onClick={() => setStep(1)}
-                                  data-testid="button-onboarding-back-2"
-                                >
-                                  <ArrowLeft className="w-4 h-4 mr-2" />
-                                  Back
-                                </Button>
-                                <Button
-                                  onClick={handleGenerateInsights}
-                                  disabled={isSubmitting}
-                                  className="flex-1"
-                                  data-testid="button-onboarding-generate"
-                                >
-                                  <Sparkles className="w-4 h-4 mr-2" />
-                                  Generate insights
-                                </Button>
-                              </div>
-                            </>
+                            </div>
                           )}
-                        </>
+
+                          {insightData.hooks && insightData.hooks.length > 0 && (
+                            <div className="space-y-2">
+                              <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                                <Zap className="w-3.5 h-3.5" />
+                                Recommended hooks
+                              </h4>
+                              <div className="space-y-1.5">
+                                {insightData.hooks.map((hook, i) => (
+                                  <div key={i} className="flex items-center gap-2 text-sm text-foreground/80" data-testid={`text-hook-${i}`}>
+                                    <span className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold flex-shrink-0">
+                                      {i + 1}
+                                    </span>
+                                    {typeof hook === "string" ? hook : String(hook)}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {insightData.formats && insightData.formats.length > 0 && (
+                            <div className="space-y-2">
+                              <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                                <BarChart3 className="w-3.5 h-3.5" />
+                                Suggested formats
+                              </h4>
+                              <div className="flex flex-wrap gap-2">
+                                {insightData.formats.map((fmt, i) => (
+                                  <Badge key={i} variant="outline" className="text-xs" data-testid={`badge-format-${i}`}>
+                                    {typeof fmt === "string" ? fmt : String(fmt)}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {insightData.format && (
+                            <div className="flex items-center gap-2">
+                              <Sparkles className="w-4 h-4 text-primary" />
+                              <span className="text-xs text-muted-foreground">1 brief generated</span>
+                              <Badge variant="secondary" className="text-xs" data-testid="badge-brief-format">
+                                {insightData.format}
+                              </Badge>
+                            </div>
+                          )}
+                        </div>
                       )}
+
+                      <div className="flex flex-col gap-3 pt-2">
+                        <Button
+                          onClick={() => setLocation("/dashboard")}
+                          className="w-full"
+                          data-testid="button-go-dashboard"
+                        >
+                          <Sparkles className="w-4 h-4 mr-2" />
+                          Go to dashboard
+                          <ArrowRight className="w-4 h-4 ml-2" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => setLocation("/briefs")}
+                          className="w-full"
+                          data-testid="button-generate-more"
+                        >
+                          Generate more insights
+                        </Button>
+                      </div>
                     </CardContent>
                   </Card>
                 </motion.div>

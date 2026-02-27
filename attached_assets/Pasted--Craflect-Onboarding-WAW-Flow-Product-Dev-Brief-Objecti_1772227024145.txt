@@ -1,0 +1,168 @@
+📄 Craflect — Onboarding WAW Flow (Product + Dev Brief)
+🎯 Objectif
+
+L’onboarding doit démontrer la valeur IA avant l’accès au dashboard.
+Le dashboard est une conséquence, pas l’entrée.
+
+But : amener l’utilisateur à son premier insight contenu en < 60s.
+
+⭐ Flow global
+
+Step 1 → Create workspace
+Step 2 → Add source (URL vidéo / compte)
+Step 3 → AI analysis → First brief
+→ Redirect dashboard avec contenu généré
+
+✅ Step 1 — Workspace
+
+UI existante validée.
+
+Ajouter copy projection :
+
+We’ll analyze your niche and generate your first winning content ideas.
+
+CTA → Continue
+
+✅ Step 2 — Add Source (moment magique)
+
+Remplacer library vide par :
+
+Paste a video / profile URL
+
+Supports :
+
+TikTok video
+
+IG Reel
+
+YouTube video
+
+Creator profile
+
+Competitor inspiration
+
+UI :
+
+input unique
+
+exemples placeholder
+
+multi paste possible
+
+CTA :
+
+Analyze content
+
+✅ Step 3 — AI Loader (critique)
+
+Créer écran loader immersif.
+
+Afficher en séquence :
+
+Extracting video structure
+
+Identifying hooks
+
+Detecting patterns in your niche
+
+Generating winning angles
+
+Building your first content brief
+
+Durée cible : 8–20s.
+
+Ajouter micro insights preview :
+
+“Storytelling hooks perform best in your niche”
+
+“Videos under 45s get higher retention”
+
+✅ Step 4 — First Result (WAW screen)
+
+Afficher :
+
+Top content angles
+
+Recommended hooks
+
+Suggested formats
+
+1 generated brief
+
+CTA Generate more
+
+Seulement ensuite → dashboard.
+
+🧠 UX principle
+
+Chaque étape doit produire une récompense cognitive.
+
+Pas d’écran vide.
+
+✅ Backend requirements
+
+Onboarding trigger pipeline :
+
+workspace_created → source_added → ingestion_job → analysis_job → brief_job → result_ready
+
+Stocker onboarding_state.
+
+✅ DB additions
+
+user_onboarding_state
+workspace_id
+first_source_url
+analysis_status
+first_brief_id
+activation_timestamp
+
+✅ KPI Activation
+
+workspace created → source added
+
+source → first insight
+
+time to first insight
+
+first brief generated
+
+D1 return
+
+⚠️ Constraints
+
+analysis async
+
+fallback si ingestion fail
+
+retry
+
+fake progress si long
+
+cache first insight
+
+⭐ Product principle
+
+Craflect doit donner l’impression de comprendre la niche immédiatement.
+
+🚀 Future extensions
+
+competitor auto detection
+
+niche map
+
+pattern history
+
+learning loop
+
+autopublishing
+
+💡 Copy examples
+
+Title:
+
+Turn one video into weeks of content.
+
+Loader micro insights:
+
+We found 3 winning patterns in your niche.
+Your top hook style is curiosity-driven.
