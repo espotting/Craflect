@@ -2,9 +2,9 @@ import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
-import { Hexagon, Sparkles, ArrowRight, Layers, Workflow, Zap } from "lucide-react";
+import { Sparkles, ArrowRight, Layers, Workflow, Zap } from "lucide-react";
+import { SiGoogle } from "react-icons/si";
 import { Button } from "@/components/ui/button";
-
 import logoColor from "@/assets/logo-color.png";
 
 export default function Landing() {
@@ -21,7 +21,6 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden flex flex-col">
-      {/* Background Video */}
       <div className="absolute inset-0 z-0">
         <video 
           src="/hero-background.mp4" 
@@ -29,27 +28,27 @@ export default function Landing() {
           loop 
           muted 
           playsInline 
-          className="w-full h-full object-cover opacity-60 mix-blend-screen"
+          className="w-full h-full object-cover opacity-40 dark:opacity-60 dark:mix-blend-screen"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-background/80 to-background" />
+        <div className="absolute inset-0 bg-gradient-to-b from-background/60 via-background/80 to-background" />
       </div>
 
-      {/* Nav */}
       <nav className="relative z-10 w-full px-6 py-6 flex items-center justify-between max-w-7xl mx-auto">
         <div className="flex items-center gap-3">
-          <img src={logoColor} alt="Craflect" className="h-10 w-auto" />
+          <img src={logoColor} alt="Craflect" className="h-10 w-auto" data-testid="logo-landing" />
         </div>
         <div>
           <Button 
-            className="rounded-full px-8 bg-white/10 hover:bg-white/20 text-white border border-white/10 backdrop-blur-md transition-all hover:scale-105"
+            className="rounded-full px-8 bg-white dark:bg-white/10 hover:bg-gray-100 dark:hover:bg-white/20 text-foreground dark:text-white border border-border dark:border-white/10 backdrop-blur-md transition-all hover:scale-105 gap-2"
             onClick={() => window.location.href = "/api/login"}
+            data-testid="button-signin-nav"
           >
-            Sign In
+            <SiGoogle className="w-4 h-4" />
+            Sign in with Google
           </Button>
         </div>
       </nav>
 
-      {/* Hero */}
       <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 text-center pb-20">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -62,37 +61,31 @@ export default function Landing() {
             <span>The AI Content Intelligence Platform</span>
           </div>
           
-          <h1 className="font-display text-5xl md:text-7xl lg:text-8xl font-extrabold tracking-tight text-white mb-6 leading-tight">
+          <h1 className="font-display text-5xl md:text-7xl lg:text-8xl font-extrabold tracking-tight text-foreground mb-6 leading-tight">
             Transform Ideas Into <br className="hidden md:block" />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-[#8b5cf6] to-secondary">
               Infinite Content
             </span>
           </h1>
           
-          <p className="text-lg md:text-xl text-white/60 mb-10 max-w-2xl mx-auto leading-relaxed">
+          <p className="text-lg md:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto leading-relaxed">
             Ingest your raw materials, extract the gold, and generate months of high-performing social content automatically with our Repurposing Engine.
           </p>
           
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Button 
               size="lg"
-              className="w-full sm:w-auto rounded-full px-10 h-14 bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-white font-semibold text-lg shadow-xl shadow-primary/25 neon-border transition-all hover:-translate-y-1"
+              className="w-full sm:w-auto rounded-full px-10 h-14 bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-white font-semibold text-lg shadow-xl shadow-primary/25 neon-border transition-all hover:-translate-y-1 gap-3"
               onClick={() => window.location.href = "/api/login"}
+              data-testid="button-get-started"
             >
-              Get Started Now
-              <ArrowRight className="w-5 h-5 ml-2" />
-            </Button>
-            <Button 
-              size="lg"
-              variant="outline"
-              className="w-full sm:w-auto rounded-full px-10 h-14 bg-white/5 border-white/10 hover:bg-white/10 text-white backdrop-blur-md transition-all"
-            >
-              View Demo
+              <SiGoogle className="w-5 h-5" />
+              Get Started with Google
+              <ArrowRight className="w-5 h-5" />
             </Button>
           </div>
         </motion.div>
 
-        {/* Feature Grid */}
         <motion.div 
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
@@ -104,12 +97,12 @@ export default function Landing() {
             { icon: Workflow, title: "Repurposing Engine", desc: "Generate hooks, scripts, and posts adapted for every platform." },
             { icon: Zap, title: "Daily Briefs", desc: "Wake up to curated content ideas based on your unique data." }
           ].map((feature, i) => (
-            <div key={i} className="glass-card p-8 rounded-2xl text-left flex flex-col items-start">
+            <div key={i} className="glass-card p-8 rounded-2xl text-left flex flex-col items-start" data-testid={`card-feature-${i}`}>
               <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center mb-6 border border-primary/30">
                 <feature.icon className="w-6 h-6 text-primary" />
               </div>
-              <h3 className="text-xl font-display font-bold text-white mb-3">{feature.title}</h3>
-              <p className="text-white/50 leading-relaxed">{feature.desc}</p>
+              <h3 className="text-xl font-display font-bold text-foreground mb-3">{feature.title}</h3>
+              <p className="text-muted-foreground leading-relaxed">{feature.desc}</p>
             </div>
           ))}
         </motion.div>

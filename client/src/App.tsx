@@ -4,8 +4,8 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
+import { useTheme } from "@/hooks/use-theme";
 
-// Pages
 import Landing from "@/pages/landing";
 import Dashboard from "@/pages/dashboard";
 import Library from "@/pages/library";
@@ -28,6 +28,7 @@ function Router() {
 }
 
 function App() {
+  useTheme();
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>

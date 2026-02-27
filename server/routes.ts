@@ -22,14 +22,14 @@ export async function registerRoutes(
 
   // Workspaces
   app.get(api.workspaces.list.path, isAuthenticated, async (req: any, res) => {
-    const userId = req.user.claims.sub;
+    const userId = req.user.id;
     const items = await storage.getWorkspacesByOwner(userId);
     res.json(items);
   });
 
   app.post(api.workspaces.create.path, isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const input = api.workspaces.create.input.parse(req.body);
       const workspace = await storage.createWorkspace(userId, input);
       res.status(201).json(workspace);

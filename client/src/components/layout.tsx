@@ -20,7 +20,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center">
         <Loader2 className="w-10 h-10 text-primary animate-spin mb-4" />
-        <p className="text-white/50 font-display animate-pulse">Loading Craflect Engine...</p>
+        <p className="text-muted-foreground font-display animate-pulse">Loading Craflect Engine...</p>
       </div>
     );
   }
@@ -34,18 +34,17 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <SidebarProvider style={style}>
-      <div className="flex min-h-screen w-full bg-[#0a0a0c] text-white overflow-hidden">
+      <div className="flex min-h-screen w-full bg-background text-foreground overflow-hidden">
         <AppSidebar />
         <div className="flex flex-col flex-1 relative z-0 overflow-hidden">
-          {/* Decorative background glow */}
-          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/3 pointer-events-none" />
-          <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-secondary/10 rounded-full blur-[100px] translate-y-1/3 -translate-x-1/3 pointer-events-none" />
+          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 dark:bg-primary/10 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/3 pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-secondary/5 dark:bg-secondary/10 rounded-full blur-[100px] translate-y-1/3 -translate-x-1/3 pointer-events-none" />
           
-          <header className="flex items-center h-16 px-6 border-b border-white/5 bg-background/50 backdrop-blur-xl sticky top-0 z-10">
-            <SidebarTrigger className="text-white/70 hover:text-white hover:bg-white/10 -ml-2 mr-4" />
+          <header className="flex items-center h-16 px-6 border-b border-border bg-background/50 backdrop-blur-xl sticky top-0 z-10">
+            <SidebarTrigger className="text-muted-foreground hover:text-foreground hover:bg-accent -ml-2 mr-4" />
             <div className="flex-1" />
             <div className="flex items-center gap-4">
-              <span className="flex items-center gap-2 text-xs font-medium px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 neon-border">
+              <span className="flex items-center gap-2 text-xs font-medium px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 neon-border" data-testid="status-system">
                 <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
                 System Online
               </span>

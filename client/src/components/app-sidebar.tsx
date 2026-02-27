@@ -5,7 +5,8 @@ import {
   BarChart3, 
   Settings, 
   LogOut,
-  Hexagon
+  Sun,
+  Moon
 } from "lucide-react";
 import { useLocation } from "wouter";
 import {
@@ -21,7 +22,9 @@ import {
   SidebarHeader,
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/hooks/use-auth";
+import { useTheme } from "@/hooks/use-theme";
 import logoTransparent from "@/assets/logo-transparent.png";
+import logoColor from "@/assets/logo-color.png";
 
 const mainItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
@@ -37,16 +40,30 @@ const settingsItems = [
 export function AppSidebar() {
   const [location, setLocation] = useLocation();
   const { user, logout } = useAuth();
+  const { theme, toggleTheme, isDark } = useTheme();
 
   return (
-    <Sidebar variant="inset" className="border-r border-white/5 bg-sidebar">
-      <SidebarHeader className="p-4 flex flex-row items-center gap-2">
-        <img src={logoTransparent} alt="Craflect" className="h-10 w-auto" />
+    <Sidebar variant="inset" className="border-r border-border bg-sidebar">
+      <SidebarHeader className="p-4 flex flex-row items-center justify-between">
+        <img 
+          src={isDark ? logoTransparent : logoColor} 
+          alt="Craflect" 
+          className="h-10 w-auto" 
+          data-testid="logo-sidebar" 
+        />
+        <button
+          onClick={toggleTheme}
+          className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+          title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+          data-testid="button-theme-toggle"
+        >
+          {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+        </button>
       </SidebarHeader>
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="text-white/40 uppercase tracking-wider text-xs font-semibold mb-2">
+          <SidebarGroupLabel className="text-muted-foreground uppercase tracking-wider text-xs font-semibold mb-2">
             Platform
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -58,11 +75,11 @@ export function AppSidebar() {
                     <SidebarMenuButton 
                       asChild 
                       isActive={isActive}
-                      className={isActive ? "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary" : "text-white/70 hover:text-white hover:bg-white/5"}
+                      className={isActive ? "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary" : "text-muted-foreground hover:text-foreground hover:bg-accent"}
                       onClick={() => setLocation(item.url)}
                     >
-                      <button className="flex items-center gap-3 w-full">
-                        <item.icon className={`w-5 h-5 ${isActive ? 'text-primary' : 'text-white/50'}`} />
+                      <button className="flex items-center gap-3 w-full" data-testid={`nav-${item.title.toLowerCase()}`}>
+                        <item.icon className={`w-5 h-5 ${isActive ? 'text-primary' : ''}`} />
                         <span className="font-medium">{item.title}</span>
                       </button>
                     </SidebarMenuButton>
@@ -74,7 +91,7 @@ export function AppSidebar() {
         </SidebarGroup>
 
         <SidebarGroup className="mt-auto">
-          <SidebarGroupLabel className="text-white/40 uppercase tracking-wider text-xs font-semibold mb-2">
+          <SidebarGroupLabel className="text-muted-foreground uppercase tracking-wider text-xs font-semibold mb-2">
             System
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -86,10 +103,10 @@ export function AppSidebar() {
                     <SidebarMenuButton 
                       asChild 
                       isActive={isActive}
-                      className={isActive ? "bg-primary/10 text-primary" : "text-white/70 hover:text-white hover:bg-white/5"}
+                      className={isActive ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-accent"}
                       onClick={() => setLocation(item.url)}
                     >
-                      <button className="flex items-center gap-3 w-full">
+                      <button className="flex items-center gap-3 w-full" data-testid={`nav-${item.title.toLowerCase()}`}>
                         <item.icon className="w-5 h-5" />
                         <span className="font-medium">{item.title}</span>
                       </button>
@@ -102,21 +119,26 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-4 border-t border-white/5">
-        <div className="flex items-center gap-3 px-2 py-2 rounded-xl bg-white/5 border border-white/5">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-r from-secondary to-primary flex items-center justify-center text-white font-bold text-sm">
-            {user?.firstName?.[0] || user?.email?.[0] || "U"}
-          </div>
+      <SidebarFooter className="p-4 border-t border-border">
+        <div className="flex items-center gap-3 px-2 py-2 rounded-xl bg-accent/50 border border-border">
+          {user?.profileImageUrl ? (
+            <img src={user.profileImageUrl} alt="" className="w-8 h-8 rounded-full" />
+          ) : (
+            <div className="w-8 h-8 rounded-full bg-gradient-to-r from-secondary to-primary flex items-center justify-center text-white font-bold text-sm">
+              {user?.firstName?.[0] || user?.email?.[0] || "U"}
+            </div>
+          )}
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-white truncate">
+            <p className="text-sm font-medium text-foreground truncate" data-testid="text-username">
               {user?.firstName ? `${user.firstName} ${user.lastName || ''}` : "Creator"}
             </p>
-            <p className="text-xs text-white/50 truncate">{user?.email || "Pro Plan"}</p>
+            <p className="text-xs text-muted-foreground truncate">{user?.email || ""}</p>
           </div>
           <button 
             onClick={() => logout()}
-            className="p-2 text-white/50 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+            className="p-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors"
             title="Log out"
+            data-testid="button-logout"
           >
             <LogOut className="w-4 h-4" />
           </button>
