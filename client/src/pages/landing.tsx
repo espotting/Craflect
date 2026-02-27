@@ -5,7 +5,7 @@ import { useEffect } from "react";
 import { Hexagon, Sparkles, ArrowRight, Layers, Workflow, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-import logoColor from "@assets/Logo_#7C5CFF_1772218168973.png";
+import logoColor from "@/assets/logo-color.png";
 
 export default function Landing() {
   const { isAuthenticated, isLoading } = useAuth();

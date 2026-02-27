@@ -21,7 +21,7 @@ import {
   SidebarHeader,
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/hooks/use-auth";
-import logoTransparent from "@assets/Logo_transparent_1772218168974.png";
+import logoTransparent from "@/assets/logo-transparent.png";
 
 const mainItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
