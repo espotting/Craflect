@@ -24,7 +24,7 @@ import {
 import { useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/hooks/use-theme";
 import logoTransparent from "@/assets/logo-transparent.png";
-import logoColor from "@/assets/logo-color.png";
+import logoLight from "@/assets/logo-light.png";
 
 const mainItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
@@ -46,7 +46,7 @@ export function AppSidebar() {
     <Sidebar variant="inset" className="border-r border-border bg-sidebar">
       <SidebarHeader className="p-4 flex flex-row items-center justify-between">
         <img 
-          src={isDark ? logoTransparent : logoColor} 
+          src={isDark ? logoTransparent : logoLight} 
           alt="Craflect" 
           className="h-10 w-auto" 
           data-testid="logo-sidebar" 

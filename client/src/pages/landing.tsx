@@ -6,7 +6,7 @@ import { Sparkles, ArrowRight, Layers, Workflow, Zap, Sun, Moon } from "lucide-r
 import { SiGoogle } from "react-icons/si";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/hooks/use-theme";
-import logoColor from "@/assets/logo-color.png";
+import logoLight from "@/assets/logo-light.png";
 import logoTransparent from "@/assets/logo-transparent.png";
 
 export default function Landing() {
@@ -38,7 +38,7 @@ export default function Landing() {
 
       <nav className="relative z-10 w-full px-6 py-6 flex items-center justify-between max-w-7xl mx-auto">
         <div className="flex items-center gap-3">
-          <img src={isDark ? logoTransparent : logoColor} alt="Craflect" className="h-10 w-auto" data-testid="logo-landing" />
+          <img src={isDark ? logoTransparent : logoLight} alt="Craflect" className="h-10 w-auto" data-testid="logo-landing" />
         </div>
         <div className="flex items-center gap-3">
           <button
