@@ -193,9 +193,11 @@ export default function Welcome() {
     topic?: string;
     hook?: string;
     format?: string;
-    angles?: string[];
-    hooks?: string[];
-    formats?: string[];
+    angles?: { name: string; score?: number }[];
+    hooks?: { name: string; score?: number }[];
+    formats?: { name: string; percentage?: number }[];
+    analyzedCount?: number;
+    sources?: { title: string; platform: string; creatorHandle?: string }[];
   } | null>(null);
 
   useEffect(() => {
@@ -305,16 +307,31 @@ export default function Welcome() {
         const res = await apiRequest("POST", `/api/workspaces/${createdWorkspaceId}/briefs/generate`);
         const insight = await res.json();
 
-        let angles: string[] = [];
-        let hooks: string[] = [];
-        let formats: string[] = [];
+        let angles: { name: string; score?: number }[] = [];
+        let hooks: { name: string; score?: number }[] = [];
+        let formats: { name: string; percentage?: number }[] = [];
         try {
           const insightsJson = typeof insight.insights === "string" ? JSON.parse(insight.insights) : insight.insights;
           if (insightsJson) {
-            if (insightsJson.contentAngles) angles = insightsJson.contentAngles.map((a: any) => a.angle || a.name || a);
-            if (insightsJson.topHooks) hooks = insightsJson.topHooks.map((h: any) => h.hook || h.name || h);
-            if (insightsJson.winningFormats) formats = insightsJson.winningFormats.map((f: any) => f.format || f.name || f);
+            if (insightsJson.contentAngles) angles = insightsJson.contentAngles.map((a: any) => ({
+              name: typeof a === "string" ? a : (a.angle || a.name || a.description || String(a)),
+              score: a.performance || a.score,
+            }));
+            if (insightsJson.topHooks) hooks = insightsJson.topHooks.map((h: any) => ({
+              name: typeof h === "string" ? h : (h.type || h.hook || h.name || h.description || String(h)),
+              score: h.score,
+            }));
+            if (insightsJson.winningFormats) formats = insightsJson.winningFormats.map((f: any) => ({
+              name: typeof f === "string" ? f : (f.format || f.name || f.description || String(f)),
+              percentage: f.percentage,
+            }));
           }
+        } catch {}
+
+        let analyzedSources: any[] = [];
+        try {
+          const sourcesRes = await fetch(`/api/workspaces/${createdWorkspaceId}/sources`, { credentials: "include" });
+          if (sourcesRes.ok) analyzedSources = await sourcesRes.json();
         } catch {}
 
         setInsightData({
@@ -324,6 +341,11 @@ export default function Welcome() {
           angles: angles.slice(0, 3),
           hooks: hooks.slice(0, 3),
           formats: formats.slice(0, 3),
+          analyzedCount: sourceIds.length,
+          sources: analyzedSources
+            .filter((s: any) => s.ingestionStatus === "analyzed")
+            .map((s: any) => ({ title: s.title, platform: s.platform || "other", creatorHandle: s.creatorHandle }))
+            .slice(0, 5),
         });
       }
 
@@ -741,7 +763,7 @@ export default function Welcome() {
               {step === 3 && (
                 <motion.div
                   key="step3-results"
-                  className="w-full max-w-lg"
+                  className="w-full max-w-xl"
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0 }}
@@ -749,31 +771,99 @@ export default function Welcome() {
                 >
                   <Card className="border-primary/20 bg-card overflow-hidden relative">
                     <div className="absolute top-0 right-0 w-48 h-48 bg-primary/5 dark:bg-primary/10 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2 pointer-events-none" />
-                    <CardContent className="p-8 space-y-6 relative z-10">
+                    <CardContent className="p-6 sm:p-8 space-y-5 relative z-10">
                       <div className="flex flex-col items-center text-center space-y-3">
-                        <div className="w-16 h-16 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center">
-                          <Check className="w-8 h-8 text-primary" />
+                        <div className="w-14 h-14 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center">
+                          <Check className="w-7 h-7 text-primary" />
                         </div>
                         <h2 className="text-2xl font-display font-bold text-foreground" data-testid="text-results-title">
-                          Your first results are ready!
+                          Your first winning concept is ready
                         </h2>
                         <p className="text-sm text-muted-foreground">
-                          Here's what Craflect found in your niche.
+                          {insightData?.analyzedCount
+                            ? `Based on ${insightData.analyzedCount} video${insightData.analyzedCount > 1 ? "s" : ""} analyzed in your niche.`
+                            : "Here's what Craflect found in your niche."}
                         </p>
                       </div>
 
+                      {insightData?.sources && insightData.sources.length > 0 && (
+                        <div className="space-y-2">
+                          <h4 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                            Analyzed sources
+                          </h4>
+                          <div className="flex flex-wrap gap-1.5">
+                            {insightData.sources.map((src, i) => (
+                              <div key={i} className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted/50 dark:bg-muted/30 text-xs text-foreground/80" data-testid={`source-preview-${i}`}>
+                                <PlatformIcon platform={src.platform} className="w-3 h-3" />
+                                <span className="truncate max-w-[120px]">{src.creatorHandle ? `@${src.creatorHandle}` : src.title}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
                       {insightData && (
                         <div className="space-y-4">
+                          <div className="p-4 rounded-lg bg-muted/40 dark:bg-muted/20 border border-border/60">
+                            <h4 className="text-[10px] font-bold uppercase tracking-widest text-primary mb-3">
+                              Detected patterns
+                            </h4>
+                            <div className="grid grid-cols-2 gap-2.5">
+                              {insightData.hooks && insightData.hooks.length > 0 && (
+                                <div className="p-2.5 rounded-md bg-background border border-border/50">
+                                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Hook style</span>
+                                  <p className="text-sm font-semibold text-foreground mt-0.5 capitalize" data-testid="text-pattern-hook">
+                                    {insightData.hooks[0].name}
+                                  </p>
+                                  {insightData.hooks[0].score && (
+                                    <span className="text-[10px] text-primary font-bold">{insightData.hooks[0].score}/100</span>
+                                  )}
+                                </div>
+                              )}
+                              {insightData.formats && insightData.formats.length > 0 && (
+                                <div className="p-2.5 rounded-md bg-background border border-border/50">
+                                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Format</span>
+                                  <p className="text-sm font-semibold text-foreground mt-0.5 capitalize" data-testid="text-pattern-format">
+                                    {insightData.formats[0].name.replace(/_/g, " ")}
+                                  </p>
+                                  {insightData.formats[0].percentage && (
+                                    <span className="text-[10px] text-primary font-bold">{insightData.formats[0].percentage}%</span>
+                                  )}
+                                </div>
+                              )}
+                              {insightData.angles && insightData.angles.length > 0 && (
+                                <div className="p-2.5 rounded-md bg-background border border-border/50">
+                                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Content angle</span>
+                                  <p className="text-sm font-semibold text-foreground mt-0.5 capitalize" data-testid="text-pattern-angle">
+                                    {insightData.angles[0].name}
+                                  </p>
+                                  {insightData.angles[0].score && (
+                                    <span className="text-[10px] text-primary font-bold">{insightData.angles[0].score}/100</span>
+                                  )}
+                                </div>
+                              )}
+                              {insightData.format && (
+                                <div className="p-2.5 rounded-md bg-background border border-border/50">
+                                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Best format</span>
+                                  <p className="text-sm font-semibold text-foreground mt-0.5 capitalize" data-testid="text-pattern-best-format">
+                                    {insightData.format.replace(/_/g, " ")}
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
                           {insightData.topic && (
-                            <div className="p-4 rounded-md bg-muted dark:bg-muted/50 border border-border">
+                            <div className="p-4 rounded-lg bg-primary/5 dark:bg-primary/10 border border-primary/20">
                               <div className="flex items-start gap-3">
-                                <TrendingUp className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                                <div className="space-y-1">
+                                <Target className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                                <div className="space-y-1.5">
+                                  <span className="text-[10px] font-bold uppercase tracking-widest text-primary">What you should post next</span>
                                   <p className="text-sm font-semibold text-foreground" data-testid="text-result-topic">
                                     {insightData.topic}
                                   </p>
                                   {insightData.hook && (
-                                    <p className="text-sm text-muted-foreground" data-testid="text-result-hook">
+                                    <p className="text-xs text-muted-foreground leading-relaxed" data-testid="text-result-hook">
                                       {insightData.hook}
                                     </p>
                                   )}
@@ -782,64 +872,25 @@ export default function Welcome() {
                             </div>
                           )}
 
-                          {insightData.angles && insightData.angles.length > 0 && (
+                          {(insightData.hooks && insightData.hooks.length > 1) && (
                             <div className="space-y-2">
-                              <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                                <Target className="w-3.5 h-3.5" />
-                                Top content angles
-                              </h4>
-                              <div className="flex flex-wrap gap-2">
-                                {insightData.angles.map((angle, i) => (
-                                  <Badge key={i} variant="secondary" className="text-xs" data-testid={`badge-angle-${i}`}>
-                                    {typeof angle === "string" ? angle : String(angle)}
-                                  </Badge>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {insightData.hooks && insightData.hooks.length > 0 && (
-                            <div className="space-y-2">
-                              <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                                <Zap className="w-3.5 h-3.5" />
-                                Recommended hooks
+                              <h4 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+                                <Zap className="w-3 h-3" />
+                                Winning hooks detected
                               </h4>
                               <div className="space-y-1.5">
                                 {insightData.hooks.map((hook, i) => (
-                                  <div key={i} className="flex items-center gap-2 text-sm text-foreground/80" data-testid={`text-hook-${i}`}>
+                                  <div key={i} className="flex items-center gap-2" data-testid={`text-hook-${i}`}>
                                     <span className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold flex-shrink-0">
                                       {i + 1}
                                     </span>
-                                    {typeof hook === "string" ? hook : String(hook)}
+                                    <span className="text-xs text-foreground/80 capitalize flex-1">{hook.name}</span>
+                                    {hook.score && (
+                                      <span className="text-[10px] text-muted-foreground font-medium">{hook.score}/100</span>
+                                    )}
                                   </div>
                                 ))}
                               </div>
-                            </div>
-                          )}
-
-                          {insightData.formats && insightData.formats.length > 0 && (
-                            <div className="space-y-2">
-                              <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                                <BarChart3 className="w-3.5 h-3.5" />
-                                Suggested formats
-                              </h4>
-                              <div className="flex flex-wrap gap-2">
-                                {insightData.formats.map((fmt, i) => (
-                                  <Badge key={i} variant="outline" className="text-xs" data-testid={`badge-format-${i}`}>
-                                    {typeof fmt === "string" ? fmt : String(fmt)}
-                                  </Badge>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {insightData.format && (
-                            <div className="flex items-center gap-2">
-                              <Sparkles className="w-4 h-4 text-primary" />
-                              <span className="text-xs text-muted-foreground">1 brief generated</span>
-                              <Badge variant="secondary" className="text-xs" data-testid="badge-brief-format">
-                                {insightData.format}
-                              </Badge>
                             </div>
                           )}
                         </div>
@@ -847,21 +898,21 @@ export default function Welcome() {
 
                       <div className="flex flex-col gap-3 pt-2">
                         <Button
-                          onClick={() => setLocation("/dashboard")}
+                          onClick={() => setLocation("/briefs")}
                           className="w-full"
                           data-testid="button-go-dashboard"
                         >
                           <Sparkles className="w-4 h-4 mr-2" />
-                          Go to dashboard
+                          Create your first content brief
                           <ArrowRight className="w-4 h-4 ml-2" />
                         </Button>
                         <Button
                           variant="outline"
-                          onClick={() => setLocation("/briefs")}
+                          onClick={() => setLocation("/dashboard")}
                           className="w-full"
                           data-testid="button-generate-more"
                         >
-                          Generate more insights
+                          Go to dashboard
                         </Button>
                       </div>
                     </CardContent>
