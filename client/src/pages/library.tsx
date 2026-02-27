@@ -233,30 +233,38 @@ function SourceCard({ source, onAnalyze, isAnalyzing }: {
           </p>
         )}
 
-        {hasMetrics && (
+        {isAnalyzed && (
           <div className="flex items-center gap-4 text-xs text-muted-foreground" data-testid={`metrics-${source.id}`}>
-            {source.views !== null && (
-              <span className="flex items-center gap-1">
-                <Eye className="w-3 h-3" />
-                {formatNumber(source.views)}
-              </span>
-            )}
-            {source.likes !== null && (
-              <span className="flex items-center gap-1">
-                <Heart className="w-3 h-3" />
-                {formatNumber(source.likes)}
-              </span>
-            )}
-            {source.commentsCount !== null && (
-              <span className="flex items-center gap-1">
-                <MessageCircle className="w-3 h-3" />
-                {formatNumber(source.commentsCount)}
-              </span>
-            )}
-            {source.duration !== null && (
-              <span className="flex items-center gap-1">
-                <Video className="w-3 h-3" />
-                {source.duration}s
+            {hasMetrics ? (
+              <>
+                {source.views !== null && (
+                  <span className="flex items-center gap-1">
+                    <Eye className="w-3 h-3" />
+                    {formatNumber(source.views)}
+                  </span>
+                )}
+                {source.likes !== null && (
+                  <span className="flex items-center gap-1">
+                    <Heart className="w-3 h-3" />
+                    {formatNumber(source.likes)}
+                  </span>
+                )}
+                {source.commentsCount !== null && (
+                  <span className="flex items-center gap-1">
+                    <MessageCircle className="w-3 h-3" />
+                    {formatNumber(source.commentsCount)}
+                  </span>
+                )}
+                {source.duration !== null && (
+                  <span className="flex items-center gap-1">
+                    <Video className="w-3 h-3" />
+                    {source.duration}s
+                  </span>
+                )}
+              </>
+            ) : (
+              <span className="text-muted-foreground/60 italic" data-testid={`text-metrics-unavailable-${source.id}`}>
+                Metrics unavailable
               </span>
             )}
           </div>

@@ -48,9 +48,17 @@ shared/
 
 ## Core Intelligence Flow
 1. **Observe**: User pastes video URLs (TikTok, Instagram, YouTube)
-2. **Understand**: AI extracts hookType, narrativeStructure, contentAngle, contentFormat, performanceScore, estimated metrics
-3. **Recommend**: Pattern analysis across all workspace sources → identifies top hooks, winning formats, optimal structures
-4. **Produce**: Generate optimized content recommendations based on niche patterns
+2. **Scrape**: Lightweight public metadata scraping (og:title, og:description, views, likes, comments, duration, thumbnail — when available from page HTML)
+3. **Understand**: AI extracts pattern features ONLY (hookType, narrativeStructure, contentAngle, contentFormat, performanceScore). Metrics are NEVER simulated by AI — only real scraped data or "Metrics unavailable".
+4. **Recommend**: Pattern analysis across all workspace sources → identifies top hooks, winning formats, optimal structures
+5. **Produce**: Generate optimized content recommendations based on niche patterns
+
+## Data V1 Architecture
+- **Metrics and AI analysis are decoupled**: AI analyzes patterns independently of metrics availability
+- **No simulated data**: If scraping fails to retrieve views/likes/etc., they stay null and UI shows "Metrics unavailable"
+- **Scraping is non-blocking**: If metadata fetch fails, analysis continues with URL/platform context only
+- **Real scraped metadata stored**: title, description, duration, views, likes, comments, thumbnail, creator, publishedAt — all stored even if partial
+- **Value proposition**: "Why it works" (patterns) > "How many views" (metrics)
 
 ## Features
 - **Onboarding**: 3-step (workspace → paste URLs → first insights), URL input with platform auto-detection, confetti
@@ -67,7 +75,7 @@ shared/
 - GET/POST /api/workspaces - List/create workspaces
 - GET /api/workspaces/:id/sources - List content sources
 - POST /api/workspaces/:id/sources/ingest - Batch URL ingestion (auto-detects platform)
-- POST /api/sources/:id/analyze - AI analysis (extracts hookType, narrativeStructure, contentAngle, performanceScore, metrics)
+- POST /api/sources/:id/analyze - Scrapes public metadata + AI pattern analysis (hookType, narrativeStructure, contentAngle, performanceScore). Metrics from scraping only, never simulated.
 - POST /api/sources/:id/generate - AI content generation from source
 - GET/POST /api/workspaces/:id/briefs - List briefs / insights
 - POST /api/workspaces/:id/briefs/generate - AI performance insights generation (pattern analysis across all sources)

@@ -12,6 +12,98 @@ const openai = new OpenAI({
   baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
 });
 
+async function scrapePublicMetadata(url: string): Promise<{
+  title?: string;
+  description?: string;
+  duration?: number;
+  views?: number;
+  likes?: number;
+  commentsCount?: number;
+  creatorHandle?: string;
+  publishedAt?: string;
+  thumbnailUrl?: string;
+}> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
+      },
+      signal: controller.signal,
+      redirect: "follow",
+    });
+    clearTimeout(timeout);
+
+    if (!res.ok) return {};
+
+    const html = await res.text();
+    const metadata: any = {};
+
+    const ogTitle = html.match(/<meta[^>]*property="og:title"[^>]*content="([^"]*)"/) ||
+                    html.match(/<meta[^>]*content="([^"]*)"[^>]*property="og:title"/);
+    if (ogTitle) metadata.title = decodeHTMLEntities(ogTitle[1]);
+
+    const ogDesc = html.match(/<meta[^>]*property="og:description"[^>]*content="([^"]*)"/) ||
+                   html.match(/<meta[^>]*content="([^"]*)"[^>]*property="og:description"/) ||
+                   html.match(/<meta[^>]*name="description"[^>]*content="([^"]*)"/) ||
+                   html.match(/<meta[^>]*content="([^"]*)"[^>]*name="description"/);
+    if (ogDesc) metadata.description = decodeHTMLEntities(ogDesc[1]);
+
+    const ogImage = html.match(/<meta[^>]*property="og:image"[^>]*content="([^"]*)"/) ||
+                    html.match(/<meta[^>]*content="([^"]*)"[^>]*property="og:image"/);
+    if (ogImage) metadata.thumbnailUrl = ogImage[1];
+
+    const durationMatch = html.match(/"duration"[:\s]*"?(\d+)"?/) ||
+                          html.match(/"video_duration"[:\s]*(\d+)/) ||
+                          html.match(/"duration"[:\s]*(\d+)/);
+    if (durationMatch) metadata.duration = parseInt(durationMatch[1], 10);
+
+    const viewsMatch = html.match(/"playCount"[:\s]*(\d+)/) ||
+                       html.match(/"view_count"[:\s]*(\d+)/) ||
+                       html.match(/"viewCount"[:\s]*(\d+)/) ||
+                       html.match(/"interactionCount"[:\s]*"?(\d+)"?/);
+    if (viewsMatch) metadata.views = parseInt(viewsMatch[1], 10);
+
+    const likesMatch = html.match(/"diggCount"[:\s]*(\d+)/) ||
+                       html.match(/"like_count"[:\s]*(\d+)/) ||
+                       html.match(/"likeCount"[:\s]*(\d+)/);
+    if (likesMatch) metadata.likes = parseInt(likesMatch[1], 10);
+
+    const commentsMatch = html.match(/"commentCount"[:\s]*(\d+)/) ||
+                          html.match(/"comment_count"[:\s]*(\d+)/);
+    if (commentsMatch) metadata.commentsCount = parseInt(commentsMatch[1], 10);
+
+    const authorMatch = html.match(/"author"[:\s]*\{[^}]*"name"[:\s]*"([^"]+)"/) ||
+                        html.match(/"creator"[:\s]*"@?([^"]+)"/) ||
+                        html.match(/"uniqueId"[:\s]*"([^"]+)"/);
+    if (authorMatch) metadata.creatorHandle = authorMatch[1];
+
+    const dateMatch = html.match(/"uploadDate"[:\s]*"([^"]+)"/) ||
+                      html.match(/"datePublished"[:\s]*"([^"]+)"/) ||
+                      html.match(/"createTime"[:\s]*"?(\d+)"?/);
+    if (dateMatch) metadata.publishedAt = dateMatch[1];
+
+    return metadata;
+  } catch (err) {
+    console.log("Metadata scrape failed (non-blocking):", (err as Error).message);
+    return {};
+  }
+}
+
+function decodeHTMLEntities(text: string): string {
+  return text
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&#x27;/g, "'")
+    .replace(/&#x2F;/g, "/");
+}
+
 function isAdmin(req: any, res: any, next: any) {
   if (!req.user?.isAdmin) {
     return res.status(403).json({ message: "Forbidden" });
@@ -151,20 +243,43 @@ export async function registerRoutes(
 
       await storage.updateContentSource(source.id, { ingestionStatus: "processing" });
 
+      const scrapedMeta = source.url ? await scrapePublicMetadata(source.url) : {};
+      console.log(`Scraped metadata for ${source.url}:`, Object.keys(scrapedMeta).filter(k => (scrapedMeta as any)[k] !== undefined).join(", ") || "none");
+
+      const metadataUpdate: any = {};
+      if (scrapedMeta.views !== undefined) metadataUpdate.views = scrapedMeta.views;
+      if (scrapedMeta.likes !== undefined) metadataUpdate.likes = scrapedMeta.likes;
+      if (scrapedMeta.commentsCount !== undefined) metadataUpdate.commentsCount = scrapedMeta.commentsCount;
+      if (scrapedMeta.duration !== undefined) metadataUpdate.duration = scrapedMeta.duration;
+      if (scrapedMeta.thumbnailUrl) metadataUpdate.thumbnailUrl = scrapedMeta.thumbnailUrl;
+      if (scrapedMeta.publishedAt) metadataUpdate.publishedAt = scrapedMeta.publishedAt;
+      if (scrapedMeta.creatorHandle && !source.creatorHandle) metadataUpdate.creatorHandle = scrapedMeta.creatorHandle;
+
+      if (Object.keys(metadataUpdate).length > 0) {
+        await storage.updateContentSource(source.id, metadataUpdate);
+      }
+
       const contextParts = [];
       if (source.url) contextParts.push(`URL: ${source.url}`);
       if (source.platform) contextParts.push(`Platform: ${source.platform}`);
-      if (source.creatorHandle) contextParts.push(`Creator: @${source.creatorHandle}`);
+      if (source.creatorHandle || scrapedMeta.creatorHandle) contextParts.push(`Creator: @${source.creatorHandle || scrapedMeta.creatorHandle}`);
+      if (scrapedMeta.title) contextParts.push(`Page title: ${scrapedMeta.title}`);
+      if (scrapedMeta.description) contextParts.push(`Page description: ${scrapedMeta.description}`);
+      if (scrapedMeta.views) contextParts.push(`Real views: ${scrapedMeta.views}`);
+      if (scrapedMeta.likes) contextParts.push(`Real likes: ${scrapedMeta.likes}`);
+      if (scrapedMeta.duration) contextParts.push(`Duration: ${scrapedMeta.duration}s`);
       if (source.rawContent) contextParts.push(`Content: ${source.rawContent.substring(0, 3000)}`);
       if (source.transcript) contextParts.push(`Transcript: ${source.transcript.substring(0, 3000)}`);
-      if (source.title) contextParts.push(`Title: ${source.title}`);
+      if (source.title && !scrapedMeta.title) contextParts.push(`Title: ${source.title}`);
 
       const completion = await openai.chat.completions.create({
         model: "gpt-4.1-mini",
         messages: [
           {
             role: "system",
-            content: `You are a content performance analyst specializing in short-form video content (TikTok, Instagram Reels, YouTube Shorts). Analyze the given content and extract performance features.
+            content: `You are a content performance analyst specializing in short-form video content (TikTok, Instagram Reels, YouTube Shorts). Analyze the given content and extract performance pattern features.
+
+IMPORTANT: Focus ONLY on pattern analysis. Do NOT estimate or simulate metrics (views, likes, comments, duration). Those are retrieved separately from real data.
 
 Return a JSON object with these exact fields:
 - "title": a descriptive title for this content (string)
@@ -173,15 +288,11 @@ Return a JSON object with these exact fields:
 - "contentAngle": the content angle (one of: "educational", "entertainment", "inspirational", "controversial", "personal", "news", "how_to", "motivational")
 - "contentFormat": the visual format (one of: "face_cam", "b_roll", "text_overlay", "screencast", "animation", "mixed", "voiceover", "interview", "montage")
 - "nicheCategory": the niche category (string, e.g. "fitness", "tech", "cooking", "finance", "lifestyle")
-- "performanceScore": estimated performance score 0-100 based on the content quality signals (integer)
-- "estimatedViews": estimated view count based on content type and platform (integer)
-- "estimatedLikes": estimated like count (integer)
-- "estimatedComments": estimated comment count (integer)
-- "estimatedDuration": estimated duration in seconds (integer)
-- "description": a brief description of the content (string)
+- "performanceScore": content quality score 0-100 based ONLY on structural signals (hook strength, narrative clarity, format effectiveness). If real metrics are provided, factor them in.
+- "description": a brief description of the content and why the patterns work (string)
 - "hashtags": relevant hashtags for this content (array of strings, without #)
 
-Be realistic and analytical. Base scores on actual content quality signals.`
+Be analytical. Score based on content structure quality, not estimated popularity.`
           },
           {
             role: "user",
@@ -200,24 +311,20 @@ Be realistic and analytical. Base scores on actual content quality signals.`
       }
 
       const updated = await storage.updateContentSource(source.id, {
-        title: parsed.title || source.title,
+        title: scrapedMeta.title || parsed.title || source.title,
         hookType: parsed.hookType || null,
         narrativeStructure: parsed.narrativeStructure || null,
         contentAngle: parsed.contentAngle || null,
         contentFormat: parsed.contentFormat || null,
         nicheCategory: parsed.nicheCategory || null,
         performanceScore: parsed.performanceScore || null,
-        views: parsed.estimatedViews || null,
-        likes: parsed.estimatedLikes || null,
-        commentsCount: parsed.estimatedComments || null,
-        duration: parsed.estimatedDuration || null,
-        description: parsed.description || null,
+        description: scrapedMeta.description || parsed.description || null,
         hashtags: parsed.hashtags || null,
         ingestionStatus: "analyzed",
         status: "analyzed",
       });
 
-      await storage.createEvent({ userId: req.user.id, eventName: "content_analyzed", metadata: { sourceId: source.id, performanceScore: parsed.performanceScore } });
+      await storage.createEvent({ userId: req.user.id, eventName: "content_analyzed", metadata: { sourceId: source.id, performanceScore: parsed.performanceScore, metricsAvailable: Object.keys(metadataUpdate).length > 0 } });
       res.json(updated);
     } catch (err: any) {
       console.error("Analysis error:", err);
