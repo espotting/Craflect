@@ -2,14 +2,17 @@ import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
-import { Sparkles, ArrowRight, Layers, Workflow, Zap } from "lucide-react";
+import { Sparkles, ArrowRight, Layers, Workflow, Zap, Sun, Moon } from "lucide-react";
 import { SiGoogle } from "react-icons/si";
 import { Button } from "@/components/ui/button";
+import { useTheme } from "@/hooks/use-theme";
 import logoColor from "@/assets/logo-color.png";
+import logoTransparent from "@/assets/logo-transparent.png";
 
 export default function Landing() {
   const { isAuthenticated, isLoading } = useAuth();
   const [, setLocation] = useLocation();
+  const { isDark, toggleTheme } = useTheme();
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
@@ -35,9 +38,17 @@ export default function Landing() {
 
       <nav className="relative z-10 w-full px-6 py-6 flex items-center justify-between max-w-7xl mx-auto">
         <div className="flex items-center gap-3">
-          <img src={logoColor} alt="Craflect" className="h-10 w-auto" data-testid="logo-landing" />
+          <img src={isDark ? logoTransparent : logoColor} alt="Craflect" className="h-10 w-auto" data-testid="logo-landing" />
         </div>
-        <div>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={toggleTheme}
+            className="p-2.5 rounded-full bg-white/10 dark:bg-white/10 hover:bg-white/20 dark:hover:bg-white/20 text-foreground backdrop-blur-md transition-all border border-border dark:border-white/10"
+            title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+            data-testid="button-theme-toggle-landing"
+          >
+            {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+          </button>
           <Button 
             className="rounded-full px-8 bg-white dark:bg-white/10 hover:bg-gray-100 dark:hover:bg-white/20 text-foreground dark:text-white border border-border dark:border-white/10 backdrop-blur-md transition-all hover:scale-105 gap-2"
             onClick={() => window.location.href = "/api/login"}
