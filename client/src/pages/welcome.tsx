@@ -149,7 +149,7 @@ function PlatformIcon({ platform, className }: { platform: string | null; classN
 }
 
 const STEPS = [
-  { label: "Workspace", icon: FolderKanban },
+  { label: "Your niche", icon: FolderKanban },
   { label: "Add source", icon: Link2 },
   { label: "AI analysis", icon: Brain },
   { label: "First results", icon: Sparkles },
@@ -486,25 +486,25 @@ export default function Welcome() {
                         </div>
                         <div>
                           <h2 className="text-2xl font-display font-bold text-foreground" data-testid="text-step-title">
-                            Create your workspace
+                            Describe your niche
                           </h2>
                           <p className="text-sm text-muted-foreground">
-                            A workspace organizes content for a specific brand or niche.
+                            We analyze real videos in your niche to find winning patterns and generate content ideas.
                           </p>
                         </div>
                       </div>
 
                       <div className="p-3 rounded-md bg-primary/5 dark:bg-primary/10 border border-primary/20 text-sm text-foreground/80">
                         <Sparkles className="w-4 h-4 text-primary inline mr-2" />
-                        We'll analyze your niche and generate your first winning content ideas.
+                        Next, you'll add creators or videos from your niche — we'll extract what makes them perform.
                       </div>
 
                       <div className="space-y-2">
                         <label className="text-sm font-medium text-muted-foreground">
-                          Workspace name
+                          What's your niche?
                         </label>
                         <Input
-                          placeholder="e.g. My Brand, Acme Corp"
+                          placeholder="e.g. Fitness coaching, SaaS marketing, Skincare tips, Personal finance"
                           value={workspaceName}
                           onChange={(e) => setWorkspaceName(e.target.value)}
                           className="bg-background border-border text-foreground"
@@ -517,6 +517,9 @@ export default function Welcome() {
                             }
                           }}
                         />
+                        <p className="text-[11px] text-muted-foreground/60">
+                          This helps us organize your analysis. You can change it later.
+                        </p>
                       </div>
 
                       <Button
