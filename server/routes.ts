@@ -28,6 +28,26 @@ async function verifyWorkspaceOwnership(req: any, res: any, next: any) {
   next();
 }
 
+function detectPlatform(url: string): string {
+  if (/tiktok\.com/i.test(url)) return "tiktok";
+  if (/instagram\.com|instagr\.am/i.test(url)) return "instagram";
+  if (/youtube\.com|youtu\.be/i.test(url)) return "youtube";
+  if (/twitter\.com|x\.com/i.test(url)) return "twitter";
+  return "other";
+}
+
+function extractCreatorHandle(url: string): string | null {
+  const tiktok = url.match(/tiktok\.com\/@([^/?]+)/i);
+  if (tiktok) return tiktok[1];
+  const insta = url.match(/instagram\.com\/(?:reel\/|p\/)?([^/?]+)/i);
+  if (insta && !["reel", "p", "reels", "stories"].includes(insta[1])) return insta[1];
+  const yt = url.match(/youtube\.com\/@([^/?]+)/i);
+  if (yt) return yt[1];
+  const twitter = url.match(/(?:twitter|x)\.com\/([^/?]+)/i);
+  if (twitter && !["i", "search", "explore", "home"].includes(twitter[1])) return twitter[1];
+  return null;
+}
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
@@ -66,17 +86,24 @@ export async function registerRoutes(
     try {
       const input = z.object({
         title: z.string().min(1),
-        type: z.enum(["text", "link", "video", "audio"]),
+        type: z.enum(["text", "link", "video", "audio", "url"]),
         rawContent: z.string().optional(),
         fileUrl: z.string().optional(),
+        url: z.string().optional(),
       }).parse(req.body);
+
+      const platform = input.url ? detectPlatform(input.url) : undefined;
+      const creatorHandle = input.url ? extractCreatorHandle(input.url) : undefined;
 
       const source = await storage.createContentSource({
         ...input,
         workspaceId: req.params.workspaceId,
         status: "pending",
+        platform: platform || null,
+        creatorHandle: creatorHandle || null,
+        ingestionStatus: "pending",
       });
-      await storage.createEvent({ userId: req.user.id, eventName: "content_uploaded", metadata: { sourceId: source.id, type: input.type } });
+      await storage.createEvent({ userId: req.user.id, eventName: "content_ingested", metadata: { sourceId: source.id, type: input.type, platform } });
       res.status(201).json(source);
     } catch (err) {
       if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
@@ -84,25 +111,156 @@ export async function registerRoutes(
     }
   });
 
-  // ─── AI: Generate content from a source ───
-  app.post("/api/sources/:sourceId/generate", isAuthenticated, async (req: any, res) => {
+  // ─── URL Ingestion (batch) ───
+  app.post("/api/workspaces/:workspaceId/sources/ingest", isAuthenticated, verifyWorkspaceOwnership, async (req: any, res) => {
+    try {
+      const input = z.object({
+        urls: z.array(z.string().url()).min(1, "At least one URL is required"),
+      }).parse(req.body);
+
+      const created = [];
+      for (const url of input.urls) {
+        const platform = detectPlatform(url);
+        const creatorHandle = extractCreatorHandle(url);
+        const source = await storage.createContentSource({
+          workspaceId: req.params.workspaceId,
+          type: "url",
+          title: `${platform} content from ${creatorHandle || "unknown"}`,
+          url,
+          platform,
+          creatorHandle,
+          status: "pending",
+          ingestionStatus: "pending",
+        });
+        created.push(source);
+      }
+
+      await storage.createEvent({ userId: req.user.id, eventName: "urls_ingested", metadata: { count: created.length } });
+      res.status(201).json(created);
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
+  // ─── AI: Analyze content source (feature extraction) ───
+  app.post("/api/sources/:sourceId/analyze", isAuthenticated, async (req: any, res) => {
     try {
       const source = await storage.getContentSourceById(req.params.sourceId);
       if (!source) return res.status(404).json({ message: "Source not found" });
 
-      const contentText = source.rawContent || source.transcript || "";
-      if (!contentText) return res.status(400).json({ message: "Source has no content to repurpose" });
+      await storage.updateContentSource(source.id, { ingestionStatus: "processing" });
+
+      const contextParts = [];
+      if (source.url) contextParts.push(`URL: ${source.url}`);
+      if (source.platform) contextParts.push(`Platform: ${source.platform}`);
+      if (source.creatorHandle) contextParts.push(`Creator: @${source.creatorHandle}`);
+      if (source.rawContent) contextParts.push(`Content: ${source.rawContent.substring(0, 3000)}`);
+      if (source.transcript) contextParts.push(`Transcript: ${source.transcript.substring(0, 3000)}`);
+      if (source.title) contextParts.push(`Title: ${source.title}`);
 
       const completion = await openai.chat.completions.create({
         model: "gpt-4.1-mini",
         messages: [
           {
             role: "system",
-            content: `You are a content repurposing expert. Given source content, generate 3 different repurposed pieces in JSON format. Return a JSON array where each item has: "format" (one of: "post", "hook", "short"), "platform" (one of: "linkedin", "instagram", "twitter"), "hookType" (a brief label for the hook style), "content" (the actual repurposed text, well-formatted and ready to publish). Make the content engaging, actionable, and platform-appropriate.`
+            content: `You are a content performance analyst specializing in short-form video content (TikTok, Instagram Reels, YouTube Shorts). Analyze the given content and extract performance features.
+
+Return a JSON object with these exact fields:
+- "title": a descriptive title for this content (string)
+- "hookType": the type of hook used (one of: "question", "statement", "shock", "story", "statistic", "challenge", "tutorial", "behind_the_scenes", "controversy", "listicle")
+- "narrativeStructure": the narrative structure (one of: "storytelling", "list", "tutorial", "vlog", "review", "comparison", "transformation", "day_in_life", "tips", "reaction")
+- "contentAngle": the content angle (one of: "educational", "entertainment", "inspirational", "controversial", "personal", "news", "how_to", "motivational")
+- "contentFormat": the visual format (one of: "face_cam", "b_roll", "text_overlay", "screencast", "animation", "mixed", "voiceover", "interview", "montage")
+- "nicheCategory": the niche category (string, e.g. "fitness", "tech", "cooking", "finance", "lifestyle")
+- "performanceScore": estimated performance score 0-100 based on the content quality signals (integer)
+- "estimatedViews": estimated view count based on content type and platform (integer)
+- "estimatedLikes": estimated like count (integer)
+- "estimatedComments": estimated comment count (integer)
+- "estimatedDuration": estimated duration in seconds (integer)
+- "description": a brief description of the content (string)
+- "hashtags": relevant hashtags for this content (array of strings, without #)
+
+Be realistic and analytical. Base scores on actual content quality signals.`
           },
           {
             role: "user",
-            content: `Repurpose this content:\n\nTitle: ${source.title}\n\nContent:\n${contentText.substring(0, 4000)}`
+            content: `Analyze this content:\n${contextParts.join("\n")}`
+          }
+        ],
+        max_completion_tokens: 2048,
+        response_format: { type: "json_object" }
+      });
+
+      const responseText = completion.choices[0]?.message?.content || "{}";
+      let parsed: any;
+      try { parsed = JSON.parse(responseText); } catch { 
+        await storage.updateContentSource(source.id, { ingestionStatus: "failed", ingestionError: "AI returned invalid JSON" });
+        return res.status(500).json({ message: "AI returned invalid JSON" }); 
+      }
+
+      const updated = await storage.updateContentSource(source.id, {
+        title: parsed.title || source.title,
+        hookType: parsed.hookType || null,
+        narrativeStructure: parsed.narrativeStructure || null,
+        contentAngle: parsed.contentAngle || null,
+        contentFormat: parsed.contentFormat || null,
+        nicheCategory: parsed.nicheCategory || null,
+        performanceScore: parsed.performanceScore || null,
+        views: parsed.estimatedViews || null,
+        likes: parsed.estimatedLikes || null,
+        commentsCount: parsed.estimatedComments || null,
+        duration: parsed.estimatedDuration || null,
+        description: parsed.description || null,
+        hashtags: parsed.hashtags || null,
+        ingestionStatus: "analyzed",
+        status: "analyzed",
+      });
+
+      await storage.createEvent({ userId: req.user.id, eventName: "content_analyzed", metadata: { sourceId: source.id, performanceScore: parsed.performanceScore } });
+      res.json(updated);
+    } catch (err: any) {
+      console.error("Analysis error:", err);
+      await storage.updateContentSource(req.params.sourceId, { ingestionStatus: "failed", ingestionError: err.message });
+      res.status(500).json({ message: err.message || "Analysis failed" });
+    }
+  });
+
+  // ─── AI: Generate content from a source (repurpose based on analysis) ───
+  app.post("/api/sources/:sourceId/generate", isAuthenticated, async (req: any, res) => {
+    try {
+      const source = await storage.getContentSourceById(req.params.sourceId);
+      if (!source) return res.status(404).json({ message: "Source not found" });
+
+      const contextParts = [];
+      if (source.title) contextParts.push(`Title: ${source.title}`);
+      if (source.hookType) contextParts.push(`Hook type: ${source.hookType}`);
+      if (source.narrativeStructure) contextParts.push(`Narrative: ${source.narrativeStructure}`);
+      if (source.contentAngle) contextParts.push(`Angle: ${source.contentAngle}`);
+      if (source.contentFormat) contextParts.push(`Format: ${source.contentFormat}`);
+      if (source.performanceScore) contextParts.push(`Performance score: ${source.performanceScore}/100`);
+      if (source.rawContent) contextParts.push(`Content: ${source.rawContent.substring(0, 3000)}`);
+      if (source.transcript) contextParts.push(`Transcript: ${source.transcript.substring(0, 3000)}`);
+      if (source.description) contextParts.push(`Description: ${source.description}`);
+
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4.1-mini",
+        messages: [
+          {
+            role: "system",
+            content: `You are a content performance strategist. Based on analyzed content and its performance patterns, generate 3 optimized content pieces that reproduce the winning patterns found.
+
+Return a JSON object with a "items" array where each item has:
+- "format" (one of: "post", "hook", "short", "script", "thread")
+- "platform" (one of: "tiktok", "instagram", "linkedin", "twitter", "youtube")
+- "hookType" (the hook style used)
+- "content" (the full text, ready to use — script, post text, or hook)
+
+The content should reproduce the winning patterns (hook type, structure, angle) from the analyzed source but with fresh, original content. Write in the same language as the source.`
+          },
+          {
+            role: "user",
+            content: `Generate optimized content based on this analyzed source:\n${contextParts.join("\n")}`
           }
         ],
         max_completion_tokens: 4096,
@@ -111,11 +269,7 @@ export async function registerRoutes(
 
       const responseText = completion.choices[0]?.message?.content || "{}";
       let parsed: any;
-      try {
-        parsed = JSON.parse(responseText);
-      } catch {
-        return res.status(500).json({ message: "AI returned invalid JSON" });
-      }
+      try { parsed = JSON.parse(responseText); } catch { return res.status(500).json({ message: "AI returned invalid JSON" }); }
 
       const items = Array.isArray(parsed) ? parsed : (parsed.items || parsed.content || parsed.results || [parsed]);
       const created = [];
@@ -143,7 +297,7 @@ export async function registerRoutes(
     }
   });
 
-  // ─── Briefs ───
+  // ─── Performance Insights (replaces Briefs) ───
   app.get("/api/workspaces/:workspaceId/briefs", isAuthenticated, verifyWorkspaceOwnership, async (req: any, res) => {
     const items = await storage.getBriefs(req.params.workspaceId);
     res.json(items);
@@ -153,46 +307,77 @@ export async function registerRoutes(
     try {
       const workspaceId = req.params.workspaceId;
       const sources = await storage.getContentSources(workspaceId);
-      const sourceContext = sources.map(s => `- ${s.title}: ${(s.rawContent || s.transcript || "").substring(0, 500)}`).join("\n");
+      
+      const analyzedSources = sources.filter(s => s.ingestionStatus === "analyzed" || s.hookType || s.performanceScore);
+      
+      const sourceContext = sources.map(s => {
+        const parts = [`- ${s.title}`];
+        if (s.platform) parts.push(`  Platform: ${s.platform}`);
+        if (s.hookType) parts.push(`  Hook: ${s.hookType}`);
+        if (s.narrativeStructure) parts.push(`  Structure: ${s.narrativeStructure}`);
+        if (s.contentAngle) parts.push(`  Angle: ${s.contentAngle}`);
+        if (s.contentFormat) parts.push(`  Format: ${s.contentFormat}`);
+        if (s.performanceScore) parts.push(`  Score: ${s.performanceScore}/100`);
+        if (s.views) parts.push(`  Views: ${s.views}`);
+        if (s.nicheCategory) parts.push(`  Niche: ${s.nicheCategory}`);
+        if (s.rawContent) parts.push(`  Content preview: ${s.rawContent.substring(0, 300)}`);
+        return parts.join("\n");
+      }).join("\n\n");
 
       const completion = await openai.chat.completions.create({
         model: "gpt-4.1-mini",
         messages: [
           {
             role: "system",
-            content: `You are a content strategist. Generate a daily content brief in JSON format with: "topic" (compelling topic title), "hook" (an engaging opening hook), "script" (a short script outline, 3-5 paragraphs), "format" (recommended format: post, short, thread, carousel). The brief should be actionable, engaging, and based on the user's existing content library. Write in the same language as the source content.`
+            content: `You are a content performance intelligence analyst. Analyze the user's content library to identify winning patterns and generate actionable insights.
+
+Return a JSON object with:
+- "topic": a compelling title for this insight report (string)
+- "hook": the key finding / headline insight (string, 1-2 sentences)
+- "script": detailed analysis with specific patterns found (string, 3-5 paragraphs covering: top performing patterns, hook analysis, format recommendations, content angle insights, timing suggestions)
+- "format": the dominant recommended format (string)
+- "insights": a JSON string containing an object with:
+  - "topHooks": array of {type, score, description} for the best performing hook styles
+  - "winningFormats": array of {format, percentage, description}
+  - "contentAngles": array of {angle, performance, description}
+  - "nichePatterns": array of {pattern, frequency, impact}
+- "recommendations": a JSON string containing an array of {action, reason, priority} objects
+
+If no analyzed sources exist, provide general niche recommendations based on any available context. Be specific and data-driven.`
           },
           {
             role: "user",
-            content: sourceContext ? `Generate a daily brief based on these sources:\n${sourceContext}` : "Generate a creative daily content brief for a content creator who is just getting started. Suggest a universal, engaging topic."
+            content: analyzedSources.length > 0 
+              ? `Generate performance insights based on these ${analyzedSources.length} analyzed contents:\n\n${sourceContext}` 
+              : sources.length > 0
+              ? `Generate initial insights based on these sources (not yet fully analyzed):\n\n${sourceContext}`
+              : "Generate starter insights for a content creator who is just beginning. Provide general best practices for short-form video content."
           }
         ],
-        max_completion_tokens: 2048,
+        max_completion_tokens: 3000,
         response_format: { type: "json_object" }
       });
 
       const responseText = completion.choices[0]?.message?.content || "{}";
       let parsed: any;
-      try {
-        parsed = JSON.parse(responseText);
-      } catch {
-        return res.status(500).json({ message: "AI returned invalid JSON" });
-      }
+      try { parsed = JSON.parse(responseText); } catch { return res.status(500).json({ message: "AI returned invalid JSON" }); }
 
       const brief = await storage.createBrief({
         workspaceId,
-        topic: parsed.topic || "Untitled Brief",
+        topic: parsed.topic || "Performance Insights",
         hook: parsed.hook || "",
         script: parsed.script || "",
-        format: parsed.format || "post",
+        format: parsed.format || "insight",
         status: "active",
+        insights: typeof parsed.insights === "string" ? parsed.insights : JSON.stringify(parsed.insights || {}),
+        recommendations: typeof parsed.recommendations === "string" ? parsed.recommendations : JSON.stringify(parsed.recommendations || []),
       });
 
-      await storage.createEvent({ userId: req.user.id, eventName: "brief_generated", metadata: { briefId: brief.id } });
+      await storage.createEvent({ userId: req.user.id, eventName: "insights_generated", metadata: { briefId: brief.id, sourcesAnalyzed: analyzedSources.length } });
       res.status(201).json(brief);
     } catch (err: any) {
-      console.error("Brief generation error:", err);
-      res.status(500).json({ message: err.message || "Brief generation failed" });
+      console.error("Insights generation error:", err);
+      res.status(500).json({ message: err.message || "Insights generation failed" });
     }
   });
 
@@ -207,7 +392,7 @@ export async function registerRoutes(
     }
   });
 
-  // ─── AI: Generate content from a brief ───
+  // ─── AI: Generate recommended content from insights ───
   app.post("/api/briefs/:briefId/generate", isAuthenticated, async (req: any, res) => {
     try {
       const briefId = req.params.briefId;
@@ -215,18 +400,26 @@ export async function registerRoutes(
       const { briefs: briefsTable } = await import("@shared/schema");
       const { eq } = await import("drizzle-orm");
       const [brief] = await db.select().from(briefsTable).where(eq(briefsTable.id, briefId));
-      if (!brief) return res.status(404).json({ message: "Brief not found" });
+      if (!brief) return res.status(404).json({ message: "Insight report not found" });
 
       const completion = await openai.chat.completions.create({
         model: "gpt-4.1-mini",
         messages: [
           {
             role: "system",
-            content: `You are a content creator expert. Based on a content brief, generate 3 ready-to-publish content pieces in JSON format. Return a JSON array where each item has: "format" (post, hook, short), "platform" (linkedin, instagram, twitter), "hookType" (label), "content" (full text ready to publish). Write in the same language as the brief.`
+            content: `You are a content strategist. Based on performance insights and recommendations, generate 3 optimized content pieces that follow the winning patterns identified.
+
+Return a JSON object with an "items" array where each item has:
+- "format" (post, hook, short, script, thread)
+- "platform" (tiktok, instagram, linkedin, twitter, youtube)  
+- "hookType" (the hook style used, based on the top performing hooks from insights)
+- "content" (full text ready to publish — incorporate the winning patterns, hooks, and structures identified in the insights)
+
+The content should directly apply the recommendations from the insight report. Write in the same language as the insights.`
           },
           {
             role: "user",
-            content: `Brief:\nTopic: ${brief.topic}\nHook: ${brief.hook}\nScript: ${brief.script}\nFormat: ${brief.format}`
+            content: `Generate recommended content based on these insights:\n\nTopic: ${brief.topic}\nKey Finding: ${brief.hook}\nAnalysis: ${brief.script}\nRecommended Format: ${brief.format}\n${brief.insights ? `\nInsights: ${brief.insights}` : ""}${brief.recommendations ? `\nRecommendations: ${brief.recommendations}` : ""}`
           }
         ],
         max_completion_tokens: 4096,
@@ -254,10 +447,10 @@ export async function registerRoutes(
         }
       }
 
-      await storage.createEvent({ userId: req.user.id, eventName: "content_from_brief", metadata: { briefId, count: created.length } });
+      await storage.createEvent({ userId: req.user.id, eventName: "content_from_insights", metadata: { briefId, count: created.length } });
       res.json(created);
     } catch (err: any) {
-      console.error("Brief content generation error:", err);
+      console.error("Insight content generation error:", err);
       res.status(500).json({ message: err.message || "Generation failed" });
     }
   });

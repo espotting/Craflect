@@ -28,6 +28,32 @@ export function useCreateSource(workspaceId: string | undefined) {
   });
 }
 
+export function useIngestUrls(workspaceId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation<ContentSource[], Error, { urls: string[] }>({
+    mutationFn: async (data) => {
+      const res = await apiRequest("POST", `/api/workspaces/${workspaceId}/sources/ingest`, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/workspaces", workspaceId, "sources"] });
+    },
+  });
+}
+
+export function useAnalyzeSource(workspaceId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation<ContentSource, Error, { sourceId: string }>({
+    mutationFn: async ({ sourceId }) => {
+      const res = await apiRequest("POST", `/api/sources/${sourceId}/analyze`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/workspaces", workspaceId, "sources"] });
+    },
+  });
+}
+
 export function useGenerateFromSource() {
   const queryClient = useQueryClient();
   return useMutation<GeneratedContent[], Error, { sourceId: string; workspaceId: string }>({

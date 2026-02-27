@@ -4,7 +4,7 @@ import { useSources, useGeneratedContent } from "@/hooks/use-sources";
 import { useBriefs } from "@/hooks/use-briefs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, FolderKanban, ArrowRight, Loader2, Sparkles, Send, Calendar, CheckCircle2, Upload, Wand2 } from "lucide-react";
+import { Plus, FolderKanban, ArrowRight, Loader2, Sparkles, Send, Calendar, CheckCircle2, Upload, Wand2, TrendingUp, Eye, Brain, Target } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -34,28 +34,32 @@ export default function Dashboard() {
   const { data: generatedContent } = useGeneratedContent(selectedWorkspace?.id);
   const { data: briefs } = useBriefs(selectedWorkspace?.id);
 
-  const latestBrief = briefs?.[0];
+  const latestInsight = briefs?.[0];
   const latestContent = generatedContent?.slice(0, 3);
   const scheduledContent = generatedContent?.filter(c => c.status === "scheduled") || [];
 
   const hasWorkspace = (workspaces?.length || 0) > 0;
   const hasSources = (sources?.length || 0) > 0;
+  const analyzedSources = sources?.filter((s: any) => s.ingestionStatus === "analyzed") || [];
+  const hasAnalyzed = analyzedSources.length > 0;
+  const hasInsights = (briefs?.length || 0) > 0;
   const hasContent = (generatedContent?.length || 0) > 0;
 
   const onboardingSteps = [
     { label: "Create workspace", done: hasWorkspace },
-    { label: "Upload source", done: hasSources },
-    { label: "Generate content", done: hasContent },
-    { label: "Track performance", done: false },
+    { label: "Analyze content", done: hasAnalyzed },
+    { label: "Generate insights", done: hasInsights },
+    { label: "Create recommended content", done: hasContent },
   ];
   const completedSteps = onboardingSteps.filter(s => s.done).length;
   const progressPercent = Math.round((completedSteps / onboardingSteps.length) * 100);
 
   const getNextAction = () => {
     if (!hasWorkspace) return { label: "Create your first workspace", action: () => setIsOpen(true), cta: "Create Workspace" };
-    if (!hasSources) return { label: "Upload your first content source to start generating.", action: () => setLocation("/library"), cta: "Upload Source" };
-    if (!hasContent) return { label: "Generate content from your sources or a brief.", action: () => setLocation("/library"), cta: "Generate Content" };
-    return { label: "Generate content from today's brief to stay consistent.", action: () => setLocation("/briefs"), cta: "View Briefs" };
+    if (!hasSources) return { label: "Paste a video URL to start analyzing performance patterns.", action: () => setLocation("/library"), cta: "Analyze Content" };
+    if (!hasAnalyzed) return { label: "Run AI analysis on your content to extract patterns.", action: () => setLocation("/library"), cta: "Analyze Content" };
+    if (!hasInsights) return { label: "Generate insights from your analyzed content.", action: () => setLocation("/briefs"), cta: "Generate Insights" };
+    return { label: "Create recommended content based on your latest insights.", action: () => setLocation("/briefs"), cta: "View Insights" };
   };
 
   const nextAction = getNextAction();
@@ -135,7 +139,7 @@ export default function Dashboard() {
             <FolderKanban className="w-10 h-10 text-primary" />
           </div>
           <h3 className="font-display text-2xl font-bold text-foreground mb-2">No workspaces yet</h3>
-          <p className="text-muted-foreground max-w-md mb-8">Create your first workspace to start ingesting content and generating briefs.</p>
+          <p className="text-muted-foreground max-w-md mb-8">Create your first workspace to start analyzing content performance in your niche.</p>
           {createDialog}
         </div>
       </DashboardLayout>
@@ -165,51 +169,84 @@ export default function Dashboard() {
 
         <div className="flex items-center gap-3 p-4 rounded-xl bg-muted border border-border text-xs text-muted-foreground" data-testid="text-ai-learning">
           <div className="w-2 h-2 rounded-full bg-primary animate-ping" />
-          The AI is learning from your performance. Recommendations will improve automatically.
+          The AI is learning from your niche. More content analyzed = better recommendations.
         </div>
 
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="font-display text-4xl font-bold text-foreground mb-2">Cockpit IA</h1>
-            <p className="text-muted-foreground">Turn your videos into weeks of content.</p>
+            <h1 className="font-display text-4xl font-bold text-foreground mb-2">Intelligence Cockpit</h1>
+            <p className="text-muted-foreground">Your content performance intelligence at a glance.</p>
           </div>
           {createDialog}
         </div>
 
-        {latestBrief ? (
+        {latestInsight ? (
           <Card className="glass-card border-primary/20 bg-primary/5 overflow-hidden relative">
             <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2" />
             <CardHeader className="relative z-10">
               <div className="flex items-center gap-2 mb-2">
-                <Sparkles className="w-5 h-5 text-primary" />
-                <span className="text-xs font-bold uppercase tracking-widest text-primary">Latest Brief</span>
+                <TrendingUp className="w-5 h-5 text-primary" />
+                <span className="text-xs font-bold uppercase tracking-widest text-primary">Latest Insight</span>
               </div>
-              <CardTitle className="text-2xl font-display text-foreground">{latestBrief.topic}</CardTitle>
+              <CardTitle className="text-2xl font-display text-foreground">{latestInsight.topic}</CardTitle>
             </CardHeader>
             <CardContent className="relative z-10 space-y-6">
               <div className="space-y-3">
-                <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Hook</h4>
-                <div className="p-3 rounded-lg bg-background/50 border border-border text-sm text-foreground/90 italic" data-testid="text-brief-hook">
-                  "{latestBrief.hook}"
+                <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Key Finding</h4>
+                <div className="p-3 rounded-lg bg-background/50 border border-border text-sm text-foreground/90 italic" data-testid="text-insight-hook">
+                  "{latestInsight.hook}"
                 </div>
               </div>
               <div className="flex items-center gap-4">
-                <Button onClick={() => setLocation("/briefs")} className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl h-12 px-8" data-testid="button-view-brief">
-                  View Full Brief
+                <Button onClick={() => setLocation("/briefs")} className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl h-12 px-8" data-testid="button-view-insights">
+                  View All Insights
                 </Button>
-                <Badge variant="outline" className="rounded-full">{latestBrief.format}</Badge>
+                <Badge variant="outline" className="rounded-full">{latestInsight.format}</Badge>
               </div>
             </CardContent>
           </Card>
         ) : (
           <Card className="glass-card border-border border-dashed border-2">
             <CardContent className="p-8 flex flex-col items-center text-center">
-              <Sparkles className="w-10 h-10 text-muted-foreground/30 mb-4" />
-              <h3 className="font-display text-lg font-bold text-foreground mb-2">No brief yet</h3>
-              <p className="text-sm text-muted-foreground mb-4">Upload content sources, then generate your first AI brief.</p>
-              <Button onClick={() => setLocation("/briefs")} variant="outline" className="rounded-xl" data-testid="button-go-briefs">
-                Go to Briefs
+              <TrendingUp className="w-10 h-10 text-muted-foreground/30 mb-4" />
+              <h3 className="font-display text-lg font-bold text-foreground mb-2">No insights yet</h3>
+              <p className="text-sm text-muted-foreground mb-4">Analyze content URLs, then generate your first performance insights.</p>
+              <Button onClick={() => setLocation("/briefs")} variant="outline" className="rounded-xl" data-testid="button-go-insights">
+                Go to Insights
               </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {hasAnalyzed && (
+          <Card className="glass-card border-border">
+            <CardHeader>
+              <CardTitle className="text-xl font-display text-foreground flex items-center gap-2">
+                <Eye className="w-5 h-5 text-primary" />
+                Niche Overview
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="p-4 rounded-xl bg-muted/50 border border-border text-center">
+                  <div className="text-2xl font-bold text-foreground" data-testid="stat-analyzed-count">{analyzedSources.length}</div>
+                  <div className="text-xs text-muted-foreground mt-1">Analyzed</div>
+                </div>
+                <div className="p-4 rounded-xl bg-muted/50 border border-border text-center">
+                  <div className="text-2xl font-bold text-foreground" data-testid="stat-avg-score">
+                    {analyzedSources.length > 0 ? Math.round(analyzedSources.reduce((sum: number, s: any) => sum + (s.performanceScore || 0), 0) / analyzedSources.length) : 0}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1">Avg Score</div>
+                </div>
+                <div className="p-4 rounded-xl bg-muted/50 border border-border text-center">
+                  <div className="text-2xl font-bold text-foreground" data-testid="stat-insights-count">{briefs?.length || 0}</div>
+                  <div className="text-xs text-muted-foreground mt-1">Insights</div>
+                </div>
+                <div className="p-4 rounded-xl bg-muted/50 border border-border text-center">
+                  <div className="text-2xl font-bold text-foreground" data-testid="stat-content-count">{generatedContent?.length || 0}</div>
+                  <div className="text-xs text-muted-foreground mt-1">Generated</div>
+                </div>
+              </div>
             </CardContent>
           </Card>
         )}
@@ -244,8 +281,8 @@ export default function Dashboard() {
                   <div className="text-center py-8">
                     <p className="text-sm text-muted-foreground italic">No content generated yet.</p>
                     <Button onClick={() => setLocation("/library")} variant="link" className="text-primary mt-2" data-testid="link-go-library">
-                      <Upload className="w-4 h-4 mr-2" />
-                      Upload your first source
+                      <Eye className="w-4 h-4 mr-2" />
+                      Analyze your first content
                     </Button>
                   </div>
                 )}
@@ -306,9 +343,9 @@ export default function Dashboard() {
                   ))}
                 </div>
                 {!hasSources && (
-                  <Button onClick={() => setLocation("/library")} className="w-full mt-6 bg-foreground text-background hover:bg-foreground/90 rounded-xl font-bold" data-testid="button-upload-first">
-                    <Upload className="w-4 h-4 mr-2" />
-                    Upload first content
+                  <Button onClick={() => setLocation("/library")} className="w-full mt-6 bg-foreground text-background hover:bg-foreground/90 rounded-xl font-bold" data-testid="button-analyze-first">
+                    <Eye className="w-4 h-4 mr-2" />
+                    Analyze first content
                   </Button>
                 )}
               </CardContent>

@@ -19,11 +19,11 @@ export interface IStorage {
   getContentSources(workspaceId: string): Promise<ContentSource[]>;
   createContentSource(source: InsertContentSource): Promise<ContentSource>;
   updateContentSourceStatus(id: string, status: string): Promise<ContentSource>;
+  updateContentSource(id: string, data: Partial<ContentSource>): Promise<ContentSource>;
   getContentSourceById(id: string): Promise<ContentSource | undefined>;
   
   getBriefs(workspaceId: string): Promise<Brief[]>;
   createBrief(brief: InsertBrief): Promise<Brief>;
-  
   updateBriefStatus(id: string, status: string): Promise<Brief>;
 
   getGeneratedContent(sourceId: string): Promise<GeneratedContent[]>;
@@ -82,6 +82,11 @@ export class DatabaseStorage implements IStorage {
 
   async updateContentSourceStatus(id: string, status: string): Promise<ContentSource> {
     const [updated] = await db.update(contentSources).set({ status }).where(eq(contentSources.id, id)).returning();
+    return updated;
+  }
+
+  async updateContentSource(id: string, data: Partial<ContentSource>): Promise<ContentSource> {
+    const [updated] = await db.update(contentSources).set(data).where(eq(contentSources.id, id)).returning();
     return updated;
   }
 

@@ -6,8 +6,8 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import {
   ArrowRight,
@@ -15,9 +15,15 @@ import {
   Loader2,
   Sparkles,
   FolderKanban,
-  FileText,
+  Link2,
   Check,
+  Plus,
+  X,
+  TrendingUp,
+  BarChart3,
+  Target,
 } from "lucide-react";
+import { SiTiktok, SiInstagram, SiYoutube } from "react-icons/si";
 import logoTransparent from "@/assets/logo-transparent.png";
 import logoLight from "@/assets/logo-light.png";
 import { useTheme } from "@/hooks/use-theme";
@@ -115,10 +121,31 @@ function ConfettiCanvas() {
   );
 }
 
+function detectPlatformFromUrl(url: string): string | null {
+  if (/tiktok\.com/i.test(url)) return "tiktok";
+  if (/instagram\.com|instagr\.am/i.test(url)) return "instagram";
+  if (/youtube\.com|youtu\.be/i.test(url)) return "youtube";
+  if (/twitter\.com|x\.com/i.test(url)) return "twitter";
+  return null;
+}
+
+function PlatformIcon({ platform, className }: { platform: string | null; className?: string }) {
+  switch (platform) {
+    case "tiktok":
+      return <SiTiktok className={className} />;
+    case "instagram":
+      return <SiInstagram className={className} />;
+    case "youtube":
+      return <SiYoutube className={className} />;
+    default:
+      return <Link2 className={className} />;
+  }
+}
+
 const STEPS = [
   { label: "Create workspace", icon: FolderKanban },
-  { label: "Add source", icon: FileText },
-  { label: "Generate brief", icon: Sparkles },
+  { label: "Analyze content", icon: Link2 },
+  { label: "Your first insights", icon: Sparkles },
 ];
 
 export default function Welcome() {
@@ -131,11 +158,13 @@ export default function Welcome() {
   const [showIntro, setShowIntro] = useState(true);
   const [workspaceName, setWorkspaceName] = useState("");
   const [createdWorkspaceId, setCreatedWorkspaceId] = useState<string | null>(null);
-  const [sourceTitle, setSourceTitle] = useState("");
-  const [sourceContent, setSourceContent] = useState("");
+  const [urls, setUrls] = useState<string[]>([""]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
-  const [briefGenerated, setBriefGenerated] = useState(false);
+  const [insightsGenerated, setInsightsGenerated] = useState(false);
+  const [analysisPhase, setAnalysisPhase] = useState<"idle" | "ingesting" | "analyzing" | "generating" | "done">("idle");
+  const [insightData, setInsightData] = useState<{ topic?: string; hook?: string; format?: string; performanceScore?: number } | null>(null);
+  const [createdSourceIds, setCreatedSourceIds] = useState<string[]>([]);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -168,45 +197,80 @@ export default function Welcome() {
     }
   }, [workspaceName, toast]);
 
-  const handleAddSource = useCallback(async () => {
-    if (!sourceTitle.trim() || !sourceContent.trim() || !createdWorkspaceId) return;
+  const handleAddUrl = useCallback(() => {
+    setUrls((prev) => [...prev, ""]);
+  }, []);
+
+  const handleRemoveUrl = useCallback((index: number) => {
+    setUrls((prev) => prev.filter((_, i) => i !== index));
+  }, []);
+
+  const handleUrlChange = useCallback((index: number, value: string) => {
+    setUrls((prev) => prev.map((u, i) => (i === index ? value : u)));
+  }, []);
+
+  const validUrls = urls.filter((u) => u.trim().length > 0);
+
+  const handleIngestUrls = useCallback(async () => {
+    if (validUrls.length === 0 || !createdWorkspaceId) return;
     setIsSubmitting(true);
     try {
-      await apiRequest("POST", `/api/workspaces/${createdWorkspaceId}/sources`, {
-        title: sourceTitle,
-        type: "text",
-        rawContent: sourceContent,
+      const res = await apiRequest("POST", `/api/workspaces/${createdWorkspaceId}/sources/ingest`, {
+        urls: validUrls,
       });
-      toast({ title: "Source added", description: "Your content is ready for AI processing." });
+      const sources = await res.json();
+      const ids = sources.map((s: any) => s.id);
+      setCreatedSourceIds(ids);
+      toast({ title: "URLs added", description: `${sources.length} content source(s) ready for analysis.` });
       setStep(2);
     } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Failed to add source", variant: "destructive" });
+      toast({ title: "Error", description: err.message || "Failed to ingest URLs", variant: "destructive" });
     } finally {
       setIsSubmitting(false);
     }
-  }, [sourceTitle, sourceContent, createdWorkspaceId, toast]);
+  }, [validUrls, createdWorkspaceId, toast]);
 
-  const handleGenerateBrief = useCallback(async () => {
+  const handleGenerateInsights = useCallback(async () => {
     if (!createdWorkspaceId) return;
     setIsSubmitting(true);
+    setAnalysisPhase("analyzing");
     try {
-      await apiRequest("POST", `/api/workspaces/${createdWorkspaceId}/briefs/generate`);
-      setBriefGenerated(true);
+      for (const sourceId of createdSourceIds) {
+        try {
+          await apiRequest("POST", `/api/sources/${sourceId}/analyze`);
+        } catch {
+          // continue with other sources
+        }
+      }
+
+      setAnalysisPhase("generating");
+      const res = await apiRequest("POST", `/api/workspaces/${createdWorkspaceId}/briefs/generate`);
+      const insight = await res.json();
+
+      setInsightData({
+        topic: insight.topic,
+        hook: insight.hook,
+        format: insight.format,
+      });
+
+      setAnalysisPhase("done");
+      setInsightsGenerated(true);
       setShowConfetti(true);
-      toast({ title: "Brief generated!", description: "Your first AI brief is ready." });
+      toast({ title: "Insights generated!", description: "Your first performance analysis is ready." });
 
       await apiRequest("PATCH", "/api/auth/user", { onboardingCompleted: true });
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
 
       setTimeout(() => {
         setLocation("/dashboard");
-      }, 3500);
+      }, 4000);
     } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Failed to generate brief", variant: "destructive" });
+      toast({ title: "Error", description: err.message || "Failed to generate insights", variant: "destructive" });
+      setAnalysisPhase("idle");
     } finally {
       setIsSubmitting(false);
     }
-  }, [createdWorkspaceId, toast, setLocation]);
+  }, [createdWorkspaceId, createdSourceIds, toast, setLocation]);
 
   if (authLoading || !user) {
     return (
@@ -216,7 +280,7 @@ export default function Welcome() {
     );
   }
 
-  const progressValue = showIntro ? 0 : ((step + (briefGenerated ? 1 : 0)) / 3) * 100;
+  const progressValue = showIntro ? 0 : ((step + (insightsGenerated ? 1 : 0)) / 3) * 100;
   const firstName = user.firstName || "Creator";
 
   return (
@@ -260,7 +324,7 @@ export default function Welcome() {
               animate={{ opacity: 1 }}
               transition={{ delay: 0.8, duration: 0.6 }}
             >
-              Let's set up your content engine in 3 steps.
+              Let's set up your content intelligence engine in 3 steps.
             </motion.p>
           </motion.div>
         ) : (
@@ -284,10 +348,10 @@ export default function Welcome() {
               </div>
               <Progress value={progressValue} className="h-1.5 bg-muted" />
 
-              <div className="flex items-center gap-2 mt-6 mb-2">
+              <div className="flex items-center gap-2 mt-6 mb-2 flex-wrap">
                 {STEPS.map((s, i) => {
-                  const done = i < step || (i === 2 && briefGenerated);
-                  const active = i === step && !briefGenerated;
+                  const done = i < step || (i === 2 && insightsGenerated);
+                  const active = i === step && !insightsGenerated;
                   return (
                     <div
                       key={i}
@@ -388,44 +452,77 @@ export default function Welcome() {
                     <CardContent className="p-8 space-y-6">
                       <div className="flex items-center gap-3 mb-2">
                         <div className="w-10 h-10 rounded-md bg-primary/10 flex items-center justify-center">
-                          <FileText className="w-5 h-5 text-primary" />
+                          <Link2 className="w-5 h-5 text-primary" />
                         </div>
                         <div>
                           <h2 className="text-2xl font-display font-bold text-foreground" data-testid="text-step-title">
-                            Add your first source
+                            Analyze content from your niche
                           </h2>
                           <p className="text-sm text-muted-foreground">
-                            Paste text content or a URL. The AI will repurpose it for you.
+                            Paste a video URL from your niche. We'll analyze what makes it perform.
                           </p>
                         </div>
                       </div>
 
-                      <div className="space-y-4">
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium text-muted-foreground">
-                            Title
-                          </label>
-                          <Input
-                            placeholder="e.g. My latest video transcript"
-                            value={sourceTitle}
-                            onChange={(e) => setSourceTitle(e.target.value)}
-                            className="bg-background border-border text-foreground"
-                            autoFocus
-                            data-testid="input-onboarding-source-title"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium text-muted-foreground">
-                            Content
-                          </label>
-                          <Textarea
-                            placeholder="Paste your text content, transcript, or link here..."
-                            value={sourceContent}
-                            onChange={(e) => setSourceContent(e.target.value)}
-                            className="bg-background border-border text-foreground min-h-[140px] resize-none"
-                            data-testid="input-onboarding-source-content"
-                          />
-                        </div>
+                      <div className="space-y-3">
+                        {urls.map((url, index) => {
+                          const platform = detectPlatformFromUrl(url);
+                          return (
+                            <div key={index} className="flex items-center gap-2">
+                              <div className="relative flex-1">
+                                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                                  <PlatformIcon platform={platform} className="w-4 h-4" />
+                                </div>
+                                <Input
+                                  placeholder="https://www.tiktok.com/@creator/video/..."
+                                  value={url}
+                                  onChange={(e) => handleUrlChange(index, e.target.value)}
+                                  className="bg-background border-border text-foreground pl-10"
+                                  autoFocus={index === 0}
+                                  data-testid={`input-onboarding-url-${index}`}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                      e.preventDefault();
+                                      if (validUrls.length > 0) {
+                                        handleIngestUrls();
+                                      }
+                                    }
+                                  }}
+                                />
+                              </div>
+                              {platform && (
+                                <Badge variant="secondary" className="text-xs flex-shrink-0" data-testid={`badge-platform-${index}`}>
+                                  {platform}
+                                </Badge>
+                              )}
+                              {urls.length > 1 && (
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  onClick={() => handleRemoveUrl(index)}
+                                  data-testid={`button-remove-url-${index}`}
+                                >
+                                  <X className="w-4 h-4" />
+                                </Button>
+                              )}
+                            </div>
+                          );
+                        })}
+
+                        <Button
+                          variant="outline"
+                          onClick={handleAddUrl}
+                          className="w-full"
+                          data-testid="button-onboarding-add-url"
+                        >
+                          <Plus className="w-4 h-4 mr-2" />
+                          Add another URL
+                        </Button>
+                      </div>
+
+                      <div className="flex items-center gap-3 p-4 rounded-md bg-muted border border-border text-sm text-muted-foreground">
+                        <BarChart3 className="w-4 h-4 text-primary flex-shrink-0" />
+                        Supported: TikTok, Instagram Reels, YouTube Shorts, and more.
                       </div>
 
                       <div className="flex items-center gap-3">
@@ -438,15 +535,15 @@ export default function Welcome() {
                           Back
                         </Button>
                         <Button
-                          onClick={handleAddSource}
-                          disabled={isSubmitting || !sourceTitle.trim() || !sourceContent.trim()}
+                          onClick={handleIngestUrls}
+                          disabled={isSubmitting || validUrls.length === 0}
                           className="flex-1"
-                          data-testid="button-onboarding-add-source"
+                          data-testid="button-onboarding-ingest"
                         >
                           {isSubmitting ? (
                             <Loader2 className="w-4 h-4 animate-spin mr-2" />
                           ) : null}
-                          Add source
+                          Analyze {validUrls.length} URL{validUrls.length !== 1 ? "s" : ""}
                           <ArrowRight className="w-4 h-4 ml-2" />
                         </Button>
                       </div>
@@ -472,63 +569,99 @@ export default function Welcome() {
                         </div>
                         <div>
                           <h2 className="text-2xl font-display font-bold text-foreground" data-testid="text-step-title">
-                            {briefGenerated ? "You're all set!" : "Generate your first brief"}
+                            {insightsGenerated ? "You're all set!" : "Your first insights"}
                           </h2>
                           <p className="text-sm text-muted-foreground">
-                            {briefGenerated
-                              ? "Your AI content engine is ready. Redirecting to dashboard..."
-                              : "Watch the AI create a personalized content brief from your source."}
+                            {insightsGenerated
+                              ? "Your content intelligence engine is ready. Redirecting to dashboard..."
+                              : "Watch the AI analyze performance patterns and generate actionable insights."}
                           </p>
                         </div>
                       </div>
 
-                      {briefGenerated ? (
+                      {insightsGenerated && insightData ? (
                         <motion.div
                           initial={{ scale: 0.8, opacity: 0 }}
                           animate={{ scale: 1, opacity: 1 }}
                           transition={{ duration: 0.5, ease: "easeOut" }}
-                          className="flex flex-col items-center py-8"
+                          className="space-y-6"
                         >
-                          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                            <Check className="w-8 h-8 text-primary" />
+                          <div className="p-5 rounded-md bg-muted border border-border space-y-4">
+                            <div className="flex items-start gap-3">
+                              <TrendingUp className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                              <div className="space-y-1">
+                                <p className="text-sm font-semibold text-foreground" data-testid="text-insight-topic">
+                                  {insightData.topic}
+                                </p>
+                                <p className="text-sm text-muted-foreground" data-testid="text-insight-hook">
+                                  {insightData.hook}
+                                </p>
+                              </div>
+                            </div>
+                            {insightData.format && (
+                              <div className="flex items-center gap-2">
+                                <Target className="w-4 h-4 text-muted-foreground" />
+                                <span className="text-xs text-muted-foreground">Recommended format:</span>
+                                <Badge variant="secondary" className="text-xs" data-testid="badge-insight-format">
+                                  {insightData.format}
+                                </Badge>
+                              </div>
+                            )}
                           </div>
-                          <p className="text-lg font-display font-bold text-foreground mb-1" data-testid="text-onboarding-complete">
-                            Onboarding complete
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            Taking you to your dashboard...
-                          </p>
+
+                          <div className="flex flex-col items-center py-4">
+                            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                              <Check className="w-8 h-8 text-primary" />
+                            </div>
+                            <p className="text-lg font-display font-bold text-foreground mb-1" data-testid="text-onboarding-complete">
+                              Onboarding complete
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              Taking you to your dashboard...
+                            </p>
+                          </div>
                         </motion.div>
                       ) : (
                         <>
-                          <div className="flex items-center gap-3 p-4 rounded-md bg-muted border border-border text-sm text-muted-foreground">
-                            <Sparkles className="w-4 h-4 text-primary flex-shrink-0" />
-                            The AI will analyze your source content and generate a tailored brief with topic, hook, and script.
-                          </div>
+                          {analysisPhase !== "idle" && analysisPhase !== "done" && (
+                            <div className="flex flex-col items-center py-6 space-y-4">
+                              <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                              <p className="text-sm text-muted-foreground font-medium" data-testid="text-analysis-status">
+                                {analysisPhase === "analyzing" && "Analyzing performance patterns..."}
+                                {analysisPhase === "generating" && "Generating insights from your content..."}
+                                {analysisPhase === "ingesting" && "Ingesting content..."}
+                              </p>
+                            </div>
+                          )}
 
-                          <div className="flex items-center gap-3">
-                            <Button
-                              variant="outline"
-                              onClick={() => setStep(1)}
-                              data-testid="button-onboarding-back-2"
-                            >
-                              <ArrowLeft className="w-4 h-4 mr-2" />
-                              Back
-                            </Button>
-                            <Button
-                              onClick={handleGenerateBrief}
-                              disabled={isSubmitting}
-                              className="flex-1"
-                              data-testid="button-onboarding-generate"
-                            >
-                              {isSubmitting ? (
-                                <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                              ) : (
-                                <Sparkles className="w-4 h-4 mr-2" />
-                              )}
-                              Generate brief
-                            </Button>
-                          </div>
+                          {analysisPhase === "idle" && (
+                            <>
+                              <div className="flex items-center gap-3 p-4 rounded-md bg-muted border border-border text-sm text-muted-foreground">
+                                <Sparkles className="w-4 h-4 text-primary flex-shrink-0" />
+                                The AI will analyze your content URLs, extract performance features, and identify winning patterns in your niche.
+                              </div>
+
+                              <div className="flex items-center gap-3">
+                                <Button
+                                  variant="outline"
+                                  onClick={() => setStep(1)}
+                                  data-testid="button-onboarding-back-2"
+                                >
+                                  <ArrowLeft className="w-4 h-4 mr-2" />
+                                  Back
+                                </Button>
+                                <Button
+                                  onClick={handleGenerateInsights}
+                                  disabled={isSubmitting}
+                                  className="flex-1"
+                                  data-testid="button-onboarding-generate"
+                                >
+                                  <Sparkles className="w-4 h-4 mr-2" />
+                                  Generate insights
+                                </Button>
+                              </div>
+                            </>
+                          )}
                         </>
                       )}
                     </CardContent>

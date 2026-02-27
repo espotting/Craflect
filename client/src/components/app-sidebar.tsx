@@ -30,8 +30,8 @@ import logoLight from "@/assets/logo-light.png";
 
 const mainItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
-  { title: "Content", url: "/library", icon: Library },
-  { title: "Briefs", url: "/briefs", icon: Sparkles },
+  { title: "Analyzed Content", url: "/library", icon: Library },
+  { title: "Insights", url: "/briefs", icon: Sparkles },
   { title: "Analytics", url: "/analytics", icon: BarChart3 },
 ];
 

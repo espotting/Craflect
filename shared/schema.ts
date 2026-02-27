@@ -3,7 +3,6 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { sql } from "drizzle-orm";
 
-// Export existing integration models so they are included in migrations
 export * from "./models/auth";
 export * from "./models/chat";
 
@@ -23,6 +22,25 @@ export const contentSources = pgTable("content_sources", {
   transcript: text("transcript"),
   rawContent: text("raw_content"),
   status: text("status").default("pending").notNull(),
+  url: text("url"),
+  platform: text("platform"),
+  creatorHandle: text("creator_handle"),
+  publishedAt: timestamp("published_at"),
+  duration: integer("duration"),
+  views: integer("views"),
+  likes: integer("likes"),
+  commentsCount: integer("comments_count"),
+  description: text("description"),
+  hashtags: text("hashtags").array(),
+  thumbnailUrl: text("thumbnail_url"),
+  hookType: text("hook_type"),
+  narrativeStructure: text("narrative_structure"),
+  contentAngle: text("content_angle"),
+  contentFormat: text("content_format"),
+  performanceScore: integer("performance_score"),
+  nicheCategory: text("niche_category"),
+  ingestionStatus: text("ingestion_status").default("pending"),
+  ingestionError: text("ingestion_error"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -49,6 +67,8 @@ export const briefs = pgTable("briefs", {
   script: text("script").notNull(),
   format: text("format").notNull(),
   status: text("status").default("active").notNull(),
+  insights: text("insights"),
+  recommendations: text("recommendations"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

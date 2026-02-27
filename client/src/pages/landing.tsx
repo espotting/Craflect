@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
-import { Sparkles, ArrowRight, Layers, Workflow, Zap, Sun, Moon, UserCircle2 } from "lucide-react";
+import { Sparkles, ArrowRight, Eye, Brain, Target, Pencil, Sun, Moon, UserCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/hooks/use-theme";
 import logoLight from "@/assets/logo-light.png";
@@ -75,18 +75,20 @@ export default function Landing() {
         >
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-panel text-sm font-medium text-primary mb-8 border-primary/20">
             <Sparkles className="w-4 h-4" />
-            <span>The AI Content Intelligence Platform</span>
+            <span>Content Performance Intelligence</span>
           </div>
           
           <h1 className="font-display text-5xl md:text-7xl lg:text-8xl font-extrabold tracking-tight text-foreground mb-6 leading-tight">
-            Transform Ideas Into <br className="hidden md:block" />
+            Show me what works <br className="hidden md:block" />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-[#8b5cf6] to-secondary">
-              Infinite Content
+              Tell me what to post
             </span>
+            <br className="hidden md:block" />
+            Create it for me
           </h1>
           
           <p className="text-lg md:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto leading-relaxed">
-            Ingest your raw materials, extract the gold, and generate months of high-performing social content automatically with our Repurposing Engine.
+            Craflect analyzes content performance in your niche and generates optimized content to reproduce what works.
           </p>
           
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -106,12 +108,13 @@ export default function Landing() {
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.2, ease: "easeOut" }}
-          className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto mt-24"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto mt-24"
         >
           {[
-            { icon: Layers, title: "Deep Ingestion", desc: "Upload videos, podcasts, or text. We analyze every detail." },
-            { icon: Workflow, title: "Repurposing Engine", desc: "Generate hooks, scripts, and posts adapted for every platform." },
-            { icon: Zap, title: "Daily Briefs", desc: "Wake up to curated content ideas based on your unique data." }
+            { icon: Eye, title: "Observe", desc: "Paste any video URL. We extract performance data, hooks, and structure automatically." },
+            { icon: Brain, title: "Understand", desc: "AI identifies winning patterns, top hooks, and formats that drive engagement in your niche." },
+            { icon: Target, title: "Recommend", desc: "Get actionable insights and data-backed recommendations for your next content." },
+            { icon: Pencil, title: "Produce", desc: "Generate optimized scripts, hooks, and posts based on proven performance patterns." }
           ].map((feature, i) => (
             <div key={i} className="glass-card p-8 rounded-2xl text-left flex flex-col items-start" data-testid={`card-feature-${i}`}>
               <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center mb-6 border border-primary/30">
