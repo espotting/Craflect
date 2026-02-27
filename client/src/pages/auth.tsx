@@ -6,7 +6,7 @@ import { useLocation } from "wouter";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Mail, Loader2, Sun, Moon, CheckCircle2, LogIn } from "lucide-react";
+import { ArrowLeft, Mail, Loader2, Sun, Moon, CheckCircle2, Eye, EyeOff } from "lucide-react";
 import { FcGoogle } from "react-icons/fc";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -28,6 +28,8 @@ export default function Auth() {
   const [email, setEmail] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [code, setCode] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [resending, setResending] = useState(false);
@@ -43,13 +45,14 @@ export default function Auth() {
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim() || !firstName.trim()) return;
+    if (!email.trim() || !firstName.trim() || !password.trim()) return;
     setSubmitting(true);
     try {
       await apiRequest("POST", "/api/auth/register", {
         email: email.trim(),
         firstName: firstName.trim(),
         lastName: lastName.trim() || undefined,
+        password: password,
       });
       setIsLoginFlow(false);
       setStep("verify-code");
@@ -63,13 +66,23 @@ export default function Auth() {
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim()) return;
+    if (!email.trim() || !password.trim()) return;
     setSubmitting(true);
     try {
-      await apiRequest("POST", "/api/auth/login", { email: email.trim() });
-      setIsLoginFlow(true);
-      setStep("verify-code");
-      toast({ title: "Code sent", description: `A verification code has been sent to ${email}` });
+      const res = await apiRequest("POST", "/api/auth/login", {
+        email: email.trim(),
+        password: password,
+      });
+      const data = await res.json();
+      if (data.needsVerification) {
+        setIsLoginFlow(true);
+        setStep("verify-code");
+        toast({ title: "Verification needed", description: "Please verify your email first. A code has been sent." });
+      } else {
+        await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+        toast({ title: "Welcome back!", description: "You're signed in." });
+        setLocation("/dashboard");
+      }
     } catch (err: any) {
       toast({ title: "Error", description: err.message || "Login failed", variant: "destructive" });
     } finally {
@@ -104,6 +117,31 @@ export default function Auth() {
       setResending(false);
     }
   };
+
+  const PasswordInput = ({ autoFocus = false, testId = "input-password" }: { autoFocus?: boolean; testId?: string }) => (
+    <div className="relative">
+      <Input
+        type={showPassword ? "text" : "password"}
+        placeholder="••••••••"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        className="bg-background border-border text-foreground h-12 rounded-xl focus-visible:ring-primary pr-12"
+        required
+        minLength={8}
+        autoFocus={autoFocus}
+        data-testid={testId}
+      />
+      <button
+        type="button"
+        onClick={() => setShowPassword(!showPassword)}
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+        tabIndex={-1}
+        data-testid="button-toggle-password"
+      >
+        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+      </button>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -168,6 +206,13 @@ export default function Auth() {
                     Sign up with Email
                   </Button>
                 </div>
+
+                <p className="text-center text-sm text-muted-foreground">
+                  Already have an account?{" "}
+                  <button onClick={() => setStep("login-form")} className="text-primary hover:text-primary/80 font-medium" data-testid="link-go-login-choose">
+                    Log in
+                  </button>
+                </p>
               </motion.div>
             )}
 
@@ -190,7 +235,7 @@ export default function Auth() {
                     Back
                   </button>
                   <h1 className="font-display text-3xl font-bold text-foreground mb-3">Log in</h1>
-                  <p className="text-muted-foreground">Enter your email and we'll send you a verification code.</p>
+                  <p className="text-muted-foreground">Enter your email and password to sign in.</p>
                 </div>
 
                 <form onSubmit={handleLoginSubmit} className="space-y-5">
@@ -207,13 +252,17 @@ export default function Auth() {
                       data-testid="input-login-email"
                     />
                   </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-muted-foreground">Password</label>
+                    <PasswordInput testId="input-login-password" />
+                  </div>
                   <Button
                     type="submit"
-                    disabled={submitting || !email.trim()}
+                    disabled={submitting || !email.trim() || !password.trim()}
                     className="w-full h-12 rounded-xl bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-white font-medium"
-                    data-testid="button-send-login-code"
+                    data-testid="button-login-submit"
                   >
-                    {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Send verification code"}
+                    {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Sign in"}
                   </Button>
                 </form>
 
@@ -245,7 +294,7 @@ export default function Auth() {
                     Back
                   </button>
                   <h1 className="font-display text-3xl font-bold text-foreground mb-3">Create your account</h1>
-                  <p className="text-muted-foreground">Enter your details and we'll send you a verification code.</p>
+                  <p className="text-muted-foreground">Enter your details to get started.</p>
                 </div>
 
                 <form onSubmit={handleEmailSubmit} className="space-y-5">
@@ -285,13 +334,18 @@ export default function Auth() {
                       data-testid="input-email"
                     />
                   </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-muted-foreground">Password</label>
+                    <PasswordInput testId="input-register-password" />
+                    <p className="text-xs text-muted-foreground">Minimum 8 characters</p>
+                  </div>
                   <Button
                     type="submit"
-                    disabled={submitting || !email.trim() || !firstName.trim()}
+                    disabled={submitting || !email.trim() || !firstName.trim() || password.length < 8}
                     className="w-full h-12 rounded-xl bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-white font-medium"
                     data-testid="button-send-code"
                   >
-                    {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Send verification code"}
+                    {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Create account"}
                   </Button>
                 </form>
 

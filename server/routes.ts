@@ -352,7 +352,8 @@ export async function registerRoutes(
         onboardingCompleted: z.boolean().optional(),
       }).parse(req.body);
       const updated = await storage.updateUserProfile(req.user.id, input);
-      res.json(updated);
+      const { password: _, ...safeUser } = updated as any;
+      res.json(safeUser);
     } catch (err) {
       if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
       res.status(500).json({ message: "Internal Error" });
@@ -367,7 +368,7 @@ export async function registerRoutes(
 
   app.get("/api/admin/users", isAuthenticated, isAdmin, async (req: any, res) => {
     const allUsers = await storage.getAllUsers();
-    res.json(allUsers);
+    res.json(allUsers.map((u: any) => { const { password: _, ...safe } = u; return safe; }));
   });
 
   app.get("/api/admin/events", isAuthenticated, isAdmin, async (req: any, res) => {

@@ -2,11 +2,24 @@ import type { Express } from "express";
 import { isAuthenticated } from "./replitAuth";
 import { authStorage } from "./storage";
 import { z } from "zod";
+import bcrypt from "bcryptjs";
+
+function sanitizeUser(user: any) {
+  if (!user) return user;
+  const { password, ...safe } = user;
+  return safe;
+}
 
 const registerSchema = z.object({
   email: z.string().email("Invalid email address"),
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().optional(),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+});
+
+const loginSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(1, "Password is required"),
 });
 
 const verifySchema = z.object({
@@ -17,7 +30,7 @@ const verifySchema = z.object({
 export function registerAuthRoutes(app: Express): void {
   app.get("/api/auth/user", isAuthenticated, async (req: any, res) => {
     try {
-      res.json(req.user);
+      res.json(sanitizeUser(req.user));
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
@@ -26,14 +39,14 @@ export function registerAuthRoutes(app: Express): void {
 
   app.post("/api/auth/register", async (req, res) => {
     try {
-      const { email, firstName, lastName } = registerSchema.parse(req.body);
+      const { email, firstName, lastName, password } = registerSchema.parse(req.body);
 
       const existing = await authStorage.getUserByEmail(email);
       if (existing?.emailVerified) {
-        const code = await authStorage.createVerificationCode(email);
-        console.log(`[AUTH] Verification code for ${email}: ${code}`);
-        return res.json({ message: "Verification code sent", needsVerification: true });
+        return res.status(400).json({ message: "An account with this email already exists. Please log in." });
       }
+
+      const hashedPassword = await bcrypt.hash(password, 12);
 
       if (existing && !existing.emailVerified) {
         await authStorage.upsertUser({
@@ -41,6 +54,7 @@ export function registerAuthRoutes(app: Express): void {
           email,
           firstName,
           lastName: lastName || null,
+          password: hashedPassword,
           authProvider: "email",
           emailVerified: false,
         });
@@ -49,6 +63,7 @@ export function registerAuthRoutes(app: Express): void {
           email,
           firstName,
           lastName: lastName || null,
+          password: hashedPassword,
           authProvider: "email",
           emailVerified: false,
         });
@@ -86,6 +101,7 @@ export function registerAuthRoutes(app: Express): void {
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
+        password: user.password,
         emailVerified: true,
         authProvider: "email",
       });
@@ -97,7 +113,7 @@ export function registerAuthRoutes(app: Express): void {
           console.error("Login error after verification:", err);
           return res.status(500).json({ message: "Login failed" });
         }
-        res.json({ message: "Email verified", user });
+        res.json({ message: "Email verified", user: sanitizeUser(user) });
       });
     } catch (err) {
       if (err instanceof z.ZodError) {
@@ -108,19 +124,37 @@ export function registerAuthRoutes(app: Express): void {
     }
   });
 
-  app.post("/api/auth/login", async (req, res) => {
+  app.post("/api/auth/login", async (req: any, res) => {
     try {
-      const { email } = z.object({ email: z.string().email("Invalid email address") }).parse(req.body);
+      const { email, password } = loginSchema.parse(req.body);
 
-      const existing = await authStorage.getUserByEmail(email);
-      if (!existing) {
+      const user = await authStorage.getUserByEmail(email);
+      if (!user) {
         return res.status(400).json({ message: "No account found with this email. Please sign up first." });
       }
 
-      const code = await authStorage.createVerificationCode(email);
-      console.log(`[AUTH] Login code for ${email}: ${code}`);
+      if (!user.password) {
+        return res.status(400).json({ message: "This account uses Google sign-in. Please use 'Continue with Google'." });
+      }
 
-      res.json({ message: "Verification code sent" });
+      const passwordValid = await bcrypt.compare(password, user.password);
+      if (!passwordValid) {
+        return res.status(400).json({ message: "Incorrect password." });
+      }
+
+      if (!user.emailVerified) {
+        const code = await authStorage.createVerificationCode(email);
+        console.log(`[AUTH] Verification code for ${email}: ${code}`);
+        return res.json({ message: "Email not verified. Verification code sent.", needsVerification: true });
+      }
+
+      req.login(user, (err: any) => {
+        if (err) {
+          console.error("Login error:", err);
+          return res.status(500).json({ message: "Login failed" });
+        }
+        res.json({ message: "Logged in", user: sanitizeUser(user) });
+      });
     } catch (err) {
       if (err instanceof z.ZodError) {
         return res.status(400).json({ message: err.errors[0].message });

@@ -35,12 +35,15 @@ shared/
 
 ## Auth
 - Google OAuth (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET)
-- Email OTP (register → verify code, login → verify code)
+- Email + Password + Verification Code (signup: email/password/name → code, login: email/password → direct access)
+- Passwords hashed with bcryptjs (12 rounds)
+- Password field NEVER sent in API responses (sanitizeUser strips it)
 - Session stored in PostgreSQL via connect-pg-simple
 - User ID from `req.user.id`
 - Login: GET /api/login → Google OAuth → /api/auth/google/callback → /dashboard
-- Email: POST /api/auth/register, /api/auth/login, /api/auth/verify
+- Email: POST /api/auth/register (email+password+name), POST /api/auth/login (email+password), POST /api/auth/verify (email+code)
 - Logout: GET /api/logout
+- Demo accounts: demo@craflect.com / demo1234 (user), admin@craflect.com / admin1234 (admin)
 
 ## Theme
 - Dark mode by default (`class="dark"` on html element)
