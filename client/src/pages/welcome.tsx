@@ -454,7 +454,7 @@ export default function Welcome() {
                 <img
                   src={isDark ? logoTransparent : logoLight}
                   alt="Craflect"
-                  className="h-8 w-auto"
+                  className="h-10 w-auto"
                 />
                 <span className="text-sm text-muted-foreground font-medium">
                   Step {Math.min(step + 1, 4)} of 4
