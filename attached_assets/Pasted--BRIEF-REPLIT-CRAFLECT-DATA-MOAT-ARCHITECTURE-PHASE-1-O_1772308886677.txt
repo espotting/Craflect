@@ -1,0 +1,416 @@
+🔥 BRIEF REPLIT — CRAFLECT DATA MOAT ARCHITECTURE (PHASE 1)
+🎯 OBJECTIF STRATÉGIQUE
+
+Transformer Craflect d’un outil d’analyse ponctuelle
+en une plateforme d’intelligence de niche structurée.
+
+Construire :
+
+Video Primitive Layer
+
+Pattern Extraction Layer
+
+Statistical Layer
+
+Niche Intelligence Profile Layer
+
+Phase 1 : 3 niches profondes
+(Ex : Real Estate / Fitness / Personal Branding)
+
+🧱 ARCHITECTURE GÉNÉRALE
+
+Nous ne stockons pas de vidéos.
+Nous stockons uniquement des abstractions normalisées.
+
+Chaque vidéo devient un objet structuré.
+
+🏗️ 1️⃣ VIDEO PRIMITIVE LAYER
+
+Créer un modèle video_primitives.
+
+Champs requis :
+
+id
+
+niche_id
+
+creator_id
+
+platform
+
+publish_date
+
+duration_seconds
+
+engagement_ratio (nullable)
+
+hook_text
+
+hook_type (enum fermé)
+
+hook_length
+
+structure_model (enum fermé)
+
+format_type (enum fermé)
+
+angle_category (enum fermé)
+
+topic_cluster_id
+
+cta_present (boolean)
+
+pacing_score (float)
+
+authority_signal_score (float)
+
+emotional_intensity_score (float)
+
+transcript_embedding (vector)
+
+created_at
+
+⚠️ Important :
+Tous les champs catégoriels doivent utiliser des taxonomies fixes.
+
+🧠 TAXONOMIES FERMÉES À IMPLÉMENTER
+
+Hook Types (max 15) :
+
+Question
+
+Bold Claim
+
+Statistic
+
+Story Start
+
+Shock
+
+Promise
+
+Problem
+
+Curiosity Gap
+
+Authority
+
+Controversial
+
+Relatable
+
+Tutorial Intro
+
+Before/After
+
+Myth Busting
+
+Direct Statement
+
+Structure Models (max 10) :
+
+Problem → Solution
+
+Hook → Value → CTA
+
+Story → Lesson
+
+List Format
+
+Tutorial Step
+
+Authority Breakdown
+
+Emotional Arc
+
+Before/After
+
+Myth → Truth
+
+Quick Tip
+
+Angle Categories (max 12) :
+
+Educational
+
+Emotional
+
+Authority
+
+Inspirational
+
+Relatable
+
+Fear-based
+
+Aspirational
+
+Tactical
+
+Analytical
+
+Storytelling
+
+Controversial
+
+Social Proof
+
+Format Types :
+
+Talking Head
+
+B-Roll Voiceover
+
+Text Overlay
+
+Interview
+
+Montage
+
+Mixed
+
+🧩 2️⃣ PATTERN EXTRACTION LAYER
+
+Créer un moteur qui :
+
+À chaque insertion de video_primitive :
+
+Met à jour les distributions niche
+
+Recalcule :
+
+hook frequency %
+
+structure dominance %
+
+format distribution
+
+angle distribution
+
+avg duration
+
+top topic clusters
+
+Créer table niche_patterns :
+
+niche_id
+
+hook_distribution (json)
+
+structure_distribution (json)
+
+angle_distribution (json)
+
+avg_duration
+
+top_topic_clusters
+
+updated_at
+
+📊 3️⃣ STATISTICAL LAYER
+
+Créer table niche_statistics :
+
+niche_id
+
+total_videos
+
+top_hook_type
+
+top_structure_model
+
+dominant_angle
+
+dominant_format
+
+median_duration
+
+performance_buckets (si métriques)
+
+volatility_index
+
+pattern_stability_score
+
+⚠️ pattern_stability_score =
+mesure si les patterns sont homogènes ou dispersés.
+
+🧠 4️⃣ NICHE INTELLIGENCE PROFILE
+
+Créer table niche_profiles :
+
+niche_id
+
+intelligence_summary (LLM generated)
+
+dominant_patterns
+
+strategic_recommendations
+
+risk_patterns
+
+evolution_trend (future use)
+
+confidence_score
+
+last_updated
+
+Ce profil est ce que l’utilisateur voit.
+
+🚀 PIPELINE AUTOMATISÉ D’INGESTION
+
+Créer un service :
+
+niche_ingestion_pipeline
+
+Workflow :
+
+Input : URL
+
+Extract transcript
+
+Generate embedding
+
+LLM classification :
+
+hook_type
+
+structure_model
+
+angle_category
+
+format_type
+
+cta detection
+
+pacing score
+
+authority score
+
+emotional intensity
+
+Save normalized primitive
+
+Trigger niche pattern update
+
+🤖 AUTOMATISATION MASSIVE (SEED PHASE)
+
+Créer script :
+
+bulk_niche_seed.py
+
+Fonction :
+
+Input : liste URL
+
+Batch processing
+
+Classification
+
+Injection base
+
+Objectif :
+
+300–800 vidéos par niche initiale.
+
+⚙️ SOLUTION AUTOMATION (Twin ou autre)
+
+Option 1 :
+Automatisation scraping léger via Playwright + proxy rotation.
+
+Option 2 (plus propre) :
+
+APIs publiques si disponibles
+
+Extraction transcript via services spécialisés
+
+Pas de stockage vidéo
+
+Important :
+Limiter scraping agressif.
+Focus sur extraction textuelle.
+
+📈 ÉVOLUTION ARCHITECTURALE FUTURE
+
+Prévoir dès maintenant :
+
+cross_niche_patterns table
+
+inter_niche_comparative scoring
+
+creator_benchmark table
+
+time_series evolution tracking
+
+Même si non activé en V1.
+
+🧠 ROADMAP TECHNIQUE PHASE 1 (60 JOURS)
+
+Semaine 1–2 :
+Taxonomies + schéma SQL + ingestion pipeline
+
+Semaine 3–4 :
+Seed 3 niches (300+ vidéos chacune)
+
+Semaine 5 :
+Pattern extraction stable
+
+Semaine 6 :
+Niche intelligence profile auto-generated
+
+Semaine 7–8 :
+Dashboard niche intelligence
+Positionnement “Intelligence Layer”
+
+🎯 POSITIONNEMENT AU LANCEMENT
+
+Nous ne vendons pas :
+
+Un générateur de script.
+
+Nous vendons :
+
+Real Estate Intelligence
+Fitness Intelligence
+Personal Branding Intelligence
+
+Basé sur centaines de vidéos analysées.
+
+🧠 STRATÉGIE MOAT LONG TERME
+
+Chaque niche devient :
+
+Un actif structuré.
+
+Scalabilité :
+
+Ajouter niche =
+Créer profil + seed + pipeline.
+
+💰 LOGIQUE EXIT 100M
+
+Valorisation future basée sur :
+
+Structured proprietary dataset
+
+Cross-niche signal
+
+Pattern evolution tracking
+
+Strategic intelligence IP
+
+Creator behavior graph
+
+Ce n’est plus un outil.
+C’est une infrastructure data.
+
+🚨 RÈGLE FINALE
+
+Ne jamais :
+
+Ajouter feature gadget
+
+Diluer la taxonomie
+
+Laisser classification libre
+
+Tout doit rester normalisé.
