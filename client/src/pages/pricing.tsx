@@ -308,9 +308,9 @@ export default function Pricing() {
                       <ArrowRight className="w-4 h-4 ml-2" />
                     </Button>
 
-                    <p className="text-[10px] text-center mt-2.5">
-                      <span className="text-muted-foreground/60">Free trial • No commitment • </span>
-                      <span className="text-secondary/80">Cancel anytime</span>
+                    <p className="text-[11px] text-center mt-2.5">
+                      <span className="text-muted-foreground">Free trial • No commitment • </span>
+                      <span className="text-secondary font-medium">Cancel anytime</span>
                     </p>
                   </CardContent>
                 </Card>
@@ -420,9 +420,9 @@ export default function Pricing() {
             Start free trial — no credit card
             <ArrowRight className="w-4 h-4 ml-2" />
           </Button>
-          <p className="text-[10px] mt-3">
-            <span className="text-muted-foreground/60">Free trial • No commitment • </span>
-            <span className="text-secondary/80">Cancel anytime</span>
+          <p className="text-[11px] mt-3">
+            <span className="text-muted-foreground">Free trial • No commitment • </span>
+            <span className="text-secondary font-medium">Cancel anytime</span>
           </p>
         </section>
       </main>
