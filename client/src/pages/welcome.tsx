@@ -33,6 +33,7 @@ import { SiTiktok, SiInstagram, SiYoutube } from "react-icons/si";
 import logoTransparent from "@/assets/logo-transparent.png";
 import logoLight from "@/assets/logo-light.png";
 import { useTheme } from "@/hooks/use-theme";
+import { useLanguage } from "@/hooks/use-language";
 
 function ConfettiCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -148,33 +149,17 @@ function PlatformIcon({ platform, className }: { platform: string | null; classN
   }
 }
 
-const STEPS = [
-  { label: "Your niche", icon: FolderKanban },
-  { label: "Add source", icon: Link2 },
-  { label: "AI analysis", icon: Brain },
-  { label: "First results", icon: Sparkles },
-];
+const STEP_ICONS = [FolderKanban, Link2, Brain, Sparkles];
 
-const LOADER_MESSAGES = [
-  { text: "Extracting video structure...", icon: Eye, delay: 0 },
-  { text: "Identifying hooks...", icon: Zap, delay: 2500 },
-  { text: "Detecting patterns in your niche...", icon: Brain, delay: 5000 },
-  { text: "Generating winning angles...", icon: Target, delay: 8000 },
-  { text: "Building your first content brief...", icon: Sparkles, delay: 11000 },
-];
-
-const MICRO_INSIGHTS = [
-  "Storytelling hooks perform best in your niche",
-  "Videos under 45s get higher retention",
-  "We found 3 winning patterns in your niche",
-  "Your top hook style is curiosity-driven",
-];
+const LOADER_ICONS = [Eye, Zap, Brain, Target, Sparkles];
+const LOADER_DELAYS = [0, 2500, 5000, 8000, 11000];
 
 export default function Welcome() {
   const { user, isLoading: authLoading, logout } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { isDark, toggleTheme } = useTheme();
+  const { t } = useLanguage();
 
   const [step, setStep] = useState(0);
   const [showIntro, setShowIntro] = useState(true);
@@ -229,10 +214,10 @@ export default function Welcome() {
       const workspace = await res.json();
       setCreatedWorkspaceId(workspace.id);
       queryClient.invalidateQueries({ queryKey: ["/api/workspaces"] });
-      toast({ title: "Workspace created", description: `"${workspaceName}" is ready.` });
+      toast({ title: t.welcome.toasts.workspaceCreated, description: t.welcome.toasts.workspaceReady.replace("{name}", workspaceName) });
       setStep(1);
     } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Failed to create workspace", variant: "destructive" });
+      toast({ title: t.common.error, description: err.message || t.welcome.toasts.workspaceFailed, variant: "destructive" });
     } finally {
       setIsSubmitting(false);
     }
@@ -262,11 +247,11 @@ export default function Welcome() {
       const sources = await res.json();
       const ids = sources.map((s: any) => s.id);
       setCreatedSourceIds(ids);
-      toast({ title: "URLs added", description: `${sources.length} content source(s) ready for analysis.` });
+      toast({ title: t.welcome.toasts.urlsAdded, description: t.welcome.toasts.urlsAddedDesc.replace("{count}", String(sources.length)) });
       setStep(2);
       runAnalysisPipeline(ids);
     } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Failed to ingest URLs", variant: "destructive" });
+      toast({ title: t.common.error, description: err.message || t.welcome.toasts.urlsFailed, variant: "destructive" });
     } finally {
       setIsSubmitting(false);
     }
@@ -278,10 +263,10 @@ export default function Welcome() {
     setShowMicroInsight(false);
 
     const loaderTimers: NodeJS.Timeout[] = [];
-    for (let i = 1; i < LOADER_MESSAGES.length; i++) {
+    for (let i = 1; i < LOADER_DELAYS.length; i++) {
       const timer = setTimeout(() => {
         setLoaderMessageIndex(i);
-      }, LOADER_MESSAGES[i].delay);
+      }, LOADER_DELAYS[i]);
       loaderTimers.push(timer);
     }
 
@@ -357,7 +342,7 @@ export default function Welcome() {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
     } catch (err: any) {
       loaderTimers.forEach(clearTimeout);
-      toast({ title: "Analysis error", description: err.message || "Something went wrong, but you can retry from the dashboard.", variant: "destructive" });
+      toast({ title: t.welcome.toasts.analysisError, description: err.message || t.welcome.toasts.analysisRetry, variant: "destructive" });
       await apiRequest("PATCH", "/api/auth/user", { onboardingCompleted: true }).catch(() => {});
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       setStep(3);
@@ -399,7 +384,7 @@ export default function Welcome() {
           className="text-muted-foreground hover:text-foreground text-xs"
           data-testid="button-skip-onboarding"
         >
-          Skip
+          {t.welcome.skip}
           <ArrowRight className="w-3 h-3 ml-1" />
         </Button>
       </div>
@@ -430,7 +415,7 @@ export default function Welcome() {
               transition={{ delay: 0.4, duration: 0.6 }}
               data-testid="text-welcome-greeting"
             >
-              Welcome, {firstName}
+              {t.welcome.greeting.replace("{name}", firstName)}
             </motion.h1>
             <motion.p
               className="text-muted-foreground text-lg text-center max-w-md px-4"
@@ -438,7 +423,7 @@ export default function Welcome() {
               animate={{ opacity: 1 }}
               transition={{ delay: 0.8, duration: 0.6 }}
             >
-              Turn one video into weeks of content.
+              {t.welcome.introSubtitle}
             </motion.p>
           </motion.div>
         ) : (
@@ -457,15 +442,16 @@ export default function Welcome() {
                   className="h-10 w-auto"
                 />
                 <span className="text-sm text-muted-foreground font-medium">
-                  Step {Math.min(step + 1, 4)} of 4
+                  {t.welcome.step.replace("{current}", String(Math.min(step + 1, 4))).replace("{total}", "4")}
                 </span>
               </div>
               <Progress value={progressValue} className="h-1.5 bg-muted" />
 
               <div className="flex items-center gap-1 mt-6 mb-2 flex-wrap">
-                {STEPS.map((s, i) => {
+                {t.welcome.stepLabels.map((label, i) => {
                   const done = i < step;
                   const active = i === step;
+                  const StepIcon = STEP_ICONS[i];
                   return (
                     <div
                       key={i}
@@ -481,9 +467,9 @@ export default function Welcome() {
                       {done ? (
                         <Check className="w-3.5 h-3.5" />
                       ) : (
-                        <s.icon className="w-3.5 h-3.5" />
+                        <StepIcon className="w-3.5 h-3.5" />
                       )}
-                      <span className="hidden sm:inline">{s.label}</span>
+                      <span className="hidden sm:inline">{label}</span>
                     </div>
                   );
                 })}
@@ -508,25 +494,25 @@ export default function Welcome() {
                         </div>
                         <div>
                           <h2 className="text-2xl font-display font-bold text-foreground" data-testid="text-step-title">
-                            Describe your niche
+                            {t.welcome.describeNiche}
                           </h2>
                           <p className="text-sm text-muted-foreground">
-                            We analyze real videos in your niche to find winning patterns and generate content ideas.
+                            {t.welcome.nicheDesc}
                           </p>
                         </div>
                       </div>
 
                       <div className="p-3 rounded-md bg-primary/5 dark:bg-primary/10 border border-primary/20 text-sm text-foreground/80">
                         <Sparkles className="w-4 h-4 text-primary inline mr-2" />
-                        Next, you'll add creators or videos from your niche — we'll extract what makes them perform.
+                        {t.welcome.nicheHint}
                       </div>
 
                       <div className="space-y-2">
                         <label className="text-sm font-medium text-muted-foreground">
-                          What's your niche?
+                          {t.welcome.whatNiche}
                         </label>
                         <Input
-                          placeholder="e.g. Fitness coaching, SaaS marketing, Skincare tips, Personal finance"
+                          placeholder={t.welcome.nichePlaceholder}
                           value={workspaceName}
                           onChange={(e) => setWorkspaceName(e.target.value)}
                           className="bg-background border-border text-foreground"
@@ -540,7 +526,7 @@ export default function Welcome() {
                           }}
                         />
                         <p className="text-[11px] text-muted-foreground/60">
-                          This helps us organize your analysis. You can change it later.
+                          {t.welcome.nicheHelper}
                         </p>
                       </div>
 
@@ -553,7 +539,7 @@ export default function Welcome() {
                         {isSubmitting ? (
                           <Loader2 className="w-4 h-4 animate-spin mr-2" />
                         ) : null}
-                        Continue
+                        {t.common.continue}
                         <ArrowRight className="w-4 h-4 ml-2" />
                       </Button>
                     </CardContent>
@@ -578,17 +564,17 @@ export default function Welcome() {
                         </div>
                         <div>
                           <h2 className="text-2xl font-display font-bold text-foreground" data-testid="text-step-title">
-                            Add videos or creators from your niche
+                            {t.welcome.addVideos}
                           </h2>
                           <p className="text-sm text-muted-foreground">
-                            We'll detect patterns across multiple videos — hooks, formats, and structures that drive performance.
+                            {t.welcome.addVideosDesc}
                           </p>
                         </div>
                       </div>
 
                       <div className="p-3 rounded-md bg-primary/5 dark:bg-primary/10 border border-primary/20 text-sm text-foreground/80">
                         <Sparkles className="w-4 h-4 text-primary inline mr-2" />
-                        Best results with 3–10 sources. Add your own videos, competitors, or viral content from your niche.
+                        {t.welcome.addVideosHint}
                       </div>
 
                       <div className="space-y-3">
@@ -601,7 +587,7 @@ export default function Welcome() {
                                   <PlatformIcon platform={platform} className="w-4 h-4" />
                                 </div>
                                 <Input
-                                  placeholder="https://www.tiktok.com/@creator/video/..."
+                                  placeholder={t.welcome.urlPlaceholder}
                                   value={url}
                                   onChange={(e) => handleUrlChange(index, e.target.value)}
                                   className="bg-background border-border text-foreground pl-10"
@@ -643,7 +629,7 @@ export default function Welcome() {
                           data-testid="button-onboarding-add-url"
                         >
                           <Plus className="w-4 h-4 mr-2" />
-                          Add more inspiration
+                          {t.welcome.addAnother}
                         </Button>
                       </div>
 
@@ -654,7 +640,7 @@ export default function Welcome() {
                           data-testid="button-onboarding-back"
                         >
                           <ArrowLeft className="w-4 h-4 mr-2" />
-                          Back
+                          {t.common.back}
                         </Button>
                         <Button
                           onClick={handleIngestUrls}
@@ -665,7 +651,7 @@ export default function Welcome() {
                           {isSubmitting ? (
                             <Loader2 className="w-4 h-4 animate-spin mr-2" />
                           ) : null}
-                          Find winning patterns
+                          {t.welcome.analyzeUrls.replace("{count}", String(validUrls.length)).replace("{plural}", validUrls.length > 1 ? "s" : "")}
                           <ArrowRight className="w-4 h-4 ml-2" />
                         </Button>
                       </div>
@@ -693,18 +679,18 @@ export default function Welcome() {
                           <div className="absolute -inset-2 rounded-full border-2 border-primary/20 animate-ping" style={{ animationDuration: "2s" }} />
                         </div>
                         <h2 className="text-2xl font-display font-bold text-foreground" data-testid="text-loader-title">
-                          Analyzing your content...
+                          {t.welcome.loaderMessages[loaderMessageIndex]}
                         </h2>
                         <p className="text-sm text-muted-foreground">
-                          Craflect is understanding your niche right now.
+                          {t.welcome.introSubtitle}
                         </p>
                       </div>
 
                       <div className="space-y-3">
-                        {LOADER_MESSAGES.map((msg, i) => {
+                        {t.welcome.loaderMessages.map((msg, i) => {
                           const isActive = i === loaderMessageIndex;
                           const isDone = i < loaderMessageIndex;
-                          const IconComp = msg.icon;
+                          const IconComp = LOADER_ICONS[i];
                           return (
                             <motion.div
                               key={i}
@@ -727,7 +713,7 @@ export default function Welcome() {
                               ) : (
                                 <IconComp className="w-4 h-4 flex-shrink-0" />
                               )}
-                              <span className="text-sm font-medium">{msg.text}</span>
+                              <span className="text-sm font-medium">{msg}</span>
                             </motion.div>
                           );
                         })}
@@ -746,9 +732,9 @@ export default function Welcome() {
                             <div className="flex items-start gap-3">
                               <TrendingUp className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
                               <div>
-                                <span className="text-[10px] uppercase tracking-widest text-primary font-bold">Insight preview</span>
+                                <span className="text-[10px] uppercase tracking-widest text-primary font-bold">{t.welcome.keyFinding}</span>
                                 <p className="text-sm text-foreground mt-1" data-testid="text-micro-insight">
-                                  {MICRO_INSIGHTS[microInsightIndex]}
+                                  {t.welcome.microInsights[microInsightIndex]}
                                 </p>
                               </div>
                             </div>
@@ -777,19 +763,19 @@ export default function Welcome() {
                           <Check className="w-7 h-7 text-primary" />
                         </div>
                         <h2 className="text-2xl font-display font-bold text-foreground" data-testid="text-results-title">
-                          Your first winning concept is ready
+                          {t.welcome.resultsTitle}
                         </h2>
                         <p className="text-sm text-muted-foreground">
                           {insightData?.analyzedCount
-                            ? `Based on ${insightData.analyzedCount} video${insightData.analyzedCount > 1 ? "s" : ""} analyzed in your niche.`
-                            : "Here's what Craflect found in your niche."}
+                            ? t.welcome.resultsSubtitle.replace("{count}", String(insightData.analyzedCount)).replace("{plural}", insightData.analyzedCount > 1 ? "s" : "")
+                            : t.welcome.resultsSubtitle.replace("{count}", "0").replace("{plural}", "s")}
                         </p>
                       </div>
 
                       {insightData?.sources && insightData.sources.length > 0 && (
                         <div className="space-y-2">
                           <h4 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                            Analyzed sources
+                            {t.welcome.analyzedSources}
                           </h4>
                           <div className="flex flex-wrap gap-1.5">
                             {insightData.sources.map((src, i) => (
@@ -806,12 +792,12 @@ export default function Welcome() {
                         <div className="space-y-4">
                           <div className="p-4 rounded-lg bg-muted/40 dark:bg-muted/20 border border-border/60">
                             <h4 className="text-[10px] font-bold uppercase tracking-widest text-primary mb-3">
-                              Detected patterns
+                              {t.welcome.contentAngles}
                             </h4>
                             <div className="grid grid-cols-2 gap-2.5">
                               {insightData.hooks && insightData.hooks.length > 0 && (
                                 <div className="p-2.5 rounded-md bg-background border border-border/50">
-                                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Hook style</span>
+                                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">{t.welcome.topHooks}</span>
                                   <p className="text-sm font-semibold text-foreground mt-0.5 capitalize" data-testid="text-pattern-hook">
                                     {insightData.hooks[0].name}
                                   </p>
@@ -822,7 +808,7 @@ export default function Welcome() {
                               )}
                               {insightData.formats && insightData.formats.length > 0 && (
                                 <div className="p-2.5 rounded-md bg-background border border-border/50">
-                                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Format</span>
+                                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">{t.welcome.topFormats}</span>
                                   <p className="text-sm font-semibold text-foreground mt-0.5 capitalize" data-testid="text-pattern-format">
                                     {insightData.formats[0].name.replace(/_/g, " ")}
                                   </p>
@@ -833,7 +819,7 @@ export default function Welcome() {
                               )}
                               {insightData.angles && insightData.angles.length > 0 && (
                                 <div className="p-2.5 rounded-md bg-background border border-border/50">
-                                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Content angle</span>
+                                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">{t.welcome.contentAngles}</span>
                                   <p className="text-sm font-semibold text-foreground mt-0.5 capitalize" data-testid="text-pattern-angle">
                                     {insightData.angles[0].name}
                                   </p>
@@ -844,7 +830,7 @@ export default function Welcome() {
                               )}
                               {insightData.format && (
                                 <div className="p-2.5 rounded-md bg-background border border-border/50">
-                                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Best format</span>
+                                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">{t.welcome.recommendedFormat}</span>
                                   <p className="text-sm font-semibold text-foreground mt-0.5 capitalize" data-testid="text-pattern-best-format">
                                     {insightData.format.replace(/_/g, " ")}
                                   </p>
@@ -858,7 +844,7 @@ export default function Welcome() {
                               <div className="flex items-start gap-3">
                                 <Target className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
                                 <div className="space-y-1.5">
-                                  <span className="text-[10px] font-bold uppercase tracking-widest text-primary">What you should post next</span>
+                                  <span className="text-[10px] font-bold uppercase tracking-widest text-primary">{t.welcome.keyFinding}</span>
                                   <p className="text-sm font-semibold text-foreground" data-testid="text-result-topic">
                                     {insightData.topic}
                                   </p>
@@ -876,7 +862,7 @@ export default function Welcome() {
                             <div className="space-y-2">
                               <h4 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
                                 <Zap className="w-3 h-3" />
-                                Winning hooks detected
+                                {t.welcome.topHooks}
                               </h4>
                               <div className="space-y-1.5">
                                 {insightData.hooks.map((hook, i) => (
@@ -903,7 +889,7 @@ export default function Welcome() {
                           data-testid="button-go-dashboard"
                         >
                           <Sparkles className="w-4 h-4 mr-2" />
-                          Create your first content brief
+                          {t.welcome.exploreInsights}
                           <ArrowRight className="w-4 h-4 ml-2" />
                         </Button>
                         <Button
@@ -912,7 +898,7 @@ export default function Welcome() {
                           className="w-full"
                           data-testid="button-generate-more"
                         >
-                          Go to dashboard
+                          {t.welcome.goToDashboard}
                         </Button>
                       </div>
                     </CardContent>

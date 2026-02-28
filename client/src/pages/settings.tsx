@@ -7,12 +7,14 @@ import { useTheme } from "@/hooks/use-theme";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useLanguage } from "@/hooks/use-language";
 
 export default function Settings() {
   const { user } = useAuth();
   const { theme, toggleTheme, isDark } = useTheme();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { t } = useLanguage();
 
   const [firstName, setFirstName] = useState(user?.firstName || "");
   const [lastName, setLastName] = useState(user?.lastName || "");
@@ -30,10 +32,10 @@ export default function Settings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-      toast({ title: "Settings saved", description: "Your profile has been updated." });
+      toast({ title: t.common.settingsSaved, description: t.common.profileUpdated });
     },
     onError: () => {
-      toast({ title: "Error", description: "Failed to save settings.", variant: "destructive" });
+      toast({ title: t.common.error, description: t.common.saveFailed, variant: "destructive" });
     },
   });
 
@@ -44,17 +46,17 @@ export default function Settings() {
   return (
     <DashboardLayout>
       <div className="mb-10">
-        <h1 className="font-display text-4xl font-bold text-foreground mb-2" data-testid="text-settings-title">Settings</h1>
-        <p className="text-muted-foreground">Manage your account and platform preferences.</p>
+        <h1 className="font-display text-4xl font-bold text-foreground mb-2" data-testid="text-settings-title">{t.settings.title}</h1>
+        <p className="text-muted-foreground">{t.settings.subtitle}</p>
       </div>
 
       <div className="flex flex-col md:flex-row gap-8">
         <div className="w-full md:w-64 space-y-2 flex-shrink-0">
           {[
-            { id: 'profile', label: 'Profile', icon: User, active: true },
-            { id: 'notifications', label: 'Notifications', icon: Bell, active: false },
-            { id: 'security', label: 'Security', icon: Shield, active: false },
-            { id: 'api', label: 'API Keys', icon: Key, active: false },
+            { id: 'profile', label: t.settings.profile, icon: User, active: true },
+            { id: 'notifications', label: t.settings.notifications, icon: Bell, active: false },
+            { id: 'security', label: t.settings.security, icon: Shield, active: false },
+            { id: 'api', label: t.settings.apiKeys, icon: Key, active: false },
           ].map((item) => (
             <button
               key={item.id}
@@ -72,7 +74,7 @@ export default function Settings() {
         </div>
 
         <div className="flex-1 glass-card rounded-2xl p-8 border-border">
-          <h2 className="text-2xl font-display font-bold text-foreground mb-6">Profile Information</h2>
+          <h2 className="text-2xl font-display font-bold text-foreground mb-6">{t.settings.profileInfo}</h2>
           
           <div className="space-y-6 max-w-lg">
             <div className="flex items-center gap-6 pb-6 border-b border-border">
@@ -85,15 +87,15 @@ export default function Settings() {
               )}
               <div>
                 <Button variant="outline" className="border-border hover:bg-accent text-foreground mb-2">
-                  Change Avatar
+                  {t.settings.changeAvatar}
                 </Button>
-                <p className="text-xs text-muted-foreground">JPG, GIF or PNG. 1MB max.</p>
+                <p className="text-xs text-muted-foreground">{t.settings.avatarHint}</p>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <label className="text-sm font-medium text-muted-foreground">First Name</label>
+                <label className="text-sm font-medium text-muted-foreground">{t.settings.firstNameLabel}</label>
                 <Input 
                   className="bg-background border-border text-foreground h-12 rounded-xl focus-visible:ring-primary"
                   value={firstName}
@@ -102,7 +104,7 @@ export default function Settings() {
                 />
               </div>
               <div className="grid gap-2">
-                <label className="text-sm font-medium text-muted-foreground">Last Name</label>
+                <label className="text-sm font-medium text-muted-foreground">{t.settings.lastNameLabel}</label>
                 <Input 
                   className="bg-background border-border text-foreground h-12 rounded-xl focus-visible:ring-primary"
                   value={lastName}
@@ -113,18 +115,18 @@ export default function Settings() {
             </div>
             
             <div className="grid gap-2">
-              <label className="text-sm font-medium text-muted-foreground">Email Address</label>
+              <label className="text-sm font-medium text-muted-foreground">{t.settings.emailLabel}</label>
               <Input 
                 disabled
                 className="bg-muted border-border text-muted-foreground h-12 rounded-xl cursor-not-allowed"
                 defaultValue={user?.email || ""}
                 data-testid="input-email"
               />
-              <p className="text-xs text-muted-foreground mt-1">Managed via your authentication provider.</p>
+              <p className="text-xs text-muted-foreground mt-1">{t.settings.emailManaged}</p>
             </div>
 
             <div className="grid gap-2">
-              <label className="text-sm font-medium text-muted-foreground">Appearance</label>
+              <label className="text-sm font-medium text-muted-foreground">{t.settings.appearance}</label>
               <Button 
                 variant="outline" 
                 onClick={toggleTheme}
@@ -132,7 +134,7 @@ export default function Settings() {
                 data-testid="button-toggle-theme"
               >
                 {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-                {isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+                {isDark ? t.settings.switchLight : t.settings.switchDark}
               </Button>
             </div>
 
@@ -144,7 +146,7 @@ export default function Settings() {
                 data-testid="button-save-settings"
               >
                 {saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                Save Changes
+                {t.common.save}
               </Button>
             </div>
           </div>

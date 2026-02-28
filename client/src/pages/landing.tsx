@@ -25,6 +25,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { useTheme } from "@/hooks/use-theme";
+import { useLanguage } from "@/hooks/use-language";
+import { LanguageSwitcher } from "@/components/language-switcher";
 import logoLight from "@/assets/logo-light.png";
 import logoTransparent from "@/assets/logo-transparent.png";
 
@@ -73,6 +75,7 @@ export default function Landing() {
   const { isAuthenticated, isLoading } = useAuth();
   const [, setLocation] = useLocation();
   const { isDark, toggleTheme } = useTheme();
+  const { t } = useLanguage();
   const [showSticky, setShowSticky] = useState(false);
 
   useEffect(() => {
@@ -106,7 +109,7 @@ export default function Landing() {
               className="hidden sm:inline-flex text-sm font-medium text-muted-foreground hover:text-foreground px-2 py-1 transition-colors"
               data-testid="nav-pricing-sticky"
             >
-              Pricing
+              {t.nav.pricing}
             </button>
             <Button
               className="rounded-full px-6 h-9 bg-primary hover:bg-primary/90 text-white text-sm font-medium shadow-md shadow-primary/20 gap-2"
@@ -114,7 +117,7 @@ export default function Landing() {
               data-testid="button-sticky-cta"
             >
               <Play className="w-3.5 h-3.5" />
-              Analyze a video
+              {t.nav.analyzeVideo}
             </Button>
           </div>
         </div>
@@ -130,8 +133,9 @@ export default function Landing() {
             className="hidden sm:inline-flex text-sm font-medium text-muted-foreground hover:text-foreground px-3 py-1.5 transition-colors"
             data-testid="nav-pricing"
           >
-            Pricing
+            {t.nav.pricing}
           </button>
+          <LanguageSwitcher variant="icon" />
           <button
             onClick={toggleTheme}
             className="p-2.5 rounded-full bg-muted hover:bg-accent text-foreground transition-all border border-border"
@@ -153,7 +157,7 @@ export default function Landing() {
             onClick={() => setLocation("/auth")}
             data-testid="button-signin-nav"
           >
-            Sign up
+            {t.nav.signUp}
           </Button>
         </div>
       </nav>
@@ -174,24 +178,24 @@ export default function Landing() {
           >
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-muted dark:bg-white/5 border border-border dark:border-white/10 text-sm font-medium text-primary mb-8">
               <Sparkles className="w-4 h-4" />
-              <span>Content Performance Intelligence</span>
+              <span>{t.landing.badge}</span>
             </div>
 
             <h1 className="font-display text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-extrabold tracking-tight text-foreground mb-6 leading-tight">
-              Show me what works <br className="hidden md:block" />
+              {t.landing.heroLine1} <br className="hidden md:block" />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-[#8b5cf6] to-secondary">
-                Tell me what to post
+                {t.landing.heroLine2}
               </span>
               <br className="hidden md:block" />
-              Create it for me
+              {t.landing.heroLine3}
             </h1>
 
             <p className="text-base sm:text-lg md:text-xl text-muted-foreground mb-5 max-w-2xl mx-auto leading-relaxed">
-              Identify winning short-form video patterns in your niche and turn them into optimized content.
+              {t.landing.subtitle}
             </p>
 
             <div className="flex flex-col items-center gap-2 mb-8">
-              <span className="text-[11px] text-muted-foreground/70 tracking-wide">Analyze content from</span>
+              <span className="text-[11px] text-muted-foreground/70 tracking-wide">{t.landing.analyzeFrom}</span>
               <div className="flex items-center justify-center gap-4">
                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                   <SiTiktok className="w-3.5 h-3.5" style={{ color: isDark ? "rgba(178, 225, 232, 0.75)" : "rgba(0, 0, 0, 0.7)" }} />
@@ -216,7 +220,7 @@ export default function Landing() {
               onClick={() => setLocation("/auth")}
               data-testid="button-get-started"
             >
-              Paste your first video
+              {t.landing.ctaPaste}
               <ArrowRight className="w-5 h-5" />
             </Button>
 
@@ -227,7 +231,7 @@ export default function Landing() {
               className="mt-6 text-xs sm:text-sm text-muted-foreground/70 font-medium tracking-wide"
               data-testid="text-flow-line"
             >
-              Paste a video → Get insights → Generate content
+              {t.landing.flowLine}
             </motion.p>
           </motion.div>
         </section>
@@ -236,10 +240,10 @@ export default function Landing() {
           <SectionReveal>
             <div className="grid grid-cols-4 gap-2 sm:gap-3">
               {[
-                { icon: Eye, title: "Observe", desc: "Paste video or competitor" },
-                { icon: Brain, title: "Understand", desc: "Detect winning patterns" },
-                { icon: Target, title: "Recommend", desc: "Get actionable ideas" },
-                { icon: Pencil, title: "Produce", desc: "Generate optimized scripts" },
+                { icon: Eye, title: t.landing.observe, desc: t.landing.observeDesc },
+                { icon: Brain, title: t.landing.understand, desc: t.landing.understandDesc },
+                { icon: Target, title: t.landing.recommend, desc: t.landing.recommendDesc },
+                { icon: Pencil, title: t.landing.produce, desc: t.landing.produceDesc },
               ].map((item, i) => (
                 <motion.div
                   key={i}
@@ -272,13 +276,13 @@ export default function Landing() {
               <div className="text-center mb-12 sm:mb-16">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 dark:bg-primary/15 text-primary text-[10px] sm:text-xs font-bold uppercase tracking-widest mb-4">
                   <Eye className="w-3 h-3" />
-                  Real product preview
+                  {t.landing.previewBadge}
                 </span>
                 <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-bold text-foreground mb-3" data-testid="text-proof-title">
-                  See what Craflect generates
+                  {t.landing.previewTitle}
                 </h2>
                 <p className="text-muted-foreground text-sm max-w-md mx-auto">
-                  Real output from analyzing short-form video content.
+                  {t.landing.previewSubtitle}
                 </p>
               </div>
             </SectionReveal>
@@ -291,7 +295,7 @@ export default function Landing() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <BarChart3 className="w-4 h-4 text-primary" />
-                        <h3 className="text-xs font-bold uppercase tracking-widest text-primary">Niche Insights</h3>
+                        <h3 className="text-xs font-bold uppercase tracking-widest text-primary">{t.landing.nicheInsights}</h3>
                       </div>
                       <div className="flex items-center gap-1">
                         <SiTiktok className="w-3 h-3" style={{ color: isDark ? "rgba(178, 225, 232, 0.6)" : "rgba(0, 0, 0, 0.5)" }} />
@@ -301,9 +305,9 @@ export default function Landing() {
                     </div>
                     <div className="space-y-2">
                       {[
-                        { label: "Top format", value: "Face-cam storytelling", testid: "text-mock-format" },
-                        { label: "Avg duration", value: "32s", testid: "text-mock-duration" },
-                        { label: "Hook style", value: "Curiosity-driven", testid: "text-mock-hook-style" },
+                        { label: t.landing.topFormat, value: t.landing.topFormatValue, testid: "text-mock-format" },
+                        { label: t.landing.avgDuration, value: "32s", testid: "text-mock-duration" },
+                        { label: t.landing.hookStyle, value: t.landing.hookStyleValue, testid: "text-mock-hook-style" },
                       ].map((row) => (
                         <div key={row.label} className="flex items-center justify-between p-2.5 rounded-md bg-muted/40 dark:bg-muted/20">
                           <span className="text-[11px] text-muted-foreground">{row.label}</span>
@@ -311,7 +315,7 @@ export default function Landing() {
                         </div>
                       ))}
                       <div className="flex items-center justify-between p-2.5 rounded-md bg-muted/40 dark:bg-muted/20">
-                        <span className="text-[11px] text-muted-foreground">AI score</span>
+                        <span className="text-[11px] text-muted-foreground">{t.landing.aiScore}</span>
                         <div className="flex items-center gap-2">
                           <div className="w-14 h-1.5 rounded-full bg-muted overflow-hidden">
                             <AnimatedBar width="78%" delay={0.3} />
@@ -322,7 +326,7 @@ export default function Landing() {
                     </div>
                     <div className="pt-1">
                       <Badge variant="outline" className="text-[9px] px-2 py-0.5 border-primary/20 text-muted-foreground" data-testid="badge-real-data">
-                        Based on real performance data
+                        {t.landing.basedOnRealData}
                       </Badge>
                     </div>
                   </CardContent>
@@ -334,7 +338,7 @@ export default function Landing() {
                   <CardContent className="p-5 sm:p-6 space-y-4">
                     <div className="flex items-center gap-2">
                       <Zap className="w-4 h-4 text-primary" />
-                      <h3 className="text-xs font-bold uppercase tracking-widest text-primary">Winning Hooks</h3>
+                      <h3 className="text-xs font-bold uppercase tracking-widest text-primary">{t.landing.winningHooks}</h3>
                     </div>
                     <div className="space-y-2">
                       {MOCK_HOOKS.map((hook, i) => (
@@ -372,23 +376,23 @@ export default function Landing() {
                   <CardContent className="p-5 sm:p-6 space-y-4 relative z-10">
                     <div className="flex items-center gap-2">
                       <FileText className="w-4 h-4 text-primary" />
-                      <h3 className="text-xs font-bold uppercase tracking-widest text-primary">Generated Brief</h3>
+                      <h3 className="text-xs font-bold uppercase tracking-widest text-primary">{t.landing.generatedBrief}</h3>
                     </div>
                     <div className="space-y-3">
                       <div>
-                        <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Title</span>
+                        <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{t.landing.briefTitle}</span>
                         <p className="text-sm font-semibold text-foreground mt-0.5" data-testid="text-mock-brief-title">{MOCK_BRIEF.title}</p>
                       </div>
                       <div>
-                        <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Hook</span>
+                        <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{t.landing.briefHook}</span>
                         <p className="text-sm text-foreground/80 italic mt-0.5" data-testid="text-mock-brief-hook">{MOCK_BRIEF.hook}</p>
                       </div>
                       <div>
-                        <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Structure</span>
+                        <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{t.landing.briefStructure}</span>
                         <p className="text-sm text-foreground/80 mt-0.5">{MOCK_BRIEF.structure}</p>
                       </div>
                       <div>
-                        <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">CTA</span>
+                        <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{t.landing.briefCta}</span>
                         <p className="text-sm text-foreground/80 mt-0.5">{MOCK_BRIEF.cta}</p>
                       </div>
                       <div className="flex items-center gap-2 pt-1">
@@ -412,7 +416,7 @@ export default function Landing() {
                   onClick={() => setLocation("/auth")}
                   data-testid="button-generate-first-brief"
                 >
-                  Generate your first brief
+                  {t.landing.generateFirstBrief}
                   <ArrowRight className="w-4 h-4" />
                 </Button>
               </div>
@@ -425,17 +429,17 @@ export default function Landing() {
             <SectionReveal>
               <div className="text-center mb-12 sm:mb-16">
                 <h2 className="font-display text-2xl sm:text-3xl font-bold text-foreground mb-2" data-testid="text-howitworks-title">
-                  How it works
+                  {t.landing.howItWorks}
                 </h2>
-                <p className="text-sm text-muted-foreground">Your first brief in under 60 seconds.</p>
+                <p className="text-sm text-muted-foreground">{t.landing.howItWorksSubtitle}</p>
               </div>
             </SectionReveal>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-10 sm:gap-14">
               {[
-                { step: "1", icon: Link2, title: "Paste a URL", desc: "Drop any TikTok, Reel, or Short link." },
-                { step: "2", icon: Search, title: "AI analyzes patterns", desc: "Hooks, formats, and performance data extracted." },
-                { step: "3", icon: FileText, title: "Get your brief", desc: "Ready-to-use scripts based on what works." },
+                { step: "1", icon: Link2, title: t.landing.step1, desc: t.landing.step1Desc },
+                { step: "2", icon: Search, title: t.landing.step2, desc: t.landing.step2Desc },
+                { step: "3", icon: FileText, title: t.landing.step3, desc: t.landing.step3Desc },
               ].map((item, i) => (
                 <SectionReveal key={i} delay={i * 0.12}>
                   <div className="flex flex-col items-center text-center" data-testid={`card-howitworks-${i}`}>
@@ -460,18 +464,18 @@ export default function Landing() {
           <div className="max-w-3xl mx-auto w-full">
             <SectionReveal>
               <div className="text-center mb-6">
-                <p className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-primary mb-2">Why Craflect is different</p>
+                <p className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-primary mb-2">{t.landing.whyDifferent}</p>
                 <h2 className="font-display text-xl sm:text-2xl font-bold text-foreground" data-testid="text-positioning-title">
-                  Not another content generator
+                  {t.landing.notAnotherGenerator}
                 </h2>
               </div>
             </SectionReveal>
             <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
               {[
-                { icon: Brain, title: "Pattern intelligence" },
-                { icon: TrendingUp, title: "Niche learning" },
-                { icon: Sparkles, title: "Continuous optimization" },
-                { icon: BarChart3, title: "Cross-platform short-form" },
+                { icon: Brain, title: t.landing.pos1 },
+                { icon: TrendingUp, title: t.landing.pos2 },
+                { icon: Sparkles, title: t.landing.pos3 },
+                { icon: BarChart3, title: t.landing.pos4 },
               ].map((item, i) => (
                 <SectionReveal key={i} delay={i * 0.06}>
                   <div
@@ -493,10 +497,10 @@ export default function Landing() {
           <div className="max-w-2xl mx-auto text-center">
             <SectionReveal>
               <h2 className="font-display text-2xl sm:text-3xl font-bold text-foreground mb-4">
-                Ready to analyze your niche?
+                {t.landing.readyToAnalyze}
               </h2>
               <p className="text-sm text-muted-foreground mb-8 max-w-md mx-auto">
-                Paste your first video and see what Craflect discovers.
+                {t.landing.readyToAnalyzeSubtitle}
               </p>
               <Button
                 size="lg"
@@ -504,7 +508,7 @@ export default function Landing() {
                 onClick={() => setLocation("/auth")}
                 data-testid="button-bottom-cta"
               >
-                Paste your first video
+                {t.landing.ctaButton}
                 <ArrowRight className="w-5 h-5" />
               </Button>
             </SectionReveal>
@@ -515,10 +519,10 @@ export default function Landing() {
           <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <img src={isDark ? logoTransparent : logoLight} alt="Craflect" className="h-10 w-auto" />
-              <span className="text-xs text-muted-foreground">Content Performance Intelligence</span>
+              <span className="text-xs text-muted-foreground">{t.landing.footer}</span>
             </div>
             <p className="text-xs text-muted-foreground">
-              © {new Date().getFullYear()} Craflect. All rights reserved.
+              {t.landing.copyright.replace("{year}", new Date().getFullYear().toString())}
             </p>
           </div>
         </footer>

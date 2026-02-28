@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { useLocation } from "wouter";
 import type { Brief } from "@shared/schema";
+import { useLanguage } from "@/hooks/use-language";
 import {
   Sparkles,
   History,
@@ -130,6 +131,7 @@ function InsightSkeleton() {
 }
 
 function TopHooksSection({ hooks }: { hooks: InsightHook[] }) {
+  const { t } = useLanguage();
   if (!hooks || hooks.length === 0) return null;
   const sorted = [...hooks].sort((a, b) => (b.score || 0) - (a.score || 0));
   return (
@@ -137,7 +139,7 @@ function TopHooksSection({ hooks }: { hooks: InsightHook[] }) {
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base font-bold">
           <Target className="w-4 h-4 text-primary" />
-          Top Performing Hooks
+          {t.insights.topHooks}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -161,13 +163,14 @@ function TopHooksSection({ hooks }: { hooks: InsightHook[] }) {
 }
 
 function WinningFormatsSection({ formats }: { formats: WinningFormat[] }) {
+  const { t } = useLanguage();
   if (!formats || formats.length === 0) return null;
   return (
     <Card className="border-border" data-testid="card-winning-formats">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base font-bold">
           <Play className="w-4 h-4 text-primary" />
-          Winning Formats
+          {t.insights.winningFormats}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -190,13 +193,14 @@ function WinningFormatsSection({ formats }: { formats: WinningFormat[] }) {
 }
 
 function ContentAnglesSection({ angles }: { angles: ContentAngle[] }) {
+  const { t } = useLanguage();
   if (!angles || angles.length === 0) return null;
   return (
     <Card className="border-border" data-testid="card-content-angles">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base font-bold">
           <Lightbulb className="w-4 h-4 text-primary" />
-          Content Angles
+          {t.insights.contentAngles}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -221,13 +225,14 @@ function ContentAnglesSection({ angles }: { angles: ContentAngle[] }) {
 }
 
 function NichePatternsSection({ patterns }: { patterns: NichePattern[] }) {
+  const { t } = useLanguage();
   if (!patterns || patterns.length === 0) return null;
   return (
     <Card className="border-border" data-testid="card-niche-patterns">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base font-bold">
           <BarChart3 className="w-4 h-4 text-primary" />
-          Niche Patterns
+          {t.insights.nichePatterns}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -252,13 +257,14 @@ function NichePatternsSection({ patterns }: { patterns: NichePattern[] }) {
 }
 
 function RecommendationsSection({ recommendations }: { recommendations: Recommendation[] }) {
+  const { t } = useLanguage();
   if (!recommendations || recommendations.length === 0) return null;
   return (
     <Card className="border-border" data-testid="card-recommendations">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base font-bold">
           <AlertCircle className="w-4 h-4 text-primary" />
-          Actionable Recommendations
+          {t.insights.recommendations}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -277,6 +283,7 @@ function RecommendationsSection({ recommendations }: { recommendations: Recommen
 }
 
 function InsightReportCard({ brief, workspaceId, isLatest }: { brief: Brief; workspaceId: string; isLatest: boolean }) {
+  const { t } = useLanguage();
   const { toast } = useToast();
   const generateFromBrief = useGenerateFromBrief();
   const [expanded, setExpanded] = useState(isLatest);
@@ -320,7 +327,7 @@ function InsightReportCard({ brief, workspaceId, isLatest }: { brief: Brief; wor
             <div className="flex items-center gap-2 flex-wrap">
               {isLatest && (
                 <Badge variant="outline" className="rounded-full text-[10px] uppercase font-bold border-primary/50 text-primary bg-primary/5">
-                  Latest
+                  {t.insights.latest}
                 </Badge>
               )}
               <Badge variant="outline" className="rounded-full text-[10px] uppercase font-bold border-muted-foreground/50 text-muted-foreground">
@@ -346,13 +353,13 @@ function InsightReportCard({ brief, workspaceId, isLatest }: { brief: Brief; wor
             data-testid={`button-toggle-details-${brief.id}`}
           >
             {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-            {expanded ? "Hide detailed analysis" : "Show detailed analysis"}
+            {expanded ? t.insights.hideDetails : t.insights.showDetails}
           </button>
 
           {expanded && (
             <div className="space-y-3">
               <div className="p-4 rounded-md bg-background/50 border border-border">
-                <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">Analysis</h4>
+                <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">{t.insights.analysis}</h4>
                 <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-line" data-testid={`text-insight-analysis-${brief.id}`}>
                   {brief.script}
                 </p>
@@ -371,7 +378,7 @@ function InsightReportCard({ brief, workspaceId, isLatest }: { brief: Brief; wor
               ) : (
                 <Sparkles className="w-4 h-4 mr-2" />
               )}
-              {generateFromBrief.isPending ? "Generating..." : "Generate recommended content"}
+              {generateFromBrief.isPending ? t.insights.generating : t.insights.generateRecommended}
             </Button>
           </div>
         </CardContent>
@@ -402,6 +409,7 @@ function InsightReportCard({ brief, workspaceId, isLatest }: { brief: Brief; wor
 }
 
 export default function Briefs() {
+  const { t } = useLanguage();
   const { data: workspaces, isLoading: workspacesLoading } = useWorkspaces();
   const selectedWorkspace = workspaces?.[0];
   const workspaceId = selectedWorkspace?.id;
@@ -450,10 +458,10 @@ export default function Briefs() {
           <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-6">
             <TrendingUp className="w-10 h-10 text-primary" />
           </div>
-          <h3 className="font-display text-2xl font-bold text-foreground mb-2" data-testid="text-no-workspace">No workspace yet</h3>
-          <p className="text-muted-foreground max-w-md mb-8">Create a workspace first to start generating performance insights.</p>
+          <h3 className="font-display text-2xl font-bold text-foreground mb-2" data-testid="text-no-workspace">{t.insights.noWorkspaceTitle}</h3>
+          <p className="text-muted-foreground max-w-md mb-8">{t.insights.noWorkspaceDesc}</p>
           <Button onClick={() => navigate("/")} data-testid="button-go-dashboard">
-            Go to Dashboard
+            {t.insights.goToDashboard}
           </Button>
         </div>
       </DashboardLayout>
@@ -465,8 +473,8 @@ export default function Briefs() {
       <div className="space-y-8">
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div>
-            <h1 className="font-display text-4xl font-bold text-foreground mb-2" data-testid="text-page-title">Insights</h1>
-            <p className="text-muted-foreground">Performance patterns and actionable recommendations from your content library.</p>
+            <h1 className="font-display text-4xl font-bold text-foreground mb-2" data-testid="text-page-title">{t.insights.title}</h1>
+            <p className="text-muted-foreground">{t.insights.subtitle}</p>
           </div>
           <div className="flex gap-3 flex-wrap">
             {historyBriefs.length > 0 && (
@@ -476,7 +484,7 @@ export default function Briefs() {
                 data-testid="button-history"
               >
                 <History className="w-4 h-4 mr-2" />
-                {showHistory ? "Hide History" : `History (${historyBriefs.length})`}
+                {showHistory ? t.insights.hideHistory : `${t.insights.history} (${historyBriefs.length})`}
               </Button>
             )}
             <Button
@@ -489,7 +497,7 @@ export default function Briefs() {
               ) : (
                 <TrendingUp className="w-4 h-4 mr-2" />
               )}
-              {generateBrief.isPending ? "Analyzing..." : "Generate Insights"}
+              {generateBrief.isPending ? t.insights.analyzing : t.insights.generateInsights}
             </Button>
           </div>
         </div>
@@ -504,8 +512,8 @@ export default function Briefs() {
               <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
                 <Star className="w-6 h-6 text-muted-foreground/40" />
               </div>
-              <h3 className="font-display text-lg font-bold text-foreground mb-2" data-testid="text-generate-cta">Want fresh insights?</h3>
-              <p className="text-muted-foreground text-sm max-w-sm mb-4">Add more content to your library and generate new insights to discover updated patterns.</p>
+              <h3 className="font-display text-lg font-bold text-foreground mb-2" data-testid="text-generate-cta">{t.insights.wantFresh}</h3>
+              <p className="text-muted-foreground text-sm max-w-sm mb-4">{t.insights.wantFreshDesc}</p>
               <div className="flex gap-3 flex-wrap justify-center">
                 <Button
                   variant="outline"
@@ -514,18 +522,18 @@ export default function Briefs() {
                   data-testid="button-generate-another"
                 >
                   <TrendingUp className="w-4 h-4 mr-2" />
-                  Regenerate Insights
+                  {t.insights.regenerate}
                 </Button>
                 <Button variant="outline" onClick={() => navigate("/library")} data-testid="link-go-to-library">
                   <ArrowRight className="w-4 h-4 mr-2" />
-                  Add Content
+                  {t.insights.addContent}
                 </Button>
               </div>
             </div>
 
             {showHistory && historyBriefs.length > 0 && (
               <div className="space-y-6">
-                <h2 className="font-display text-xl font-bold text-foreground" data-testid="text-history-title">Past Insight Reports</h2>
+                <h2 className="font-display text-xl font-bold text-foreground" data-testid="text-history-title">{t.insights.pastReports}</h2>
                 {historyBriefs.map((brief) => (
                   <InsightReportCard key={brief.id} brief={brief} workspaceId={workspaceId!} isLatest={false} />
                 ))}
@@ -537,9 +545,9 @@ export default function Briefs() {
             <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-6">
               <TrendingUp className="w-8 h-8 text-muted-foreground/40" />
             </div>
-            <h3 className="font-display text-lg font-bold text-foreground mb-2" data-testid="text-empty-state">No insights yet</h3>
+            <h3 className="font-display text-lg font-bold text-foreground mb-2" data-testid="text-empty-state">{t.insights.noInsightsTitle}</h3>
             <p className="text-muted-foreground text-sm max-w-sm mb-6">
-              Generate your first insights report to discover performance patterns in your content library. Add and analyze content first for the best results.
+              {t.insights.noInsightsDesc}
             </p>
             <div className="flex gap-3 flex-wrap justify-center">
               <Button
@@ -552,11 +560,11 @@ export default function Briefs() {
                 ) : (
                   <TrendingUp className="w-4 h-4 mr-2" />
                 )}
-                Generate First Insights
+                {t.insights.generateFirst}
               </Button>
               <Button variant="outline" onClick={() => navigate("/library")} data-testid="link-go-to-library">
                 <ArrowRight className="w-4 h-4 mr-2" />
-                Go to Library
+                {t.insights.goToLibrary}
               </Button>
             </div>
           </div>

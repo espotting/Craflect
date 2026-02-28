@@ -5,10 +5,12 @@ import { useLocation } from "wouter";
 import { useEffect } from "react";
 import { Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
+import { useLanguage } from "@/hooks/use-language";
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading, user } = useAuth();
   const [location, setLocation] = useLocation();
+  const { t } = useLanguage();
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -26,7 +28,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center">
         <Loader2 className="w-10 h-10 text-primary animate-spin mb-4" />
-        <p className="text-muted-foreground font-display animate-pulse">Loading Craflect Engine...</p>
+        <p className="text-muted-foreground font-display animate-pulse">{t.common.loadingEngine}</p>
       </div>
     );
   }
@@ -52,7 +54,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             <div className="flex items-center gap-4">
               <span className="flex items-center gap-2 text-xs font-medium px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 neon-border" data-testid="status-system">
                 <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                System Online
+                {t.common.systemOnline}
               </span>
             </div>
           </header>

@@ -2,6 +2,8 @@ import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/hooks/use-theme";
+import { useLanguage } from "@/hooks/use-language";
+import { LanguageSwitcher } from "@/components/language-switcher";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -26,61 +28,6 @@ import {
 import logoLight from "@/assets/logo-light.png";
 import logoTransparent from "@/assets/logo-transparent.png";
 
-const plans = [
-  {
-    name: "Starter",
-    price: 29,
-    icon: Zap,
-    description: "Validate your niche with AI insights.",
-    highlight: false,
-    cta: "Start learning your niche",
-    note: null,
-    features: [
-      "1 active niche",
-      "20 analyses / month",
-      "Generate unlimited content from learned patterns",
-      "Standard learning cycles",
-      "Single niche memory",
-    ],
-  },
-  {
-    name: "Pro",
-    price: 69,
-    icon: Sparkles,
-    description: "Turn insights into a repeatable content engine.",
-    highlight: true,
-    badge: "Most popular",
-    cta: "Build your content engine",
-    note: "Recommended once you validate your niche.",
-    features: [
-      "Up to 3 niches",
-      "100 analyses / month",
-      "Generate unlimited content from learned patterns",
-      "Deeper pattern intelligence",
-      "Faster learning cycles",
-      "Reusable niche intelligence",
-    ],
-  },
-  {
-    name: "Studio",
-    price: 199,
-    icon: Crown,
-    description: "Build a proprietary content dataset.",
-    highlight: false,
-    cta: "Scale with AI intelligence",
-    note: null,
-    features: [
-      "Unlimited niches",
-      "300 analyses / month",
-      "Generate unlimited content from learned patterns",
-      "Multi-workspace",
-      "Deeper analysis & faster refresh",
-      "Premium learning cycles",
-      "Cross-brand data advantage",
-    ],
-  },
-];
-
 type ComparisonRow = {
   feature: string;
   icon: typeof Target;
@@ -89,35 +36,6 @@ type ComparisonRow = {
   studio: string;
   badgeStyle?: { starter?: string; pro?: string; studio?: string };
 };
-
-const comparisonRows: ComparisonRow[] = [
-  { feature: "Active niches", icon: Target, starter: "1", pro: "3", studio: "Unlimited" },
-  { feature: "Analyses / month", icon: BarChart3, starter: "20", pro: "100", studio: "300" },
-  { feature: "Content creation", icon: Sparkles, starter: "Unlimited", pro: "Unlimited", studio: "Unlimited" },
-  {
-    feature: "Learning cycles",
-    icon: Zap,
-    starter: "Standard",
-    pro: "Priority",
-    studio: "Premium",
-    badgeStyle: {
-      starter: "bg-muted/80 text-foreground/70 border-border",
-      pro: "bg-primary/15 text-primary border-primary/20",
-      studio: "bg-secondary text-white border-secondary",
-    },
-  },
-  { feature: "Pattern intelligence", icon: Brain, starter: "Basic", pro: "Advanced", studio: "Advanced" },
-  { feature: "Multi-workspace", icon: Layers, starter: "—", pro: "—", studio: "✓" },
-  { feature: "Deeper analysis", icon: Microscope, starter: "—", pro: "—", studio: "✓" },
-  { feature: "Faster refresh", icon: RefreshCw, starter: "—", pro: "—", studio: "✓" },
-  {
-    feature: "AI learning depth",
-    icon: Brain,
-    starter: "Single niche memory",
-    pro: "Reusable niche intelligence",
-    studio: "Cross-brand data advantage",
-  },
-];
 
 function CellBadge({ value, style }: { value: string; style?: string }) {
   if (value === "—") return <span className="text-muted-foreground/40">—</span>;
@@ -136,10 +54,95 @@ export default function Pricing() {
   const { isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
   const { isDark, toggleTheme } = useTheme();
+  const { t } = useLanguage();
 
   const handleCta = () => {
     setLocation(isAuthenticated ? "/dashboard" : "/auth");
   };
+
+  const plans = [
+    {
+      name: t.pricing.starter.name,
+      price: 29,
+      icon: Zap,
+      description: t.pricing.starter.description,
+      highlight: false,
+      cta: t.pricing.finalCta,
+      note: null as string | null,
+      features: [
+        `1 ${t.pricing.features.niche}`,
+        `20 ${t.pricing.features.analyses}`,
+        t.pricing.features.unlimitedContent,
+        `${t.pricing.comparisonValues.standard} ${t.pricing.comparison.learningCycles.toLowerCase()}`,
+        t.pricing.comparisonValues.singleNiche,
+      ],
+    },
+    {
+      name: t.pricing.pro.name,
+      price: 69,
+      icon: Sparkles,
+      description: t.pricing.pro.description,
+      highlight: true,
+      badge: t.pricing.badge,
+      cta: t.pricing.finalCta,
+      note: t.pricing.pro.note,
+      features: [
+        `3 ${t.pricing.features.niches}`,
+        `100 ${t.pricing.features.analyses}`,
+        t.pricing.features.unlimitedContent,
+        t.pricing.features.advancedInsights,
+        t.pricing.features.priorityQueue,
+        t.pricing.comparisonValues.reusableNiche,
+      ],
+    },
+    {
+      name: t.pricing.studio.name,
+      price: 199,
+      icon: Crown,
+      description: t.pricing.studio.description,
+      highlight: false,
+      cta: t.pricing.finalCta,
+      note: null as string | null,
+      features: [
+        t.pricing.features.unlimitedNiches,
+        `300 ${t.pricing.features.analyses}`,
+        t.pricing.features.unlimitedContent,
+        t.pricing.features.multiWorkspace,
+        `${t.pricing.features.deeperAnalysis} & ${t.pricing.features.aiRefresh}`,
+        `${t.pricing.comparisonValues.premium} ${t.pricing.comparison.learningCycles.toLowerCase()}`,
+        t.pricing.comparisonValues.crossBrand,
+      ],
+    },
+  ];
+
+  const comparisonRows: ComparisonRow[] = [
+    { feature: t.pricing.comparison.nichesIncluded, icon: Target, starter: "1", pro: "3", studio: t.pricing.comparisonValues.unlimited },
+    { feature: t.pricing.comparison.analysesMonth, icon: BarChart3, starter: "20", pro: "100", studio: "300" },
+    { feature: t.pricing.comparison.contentGeneration, icon: Sparkles, starter: t.pricing.comparisonValues.unlimited, pro: t.pricing.comparisonValues.unlimited, studio: t.pricing.comparisonValues.unlimited },
+    {
+      feature: t.pricing.comparison.learningCycles,
+      icon: Zap,
+      starter: t.pricing.comparisonValues.standard,
+      pro: t.pricing.comparisonValues.priority,
+      studio: t.pricing.comparisonValues.premium,
+      badgeStyle: {
+        starter: "bg-muted/80 text-foreground/70 border-border",
+        pro: "bg-primary/15 text-primary border-primary/20",
+        studio: "bg-secondary text-white border-secondary",
+      },
+    },
+    { feature: t.pricing.comparison.patternIntelligence, icon: Brain, starter: t.pricing.comparisonValues.basic, pro: t.pricing.comparisonValues.advanced, studio: t.pricing.comparisonValues.advanced },
+    { feature: t.pricing.comparison.multiWorkspace, icon: Layers, starter: "—", pro: "—", studio: "✓" },
+    { feature: t.pricing.comparison.deeperAnalysis, icon: Microscope, starter: "—", pro: "—", studio: "✓" },
+    { feature: t.pricing.comparison.aiRefresh, icon: RefreshCw, starter: "—", pro: "—", studio: "✓" },
+    {
+      feature: t.pricing.comparison.aiLearningDepth,
+      icon: Brain,
+      starter: t.pricing.comparisonValues.singleNiche,
+      pro: t.pricing.comparisonValues.reusableNiche,
+      studio: t.pricing.comparisonValues.crossBrand,
+    },
+  ];
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -153,8 +156,9 @@ export default function Pricing() {
             className="hidden sm:inline-flex text-sm font-medium text-primary px-3 py-1.5"
             data-testid="nav-pricing"
           >
-            Pricing
+            {t.nav.pricing}
           </button>
+          <LanguageSwitcher />
           <button
             onClick={toggleTheme}
             className="p-2.5 rounded-full bg-muted hover:bg-accent text-foreground transition-all border border-border"
@@ -176,7 +180,7 @@ export default function Pricing() {
                 onClick={() => setLocation("/auth")}
                 data-testid="button-signup-pricing"
               >
-                Sign up
+                {t.nav.signUp}
               </Button>
             </>
           )}
@@ -186,7 +190,7 @@ export default function Pricing() {
               onClick={() => setLocation("/dashboard")}
               data-testid="button-dashboard-pricing"
             >
-              Dashboard
+              {t.sidebar.dashboard}
             </Button>
           )}
         </div>
@@ -206,17 +210,13 @@ export default function Pricing() {
           >
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-muted dark:bg-white/5 border border-border dark:border-white/10 text-sm font-medium text-primary mb-6">
               <Brain className="w-4 h-4" />
-              Content Performance Intelligence
+              {t.landing.badge}
             </div>
             <h1 className="font-display text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-foreground mb-4">
-              Start free. Learn your niche.{" "}
-              <br className="hidden sm:block" />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">
-                Upgrade when it works.
-              </span>
+              {t.pricing.title}
             </h1>
             <p className="text-base sm:text-lg text-muted-foreground max-w-xl mx-auto mb-6">
-              Your AI gets smarter with every analysis. Pay only when you scale.
+              {t.pricing.subtitle}
             </p>
           </motion.div>
         </section>
@@ -225,15 +225,15 @@ export default function Pricing() {
           <div className="flex items-center justify-center gap-3">
             <Badge className="px-3.5 py-1.5 text-xs font-medium gap-1.5 rounded-full bg-primary/15 dark:bg-primary/20 text-primary border border-primary/20 hover:bg-primary/20">
               <Shield className="w-3 h-3" />
-              7-day free trial
+              {t.pricing.trustBadges[0]}
             </Badge>
             <Badge className="px-3.5 py-1.5 text-xs font-medium gap-1.5 rounded-full bg-secondary/15 dark:bg-secondary/20 text-secondary border border-secondary/20 hover:bg-secondary/20">
               <Check className="w-3 h-3" />
-              No credit card required
+              {t.pricing.trustBadges[1]}
             </Badge>
             <Badge className="px-3.5 py-1.5 text-xs font-medium gap-1.5 rounded-full bg-primary/15 dark:bg-primary/20 text-primary border border-primary/20 hover:bg-primary/20">
               <Check className="w-3 h-3" />
-              Cancel anytime
+              {t.pricing.trustBadges[2]}
             </Badge>
           </div>
         </section>
@@ -272,10 +272,10 @@ export default function Pricing() {
 
                     <div className="mb-2">
                       <span className="text-3xl sm:text-4xl font-extrabold text-foreground">{plan.price}€</span>
-                      <span className="text-sm text-muted-foreground ml-1">/month</span>
+                      <span className="text-sm text-muted-foreground ml-1">{t.pricing.monthly}</span>
                     </div>
                     <p className="text-[11px] text-muted-foreground italic mb-4">
-                      You pay for AI learning capacity — not content generation.
+                      {t.pricing.payForLearning}
                     </p>
 
                     <p className="text-sm text-muted-foreground mb-4 leading-relaxed">{plan.description}</p>
@@ -309,8 +309,8 @@ export default function Pricing() {
                     </Button>
 
                     <p className="text-[11px] text-center mt-2.5">
-                      <span className="text-muted-foreground">Free trial • No commitment • </span>
-                      <span className="text-secondary font-medium">Cancel anytime</span>
+                      <span className="text-muted-foreground">{t.pricing.freeTrialLine} </span>
+                      <span className="text-secondary font-medium">{t.pricing.cancelAnytime}</span>
                     </p>
                   </CardContent>
                 </Card>
@@ -321,7 +321,7 @@ export default function Pricing() {
 
         <section className="max-w-4xl mx-auto mt-16 sm:mt-20">
           <h2 className="font-display text-xl sm:text-2xl font-bold text-foreground text-center mb-8">
-            Compare plans
+            {t.pricing.comparison.title}
           </h2>
 
           <div className="hidden md:block overflow-x-auto">
@@ -329,9 +329,9 @@ export default function Pricing() {
               <thead>
                 <tr className="border-b-2 border-border">
                   <th className="text-left py-4 px-4 text-muted-foreground font-medium w-[28%]"></th>
-                  <th className="text-center py-4 px-5 text-foreground font-bold w-[24%]">Starter</th>
-                  <th className="text-center py-4 px-5 text-primary font-bold w-[24%] bg-primary/5 dark:bg-primary/5 rounded-t-xl border-x border-primary/10">Pro</th>
-                  <th className="text-center py-4 px-5 text-foreground font-bold w-[24%]">Studio</th>
+                  <th className="text-center py-4 px-5 text-foreground font-bold w-[24%]">{t.pricing.starter.name}</th>
+                  <th className="text-center py-4 px-5 text-primary font-bold w-[24%] bg-primary/5 dark:bg-primary/5 rounded-t-xl border-x border-primary/10">{t.pricing.pro.name}</th>
+                  <th className="text-center py-4 px-5 text-foreground font-bold w-[24%]">{t.pricing.studio.name}</th>
                 </tr>
               </thead>
               <tbody>
@@ -369,7 +369,7 @@ export default function Pricing() {
                   </div>
                   <div className="space-y-2.5">
                     {comparisonRows.map((row) => {
-                      const val = plan.name === "Starter" ? row.starter : plan.name === "Pro" ? row.pro : row.studio;
+                      const val = plan.name === t.pricing.starter.name ? row.starter : plan.name === t.pricing.pro.name ? row.pro : row.studio;
                       if (val === "—") return null;
                       return (
                         <div key={row.feature} className="flex items-center justify-between text-sm">
@@ -392,44 +392,39 @@ export default function Pricing() {
           <div className="p-6 sm:p-8 rounded-2xl bg-muted/30 dark:bg-muted/10 border border-border">
             <div className="flex items-start gap-3 mb-1">
               <HelpCircle className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-              <h3 className="font-display text-lg font-bold text-foreground">What is an analysis run?</h3>
+              <h3 className="font-display text-lg font-bold text-foreground">{t.pricing.faq.q1}</h3>
             </div>
-            <p className="text-sm font-medium text-primary/80 pl-8 mb-3">
-              Analyses are your AI memory.
-            </p>
             <p className="text-sm text-muted-foreground leading-relaxed pl-8">
-              An analysis run teaches the AI your niche patterns. 
-              Similar URLs are grouped — one learning session.
-              The more you analyze, the smarter your content recommendations become.
+              {t.pricing.faq.a1}
             </p>
           </div>
         </section>
 
         <section className="max-w-xl mx-auto mt-14 sm:mt-16 text-center">
           <h2 className="font-display text-2xl sm:text-3xl font-bold text-foreground mb-3">
-            Ready to create smarter content?
+            {t.pricing.title}
           </h2>
           <p className="text-sm text-muted-foreground mb-6">
-            No credit card required.
+            {t.pricing.subtitle}
           </p>
           <Button
             onClick={handleCta}
             className="rounded-full px-8 h-12 bg-primary hover:bg-primary/90 text-white text-base font-medium shadow-lg shadow-primary/20"
             data-testid="button-bottom-cta"
           >
-            Start free trial — no credit card
+            {t.pricing.finalCta}
             <ArrowRight className="w-4 h-4 ml-2" />
           </Button>
           <p className="text-[11px] mt-3">
-            <span className="text-muted-foreground">Free trial • No commitment • </span>
-            <span className="text-secondary font-medium">Cancel anytime</span>
+            <span className="text-muted-foreground">{t.pricing.freeTrialLine} </span>
+            <span className="text-secondary font-medium">{t.pricing.cancelAnytime}</span>
           </p>
         </section>
       </main>
 
       <footer className="border-t border-border py-8 text-center">
         <p className="text-xs text-muted-foreground">
-          © {new Date().getFullYear()} Craflect. All rights reserved.
+          {t.landing.copyright.replace("{year}", new Date().getFullYear().toString())}
         </p>
       </footer>
     </div>

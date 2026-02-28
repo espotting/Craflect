@@ -24,25 +24,24 @@ import {
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/hooks/use-theme";
+import { useLanguage } from "@/hooks/use-language";
+import { LanguageSwitcher } from "@/components/language-switcher";
 import { Progress } from "@/components/ui/progress";
 import logoTransparent from "@/assets/logo-transparent.png";
 import logoLight from "@/assets/logo-light.png";
-
-const mainItems = [
-  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
-  { title: "Analyzed Content", url: "/library", icon: Library },
-  { title: "Insights", url: "/briefs", icon: Sparkles },
-  { title: "Analytics", url: "/analytics", icon: BarChart3 },
-];
-
-const settingsItems = [
-  { title: "Settings", url: "/settings", icon: Settings },
-];
 
 export function AppSidebar() {
   const [location, setLocation] = useLocation();
   const { user, logout } = useAuth();
   const { theme, toggleTheme, isDark } = useTheme();
+  const { t } = useLanguage();
+
+  const mainItems = [
+    { title: t.sidebar.dashboard, url: "/dashboard", icon: LayoutDashboard },
+    { title: t.sidebar.analyzedContent, url: "/library", icon: Library },
+    { title: t.sidebar.insights, url: "/briefs", icon: Sparkles },
+    { title: t.sidebar.analytics, url: "/analytics", icon: BarChart3 },
+  ];
 
   return (
     <Sidebar variant="inset" className="border-r border-border bg-sidebar">
@@ -56,7 +55,7 @@ export function AppSidebar() {
         <button
           onClick={toggleTheme}
           className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-          title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+          title={isDark ? t.common.switchLight : t.common.switchDark}
           data-testid="button-theme-toggle"
         >
           {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
@@ -66,21 +65,21 @@ export function AppSidebar() {
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel className="text-muted-foreground uppercase tracking-wider text-xs font-semibold mb-2">
-            Platform
+            {t.sidebar.platform}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {mainItems.map((item) => {
                 const isActive = location === item.url;
                 return (
-                  <SidebarMenuItem key={item.title}>
+                  <SidebarMenuItem key={item.url}>
                     <SidebarMenuButton 
                       asChild 
                       isActive={isActive}
                       className={isActive ? "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary" : "text-muted-foreground hover:text-foreground hover:bg-accent"}
                       onClick={() => setLocation(item.url)}
                     >
-                      <button className="flex items-center gap-3 w-full" data-testid={`nav-${item.title.toLowerCase()}`}>
+                      <button className="flex items-center gap-3 w-full" data-testid={`nav-${item.url.replace("/", "")}`}>
                         <item.icon className={`w-5 h-5 ${isActive ? 'text-primary' : ''}`} />
                         <span className="font-medium">{item.title}</span>
                       </button>
@@ -95,7 +94,7 @@ export function AppSidebar() {
         {!user?.onboardingCompleted && (
           <SidebarGroup>
             <SidebarGroupLabel className="text-muted-foreground uppercase tracking-wider text-xs font-semibold mb-2">
-              Getting Started
+              {t.sidebar.gettingStarted}
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <button
@@ -104,11 +103,11 @@ export function AppSidebar() {
                 data-testid="button-onboarding-progress"
               >
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground font-medium">Setup progress</span>
+                  <span className="text-muted-foreground font-medium">{t.sidebar.setupProgress}</span>
                   <span className="text-primary font-bold">0%</span>
                 </div>
                 <Progress value={0} className="h-1 bg-muted" />
-                <p className="text-xs text-muted-foreground">Complete onboarding to unlock all features</p>
+                <p className="text-xs text-muted-foreground">{t.sidebar.completeOnboarding}</p>
               </button>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -116,7 +115,7 @@ export function AppSidebar() {
 
         <SidebarGroup className="mt-auto">
           <SidebarGroupLabel className="text-muted-foreground uppercase tracking-wider text-xs font-semibold mb-2">
-            System
+            {t.sidebar.system}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -130,29 +129,24 @@ export function AppSidebar() {
                   >
                     <button className="flex items-center gap-3 w-full" data-testid="nav-admin">
                       <Shield className="w-5 h-5" />
-                      <span className="font-medium">Admin</span>
+                      <span className="font-medium">{t.sidebar.admin}</span>
                     </button>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               )}
-              {settingsItems.map((item) => {
-                const isActive = location === item.url;
-                return (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton 
-                      asChild 
-                      isActive={isActive}
-                      className={isActive ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-accent"}
-                      onClick={() => setLocation(item.url)}
-                    >
-                      <button className="flex items-center gap-3 w-full" data-testid={`nav-${item.title.toLowerCase()}`}>
-                        <item.icon className="w-5 h-5" />
-                        <span className="font-medium">{item.title}</span>
-                      </button>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
+              <SidebarMenuItem>
+                <SidebarMenuButton 
+                  asChild 
+                  isActive={location === "/settings"}
+                  className={location === "/settings" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-accent"}
+                  onClick={() => setLocation("/settings")}
+                >
+                  <button className="flex items-center gap-3 w-full" data-testid="nav-settings">
+                    <Settings className="w-5 h-5" />
+                    <span className="font-medium">{t.sidebar.settings}</span>
+                  </button>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -169,7 +163,7 @@ export function AppSidebar() {
           )}
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-foreground truncate" data-testid="text-username">
-              {user?.firstName ? `${user.firstName} ${user.lastName || ''}` : "Creator"}
+              {user?.firstName ? `${user.firstName} ${user.lastName || ''}` : t.common.creator}
             </p>
             <p className="text-xs text-muted-foreground truncate">{user?.email || ""}</p>
           </div>
@@ -181,6 +175,9 @@ export function AppSidebar() {
           >
             <LogOut className="w-4 h-4" />
           </button>
+        </div>
+        <div className="mt-2 flex justify-center">
+          <LanguageSwitcher variant="pill" />
         </div>
       </SidebarFooter>
     </Sidebar>

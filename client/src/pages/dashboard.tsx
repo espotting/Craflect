@@ -3,6 +3,7 @@ import { useWorkspaces, useCreateWorkspace } from "@/hooks/use-workspaces";
 import { useSources, useGeneratedContent } from "@/hooks/use-sources";
 import { useBriefs } from "@/hooks/use-briefs";
 import { useSubscription } from "@/hooks/use-subscription";
+import { useLanguage } from "@/hooks/use-language";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, FolderKanban, ArrowRight, Loader2, Sparkles, Wand2, TrendingUp, Brain, CreditCard, Zap, AlertTriangle } from "lucide-react";
@@ -29,6 +30,7 @@ export default function Dashboard() {
   const [name, setName] = useState("");
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+  const { t } = useLanguage();
 
   const selectedWorkspace = workspaces?.[0];
   const { data: sources } = useSources(selectedWorkspace?.id);
@@ -74,12 +76,12 @@ export default function Dashboard() {
   }
 
   const getNextAction = () => {
-    if (!hasWorkspace) return { label: "Create your first workspace to start.", action: () => setIsOpen(true), cta: "Continue" };
-    if (!hasSources) return { label: "Add video URLs from your niche to start analyzing.", action: () => setLocation("/library"), cta: "Continue" };
-    if (!hasAnalyzed) return { label: "Run AI analysis on your content to extract patterns.", action: () => setLocation("/library"), cta: "Continue" };
-    if (!hasInsights) return { label: "Generate your first brief from analyzed content.", action: () => setLocation("/briefs"), cta: "Continue" };
-    if (!hasContent) return { label: "Create content from your latest insight.", action: () => setLocation("/briefs"), cta: "Continue" };
-    return { label: "Add more sources to sharpen your niche intelligence.", action: () => setLocation("/library"), cta: "Continue" };
+    if (!hasWorkspace) return { label: t.dashboard.actions.createWorkspace, action: () => setIsOpen(true), cta: t.common.continue };
+    if (!hasSources) return { label: t.dashboard.actions.addUrls, action: () => setLocation("/library"), cta: t.common.continue };
+    if (!hasAnalyzed) return { label: t.dashboard.actions.runAnalysis, action: () => setLocation("/library"), cta: t.common.continue };
+    if (!hasInsights) return { label: t.dashboard.actions.generateBrief, action: () => setLocation("/briefs"), cta: t.common.continue };
+    if (!hasContent) return { label: t.dashboard.actions.createContent, action: () => setLocation("/briefs"), cta: t.common.continue };
+    return { label: t.dashboard.actions.addMore, action: () => setLocation("/library"), cta: t.common.continue };
   };
 
   const nextAction = getNextAction();
@@ -91,9 +93,9 @@ export default function Dashboard() {
       await createMutation.mutateAsync({ name });
       setIsOpen(false);
       setName("");
-      toast({ title: "Workspace created", description: "Your new workspace is ready." });
+      toast({ title: t.dashboard.createWorkspace, description: t.dashboard.workspaceDesc });
     } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Failed to create workspace", variant: "destructive" });
+      toast({ title: t.common.error, description: err.message, variant: "destructive" });
     }
   };
 
@@ -102,19 +104,19 @@ export default function Dashboard() {
       <DialogTrigger asChild>
         <Button className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl shadow-lg shadow-primary/20 neon-border h-11 px-6" data-testid="button-new-workspace">
           <Plus className="w-5 h-5 mr-2" />
-          New Workspace
+          {t.dashboard.newWorkspace}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md bg-card border-border text-foreground">
         <DialogHeader>
-          <DialogTitle className="font-display text-2xl">Create Workspace</DialogTitle>
+          <DialogTitle className="font-display text-2xl">{t.dashboard.createWorkspace}</DialogTitle>
           <DialogDescription className="text-muted-foreground">
-            A workspace organizes your content sources and generated briefs for a specific brand.
+            {t.dashboard.workspaceDesc}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleCreate} className="space-y-6 pt-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium text-muted-foreground">Workspace Name</label>
+            <label className="text-sm font-medium text-muted-foreground">{t.dashboard.workspaceName}</label>
             <Input 
               placeholder="e.g. Acme Corp Marketing" 
               value={name}
@@ -130,7 +132,7 @@ export default function Dashboard() {
             disabled={createMutation.isPending || !name.trim()}
             data-testid="button-create-workspace"
           >
-            {createMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : "Create Workspace"}
+            {createMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : t.dashboard.createWorkspace}
           </Button>
         </form>
       </DialogContent>
@@ -159,8 +161,8 @@ export default function Dashboard() {
           <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-6">
             <FolderKanban className="w-10 h-10 text-primary" />
           </div>
-          <h3 className="font-display text-2xl font-bold text-foreground mb-2">No workspaces yet</h3>
-          <p className="text-muted-foreground max-w-md mb-8">Create your first workspace to start analyzing content performance in your niche.</p>
+          <h3 className="font-display text-2xl font-bold text-foreground mb-2">{t.dashboard.noWorkspacesTitle}</h3>
+          <p className="text-muted-foreground max-w-md mb-8">{t.dashboard.noWorkspacesDesc}</p>
           {createDialog}
         </div>
       </DashboardLayout>
@@ -173,7 +175,7 @@ export default function Dashboard() {
 
         <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-lg bg-muted/50 border border-border text-xs text-muted-foreground" data-testid="text-ai-learning">
           <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse flex-shrink-0" />
-          Your AI is learning from your niche.
+          {t.dashboard.aiLearning}
         </div>
 
         {latestInsight ? (
@@ -182,7 +184,7 @@ export default function Dashboard() {
             <CardContent className="p-6 relative z-10 space-y-4">
               <div className="flex items-center gap-2">
                 <TrendingUp className="w-4 h-4 text-primary" />
-                <span className="text-[10px] font-bold uppercase tracking-widest text-primary">Latest Insight</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-primary">{t.dashboard.latestInsight}</span>
               </div>
               <h2 className="text-lg sm:text-xl font-display font-bold text-foreground leading-snug line-clamp-2" data-testid="text-insight-topic">
                 {latestInsight.topic}
@@ -201,12 +203,12 @@ export default function Dashboard() {
               )}
               <div className="flex items-center gap-3 pt-1">
                 <Button onClick={() => setLocation("/briefs")} className="bg-primary hover:bg-primary/90 text-white rounded-lg h-10 px-6 text-sm font-medium" data-testid="button-view-insight">
-                  View insight
+                  {t.dashboard.viewInsight}
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
                 <Button onClick={() => setLocation("/briefs")} variant="outline" className="rounded-lg h-10 px-5 text-sm" data-testid="button-generate-content">
                   <Sparkles className="w-4 h-4 mr-1.5" />
-                  Generate content
+                  {t.dashboard.generateContent}
                 </Button>
               </div>
             </CardContent>
@@ -215,10 +217,10 @@ export default function Dashboard() {
           <Card className="border-border border-dashed border-2" data-testid="card-no-insight">
             <CardContent className="p-8 flex flex-col items-center text-center">
               <TrendingUp className="w-10 h-10 text-muted-foreground/20 mb-4" />
-              <h3 className="font-display text-lg font-bold text-foreground mb-1">No insights yet</h3>
-              <p className="text-sm text-muted-foreground mb-5">Analyze content from your niche, then generate your first performance insights.</p>
+              <h3 className="font-display text-lg font-bold text-foreground mb-1">{t.dashboard.noInsightsTitle}</h3>
+              <p className="text-sm text-muted-foreground mb-5">{t.dashboard.noInsightsDesc}</p>
               <Button onClick={() => setLocation(hasSources ? "/briefs" : "/library")} className="rounded-lg" data-testid="button-go-insights">
-                {hasSources ? "Generate your first brief" : "Generate your first analysis"}
+                {hasSources ? t.dashboard.generateFirstBrief : t.dashboard.generateFirstAnalysis}
               </Button>
             </CardContent>
           </Card>
@@ -231,7 +233,7 @@ export default function Dashboard() {
                 <Sparkles className="w-5 h-5 text-primary" />
               </div>
               <div className="min-w-0">
-                <h3 className="text-sm font-display font-bold text-foreground" data-testid="text-next-action-title">Next best action</h3>
+                <h3 className="text-sm font-display font-bold text-foreground" data-testid="text-next-action-title">{t.dashboard.nextBestAction}</h3>
                 <p className="text-xs text-muted-foreground truncate" data-testid="text-next-action">{nextAction.label}</p>
               </div>
             </div>
@@ -247,10 +249,10 @@ export default function Dashboard() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <CreditCard className="w-4 h-4 text-primary" />
-                <span className="text-[10px] font-bold uppercase tracking-widest text-primary">Plan & Usage</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-primary">{t.dashboard.planUsage}</span>
               </div>
               <Button variant="outline" size="sm" className="h-7 text-xs rounded-md px-3" onClick={() => setLocation("/pricing")} data-testid="button-manage-plan">
-                Manage plan
+                {t.dashboard.managePlan}
               </Button>
             </div>
 
@@ -258,12 +260,12 @@ export default function Dashboard() {
               <span className="text-sm font-display font-bold text-foreground capitalize" data-testid="text-plan-name">{planName}</span>
               {isTrialing && (
                 <Badge className="bg-secondary/15 text-secondary border border-secondary/20 text-[10px] px-2 py-0.5 rounded-full" data-testid="badge-trial">
-                  Free trial
+                  {t.dashboard.freeTrial}
                 </Badge>
               )}
               {renewalDays !== null && (
                 <span className="text-[11px] text-muted-foreground">
-                  Renews in {renewalDays} days
+                  {t.dashboard.renewsIn.replace("{days}", String(renewalDays))}
                 </span>
               )}
             </div>
@@ -271,14 +273,14 @@ export default function Dashboard() {
             <div className="space-y-3">
               <div>
                 <div className="flex items-center justify-between text-xs mb-1.5">
-                  <span className="text-muted-foreground">Analyses</span>
+                  <span className="text-muted-foreground">{t.dashboard.analyses}</span>
                   <span className="font-medium text-foreground" data-testid="text-analyses-usage">{analysesUsed} / {analysesLimit}</span>
                 </div>
                 <Progress value={analysesPercent} className={`h-2 ${analysesPercent >= 90 ? '[&>div]:bg-destructive' : analysesPercent >= 70 ? '[&>div]:bg-yellow-500' : ''}`} />
               </div>
               <div>
                 <div className="flex items-center justify-between text-xs mb-1.5">
-                  <span className="text-muted-foreground">Niches</span>
+                  <span className="text-muted-foreground">{t.dashboard.niches}</span>
                   <span className="font-medium text-foreground" data-testid="text-niches-usage">{nichesCount} / {nichesLimit}</span>
                 </div>
                 <Progress value={nichesPercent} className={`h-2 ${nichesPercent >= 100 ? '[&>div]:bg-destructive' : ''}`} />
@@ -290,18 +292,18 @@ export default function Dashboard() {
                 <AlertTriangle className="w-4 h-4 text-yellow-600 dark:text-yellow-500 mt-0.5 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-foreground font-medium">
-                    You're close to your analysis limit. Upgrade to keep learning.
+                    {t.dashboard.upgradeWarning}
                   </p>
                   <Button variant="link" className="h-auto p-0 text-xs text-primary mt-1" onClick={() => setLocation("/pricing")} data-testid="link-upgrade">
                     <Zap className="w-3 h-3 mr-1" />
-                    Upgrade plan
+                    {t.dashboard.upgradePlan}
                   </Button>
                 </div>
               </div>
             )}
 
             <p className="text-[10px] text-muted-foreground/50 text-center">
-              Analyses grow your AI memory. Content creation stays unlimited.
+              {t.dashboard.analysesMemory}
             </p>
           </CardContent>
         </Card>
@@ -310,24 +312,24 @@ export default function Dashboard() {
           <CardContent className="p-5">
             <div className="flex items-center gap-2 mb-4">
               <Brain className="w-4 h-4 text-primary" />
-              <span className="text-[10px] font-bold uppercase tracking-widest text-primary">Learning progress</span>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-primary">{t.dashboard.learningProgress}</span>
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div className="p-3 rounded-lg bg-muted/40 dark:bg-muted/20 text-center">
                 <div className="text-2xl font-bold text-foreground" data-testid="stat-analyzed-count">{analyzedSources.length}</div>
-                <div className="text-[11px] text-muted-foreground mt-0.5">Sources analyzed</div>
+                <div className="text-[11px] text-muted-foreground mt-0.5">{t.dashboard.sourcesAnalyzed}</div>
               </div>
               <div className="p-3 rounded-lg bg-muted/40 dark:bg-muted/20 text-center">
                 <div className="text-2xl font-bold text-foreground" data-testid="stat-insights-count">{briefs?.length || 0}</div>
-                <div className="text-[11px] text-muted-foreground mt-0.5">Insights generated</div>
+                <div className="text-[11px] text-muted-foreground mt-0.5">{t.dashboard.insightsGenerated}</div>
               </div>
               <div className="p-3 rounded-lg bg-muted/40 dark:bg-muted/20 text-center">
                 <div className="text-2xl font-bold text-foreground" data-testid="stat-content-count">{generatedContent?.length || 0}</div>
-                <div className="text-[11px] text-muted-foreground mt-0.5">Content created</div>
+                <div className="text-[11px] text-muted-foreground mt-0.5">{t.dashboard.contentCreated}</div>
               </div>
             </div>
             <p className="text-[11px] text-muted-foreground/60 mt-3 text-center">
-              The AI gets smarter as you add content.
+              {t.dashboard.aiSmarter}
             </p>
           </CardContent>
         </Card>
@@ -336,11 +338,11 @@ export default function Dashboard() {
           <CardHeader className="flex flex-row items-center justify-between pb-3">
             <CardTitle className="text-sm font-display text-foreground flex items-center gap-2">
               <Wand2 className="w-4 h-4 text-primary" />
-              Latest Generated Content
+              {t.dashboard.latestGenerated}
             </CardTitle>
             {hasContent && (
               <Button variant="link" className="text-primary hover:text-primary/80 text-xs h-auto p-0" onClick={() => setLocation("/library")} data-testid="link-view-all-content">
-                View all
+                {t.common.viewAll}
               </Button>
             )}
           </CardHeader>
@@ -364,10 +366,10 @@ export default function Dashboard() {
               </div>
             ) : (
               <div className="text-center py-6">
-                <p className="text-sm text-muted-foreground mb-3">No content generated yet.</p>
+                <p className="text-sm text-muted-foreground mb-3">{t.dashboard.noContentYet}</p>
                 <Button onClick={() => setLocation("/briefs")} variant="outline" className="rounded-lg text-sm" data-testid="button-generate-first-content">
                   <Sparkles className="w-4 h-4 mr-1.5" />
-                  Generate your first content
+                  {t.dashboard.generateFirstContent}
                 </Button>
               </div>
             )}

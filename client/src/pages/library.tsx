@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { DashboardLayout } from "@/components/layout";
 import { useWorkspaces } from "@/hooks/use-workspaces";
 import { useSources, useIngestUrls, useAnalyzeSource } from "@/hooks/use-sources";
+import { useLanguage } from "@/hooks/use-language";
 import { Button } from "@/components/ui/button";
 import { Plus, Video, FileText, Link2, Loader2, Upload, Search, Eye, Heart, MessageCircle, BarChart3, Tag, Filter, ArrowUpDown, Globe, Zap, ScanSearch } from "lucide-react";
 import { SiTiktok, SiInstagram, SiYoutube } from "react-icons/si";
@@ -32,11 +33,12 @@ function PlatformIcon({ platform, className }: { platform: string | null; classN
 }
 
 function IngestionStatusBadge({ status }: { status: string | null }) {
+  const { t } = useLanguage();
   const config: Record<string, { className: string; label: string }> = {
-    pending: { className: "border-yellow-500/50 text-yellow-600 dark:text-yellow-400 bg-yellow-500/5", label: "Pending" },
-    processing: { className: "border-blue-500/50 text-blue-600 dark:text-blue-400 bg-blue-500/5", label: "Processing" },
-    analyzed: { className: "border-green-500/50 text-green-600 dark:text-green-400 bg-green-500/5", label: "Analyzed" },
-    failed: { className: "border-red-500/50 text-red-600 dark:text-red-400 bg-red-500/5", label: "Failed" },
+    pending: { className: "border-yellow-500/50 text-yellow-600 dark:text-yellow-400 bg-yellow-500/5", label: t.common.pending },
+    processing: { className: "border-blue-500/50 text-blue-600 dark:text-blue-400 bg-blue-500/5", label: t.common.processing },
+    analyzed: { className: "border-green-500/50 text-green-600 dark:text-green-400 bg-green-500/5", label: t.common.analyzed },
+    failed: { className: "border-red-500/50 text-red-600 dark:text-red-400 bg-red-500/5", label: t.common.failed },
   };
   const s = status || "pending";
   const c = config[s] || config.pending;
@@ -99,6 +101,7 @@ function detectPlatformFromUrl(url: string): string | null {
 function IngestDialog({ open, onOpenChange, workspaceId }: { open: boolean; onOpenChange: (open: boolean) => void; workspaceId: string }) {
   const [urlText, setUrlText] = useState("");
   const { toast } = useToast();
+  const { t } = useLanguage();
   const ingestUrls = useIngestUrls(workspaceId);
 
   const parsedUrls = useMemo(() => {
@@ -127,7 +130,7 @@ function IngestDialog({ open, onOpenChange, workspaceId }: { open: boolean; onOp
 
   const handleSubmit = () => {
     if (validUrls.length === 0) {
-      toast({ title: "URLs required", description: "Please paste at least one valid URL.", variant: "destructive" });
+      toast({ title: t.library.toasts.urlsRequired, description: t.library.toasts.urlsRequiredDesc, variant: "destructive" });
       return;
     }
 
@@ -135,12 +138,12 @@ function IngestDialog({ open, onOpenChange, workspaceId }: { open: boolean; onOp
       { urls: validUrls },
       {
         onSuccess: (data) => {
-          toast({ title: "Content added", description: `${data.length} URL${data.length !== 1 ? "s" : ""} added for analysis.` });
+          toast({ title: t.library.toasts.contentAdded, description: t.library.toasts.contentAddedDesc.replace("{count}", String(data.length)).replace("{plural}", data.length !== 1 ? "s" : "") });
           resetForm();
           onOpenChange(false);
         },
         onError: (err) => {
-          toast({ title: "Error", description: err.message, variant: "destructive" });
+          toast({ title: t.common.error, description: err.message, variant: "destructive" });
         },
       }
     );
@@ -150,12 +153,12 @@ function IngestDialog({ open, onOpenChange, workspaceId }: { open: boolean; onOp
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg" data-testid="dialog-ingest-urls">
         <DialogHeader>
-          <DialogTitle className="font-display text-xl">Add URLs to Analyze</DialogTitle>
+          <DialogTitle className="font-display text-xl">{t.library.dialogTitle}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label>Paste URLs (one per line)</Label>
+            <Label>{t.library.dialogLabel}</Label>
             <Textarea
               placeholder={"https://www.tiktok.com/@creator/video/123\nhttps://www.instagram.com/reel/abc\nhttps://youtube.com/shorts/xyz"}
               className="min-h-[140px] resize-none font-mono text-sm"
@@ -167,7 +170,7 @@ function IngestDialog({ open, onOpenChange, workspaceId }: { open: boolean; onOp
 
           {parsedUrls.length > 0 && (
             <div className="space-y-1">
-              <p className="text-xs text-muted-foreground">{validUrls.length} valid URL{validUrls.length !== 1 ? "s" : ""} detected:</p>
+              <p className="text-xs text-muted-foreground">{t.library.validUrls.replace("{count}", String(validUrls.length)).replace("{plural}", validUrls.length !== 1 ? "s" : "")}</p>
               <div className="flex flex-wrap gap-1">
                 {detectedPlatforms.map((platform, i) => (
                   <Badge key={i} variant="outline" className="rounded-full text-[10px] gap-1">
@@ -182,11 +185,11 @@ function IngestDialog({ open, onOpenChange, workspaceId }: { open: boolean; onOp
 
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)} data-testid="button-cancel-ingest">
-            Cancel
+            {t.common.cancel}
           </Button>
           <Button onClick={handleSubmit} disabled={ingestUrls.isPending || validUrls.length === 0} data-testid="button-submit-urls">
             {ingestUrls.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
-            Add {validUrls.length > 0 ? `${validUrls.length} URL${validUrls.length !== 1 ? "s" : ""}` : "URLs"}
+            {validUrls.length > 0 ? t.library.addCount.replace("{count}", String(validUrls.length)).replace("{plural}", validUrls.length !== 1 ? "s" : "") : t.library.addUrls}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -194,10 +197,11 @@ function IngestDialog({ open, onOpenChange, workspaceId }: { open: boolean; onOp
   );
 }
 
-function SourceCard({ source, onAnalyze, isAnalyzing }: {
+function SourceCard({ source, onAnalyze, isAnalyzing, t }: {
   source: ContentSource;
   onAnalyze: () => void;
   isAnalyzing: boolean;
+  t: ReturnType<typeof useLanguage>["t"];
 }) {
   const hasMetrics = source.views !== null || source.likes !== null || source.commentsCount !== null;
   const hasTags = source.hookType || source.contentFormat || source.contentAngle;
@@ -264,7 +268,7 @@ function SourceCard({ source, onAnalyze, isAnalyzing }: {
               </>
             ) : (
               <span className="text-muted-foreground/60 italic" data-testid={`text-metrics-unavailable-${source.id}`}>
-                Metrics unavailable
+                {t.common.metricsUnavailable}
               </span>
             )}
           </div>
@@ -312,7 +316,7 @@ function SourceCard({ source, onAnalyze, isAnalyzing }: {
             ) : (
               <ScanSearch className="w-3.5 h-3.5 mr-2" />
             )}
-            Analyze
+            {t.library.analyze}
           </Button>
         )}
       </CardContent>
@@ -331,6 +335,7 @@ export default function Library() {
   const { data: sources, isLoading: sourcesLoading } = useSources(selectedWorkspace?.id);
   const analyzeMutation = useAnalyzeSource(selectedWorkspace?.id);
   const { toast } = useToast();
+  const { t } = useLanguage();
 
   const isLoading = workspacesLoading || sourcesLoading;
 
@@ -383,11 +388,11 @@ export default function Library() {
       { sourceId: source.id },
       {
         onSuccess: () => {
-          toast({ title: "Analysis complete", description: `"${source.title}" has been analyzed.` });
+          toast({ title: t.library.toasts.analysisComplete, description: t.library.toasts.analysisCompleteDesc.replace("{title}", source.title || "") });
           setAnalyzingSourceId(null);
         },
         onError: (err) => {
-          toast({ title: "Analysis failed", description: err.message, variant: "destructive" });
+          toast({ title: t.library.toasts.analysisFailed, description: err.message, variant: "destructive" });
           setAnalyzingSourceId(null);
         },
       }
@@ -401,8 +406,8 @@ export default function Library() {
           <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-6">
             <ScanSearch className="w-10 h-10 text-primary" />
           </div>
-          <h3 className="font-display text-2xl font-bold text-foreground mb-2">No workspace yet</h3>
-          <p className="text-muted-foreground max-w-md mb-8">Create a workspace first to start analyzing content.</p>
+          <h3 className="font-display text-2xl font-bold text-foreground mb-2">{t.library.noWorkspaceTitle}</h3>
+          <p className="text-muted-foreground max-w-md mb-8">{t.library.noWorkspaceDesc}</p>
         </div>
       </DashboardLayout>
     );
@@ -416,16 +421,16 @@ export default function Library() {
       <div className="space-y-6">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
-            <h1 className="font-display text-4xl font-bold text-foreground mb-2" data-testid="text-library-title">Analyzed Content</h1>
+            <h1 className="font-display text-4xl font-bold text-foreground mb-2" data-testid="text-library-title">{t.library.title}</h1>
             <p className="text-muted-foreground" data-testid="text-library-subtitle">
               {totalCount > 0
-                ? `${analyzedCount} analyzed of ${totalCount} source${totalCount !== 1 ? "s" : ""}`
-                : "Add URLs from your niche to analyze performance patterns."}
+                ? t.library.subtitle.replace("{analyzed}", String(analyzedCount)).replace("{total}", String(totalCount)).replace("{plural}", totalCount !== 1 ? "s" : "")
+                : t.library.emptySubtitle}
             </p>
           </div>
           <Button onClick={() => setIngestOpen(true)} data-testid="button-add-urls">
             <Plus className="w-5 h-5 mr-2" />
-            Add URLs
+            {t.library.addUrls}
           </Button>
         </div>
 
@@ -438,7 +443,7 @@ export default function Library() {
                   <SelectValue placeholder="Platform" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Platforms</SelectItem>
+                  <SelectItem value="all">{t.library.allPlatforms}</SelectItem>
                   {platforms.map((p) => (
                     <SelectItem key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</SelectItem>
                   ))}
@@ -450,7 +455,7 @@ export default function Library() {
                   <SelectValue placeholder="Hook Type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Hooks</SelectItem>
+                  <SelectItem value="all">{t.library.allHooks}</SelectItem>
                   {hookTypes.map((h) => (
                     <SelectItem key={h} value={h}>{h.replace(/_/g, " ")}</SelectItem>
                   ))}
@@ -465,10 +470,10 @@ export default function Library() {
                   <SelectValue placeholder="Sort by" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="recent">Most Recent</SelectItem>
-                  <SelectItem value="score_desc">Score (High → Low)</SelectItem>
-                  <SelectItem value="score_asc">Score (Low → High)</SelectItem>
-                  <SelectItem value="views">Most Views</SelectItem>
+                  <SelectItem value="recent">{t.library.mostRecent}</SelectItem>
+                  <SelectItem value="score_desc">{t.library.scoreHighLow}</SelectItem>
+                  <SelectItem value="score_asc">{t.library.scoreLowHigh}</SelectItem>
+                  <SelectItem value="views">{t.library.mostViews}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -489,25 +494,26 @@ export default function Library() {
                 source={source}
                 onAnalyze={() => handleAnalyze(source)}
                 isAnalyzing={analyzingSourceId === source.id}
+                t={t}
               />
             ))}
           </div>
         ) : totalCount > 0 ? (
           <div className="flex flex-col items-center justify-center p-16 rounded-md border-dashed border-2 border-border text-center" data-testid="empty-filtered">
             <Search className="w-10 h-10 text-muted-foreground mb-4" />
-            <h3 className="font-display text-lg font-bold text-foreground mb-2">No matching content</h3>
-            <p className="text-muted-foreground text-sm">Try adjusting your filters.</p>
+            <h3 className="font-display text-lg font-bold text-foreground mb-2">{t.library.noMatchTitle}</h3>
+            <p className="text-muted-foreground text-sm">{t.library.noMatchDesc}</p>
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center p-20 rounded-md border-dashed border-2 border-border text-center" data-testid="empty-no-sources">
             <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-6">
               <ScanSearch className="w-10 h-10 text-primary" />
             </div>
-            <h3 className="font-display text-2xl font-bold text-foreground mb-2">No content yet</h3>
-            <p className="text-muted-foreground max-w-md mb-8">Paste URLs from your niche to analyze what makes content perform.</p>
+            <h3 className="font-display text-2xl font-bold text-foreground mb-2">{t.library.noContentTitle}</h3>
+            <p className="text-muted-foreground max-w-md mb-8">{t.library.noContentDesc}</p>
             <Button onClick={() => setIngestOpen(true)} data-testid="button-add-urls-empty">
               <Plus className="w-5 h-5 mr-2" />
-              Add your first URLs
+              {t.library.addFirstUrls}
             </Button>
           </div>
         )}

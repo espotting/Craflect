@@ -7,10 +7,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
+import { useLanguage } from "@/hooks/use-language";
 
 export default function Admin() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
+  const { t } = useLanguage();
 
   useEffect(() => {
     if (user && !user.isAdmin) {
@@ -51,11 +53,11 @@ export default function Admin() {
   if (!user?.isAdmin) return null;
 
   const kpis = [
-    { label: "Total Users", value: stats?.totalUsers || 0, icon: Users, color: "text-blue-500", bg: "bg-blue-500/10" },
-    { label: "Workspaces", value: stats?.totalWorkspaces || 0, icon: FolderKanban, color: "text-purple-500", bg: "bg-purple-500/10" },
-    { label: "Sources Uploaded", value: stats?.totalSources || 0, icon: FileText, color: "text-emerald-500", bg: "bg-emerald-500/10" },
-    { label: "Content Generated", value: stats?.totalGenerated || 0, icon: Sparkles, color: "text-amber-500", bg: "bg-amber-500/10" },
-    { label: "Briefs Created", value: stats?.totalBriefs || 0, icon: Activity, color: "text-rose-500", bg: "bg-rose-500/10" },
+    { label: t.admin.totalUsers, value: stats?.totalUsers || 0, icon: Users, color: "text-blue-500", bg: "bg-blue-500/10" },
+    { label: t.admin.workspaces, value: stats?.totalWorkspaces || 0, icon: FolderKanban, color: "text-purple-500", bg: "bg-purple-500/10" },
+    { label: t.admin.sourcesUploaded, value: stats?.totalSources || 0, icon: FileText, color: "text-emerald-500", bg: "bg-emerald-500/10" },
+    { label: t.admin.contentGenerated, value: stats?.totalGenerated || 0, icon: Sparkles, color: "text-amber-500", bg: "bg-amber-500/10" },
+    { label: t.admin.briefsCreated, value: stats?.totalBriefs || 0, icon: Activity, color: "text-rose-500", bg: "bg-rose-500/10" },
   ];
 
   return (
@@ -66,8 +68,8 @@ export default function Admin() {
             <Shield className="w-5 h-5 text-primary" />
           </div>
           <div>
-            <h1 className="font-display text-4xl font-bold text-foreground" data-testid="text-admin-title">Admin Panel</h1>
-            <p className="text-muted-foreground">Platform overview and user management.</p>
+            <h1 className="font-display text-4xl font-bold text-foreground" data-testid="text-admin-title">{t.admin.title}</h1>
+            <p className="text-muted-foreground">{t.admin.subtitle}</p>
           </div>
         </div>
 
@@ -98,7 +100,7 @@ export default function Admin() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <Card className="lg:col-span-2 glass-card border-border">
             <CardHeader>
-              <CardTitle className="text-xl font-display text-foreground">All Users</CardTitle>
+              <CardTitle className="text-xl font-display text-foreground">{t.admin.allUsers}</CardTitle>
             </CardHeader>
             <CardContent>
               {usersLoading ? (
@@ -108,10 +110,10 @@ export default function Admin() {
               ) : (
                 <div className="space-y-2">
                   <div className="grid grid-cols-4 gap-4 px-4 py-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    <span>User</span>
-                    <span>Email</span>
-                    <span>Provider</span>
-                    <span>Joined</span>
+                    <span>{t.admin.user}</span>
+                    <span>{t.admin.email}</span>
+                    <span>{t.admin.provider}</span>
+                    <span>{t.admin.joined}</span>
                   </div>
                   {allUsers?.map((u: any) => (
                     <div key={u.id} className="grid grid-cols-4 gap-4 px-4 py-3 rounded-xl bg-muted/50 border border-border items-center" data-testid={`row-user-${u.id}`}>
@@ -137,7 +139,7 @@ export default function Admin() {
 
           <Card className="glass-card border-border">
             <CardHeader>
-              <CardTitle className="text-xl font-display text-foreground">Recent Events</CardTitle>
+              <CardTitle className="text-xl font-display text-foreground">{t.admin.recentEvents}</CardTitle>
             </CardHeader>
             <CardContent>
               {events && events.length > 0 ? (
@@ -157,7 +159,7 @@ export default function Admin() {
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground italic text-center py-8">No events recorded yet.</p>
+                <p className="text-sm text-muted-foreground italic text-center py-8">{t.admin.noEvents}</p>
               )}
             </CardContent>
           </Card>

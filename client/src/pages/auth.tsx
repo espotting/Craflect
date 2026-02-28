@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import { ArrowLeft, Mail, Loader2, Sun, Moon, CheckCircle2, Eye, EyeOff, Check, X } from "lucide-react";
 import { FcGoogle } from "react-icons/fc";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/hooks/use-language";
+import { LanguageSwitcher } from "@/components/language-switcher";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 import logoLight from "@/assets/logo-light.png";
@@ -34,6 +36,7 @@ export default function Auth() {
   const [, setLocation] = useLocation();
   const { isDark, toggleTheme } = useTheme();
   const { toast } = useToast();
+  const { t } = useLanguage();
 
   const params = new URLSearchParams(window.location.search);
   const initialMode = params.get("mode") === "login" ? "login-form" as AuthStep : "choose" as AuthStep;
@@ -68,7 +71,7 @@ export default function Auth() {
     e.preventDefault();
     if (!email.trim() || !firstName.trim() || !passwordValid) return;
     if (!passwordsMatch) {
-      toast({ title: "Error", description: "Passwords do not match", variant: "destructive" });
+      toast({ title: t.common.error, description: t.auth.passwordsMismatch, variant: "destructive" });
       return;
     }
     setSubmitting(true);
@@ -81,9 +84,9 @@ export default function Auth() {
       });
       setIsLoginFlow(false);
       setStep("verify-code");
-      toast({ title: "Code sent", description: `A verification code has been sent to ${email}` });
+      toast({ title: t.auth.toasts.codeSent, description: t.auth.toasts.codeSentDesc.replace("{email}", email) });
     } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Registration failed", variant: "destructive" });
+      toast({ title: t.common.error, description: err.message || t.auth.toasts.registrationFailed, variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -102,14 +105,14 @@ export default function Auth() {
       if (data.needsVerification) {
         setIsLoginFlow(true);
         setStep("verify-code");
-        toast({ title: "Verification needed", description: "Please verify your email first. A code has been sent." });
+        toast({ title: t.auth.toasts.verificationNeeded, description: t.auth.toasts.verificationNeededDesc });
       } else {
         await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-        toast({ title: "Welcome back!", description: "You're signed in." });
+        toast({ title: t.auth.toasts.welcomeBack, description: t.auth.toasts.signedIn });
         setLocation("/dashboard");
       }
     } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Login failed", variant: "destructive" });
+      toast({ title: t.common.error, description: err.message || t.auth.toasts.loginFailed, variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -122,10 +125,10 @@ export default function Auth() {
     try {
       await apiRequest("POST", "/api/auth/verify", { email, code });
       await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-      toast({ title: "Welcome!", description: isLoginFlow ? "You're signed in." : "Your email has been verified." });
+      toast({ title: t.auth.toasts.welcome, description: isLoginFlow ? t.auth.toasts.signedIn : t.auth.toasts.emailVerified });
       setLocation("/dashboard");
     } catch (err: any) {
-      toast({ title: "Invalid code", description: err.message || "Please check your code and try again", variant: "destructive" });
+      toast({ title: t.auth.toasts.invalidCode, description: err.message || t.auth.toasts.invalidCodeDesc, variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -135,9 +138,9 @@ export default function Auth() {
     setResending(true);
     try {
       await apiRequest("POST", "/api/auth/resend", { email });
-      toast({ title: "Code resent", description: "A new verification code has been sent." });
+      toast({ title: t.auth.toasts.codeResent, description: t.auth.toasts.codeResentDesc });
     } catch {
-      toast({ title: "Error", description: "Failed to resend code", variant: "destructive" });
+      toast({ title: t.common.error, description: t.auth.toasts.resendFailed, variant: "destructive" });
     } finally {
       setResending(false);
     }
@@ -160,13 +163,16 @@ export default function Auth() {
         <button onClick={() => setLocation("/")} className="flex items-center gap-3 hover:opacity-80 transition-opacity" data-testid="link-back-home">
           <img src={isDark ? logoTransparent : logoLight} alt="Craflect" className="h-10 w-auto object-contain" />
         </button>
-        <button
-          onClick={toggleTheme}
-          className="p-2.5 rounded-full bg-muted hover:bg-accent text-foreground transition-all border border-border"
-          data-testid="button-theme-toggle-auth"
-        >
-          {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-        </button>
+        <div className="flex items-center gap-2">
+          <LanguageSwitcher />
+          <button
+            onClick={toggleTheme}
+            className="p-2.5 rounded-full bg-muted hover:bg-accent text-foreground transition-all border border-border"
+            data-testid="button-theme-toggle-auth"
+          >
+            {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+          </button>
+        </div>
       </nav>
 
       <div className="flex-1 flex items-center justify-center px-4 pb-20">
@@ -187,8 +193,8 @@ export default function Auth() {
                 className="space-y-8"
               >
                 <div className="text-center">
-                  <h1 className="font-display text-3xl font-bold text-foreground mb-3">Welcome to Craflect</h1>
-                  <p className="text-muted-foreground">Sign in to your account or create a new one.</p>
+                  <h1 className="font-display text-3xl font-bold text-foreground mb-3">{t.auth.welcomeTitle}</h1>
+                  <p className="text-muted-foreground">{t.auth.welcomeSubtitle}</p>
                 </div>
 
                 <div className="space-y-4">
@@ -198,12 +204,12 @@ export default function Auth() {
                     data-testid="button-google-auth"
                   >
                     <FcGoogle className="w-5 h-5" />
-                    Continue with Google
+                    {t.auth.continueGoogle}
                   </Button>
 
                   <div className="relative flex items-center gap-4 py-2">
                     <div className="flex-1 h-px bg-border" />
-                    <span className="text-xs text-muted-foreground uppercase tracking-widest font-medium">or</span>
+                    <span className="text-xs text-muted-foreground uppercase tracking-widest font-medium">{t.common.or}</span>
                     <div className="flex-1 h-px bg-border" />
                   </div>
 
@@ -214,14 +220,14 @@ export default function Auth() {
                     data-testid="button-email-auth"
                   >
                     <Mail className="w-5 h-5" />
-                    Sign up with Email
+                    {t.auth.signUpEmail}
                   </Button>
                 </div>
 
                 <p className="text-center text-sm text-muted-foreground">
-                  Already have an account?{" "}
+                  {t.auth.alreadyAccount}{" "}
                   <button onClick={() => setStep("login-form")} className="text-primary hover:text-primary/80 font-medium" data-testid="link-go-login-choose">
-                    Log in
+                    {t.auth.logIn}
                   </button>
                 </p>
               </motion.div>
@@ -243,15 +249,15 @@ export default function Auth() {
                     data-testid="button-back-choose-login"
                   >
                     <ArrowLeft className="w-4 h-4" />
-                    Back
+                    {t.common.back}
                   </button>
-                  <h1 className="font-display text-3xl font-bold text-foreground mb-3">Log in</h1>
-                  <p className="text-muted-foreground">Enter your email and password to sign in.</p>
+                  <h1 className="font-display text-3xl font-bold text-foreground mb-3">{t.auth.logInTitle}</h1>
+                  <p className="text-muted-foreground">{t.auth.logInSubtitle}</p>
                 </div>
 
                 <form onSubmit={handleLoginSubmit} className="space-y-5">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-muted-foreground">Email address</label>
+                    <label className="text-sm font-medium text-muted-foreground">{t.auth.emailLabel}</label>
                     <Input
                       type="email"
                       placeholder="john@example.com"
@@ -264,7 +270,7 @@ export default function Auth() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-muted-foreground">Password</label>
+                    <label className="text-sm font-medium text-muted-foreground">{t.auth.passwordLabel}</label>
                     <div className="relative">
                       <Input
                         type={showPassword ? "text" : "password"}
@@ -292,13 +298,13 @@ export default function Auth() {
                     className="w-full h-12 rounded-xl bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-white font-medium"
                     data-testid="button-login-submit"
                   >
-                    {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Sign in"}
+                    {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : t.auth.signIn}
                   </Button>
                 </form>
 
                 <div className="relative flex items-center gap-4 py-1">
                   <div className="flex-1 h-px bg-border" />
-                  <span className="text-xs text-muted-foreground uppercase tracking-widest font-medium">or</span>
+                  <span className="text-xs text-muted-foreground uppercase tracking-widest font-medium">{t.common.or}</span>
                   <div className="flex-1 h-px bg-border" />
                 </div>
 
@@ -308,13 +314,13 @@ export default function Auth() {
                   data-testid="button-google-login"
                 >
                   <FcGoogle className="w-5 h-5" />
-                  Log in with Google
+                  {t.auth.logInGoogle}
                 </Button>
 
                 <p className="text-center text-sm text-muted-foreground">
-                  Don't have an account?{" "}
+                  {t.auth.noAccount}{" "}
                   <button onClick={() => setStep("email-form")} className="text-primary hover:text-primary/80 font-medium" data-testid="link-go-signup">
-                    Sign up
+                    {t.auth.signUpLink}
                   </button>
                 </p>
               </motion.div>
@@ -336,16 +342,16 @@ export default function Auth() {
                     data-testid="button-back-choose"
                   >
                     <ArrowLeft className="w-4 h-4" />
-                    Back
+                    {t.common.back}
                   </button>
-                  <h1 className="font-display text-3xl font-bold text-foreground mb-3">Create your account</h1>
-                  <p className="text-muted-foreground">Enter your details to get started.</p>
+                  <h1 className="font-display text-3xl font-bold text-foreground mb-3">{t.auth.createAccount}</h1>
+                  <p className="text-muted-foreground">{t.auth.createSubtitle}</p>
                 </div>
 
                 <form onSubmit={handleEmailSubmit} className="space-y-5">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-muted-foreground">First name</label>
+                      <label className="text-sm font-medium text-muted-foreground">{t.auth.firstName}</label>
                       <Input
                         placeholder="John"
                         value={firstName}
@@ -357,7 +363,7 @@ export default function Auth() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-muted-foreground">Last name</label>
+                      <label className="text-sm font-medium text-muted-foreground">{t.auth.lastName}</label>
                       <Input
                         placeholder="Doe"
                         value={lastName}
@@ -368,7 +374,7 @@ export default function Auth() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-muted-foreground">Email address</label>
+                    <label className="text-sm font-medium text-muted-foreground">{t.auth.emailLabel}</label>
                     <Input
                       type="email"
                       placeholder="john@example.com"
@@ -380,7 +386,7 @@ export default function Auth() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-muted-foreground">Password</label>
+                    <label className="text-sm font-medium text-muted-foreground">{t.auth.passwordLabel}</label>
                     <div className="relative">
                       <Input
                         type={showPassword ? "text" : "password"}
@@ -403,15 +409,15 @@ export default function Auth() {
                     </div>
                     {passwordTouched && (
                       <div className="grid grid-cols-2 gap-1.5 pt-1" data-testid="password-rules">
-                        <PasswordRule met={passwordChecks.minLength} label="8 characters min" />
-                        <PasswordRule met={passwordChecks.hasUppercase} label="1 uppercase letter" />
-                        <PasswordRule met={passwordChecks.hasNumber} label="1 number" />
-                        <PasswordRule met={passwordChecks.hasSpecial} label="1 special character" />
+                        <PasswordRule met={passwordChecks.minLength} label={t.auth.passwordRules.minLength} />
+                        <PasswordRule met={passwordChecks.hasUppercase} label={t.auth.passwordRules.uppercase} />
+                        <PasswordRule met={passwordChecks.hasNumber} label={t.auth.passwordRules.number} />
+                        <PasswordRule met={passwordChecks.hasSpecial} label={t.auth.passwordRules.special} />
                       </div>
                     )}
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-muted-foreground">Confirm password</label>
+                    <label className="text-sm font-medium text-muted-foreground">{t.auth.confirmPassword}</label>
                     <div className="relative">
                       <Input
                         type={showConfirmPassword ? "text" : "password"}
@@ -436,13 +442,13 @@ export default function Auth() {
                     {confirmTouched && confirmPassword.length > 0 && !passwordsMatch && (
                       <p className="text-xs text-destructive flex items-center gap-1.5" data-testid="text-password-mismatch">
                         <X className="w-3.5 h-3.5" />
-                        Passwords do not match
+                        {t.auth.passwordsMismatch}
                       </p>
                     )}
                     {confirmTouched && confirmPassword.length > 0 && passwordsMatch && (
                       <p className="text-xs text-emerald-500 flex items-center gap-1.5" data-testid="text-password-match">
                         <Check className="w-3.5 h-3.5" />
-                        Passwords match
+                        {t.auth.passwordsMatch}
                       </p>
                     )}
                   </div>
@@ -452,14 +458,14 @@ export default function Auth() {
                     className="w-full h-12 rounded-xl bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-white font-medium"
                     data-testid="button-send-code"
                   >
-                    {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Create account"}
+                    {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : t.auth.createButton}
                   </Button>
                 </form>
 
                 <p className="text-center text-sm text-muted-foreground">
-                  Already have an account?{" "}
+                  {t.auth.alreadyAccount}{" "}
                   <button onClick={() => setStep("login-form")} className="text-primary hover:text-primary/80 font-medium" data-testid="link-go-login">
-                    Log in
+                    {t.auth.logIn}
                   </button>
                 </p>
               </motion.div>
@@ -481,22 +487,22 @@ export default function Auth() {
                     data-testid="button-back-email"
                   >
                     <ArrowLeft className="w-4 h-4" />
-                    Back
+                    {t.common.back}
                   </button>
                   <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-6 border border-primary/20">
                     <CheckCircle2 className="w-8 h-8 text-primary" />
                   </div>
-                  <h1 className="font-display text-3xl font-bold text-foreground mb-3">Check your email</h1>
+                  <h1 className="font-display text-3xl font-bold text-foreground mb-3">{t.auth.checkEmail}</h1>
                   <p className="text-muted-foreground">
-                    We sent a 6-digit code to <span className="text-foreground font-medium">{email}</span>
+                    {t.auth.codeSentTo} <span className="text-foreground font-medium">{email}</span>
                   </p>
                 </div>
 
                 <form onSubmit={handleVerify} className="space-y-5">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-muted-foreground">Verification code</label>
+                    <label className="text-sm font-medium text-muted-foreground">{t.auth.codeLabel}</label>
                     <Input
-                      placeholder="000000"
+                      placeholder={t.auth.codePlaceholder}
                       value={code}
                       onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
                       className="bg-background border-border text-foreground h-14 rounded-xl focus-visible:ring-primary text-center text-2xl tracking-[0.5em] font-mono"
@@ -511,7 +517,7 @@ export default function Auth() {
                     className="w-full h-12 rounded-xl bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-white font-medium"
                     data-testid="button-verify"
                   >
-                    {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Verify & Sign in"}
+                    {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : t.auth.verifyButton}
                   </Button>
                 </form>
 
@@ -522,7 +528,7 @@ export default function Auth() {
                     className="text-sm text-primary hover:text-primary/80 transition-colors disabled:opacity-50"
                     data-testid="button-resend"
                   >
-                    {resending ? "Sending..." : "Didn't receive it? Resend code"}
+                    {resending ? t.auth.resending : `${t.auth.didntReceive} ${t.auth.resendCode}`}
                   </button>
                 </div>
               </motion.div>

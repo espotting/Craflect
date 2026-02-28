@@ -127,6 +127,17 @@ shared/
 - **Settings** (`/settings`): Profile editing
 - **Admin** (`/admin`): KPI cards, user list, event feed
 
+## i18n (Internationalization)
+- **Languages**: English (default), French
+- **Files**: `client/src/i18n/en.ts` (English), `client/src/i18n/fr.ts` (French)
+- **Hook**: `useLanguage()` from `@/hooks/use-language` — returns `{ t, language, setLanguage }`
+- **Provider**: `LanguageProvider` wraps the entire app in `App.tsx`
+- **Switcher**: `<LanguageSwitcher />` from `@/components/language-switcher` — globe icon dropdown, supports `variant="icon"` (default) and `variant="pill"`
+- **Persistence**: Language preference saved in `localStorage` as `craflect-lang`
+- **Coverage**: All pages (landing, auth, pricing, dashboard, library, insights, analytics, settings, admin, welcome), layout, sidebar, toast messages
+- **Adding new text**: Add key to both `en.ts` and `fr.ts`, then use `t.section.key` in components
+- **Dynamic text**: Use `.replace("{var}", value)` for variables like `{name}`, `{count}`, `{year}`
+
 ## Sidebar Labels
 - "Analyzed Content" (was "Content"/"Library")
 - "Insights" (was "Briefs"/"Daily Briefs")
