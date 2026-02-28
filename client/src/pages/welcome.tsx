@@ -417,7 +417,7 @@ export default function Welcome() {
             <motion.img
               src={isDark ? logoTransparent : logoLight}
               alt="Craflect"
-              className="h-16 w-auto mb-8"
+              className={`${isDark ? "h-20" : "h-16"} w-auto mb-8`}
               initial={{ scale: 0.5, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ duration: 0.8, ease: "easeOut" }}
@@ -454,7 +454,7 @@ export default function Welcome() {
                 <img
                   src={isDark ? logoTransparent : logoLight}
                   alt="Craflect"
-                  className="h-10 w-auto"
+                  className={`${isDark ? "h-12" : "h-10"} w-auto`}
                 />
                 <span className="text-sm text-muted-foreground font-medium">
                   Step {Math.min(step + 1, 4)} of 4
