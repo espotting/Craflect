@@ -16,6 +16,7 @@ import {
   UserCircle2,
   Brain,
   HelpCircle,
+  Shield,
 } from "lucide-react";
 import logoLight from "@/assets/logo-light.png";
 import logoTransparent from "@/assets/logo-transparent.png";
@@ -25,8 +26,9 @@ const plans = [
     name: "Starter",
     price: 29,
     icon: Zap,
-    description: "Perfect for solo creators starting to analyze their niche.",
+    description: "Validate your niche with AI insights.",
     highlight: false,
+    cta: "Start learning your niche",
     features: [
       "1 active niche",
       "20 analyses / month",
@@ -38,9 +40,10 @@ const plans = [
     name: "Pro",
     price: 69,
     icon: Sparkles,
-    description: "For serious creators who want deeper insights across niches.",
+    description: "Turn insights into a repeatable content engine.",
     highlight: true,
     badge: "Most popular",
+    cta: "Build your content engine",
     features: [
       "Up to 3 niches",
       "100 analyses / month",
@@ -53,8 +56,9 @@ const plans = [
     name: "Studio",
     price: 199,
     icon: Crown,
-    description: "For teams and agencies managing multiple brands.",
+    description: "Build a data advantage across brands.",
     highlight: false,
+    cta: "Scale with AI intelligence",
     features: [
       "Unlimited niches",
       "300 analyses / month",
@@ -137,7 +141,7 @@ export default function Pricing() {
       </nav>
 
       <main className="flex-1 px-4 sm:px-6 pb-20">
-        <section className="max-w-5xl mx-auto text-center pt-10 sm:pt-16 pb-12 relative">
+        <section className="max-w-5xl mx-auto text-center pt-10 sm:pt-16 pb-8 relative">
           <div className="absolute inset-0 z-0 pointer-events-none">
             <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 dark:bg-primary/10 rounded-full blur-[150px] -translate-y-1/2 translate-x-1/3" />
           </div>
@@ -150,22 +154,36 @@ export default function Pricing() {
           >
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-muted dark:bg-white/5 border border-border dark:border-white/10 text-sm font-medium text-primary mb-6">
               <Brain className="w-4 h-4" />
-              Simple, transparent pricing
+              Content Performance Intelligence
             </div>
             <h1 className="font-display text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-foreground mb-4">
-              Invest in content intelligence
+              Start free. Learn your niche.{" "}
+              <br className="hidden sm:block" />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">
+                Upgrade when it works.
+              </span>
             </h1>
-            <p className="text-base sm:text-lg text-muted-foreground max-w-xl mx-auto mb-3">
-              The AI learns from your niche. More analyses = smarter recommendations.
+            <p className="text-base sm:text-lg text-muted-foreground max-w-xl mx-auto mb-6">
+              Your AI gets smarter with every analysis. Pay only when you scale.
             </p>
-            <div className="flex items-center justify-center gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
-              <span className="flex items-center gap-1"><Check className="w-3.5 h-3.5 text-primary" /> Free trial</span>
-              <span className="text-border">•</span>
-              <span className="flex items-center gap-1"><Check className="w-3.5 h-3.5 text-primary" /> No commitment</span>
-              <span className="text-border">•</span>
-              <span className="flex items-center gap-1"><Check className="w-3.5 h-3.5 text-primary" /> Cancel anytime</span>
-            </div>
           </motion.div>
+        </section>
+
+        <section className="max-w-md mx-auto mb-10">
+          <div className="flex items-center justify-center gap-2 sm:gap-3 flex-wrap">
+            <Badge variant="secondary" className="px-3.5 py-1.5 text-xs font-medium gap-1.5 rounded-full">
+              <Shield className="w-3 h-3" />
+              7-day free trial
+            </Badge>
+            <Badge variant="secondary" className="px-3.5 py-1.5 text-xs font-medium gap-1.5 rounded-full">
+              <Check className="w-3 h-3" />
+              No credit card required
+            </Badge>
+            <Badge variant="secondary" className="px-3.5 py-1.5 text-xs font-medium gap-1.5 rounded-full">
+              <Check className="w-3 h-3" />
+              Cancel anytime
+            </Badge>
+          </div>
         </section>
 
         <section className="max-w-5xl mx-auto">
@@ -225,12 +243,13 @@ export default function Pricing() {
                       }`}
                       data-testid={`button-plan-${plan.name.toLowerCase()}`}
                     >
-                      Start free trial
+                      {plan.cta}
                       <ArrowRight className="w-4 h-4 ml-2" />
                     </Button>
 
-                    <p className="text-[10px] text-muted-foreground/60 text-center mt-2.5">
-                      Free trial • No commitment • Cancel anytime
+                    <p className="text-[10px] text-center mt-2.5">
+                      <span className="text-muted-foreground/60">Free trial • No commitment • </span>
+                      <span className="text-secondary/80">Cancel anytime</span>
                     </p>
                   </CardContent>
                 </Card>
@@ -269,10 +288,13 @@ export default function Pricing() {
 
         <section className="max-w-2xl mx-auto mt-16 sm:mt-20" data-testid="section-faq">
           <div className="p-6 sm:p-8 rounded-2xl bg-muted/30 dark:bg-muted/10 border border-border">
-            <div className="flex items-start gap-3 mb-3">
+            <div className="flex items-start gap-3 mb-1">
               <HelpCircle className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
               <h3 className="font-display text-lg font-bold text-foreground">What is an analysis run?</h3>
             </div>
+            <p className="text-sm font-medium text-primary/80 pl-8 mb-3">
+              Analyses are your AI memory.
+            </p>
             <p className="text-sm text-muted-foreground leading-relaxed pl-8">
               An analysis run is a learning session where the AI studies content from your niche.
               When you add similar URLs, they are grouped into clusters — each cluster counts as one analysis.
@@ -283,10 +305,10 @@ export default function Pricing() {
 
         <section className="max-w-xl mx-auto mt-14 sm:mt-16 text-center">
           <h2 className="font-display text-2xl sm:text-3xl font-bold text-foreground mb-3">
-            Ready to create smarter content?
+            Start learning your niche today
           </h2>
           <p className="text-sm text-muted-foreground mb-6">
-            Start your free trial — no credit card required.
+            No credit card required.
           </p>
           <Button
             onClick={handleCta}
@@ -296,8 +318,9 @@ export default function Pricing() {
             Start free trial
             <ArrowRight className="w-4 h-4 ml-2" />
           </Button>
-          <p className="text-xs text-muted-foreground/60 mt-3">
-            Free trial • No commitment • Cancel anytime
+          <p className="text-[10px] mt-3">
+            <span className="text-muted-foreground/60">Free trial • No commitment • </span>
+            <span className="text-secondary/80">Cancel anytime</span>
           </p>
         </section>
       </main>

@@ -1,0 +1,124 @@
+✅ BRIEF REPLIT — Optimisation page Pricing Craflect
+
+Objectif :
+Améliorer la conversion trial → paid en renforçant la perception de valeur et en réduisant la friction utilisateur via le wording et la hiérarchie visuelle.
+
+Aucune refonte UI majeure.
+Uniquement micro-UX, wording et mise en évidence des éléments clés.
+
+1️⃣ Hero pricing — nouveau messaging
+
+Remplacer :
+
+Simple, transparent pricing
+
+Par :
+
+Start free. Learn your niche. Upgrade when it works.
+
+Sous-headline :
+
+Your AI gets smarter with every analysis. Pay only when you scale.
+
+2️⃣ Bloc confiance (conversion critical)
+
+Sous le hero, ajouter un bloc badges visibles (pills / chips) :
+
+7-day free trial
+
+No credit card required
+
+Cancel anytime
+
+Style :
+
+Pills colorées (couleur secondaire violet)
+
+Même style que les tags plateforme
+
+Visible desktop + mobile
+
+But : réduire la friction décision.
+
+3️⃣ Descriptions des plans — wording orienté progression
+
+Remplacer descriptions actuelles :
+
+Starter
+→ Validate your niche with AI insights
+
+Pro
+→ Turn insights into a repeatable content engine
+
+Studio
+→ Build a data advantage across brands
+
+But : montrer la montée en valeur.
+
+4️⃣ CTA buttons — wording dynamique
+
+Remplacer “Start free trial” par :
+
+Starter
+→ Start learning your niche
+
+Pro
+→ Build your content engine
+
+Studio
+→ Scale with AI intelligence
+
+Important :
+
+Garder free trial mention sous le bouton
+
+Pas supprimer la logique essai
+
+5️⃣ Section “What is an analysis run?”
+
+Ajouter une phrase d’accroche en haut :
+
+Analyses are your AI memory.
+
+Conserver l’explication existante dessous.
+
+But : faire comprendre la logique data moat.
+
+6️⃣ Mise en évidence des garanties
+
+Dans chaque card pricing (footer zone) :
+
+Afficher en texte secondaire mais visible :
+
+Free trial • No commitment • Cancel anytime
+
+Mettre “Cancel anytime” légèrement accentué (couleur secondaire), pas rouge.
+
+7️⃣ Footer pricing CTA final
+
+Modifier headline :
+
+De :
+Ready to create smarter content?
+
+Vers :
+
+Start learning your niche today
+
+Bouton :
+
+Start free trial
+
+Sous-texte :
+
+No credit card required.
+
+🎯 Résultat attendu
+
+Réduction friction inscription
+
+Meilleure compréhension valeur analyses
+
+Augmentation conversion trial
+
+Positionnement premium IA learning engine
