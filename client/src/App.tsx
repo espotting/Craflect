@@ -15,12 +15,14 @@ import Analytics from "@/pages/analytics";
 import Settings from "@/pages/settings";
 import Welcome from "@/pages/welcome";
 import Admin from "@/pages/admin";
+import Pricing from "@/pages/pricing";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Landing} />
       <Route path="/auth" component={Auth} />
+      <Route path="/pricing" component={Pricing} />
       <Route path="/welcome" component={Welcome} />
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/library" component={Library} />

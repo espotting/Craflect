@@ -1,0 +1,265 @@
+✅ BRIEF GLOBAL — Pricing System + Pricing Page + Billing (Craflect)
+🎯 Objectif
+
+Implémenter le système de monétisation complet incluant :
+
+logique analyses par niche
+
+plans d’abonnement
+
+page Pricing publique
+
+lien Pricing dans le header
+
+suivi plan dans dashboard
+
+paiement Stripe
+
+🧠 Définition produit
+
+Une niche = cluster de contenus similaires.
+Une analyse = run d’apprentissage sur un cluster.
+
+Plusieurs URLs similaires → 1 analyse
+Clusters différents → plusieurs analyses
+
+Le pricing repose sur ces runs.
+
+💰 Plans à implémenter
+Starter — 29€/mois
+
+1 niche active
+
+20 analyses / mois
+
+création illimitée raisonnable
+
+file IA standard
+
+Pro — 69€/mois
+
+jusqu’à 3 niches
+
+100 analyses / mois
+
+création illimitée
+
+insights avancés
+
+file IA prioritaire
+
+Studio — 199€/mois
+
+niches multiples
+
+300 analyses / mois
+
+multi workspace
+
+analyses plus profondes
+
+refresh learning plus fréquent
+
+file IA premium
+
+Formulation UI :
+
+Faster analysis and deeper insights
+
+⚙️ Pipeline niches → analyses
+
+Quand sources ajoutées :
+
+embeddings
+
+similarité
+
+clustering
+
+1 cluster = 1 analyse
+
+Afficher estimation :
+
+“This will use X analyses.”
+
+Si clusters multiples :
+
+Keep together
+Split into niches
+
+📊 Dashboard — Section Plan & Usage
+
+Ajouter card :
+
+Plan & Usage
+
+Afficher :
+
+plan actuel
+
+analyses restantes
+
+niches actives
+
+date reset
+
+badge Trial
+
+Ajouter :
+
+Progress bar
+Bouton Upgrade
+Bouton Manage plan
+
+🔔 Notifications
+
+75% → info
+90% → warning
+100% → upgrade
+
+🔁 Reset mensuel
+
+analyses reset
+
+niches conservées
+
+dataset conservé
+
+learning conservé
+
+🌐 PAGE PRICING — CRÉATION (IMPORTANT)
+Créer une page publique /pricing
+
+Accessible sans connexion.
+
+Ajouter lien dans le HEADER principal
+
+Navigation header :
+
+Home
+Product (optionnel)
+Pricing
+Login / Sign up
+
+Pricing doit être visible en permanence.
+
+Contenu page Pricing
+
+Hero :
+
+Simple message sur intelligence contenu.
+
+Plans :
+
+Starter
+Pro
+Studio
+
+Afficher pour chaque plan :
+
+nombre d’analyses
+
+niches incluses
+
+création illimitée
+
+priorité IA
+
+prix mensuel
+
+Ajouter tableau comparatif simple.
+
+Ajouter explication :
+
+What is an analysis run → learning session on your niche.
+
+Ajouter CTA :
+
+Start free trial
+
+⏱ Essai gratuit
+
+7 jours déclenché après première analyse.
+
+Afficher statut trial dans dashboard.
+
+💳 Stripe — Billing
+
+Intégrer Stripe subscription :
+
+Starter monthly
+Pro monthly
+Studio monthly
+
+Fonctions :
+
+checkout
+
+upgrade / downgrade
+
+cancel
+
+webhook sync plan
+
+gestion trial
+
+Stocker :
+
+plan
+analyses_remaining
+niches_count
+billing_status
+renewal_date
+trial_status
+
+⚡ Priorité IA — Implémentation
+
+Queues :
+
+Starter → standard
+Pro → prioritaire
+Studio → premium
+
+Permet :
+
+plus de sources par analyse
+
+refresh learning plus fréquent
+
+insights plus profonds
+
+UI wording :
+
+Faster analysis and deeper insights
+
+❌ Ne pas implémenter maintenant
+
+yearly pricing
+
+usage pricing
+
+add-ons
+
+overage auto
+
+enterprise billing
+
+seats
+
+autopublish
+
+analytics réel avancé
+
+🎯 Résultat attendu
+
+Craflect doit :
+
+avoir une page pricing publique accessible depuis le header
+
+permettre abonnement Stripe
+
+suivre consommation analyses
+
+encourager upgrade naturel
+
+facturer l’apprentissage

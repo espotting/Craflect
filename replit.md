@@ -116,6 +116,17 @@ shared/
 - SESSION_SECRET
 - AI_INTEGRATIONS_OPENAI_API_KEY, AI_INTEGRATIONS_OPENAI_BASE_URL (auto)
 
+## Pages
+- **Landing** (`/`): Public hero page with "Show me what works → Tell me what to post → Create it for me"
+- **Pricing** (`/pricing`): Public pricing page with 3 plans (Starter €29, Pro €69, Studio €199), comparison table, FAQ, "Free trial • No commitment • Cancel anytime" messaging
+- **Auth** (`/auth`): Login/signup with email+password or Google OAuth
+- **Dashboard** (`/dashboard`): Simplified cockpit — AI learning bar, latest insight hero, next best action, progress stats, latest generated content
+- **Library** (`/library`): Analyzed Content — URL ingestion, source cards with AI tags
+- **Briefs** (`/briefs`): Insights — pattern analysis, recommendations, content generation
+- **Analytics** (`/analytics`): Performance data
+- **Settings** (`/settings`): Profile editing
+- **Admin** (`/admin`): KPI cards, user list, event feed
+
 ## Sidebar Labels
 - "Analyzed Content" (was "Content"/"Library")
 - "Insights" (was "Briefs"/"Daily Briefs")

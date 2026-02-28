@@ -100,14 +100,23 @@ export default function Landing() {
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
           <img src={isDark ? logoTransparent : logoLight} alt="Craflect" className="h-6 w-auto" />
-          <Button
-            className="rounded-full px-6 h-9 bg-primary hover:bg-primary/90 text-white text-sm font-medium shadow-md shadow-primary/20 gap-2"
-            onClick={() => setLocation("/auth")}
-            data-testid="button-sticky-cta"
-          >
-            <Play className="w-3.5 h-3.5" />
-            Analyze a video
-          </Button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setLocation("/pricing")}
+              className="hidden sm:inline-flex text-sm font-medium text-muted-foreground hover:text-foreground px-2 py-1 transition-colors"
+              data-testid="nav-pricing-sticky"
+            >
+              Pricing
+            </button>
+            <Button
+              className="rounded-full px-6 h-9 bg-primary hover:bg-primary/90 text-white text-sm font-medium shadow-md shadow-primary/20 gap-2"
+              onClick={() => setLocation("/auth")}
+              data-testid="button-sticky-cta"
+            >
+              <Play className="w-3.5 h-3.5" />
+              Analyze a video
+            </Button>
+          </div>
         </div>
       </motion.div>
 
@@ -116,6 +125,13 @@ export default function Landing() {
           <img src={isDark ? logoTransparent : logoLight} alt="Craflect" className="h-8 w-auto object-contain" data-testid="logo-landing" />
         </div>
         <div className="flex items-center gap-2 sm:gap-3">
+          <button
+            onClick={() => setLocation("/pricing")}
+            className="hidden sm:inline-flex text-sm font-medium text-muted-foreground hover:text-foreground px-3 py-1.5 transition-colors"
+            data-testid="nav-pricing"
+          >
+            Pricing
+          </button>
           <button
             onClick={toggleTheme}
             className="p-2.5 rounded-full bg-muted hover:bg-accent text-foreground transition-all border border-border"
