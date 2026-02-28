@@ -1,0 +1,198 @@
+📄 TERMS OF SERVICE (CGU)
+
+URL : /terms
+
+1. Overview
+
+Craflect is an AI-powered content intelligence platform enabling users to analyze publicly available short-form video content and generate insights and creative recommendations.
+
+The service is operated by WEDEEN FZE, Ajman Free Zone, United Arab Emirates.
+
+2. Accounts
+
+Users must provide accurate information and are responsible for maintaining account security.
+
+3. Service Nature
+
+Craflect provides analysis of public content, pattern detection, and AI-generated recommendations.
+Outputs are informational and do not guarantee performance.
+
+4. Acceptable Use
+
+Users agree not to:
+
+upload illegal content
+
+analyze private or restricted data
+
+misuse or reverse engineer the platform
+
+resell the service without authorization
+
+5. AI Disclaimer
+
+AI outputs may contain inaccuracies. Users remain responsible for all content published using Craflect.
+
+6. Availability
+
+The service may evolve, be modified, or temporarily unavailable.
+
+7. Termination
+
+Accounts may be suspended for misuse. Users may cancel anytime.
+
+8. Limitation of Liability
+
+Craflect is provided “as is” without guarantees of business results or platform performance.
+
+9. Governing Law
+
+These terms are governed by the laws of the United Arab Emirates.
+
+📄 COMMERCIAL TERMS (CGV)
+
+URL : /billing
+
+Subscription
+
+Craflect operates on a monthly subscription basis via Stripe.
+
+Subscriptions renew automatically until canceled.
+
+Free Trial
+
+A 7-day free trial may be offered.
+
+Pricing & Usage
+
+Plans include limits such as analysis runs, niches, and features.
+These limits may evolve.
+
+Payments
+
+Payments are non-refundable except in exceptional technical circumstances.
+
+Plan Changes
+
+Users may upgrade or downgrade at any time. Changes may apply immediately or at the next billing cycle.
+
+Cancellation
+
+Users can cancel anytime without commitment.
+
+📄 PRIVACY POLICY
+
+URL : /privacy
+
+Data Collected
+
+Account information (email)
+
+Public content URLs submitted by users
+
+Usage analytics
+
+Prompts and generated outputs
+
+Craflect does not access private social media accounts.
+
+Purpose
+
+Data is used to provide the service and improve AI models through aggregated learning.
+
+Storage
+
+Data is stored on secure cloud infrastructure operated by trusted providers.
+
+Data Sharing
+
+Craflect may use third-party subprocessors such as AI providers, payment processors, and hosting providers.
+
+User Rights
+
+Users may request access, export, or deletion of their data via privacy@craflect.com
+.
+
+Data Retention
+
+Anonymized and aggregated data may be retained to improve the platform.
+
+📄 COOKIE POLICY
+
+URL : /cookies
+
+Craflect uses:
+
+Essential cookies for functionality
+
+Analytics cookies to improve product experience
+
+Users may control cookies through browser settings.
+
+📄 DATA PROCESSING AGREEMENT (DPA)
+
+URL : /dpa
+
+Users act as Data Controllers.
+Craflect acts as Data Processor.
+
+Data processed includes account information, public content metadata, and usage data.
+
+Craflect implements security measures including encryption and access controls.
+
+Subprocessors include trusted cloud infrastructure, AI providers, and payment processors.
+
+Users may request data deletion at any time.
+
+📄 FAQ
+
+URL : /faq
+
+What is an analysis run?
+A learning session where Craflect analyzes a group of similar public content.
+
+Does Craflect access private accounts?
+No. Only publicly available content is analyzed.
+
+Do I own generated content?
+Yes.
+
+Can I cancel anytime?
+Yes.
+
+Does AI guarantee performance?
+No.
+
+Which platforms are supported?
+Short-form video platforms including TikTok, Instagram Reels, and YouTube Shorts.
+
+📄 SECURITY PAGE
+
+URL : /security
+
+Craflect analyzes publicly available content only.
+
+Data is stored on secure infrastructure and encrypted in transit and at rest.
+
+The platform does not require social account connections.
+
+Users retain ownership of their data and generated outputs.
+
+Data deletion is available upon request.
+
+✅ FOOTER TEXT
+
+Product
+Pricing
+FAQ
+Security
+
+Legal
+Terms
+Billing
+Privacy
+Cookies
+DPA
+
+Company
+Contact
