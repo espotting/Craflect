@@ -158,7 +158,7 @@ export default function Auth() {
     <div className="min-h-screen bg-background flex flex-col">
       <nav className="w-full px-6 py-6 flex items-center justify-between max-w-7xl mx-auto">
         <button onClick={() => setLocation("/")} className="flex items-center gap-3 hover:opacity-80 transition-opacity" data-testid="link-back-home">
-          <img src={isDark ? logoTransparent : logoLight} alt="Craflect" className="h-8 w-auto object-contain" />
+          <img src={isDark ? logoTransparent : logoLight} alt="Craflect" className="h-10 w-auto object-contain" />
         </button>
         <button
           onClick={toggleTheme}

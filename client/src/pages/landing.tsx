@@ -514,7 +514,7 @@ export default function Landing() {
         <footer className="px-4 py-8 border-t border-border/50">
           <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <img src={isDark ? logoTransparent : logoLight} alt="Craflect" className="h-8 w-auto" />
+              <img src={isDark ? logoTransparent : logoLight} alt="Craflect" className="h-10 w-auto" />
               <span className="text-xs text-muted-foreground">Content Performance Intelligence</span>
             </div>
             <p className="text-xs text-muted-foreground">
