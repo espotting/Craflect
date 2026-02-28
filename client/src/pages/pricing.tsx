@@ -17,6 +17,11 @@ import {
   Brain,
   HelpCircle,
   Shield,
+  Target,
+  BarChart3,
+  Layers,
+  Microscope,
+  RefreshCw,
 } from "lucide-react";
 import logoLight from "@/assets/logo-light.png";
 import logoTransparent from "@/assets/logo-transparent.png";
@@ -29,11 +34,13 @@ const plans = [
     description: "Validate your niche with AI insights.",
     highlight: false,
     cta: "Start learning your niche",
+    note: null,
     features: [
       "1 active niche",
       "20 analyses / month",
-      "Unlimited content creation",
-      "Standard AI queue",
+      "Generate unlimited content from learned patterns",
+      "Standard learning cycles",
+      "Single niche memory",
     ],
   },
   {
@@ -44,41 +51,86 @@ const plans = [
     highlight: true,
     badge: "Most popular",
     cta: "Build your content engine",
+    note: "Recommended once you validate your niche.",
     features: [
       "Up to 3 niches",
       "100 analyses / month",
-      "Unlimited content creation",
-      "Advanced insights",
-      "Priority AI queue",
+      "Generate unlimited content from learned patterns",
+      "Deeper pattern intelligence",
+      "Faster learning cycles",
+      "Reusable niche intelligence",
     ],
   },
   {
     name: "Studio",
     price: 199,
     icon: Crown,
-    description: "Build a data advantage across brands.",
+    description: "Build a proprietary content dataset.",
     highlight: false,
     cta: "Scale with AI intelligence",
+    note: null,
     features: [
       "Unlimited niches",
       "300 analyses / month",
+      "Generate unlimited content from learned patterns",
       "Multi-workspace",
-      "Deeper analysis & refresh",
-      "Premium AI queue",
+      "Deeper analysis & faster refresh",
+      "Premium learning cycles",
+      "Cross-brand data advantage",
     ],
   },
 ];
 
-const comparisonRows = [
-  { feature: "Active niches", starter: "1", pro: "3", studio: "Unlimited" },
-  { feature: "Analyses / month", starter: "20", pro: "100", studio: "300" },
-  { feature: "Content creation", starter: "Unlimited", pro: "Unlimited", studio: "Unlimited" },
-  { feature: "AI queue priority", starter: "Standard", pro: "Priority", studio: "Premium" },
-  { feature: "Advanced insights", starter: "—", pro: "✓", studio: "✓" },
-  { feature: "Multi-workspace", starter: "—", pro: "—", studio: "✓" },
-  { feature: "Deeper analysis", starter: "—", pro: "—", studio: "✓" },
-  { feature: "Faster refresh", starter: "—", pro: "—", studio: "✓" },
+type ComparisonRow = {
+  feature: string;
+  icon: typeof Target;
+  starter: string;
+  pro: string;
+  studio: string;
+  badgeStyle?: { starter?: string; pro?: string; studio?: string };
+};
+
+const comparisonRows: ComparisonRow[] = [
+  { feature: "Active niches", icon: Target, starter: "1", pro: "3", studio: "Unlimited" },
+  { feature: "Analyses / month", icon: BarChart3, starter: "20", pro: "100", studio: "300" },
+  { feature: "Content creation", icon: Sparkles, starter: "Unlimited", pro: "Unlimited", studio: "Unlimited" },
+  {
+    feature: "Learning cycles",
+    icon: Zap,
+    starter: "Standard",
+    pro: "Priority",
+    studio: "Premium",
+    badgeStyle: {
+      starter: "bg-muted text-muted-foreground",
+      pro: "bg-primary/15 text-primary border-primary/20",
+      studio: "bg-gradient-to-r from-primary/20 to-secondary/20 text-foreground border-primary/20",
+    },
+  },
+  { feature: "Pattern intelligence", icon: Brain, starter: "Basic", pro: "Advanced", studio: "Advanced" },
+  { feature: "Multi-workspace", icon: Layers, starter: "—", pro: "—", studio: "✓" },
+  { feature: "Deeper analysis", icon: Microscope, starter: "—", pro: "—", studio: "✓" },
+  { feature: "Faster refresh", icon: RefreshCw, starter: "—", pro: "—", studio: "✓" },
+  {
+    feature: "AI learning depth",
+    icon: Brain,
+    starter: "Single niche memory",
+    pro: "Reusable niche intelligence",
+    studio: "Cross-brand data advantage",
+  },
 ];
+
+function CellBadge({ value, style }: { value: string; style?: string }) {
+  if (value === "—") return <span className="text-muted-foreground/40">—</span>;
+  if (value === "✓") return <Check className="w-4 h-4 text-primary mx-auto" />;
+  if (style) {
+    return (
+      <Badge className={`text-[10px] px-2 py-0.5 rounded-full border font-medium ${style}`}>
+        {value}
+      </Badge>
+    );
+  }
+  return <span>{value}</span>;
+}
 
 export default function Pricing() {
   const { isAuthenticated } = useAuth();
@@ -218,12 +270,21 @@ export default function Pricing() {
                       <h3 className="font-display text-lg font-bold text-foreground">{plan.name}</h3>
                     </div>
 
-                    <div className="mb-4">
+                    <div className="mb-2">
                       <span className="text-3xl sm:text-4xl font-extrabold text-foreground">{plan.price}€</span>
                       <span className="text-sm text-muted-foreground ml-1">/month</span>
                     </div>
+                    <p className="text-[10px] text-muted-foreground/60 mb-4">
+                      You pay for AI learning capacity — not content generation.
+                    </p>
 
-                    <p className="text-sm text-muted-foreground mb-6 leading-relaxed">{plan.description}</p>
+                    <p className="text-sm text-muted-foreground mb-4 leading-relaxed">{plan.description}</p>
+
+                    {plan.note && (
+                      <p className="text-xs text-primary/80 font-medium mb-4 italic">
+                        {plan.note}
+                      </p>
+                    )}
 
                     <ul className="space-y-3 mb-8 flex-1">
                       {plan.features.map((f) => (
@@ -262,27 +323,68 @@ export default function Pricing() {
           <h2 className="font-display text-xl sm:text-2xl font-bold text-foreground text-center mb-8">
             Compare plans
           </h2>
-          <div className="overflow-x-auto">
+
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm" data-testid="table-comparison">
               <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left py-3 px-4 text-muted-foreground font-medium w-1/4"></th>
-                  <th className="text-center py-3 px-4 text-foreground font-bold">Starter</th>
-                  <th className="text-center py-3 px-4 text-primary font-bold">Pro</th>
-                  <th className="text-center py-3 px-4 text-foreground font-bold">Studio</th>
+                <tr className="border-b-2 border-border">
+                  <th className="text-left py-4 px-4 text-muted-foreground font-medium w-[28%]"></th>
+                  <th className="text-center py-4 px-5 text-foreground font-bold w-[24%]">Starter</th>
+                  <th className="text-center py-4 px-5 text-primary font-bold w-[24%] bg-primary/5 dark:bg-primary/5 rounded-t-xl border-x border-primary/10">Pro</th>
+                  <th className="text-center py-4 px-5 text-foreground font-bold w-[24%]">Studio</th>
                 </tr>
               </thead>
               <tbody>
-                {comparisonRows.map((row) => (
-                  <tr key={row.feature} className="border-b border-border/50">
-                    <td className="py-3 px-4 text-muted-foreground font-medium">{row.feature}</td>
-                    <td className="py-3 px-4 text-center text-foreground/80">{row.starter}</td>
-                    <td className="py-3 px-4 text-center text-foreground/80 font-medium">{row.pro}</td>
-                    <td className="py-3 px-4 text-center text-foreground/80">{row.studio}</td>
+                {comparisonRows.map((row, idx) => (
+                  <tr key={row.feature} className={`border-b border-border/40 ${idx % 2 === 0 ? "bg-muted/20 dark:bg-muted/5" : ""}`}>
+                    <td className="py-3.5 px-4">
+                      <div className="flex items-center gap-2 text-muted-foreground font-medium">
+                        <row.icon className="w-3.5 h-3.5 text-muted-foreground/60 flex-shrink-0" />
+                        {row.feature}
+                      </div>
+                    </td>
+                    <td className="py-3.5 px-5 text-center text-foreground/80">
+                      <CellBadge value={row.starter} style={row.badgeStyle?.starter} />
+                    </td>
+                    <td className="py-3.5 px-5 text-center text-foreground/80 font-medium bg-primary/5 dark:bg-primary/5 border-x border-primary/10">
+                      <CellBadge value={row.pro} style={row.badgeStyle?.pro} />
+                    </td>
+                    <td className="py-3.5 px-5 text-center text-foreground/80">
+                      <CellBadge value={row.studio} style={row.badgeStyle?.studio} />
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+          </div>
+
+          <div className="md:hidden space-y-4">
+            {plans.map((plan) => (
+              <Card key={plan.name} className={`${plan.highlight ? "border-primary border-2" : "border-border"}`} data-testid={`card-compare-${plan.name.toLowerCase()}`}>
+                <CardContent className="p-5">
+                  <div className="flex items-center gap-2 mb-4">
+                    <plan.icon className={`w-5 h-5 ${plan.highlight ? "text-primary" : "text-muted-foreground"}`} />
+                    <h4 className="font-display font-bold text-foreground">{plan.name}</h4>
+                    <span className="text-sm text-muted-foreground ml-auto">{plan.price}€/mo</span>
+                  </div>
+                  <div className="space-y-2.5">
+                    {comparisonRows.map((row) => {
+                      const val = plan.name === "Starter" ? row.starter : plan.name === "Pro" ? row.pro : row.studio;
+                      if (val === "—") return null;
+                      return (
+                        <div key={row.feature} className="flex items-center justify-between text-sm">
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <row.icon className="w-3.5 h-3.5 text-muted-foreground/50" />
+                            {row.feature}
+                          </div>
+                          <span className="text-foreground font-medium text-xs">{val === "✓" ? <Check className="w-4 h-4 text-primary" /> : val}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </section>
 
@@ -296,8 +398,8 @@ export default function Pricing() {
               Analyses are your AI memory.
             </p>
             <p className="text-sm text-muted-foreground leading-relaxed pl-8">
-              An analysis run is a learning session where the AI studies content from your niche.
-              When you add similar URLs, they are grouped into clusters — each cluster counts as one analysis.
+              An analysis run teaches the AI your niche patterns. 
+              Similar URLs are grouped — one learning session.
               The more you analyze, the smarter your content recommendations become.
             </p>
           </div>
@@ -305,7 +407,7 @@ export default function Pricing() {
 
         <section className="max-w-xl mx-auto mt-14 sm:mt-16 text-center">
           <h2 className="font-display text-2xl sm:text-3xl font-bold text-foreground mb-3">
-            Start learning your niche today
+            Ready to create smarter content?
           </h2>
           <p className="text-sm text-muted-foreground mb-6">
             No credit card required.
@@ -315,7 +417,7 @@ export default function Pricing() {
             className="rounded-full px-8 h-12 bg-primary hover:bg-primary/90 text-white text-base font-medium shadow-lg shadow-primary/20"
             data-testid="button-bottom-cta"
           >
-            Start free trial
+            Start free trial — no credit card
             <ArrowRight className="w-4 h-4 ml-2" />
           </Button>
           <p className="text-[10px] mt-3">
