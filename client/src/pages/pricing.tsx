@@ -274,7 +274,7 @@ export default function Pricing() {
                       <span className="text-3xl sm:text-4xl font-extrabold text-foreground">{plan.price}€</span>
                       <span className="text-sm text-muted-foreground ml-1">/month</span>
                     </div>
-                    <p className="text-[10px] text-muted-foreground/60 mb-4">
+                    <p className="text-[11px] text-muted-foreground italic mb-4">
                       You pay for AI learning capacity — not content generation.
                     </p>
 
