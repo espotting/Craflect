@@ -169,20 +169,20 @@ export default function Pricing() {
           </motion.div>
         </section>
 
-        <section className="max-w-md mx-auto mb-10">
-          <div className="flex items-center justify-center gap-2 sm:gap-3 flex-wrap">
-            <Badge variant="secondary" className="px-3.5 py-1.5 text-xs font-medium gap-1.5 rounded-full">
-              <Shield className="w-3 h-3" />
-              7-day free trial
-            </Badge>
-            <Badge variant="secondary" className="px-3.5 py-1.5 text-xs font-medium gap-1.5 rounded-full">
-              <Check className="w-3 h-3" />
-              No credit card required
-            </Badge>
-            <Badge variant="secondary" className="px-3.5 py-1.5 text-xs font-medium gap-1.5 rounded-full">
-              <Check className="w-3 h-3" />
-              Cancel anytime
-            </Badge>
+        <section className="max-w-lg mx-auto mb-10">
+          <div className="grid grid-cols-3 gap-3">
+            <div className="flex flex-col items-center gap-1.5 px-3 py-3 rounded-xl bg-primary/10 dark:bg-primary/15 border border-primary/20 text-center">
+              <Shield className="w-4 h-4 text-primary" />
+              <span className="text-xs font-semibold text-primary">7-day free trial</span>
+            </div>
+            <div className="flex flex-col items-center gap-1.5 px-3 py-3 rounded-xl bg-secondary/10 dark:bg-secondary/15 border border-secondary/20 text-center">
+              <Check className="w-4 h-4 text-secondary" />
+              <span className="text-xs font-semibold text-secondary">No credit card required</span>
+            </div>
+            <div className="flex flex-col items-center gap-1.5 px-3 py-3 rounded-xl bg-primary/10 dark:bg-primary/15 border border-primary/20 text-center">
+              <Check className="w-4 h-4 text-primary" />
+              <span className="text-xs font-semibold text-primary">Cancel anytime</span>
+            </div>
           </div>
         </section>
 
