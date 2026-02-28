@@ -99,7 +99,7 @@ export default function Landing() {
         className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
-          <img src={isDark ? logoTransparent : logoLight} alt="Craflect" style={{ height: isDark ? "47px" : "32px" }} className="w-auto" />
+          <img src={isDark ? logoTransparent : logoLight} alt="Craflect" className="h-8 w-auto" />
           <div className="flex items-center gap-3">
             <button
               onClick={() => setLocation("/pricing")}
@@ -122,7 +122,7 @@ export default function Landing() {
 
       <nav className="relative z-10 w-full px-4 sm:px-6 py-5 flex items-center justify-between max-w-7xl mx-auto">
         <div className="flex items-center gap-3">
-          <img src={isDark ? logoTransparent : logoLight} alt="Craflect" style={{ height: isDark ? "59px" : "40px" }} className="w-auto object-contain" data-testid="logo-landing" />
+          <img src={isDark ? logoTransparent : logoLight} alt="Craflect" className="h-10 w-auto object-contain" data-testid="logo-landing" />
         </div>
         <div className="flex items-center gap-2 sm:gap-3">
           <button
@@ -514,7 +514,7 @@ export default function Landing() {
         <footer className="px-4 py-8 border-t border-border/50">
           <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <img src={isDark ? logoTransparent : logoLight} alt="Craflect" style={{ height: isDark ? "47px" : "32px" }} className="w-auto" />
+              <img src={isDark ? logoTransparent : logoLight} alt="Craflect" className="h-8 w-auto" />
               <span className="text-xs text-muted-foreground">Content Performance Intelligence</span>
             </div>
             <p className="text-xs text-muted-foreground">

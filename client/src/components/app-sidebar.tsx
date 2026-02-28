@@ -50,8 +50,7 @@ export function AppSidebar() {
         <img 
           src={isDark ? logoTransparent : logoLight} 
           alt="Craflect" 
-          style={{ height: isDark ? "59px" : "40px" }}
-          className="w-auto object-contain"
+          className="h-10 w-auto object-contain"
           data-testid="logo-sidebar" 
         />
         <button
