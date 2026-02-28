@@ -181,12 +181,12 @@ export default function Landing() {
               <span>{t.landing.badge}</span>
             </div>
 
-            <h1 className="font-display text-[clamp(1.75rem,6vw,6rem)] font-extrabold tracking-tight text-foreground mb-6 leading-tight">
-              <span className="block whitespace-nowrap">{t.landing.heroLine1}</span>
-              <span className="block whitespace-nowrap text-transparent bg-clip-text bg-gradient-to-r from-primary via-[#8b5cf6] to-secondary">
+            <h1 className="font-display text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-extrabold tracking-tight text-foreground mb-6 leading-tight whitespace-nowrap">
+              <span className="block">{t.landing.heroLine1}</span>
+              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-primary via-[#8b5cf6] to-secondary">
                 {t.landing.heroLine2}
               </span>
-              <span className="block whitespace-nowrap">{t.landing.heroLine3}</span>
+              <span className="block">{t.landing.heroLine3}</span>
             </h1>
 
             <p className="text-base sm:text-lg md:text-xl text-muted-foreground mb-5 max-w-2xl mx-auto leading-relaxed">
