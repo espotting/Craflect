@@ -1,12 +1,13 @@
 import { db } from "./db";
 import { 
-  workspaces, contentSources, briefs, generatedContent, performance, events,
+  workspaces, contentSources, briefs, generatedContent, performance, events, subscriptions,
   type Workspace, type InsertWorkspace,
   type ContentSource, type InsertContentSource,
   type Brief, type InsertBrief,
   type GeneratedContent, type InsertGeneratedContent,
   type Performance, type InsertPerformance,
-  type InsertEvent, type Event
+  type InsertEvent, type Event,
+  type Subscription
 } from "@shared/schema";
 import { users, type User } from "@shared/models/auth";
 import { eq, desc, sql, count, and } from "drizzle-orm";
@@ -40,6 +41,9 @@ export interface IStorage {
   getEventsByUser(userId: string): Promise<Event[]>;
 
   updateUserProfile(id: string, data: { firstName?: string; lastName?: string; onboardingCompleted?: boolean }): Promise<User>;
+
+  getSubscription(userId: string): Promise<Subscription | undefined>;
+  getOrCreateSubscription(userId: string): Promise<Subscription>;
   
   getAllUsers(): Promise<User[]>;
   getGlobalStats(): Promise<{
@@ -160,6 +164,32 @@ export class DatabaseStorage implements IStorage {
 
   async getEventsByUser(userId: string): Promise<Event[]> {
     return await db.select().from(events).where(eq(events.userId, userId)).orderBy(desc(events.createdAt));
+  }
+
+  async getSubscription(userId: string): Promise<Subscription | undefined> {
+    const [sub] = await db.select().from(subscriptions).where(eq(subscriptions.userId, userId));
+    return sub;
+  }
+
+  async getOrCreateSubscription(userId: string): Promise<Subscription> {
+    const existing = await this.getSubscription(userId);
+    if (existing) return existing;
+    const trialEnd = new Date();
+    trialEnd.setDate(trialEnd.getDate() + 7);
+    const renewalDate = new Date();
+    renewalDate.setDate(renewalDate.getDate() + 30);
+    const [created] = await db.insert(subscriptions).values({
+      userId,
+      plan: "starter",
+      analysesUsed: 0,
+      analysesLimit: 20,
+      nichesCount: 1,
+      nichesLimit: 1,
+      billingStatus: "trial",
+      trialEndDate: trialEnd,
+      renewalDate,
+    }).returning();
+    return created;
   }
 
   async updateUserProfile(id: string, data: { firstName?: string; lastName?: string; onboardingCompleted?: boolean }): Promise<User> {

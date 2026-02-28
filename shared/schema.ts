@@ -82,6 +82,21 @@ export const performance = pgTable("performance", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const subscriptions = pgTable("subscriptions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  plan: text("plan").default("starter").notNull(),
+  analysesUsed: integer("analyses_used").default(0).notNull(),
+  analysesLimit: integer("analyses_limit").default(20).notNull(),
+  nichesCount: integer("niches_count").default(1).notNull(),
+  nichesLimit: integer("niches_limit").default(1).notNull(),
+  billingStatus: text("billing_status").default("trial").notNull(),
+  trialEndDate: timestamp("trial_end_date"),
+  renewalDate: timestamp("renewal_date"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 export const events = pgTable("events", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull(),
@@ -95,6 +110,7 @@ export const insertContentSourceSchema = createInsertSchema(contentSources).omit
 export const insertGeneratedContentSchema = createInsertSchema(generatedContent).omit({ id: true, createdAt: true });
 export const insertBriefSchema = createInsertSchema(briefs).omit({ id: true, createdAt: true });
 export const insertPerformanceSchema = createInsertSchema(performance).omit({ id: true, createdAt: true });
+export const insertSubscriptionSchema = createInsertSchema(subscriptions).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertEventSchema = createInsertSchema(events).omit({ id: true, createdAt: true });
 
 export type Workspace = typeof workspaces.$inferSelect;
@@ -111,6 +127,9 @@ export type InsertBrief = z.infer<typeof insertBriefSchema>;
 
 export type Performance = typeof performance.$inferSelect;
 export type InsertPerformance = z.infer<typeof insertPerformanceSchema>;
+
+export type Subscription = typeof subscriptions.$inferSelect;
+export type InsertSubscription = z.infer<typeof insertSubscriptionSchema>;
 
 export type Event = typeof events.$inferSelect;
 export type InsertEvent = z.infer<typeof insertEventSchema>;

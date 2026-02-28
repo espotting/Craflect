@@ -632,6 +632,16 @@ The content should directly apply the recommendations from the insight report. W
     }
   });
 
+  // ─── Subscription / Plan ───
+  app.get("/api/subscription", isAuthenticated, async (req: any, res) => {
+    try {
+      const sub = await storage.getOrCreateSubscription(req.user.id);
+      res.json(sub);
+    } catch (err) {
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
   // ─── Events ───
   app.post("/api/events", isAuthenticated, async (req: any, res) => {
     try {

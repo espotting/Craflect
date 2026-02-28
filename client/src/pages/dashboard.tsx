@@ -2,9 +2,10 @@ import { DashboardLayout } from "@/components/layout";
 import { useWorkspaces, useCreateWorkspace } from "@/hooks/use-workspaces";
 import { useSources, useGeneratedContent } from "@/hooks/use-sources";
 import { useBriefs } from "@/hooks/use-briefs";
+import { useSubscription } from "@/hooks/use-subscription";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, FolderKanban, ArrowRight, Loader2, Sparkles, Wand2, TrendingUp, Eye, Brain } from "lucide-react";
+import { Plus, FolderKanban, ArrowRight, Loader2, Sparkles, Wand2, TrendingUp, Brain, CreditCard, Zap, AlertTriangle } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -18,6 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Progress } from "@/components/ui/progress";
 import { useLocation } from "wouter";
 
 export default function Dashboard() {
@@ -32,6 +34,7 @@ export default function Dashboard() {
   const { data: sources } = useSources(selectedWorkspace?.id);
   const { data: generatedContent } = useGeneratedContent(selectedWorkspace?.id);
   const { data: briefs } = useBriefs(selectedWorkspace?.id);
+  const { data: subscription } = useSubscription();
 
   const latestInsight = briefs?.[0];
   const latestContent = generatedContent?.slice(0, 3);
@@ -42,6 +45,20 @@ export default function Dashboard() {
   const hasAnalyzed = analyzedSources.length > 0;
   const hasInsights = (briefs?.length || 0) > 0;
   const hasContent = (generatedContent?.length || 0) > 0;
+
+  const analysesUsed = subscription?.analysesUsed ?? 0;
+  const analysesLimit = subscription?.analysesLimit ?? 20;
+  const nichesCount = subscription?.nichesCount ?? 0;
+  const nichesLimit = subscription?.nichesLimit ?? 1;
+  const analysesPercent = analysesLimit > 0 ? Math.round((analysesUsed / analysesLimit) * 100) : 0;
+  const nichesPercent = nichesLimit > 0 ? Math.round((nichesCount / nichesLimit) * 100) : 0;
+  const isTrialing = subscription?.billingStatus === "trial";
+  const planName = subscription?.plan || "starter";
+  const showUpgradeWarning = analysesPercent >= 70 || nichesPercent >= 100;
+
+  const renewalDays = subscription?.renewalDate
+    ? Math.max(0, Math.ceil((new Date(subscription.renewalDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+    : null;
 
   let insightTags: string[] = [];
   if (latestInsight) {
@@ -222,6 +239,70 @@ export default function Dashboard() {
               {nextAction.cta}
               <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
             </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border" data-testid="card-plan-usage">
+          <CardContent className="p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CreditCard className="w-4 h-4 text-primary" />
+                <span className="text-[10px] font-bold uppercase tracking-widest text-primary">Plan & Usage</span>
+              </div>
+              <Button variant="outline" size="sm" className="h-7 text-xs rounded-md px-3" onClick={() => setLocation("/pricing")} data-testid="button-manage-plan">
+                Manage plan
+              </Button>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-display font-bold text-foreground capitalize" data-testid="text-plan-name">{planName}</span>
+              {isTrialing && (
+                <Badge className="bg-secondary/15 text-secondary border border-secondary/20 text-[10px] px-2 py-0.5 rounded-full" data-testid="badge-trial">
+                  Free trial
+                </Badge>
+              )}
+              {renewalDays !== null && (
+                <span className="text-[11px] text-muted-foreground">
+                  Renews in {renewalDays} days
+                </span>
+              )}
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <div className="flex items-center justify-between text-xs mb-1.5">
+                  <span className="text-muted-foreground">Analyses</span>
+                  <span className="font-medium text-foreground" data-testid="text-analyses-usage">{analysesUsed} / {analysesLimit}</span>
+                </div>
+                <Progress value={analysesPercent} className={`h-2 ${analysesPercent >= 90 ? '[&>div]:bg-destructive' : analysesPercent >= 70 ? '[&>div]:bg-yellow-500' : ''}`} />
+              </div>
+              <div>
+                <div className="flex items-center justify-between text-xs mb-1.5">
+                  <span className="text-muted-foreground">Niches</span>
+                  <span className="font-medium text-foreground" data-testid="text-niches-usage">{nichesCount} / {nichesLimit}</span>
+                </div>
+                <Progress value={nichesPercent} className={`h-2 ${nichesPercent >= 100 ? '[&>div]:bg-destructive' : ''}`} />
+              </div>
+            </div>
+
+            {showUpgradeWarning && (
+              <div className="flex items-start gap-2.5 p-3 rounded-lg bg-yellow-500/10 dark:bg-yellow-500/5 border border-yellow-500/20" data-testid="alert-upgrade">
+                <AlertTriangle className="w-4 h-4 text-yellow-600 dark:text-yellow-500 mt-0.5 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-foreground font-medium">
+                    You're close to your analysis limit. Upgrade to keep learning.
+                  </p>
+                  <Button variant="link" className="h-auto p-0 text-xs text-primary mt-1" onClick={() => setLocation("/pricing")} data-testid="link-upgrade">
+                    <Zap className="w-3 h-3 mr-1" />
+                    Upgrade plan
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            <p className="text-[10px] text-muted-foreground/50 text-center">
+              Analyses grow your AI memory. Content creation stays unlimited.
+            </p>
           </CardContent>
         </Card>
 
