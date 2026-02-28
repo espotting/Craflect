@@ -171,17 +171,17 @@ export default function Pricing() {
 
         <section className="max-w-md mx-auto mb-10">
           <div className="flex items-center justify-center gap-3">
-            <Badge variant="secondary" className="px-3.5 py-1.5 text-xs font-medium gap-1.5 rounded-full">
-              <Shield className="w-3 h-3 text-primary" />
-              <span className="text-primary">7-day free trial</span>
+            <Badge className="px-3.5 py-1.5 text-xs font-medium gap-1.5 rounded-full bg-primary/15 dark:bg-primary/20 text-primary border border-primary/20 hover:bg-primary/20">
+              <Shield className="w-3 h-3" />
+              7-day free trial
             </Badge>
-            <Badge variant="secondary" className="px-3.5 py-1.5 text-xs font-medium gap-1.5 rounded-full">
-              <Check className="w-3 h-3 text-secondary" />
-              <span className="text-secondary">No credit card required</span>
+            <Badge className="px-3.5 py-1.5 text-xs font-medium gap-1.5 rounded-full bg-secondary/15 dark:bg-secondary/20 text-secondary border border-secondary/20 hover:bg-secondary/20">
+              <Check className="w-3 h-3" />
+              No credit card required
             </Badge>
-            <Badge variant="secondary" className="px-3.5 py-1.5 text-xs font-medium gap-1.5 rounded-full">
-              <Check className="w-3 h-3 text-primary" />
-              <span className="text-primary">Cancel anytime</span>
+            <Badge className="px-3.5 py-1.5 text-xs font-medium gap-1.5 rounded-full bg-primary/15 dark:bg-primary/20 text-primary border border-primary/20 hover:bg-primary/20">
+              <Check className="w-3 h-3" />
+              Cancel anytime
             </Badge>
           </div>
         </section>
