@@ -145,7 +145,7 @@ export default function Pricing() {
     <div className="min-h-screen bg-background flex flex-col">
       <nav className="relative z-10 w-full px-4 sm:px-6 py-5 flex items-center justify-between max-w-7xl mx-auto">
         <button onClick={() => setLocation("/")} className="flex items-center gap-3" data-testid="link-home">
-          <img src={isDark ? logoTransparent : logoLight} alt="Craflect" className="h-8 w-auto object-contain" data-testid="logo-pricing" />
+          <img src={isDark ? logoTransparent : logoLight} alt="Craflect" className="h-10 w-auto object-contain" data-testid="logo-pricing" />
         </button>
         <div className="flex items-center gap-2 sm:gap-3">
           <button
