@@ -1,0 +1,207 @@
+✅ BRIEF GLOBAL — PAGE PRICING + PLAN DASHBOARD (CRAFLECT)
+🎯 Objectif
+
+Créer une page pricing claire, premium et orientée conversion + permettre à l’utilisateur de suivre sa consommation dans le Dashboard.
+
+Positionnement :
+👉 AI content intelligence platform
+👉 pricing basé sur learning / analyses / niches
+
+1️⃣ HEADER
+
+Ajouter lien :
+
+Pricing
+
+Visible desktop + mobile.
+
+2️⃣ HERO PRICING — CORRECTIONS MAJEURES (conversion)
+
+Remplacer hero actuel par :
+
+Headline
+Start free. Learn your niche. Upgrade when it works.
+
+Sub
+Your AI gets smarter with every analysis. Pay only when you scale.
+
+Trust badges (visuels pills) :
+
+7-day free trial
+No credit card required
+Cancel anytime
+
+⚠️ Ces 3 éléments doivent être visibles en couleur (pas texte gris).
+
+3️⃣ LES 3 CHOSES À CORRIGER (IMPORTANT)
+✅ Clarifier ce que paie l’utilisateur
+
+Ajouter micro-copy sous prix :
+
+You pay for AI learning capacity — not content generation.
+
+✅ Rendre Pro la progression naturelle
+
+Ajouter sous Pro :
+
+Recommended once you validate your niche.
+
+✅ Expliquer pourquoi Studio est cher
+
+Ajouter :
+
+Build a proprietary content dataset.
+
+4️⃣ CARTES PLANS — AJUSTEMENTS
+
+Garder structure actuelle mais :
+
+Starter
+
+CTA → Start learning your niche
+
+Pro
+
+CTA → Build your content engine
+
+Studio
+
+CTA → Scale with AI intelligence
+
+Ajouter ligne nouvelle dans plans :
+
+AI learning depth
+
+Starter → Single niche memory
+Pro → Reusable niche intelligence
+Studio → Cross-brand data advantage
+
+5️⃣ Wording conversion global
+
+Remplacer :
+
+Unlimited content creation
+→ Generate unlimited content from learned patterns
+
+Advanced insights
+→ Deeper pattern intelligence
+
+Priority AI queue
+→ Faster learning cycles
+
+6️⃣ TABLEAU COMPARATIF — REFONTE VISUELLE
+
+Objectif : premium + lisible.
+
+Structure
+
+Colonnes visuellement séparées :
+
+Starter → blanc
+Pro → highlight violet
+Studio → gris léger
+
+Lignes alternées
+
+Fond blanc / gris très léger.
+
+Ajouter icônes par ligne
+
+Active niches → target
+Analyses → chart
+Content → sparkles
+Queue → lightning
+Insights → brain
+Workspace → layers
+Deeper analysis → microscope
+Refresh → refresh
+
+Remplacer texte par badges visuels
+
+Standard → badge gris
+Priority → badge violet
+Premium → gradient
+
+Ajouter ligne DATA stratégique
+
+AI learning depth
+Starter → Single niche memory
+Pro → Reusable niche intelligence
+Studio → Cross-brand data advantage
+
+Hover animation
+
+Légère élévation colonne.
+
+Mobile
+
+Transformer tableau → cards empilées.
+
+7️⃣ SECTION EXPLICATION ANALYSIS RUN
+
+Garder mais améliorer copy :
+
+An analysis run teaches the AI your niche patterns.
+Similar URLs are grouped — one learning session.
+
+8️⃣ CTA FINAL
+
+Headline
+Ready to create smarter content?
+
+CTA
+Start free trial — no credit card
+
+9️⃣ DASHBOARD — SECTION PLAN (NOUVEAU)
+
+Ajouter nouvelle section :
+
+Plan & Usage
+
+Contenu :
+
+Current plan
+Analyses used / total
+Active niches count
+Trial remaining days
+
+Progress bar analyses.
+
+Boutons :
+
+Upgrade plan
+Manage billing
+
+🔟 Stripe intégration
+
+Créer :
+
+Stripe checkout
+Subscription lifecycle
+Trial 7 days
+Cancel anytime
+Upgrade / downgrade
+
+Limiter features selon plan :
+
+niches
+analyses
+queue priority
+multi workspace
+
+11️⃣ Tracking produit (important)
+
+Sauver :
+
+analyses consumed
+niche clusters
+plan usage
+upgrade trigger
+
+⭐ Direction produit
+
+Le pricing doit faire comprendre :
+
+Tu paies pour un moteur d’apprentissage IA.
+
+Pas pour générer du contenu.
