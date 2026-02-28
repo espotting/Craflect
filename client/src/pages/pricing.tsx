@@ -101,9 +101,9 @@ const comparisonRows: ComparisonRow[] = [
     pro: "Priority",
     studio: "Premium",
     badgeStyle: {
-      starter: "bg-muted text-muted-foreground",
+      starter: "bg-muted/80 text-foreground/70 border-border",
       pro: "bg-primary/15 text-primary border-primary/20",
-      studio: "bg-gradient-to-r from-primary/20 to-secondary/20 text-foreground border-primary/20",
+      studio: "bg-secondary text-white border-secondary",
     },
   },
   { feature: "Pattern intelligence", icon: Brain, starter: "Basic", pro: "Advanced", studio: "Advanced" },
