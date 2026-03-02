@@ -1,0 +1,196 @@
+📘 CRAFLECT — HOME PAGE FULL REPOSITIONING BRIEF
+OBJECTIF : Alignement total avec la stratégie Vertical Intelligence
+Direction branding retenue : Premium, clair, non technique, vendeur
+🎯 OBJECTIF STRATÉGIQUE
+
+La Home doit :
+
+Être comprise en moins de 5 secondes
+
+Positionner Craflect comme une intelligence de niche
+
+Ne pas ressembler à un simple outil IA
+
+Être attractive, claire et crédible
+
+Donner envie de tester immédiatement
+
+Supprimer toute perception “paste URL tool”.
+
+🏗️ STRUCTURE FINALE DE LA HOME
+
+Hero
+
+How Craflect Gives You Clarity
+
+Inside Your Niche Intelligence
+
+Not Another AI Content Tool
+
+Final CTA
+
+1️⃣ HERO SECTION (À REMPLACER ENTIÈREMENT)
+Headline (3 lignes exactement)
+
+Understand what works.
+Know what to post.
+Execute with confidence.
+
+Subheadline
+
+Craflect analyzes winning short-form patterns in your niche and turns them into clear, ready-to-use content briefs.
+
+Vertical Badge (nouvel élément à ajouter)
+
+Now live for:
+
+• Personal Branding
+• Real Estate
+• Fitness
+
+Format : small premium pill tags.
+
+CTA principal
+
+Start with your niche →
+
+CTA secondaire (optionnel)
+
+See how it works
+
+À SUPPRIMER
+
+“Analyze content from TikTok / Reels / Shorts” sous le hero
+
+“Paste your first video” en CTA principal
+
+Toute mention directe “Paste URL” dans le hero
+
+2️⃣ SECTION — HOW CRAFLECT GIVES YOU CLARITY
+Title
+
+Stop guessing. Start building what works.
+
+Subtext
+
+Craflect removes the noise and reveals the patterns behind high-performing short-form content in your niche.
+
+3 Étapes (remplacer Observe / Understand / Recommend / Produce)
+1 — Select your vertical
+
+Choose your niche and activate your intelligence profile.
+
+2 — Discover what actually works
+
+We identify dominant hooks, structures, formats, and angles driving performance.
+
+3 — Turn patterns into execution
+
+Get clear, structured briefs built around proven strategies.
+
+3️⃣ SECTION — INSIDE YOUR NICHE INTELLIGENCE
+Title
+
+Inside your niche intelligence
+
+Subtext
+
+Real insights extracted from real short-form performance patterns.
+
+Bloc 1 — Niche Insights
+
+Dominant format: Face-cam storytelling
+Average duration: 32 seconds
+Hook style: Curiosity-driven
+Confidence score: 78%
+Based on 642 analyzed videos
+
+Bloc 2 — Winning Hooks
+
+"You’ve been doing this wrong your whole life…"
+"Nobody talks about this but…"
+"I tested this for 30 days — here’s what happened"
+
+Bloc 3 — Execution Brief
+
+Title: High-Retention Storytelling Hook
+Structure: Hook → Personal story → Pattern reveal → CTA
+CTA example: Comment “PATTERN” and I’ll send you the full breakdown.
+
+CTA sous section
+
+Generate your first brief →
+
+4️⃣ SECTION — NOT ANOTHER AI CONTENT TOOL
+Title
+
+Not another AI content tool.
+
+Subheadline
+
+Craflect is built around pattern intelligence — not random generation.
+
+4 Pillars
+
+Pattern intelligence
+Structured analysis of hooks, formats, and angles.
+
+Niche learning
+Each vertical has its own evolving intelligence profile.
+
+Continuous refinement
+The more patterns analyzed, the clearer the signal.
+
+Built for short-form
+Designed specifically for TikTok, Reels, and Shorts.
+
+5️⃣ FINAL CTA SECTION
+Title
+
+Ready to understand what works in your niche?
+
+Subtext
+
+Activate your niche intelligence and build content with clarity.
+
+CTA
+
+Unlock your niche insights →
+
+🎨 STYLE GUIDELINES
+
+Ton premium, calme, confiant
+
+Pas de jargon technique
+
+Phrases courtes
+
+Pas d’exagération
+
+Pas de buzzword IA
+
+Structure respirante
+
+Focus sur clarté et stratégie
+
+🚫 CE QU’IL NE FAUT PAS REMETTRE
+
+“Paste a URL → Analyze → Generate” en bloc principal
+
+Promesse trop automation (“We create everything for you”)
+
+Ton gadget ou startup early-stage
+
+🎯 RÉSULTAT ATTENDU
+
+Après implémentation :
+
+La Home doit paraître plus mature
+
+Plus stratégique
+
+Moins “AI tool”
+
+Plus “intelligence layer”
+
+Plus premium US SaaS
