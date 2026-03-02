@@ -35,8 +35,8 @@ const WINNING_HOOKS = [
 ];
 
 const MOCK_BRIEF = {
-  title: "High-Retention Storytelling Hook",
-  structure: "Hook → Personal story → Pattern reveal → CTA",
+  hook: "\"I almost gave up on content creation until I discovered this one pattern...\"",
+  flow: "Hook → Personal story → Pattern reveal → CTA",
   cta: "Comment \"PATTERN\" and I'll send you the full breakdown.",
 };
 
@@ -318,10 +318,11 @@ export default function Landing() {
                         </div>
                       </div>
                     </div>
-                    <div className="pt-1">
-                      <Badge variant="outline" className="text-[9px] px-2 py-0.5 border-primary/20 text-muted-foreground" data-testid="badge-analyzed-videos">
+                    <div className="pt-2 flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                      <span className="text-xs font-semibold text-foreground" data-testid="badge-analyzed-videos">
                         {t.landing.insightVideos}
-                      </Badge>
+                      </span>
                     </div>
                   </CardContent>
                 </Card>
@@ -369,11 +370,11 @@ export default function Landing() {
                     <div className="space-y-3">
                       <div>
                         <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{t.landing.briefTitle}</span>
-                        <p className="text-sm font-semibold text-foreground mt-0.5" data-testid="text-brief-title">{MOCK_BRIEF.title}</p>
+                        <p className="text-sm text-foreground/80 italic mt-0.5" data-testid="text-brief-hook">{MOCK_BRIEF.hook}</p>
                       </div>
                       <div>
                         <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{t.landing.briefHook}</span>
-                        <p className="text-sm text-foreground/80 mt-0.5" data-testid="text-brief-structure">{MOCK_BRIEF.structure}</p>
+                        <p className="text-sm text-foreground/80 mt-0.5" data-testid="text-brief-flow">{MOCK_BRIEF.flow}</p>
                       </div>
                       <div>
                         <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{t.landing.briefCta}</span>

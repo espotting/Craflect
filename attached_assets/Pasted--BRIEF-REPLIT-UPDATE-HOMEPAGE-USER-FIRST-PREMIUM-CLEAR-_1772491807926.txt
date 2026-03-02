@@ -1,0 +1,237 @@
+📌 BRIEF REPLIT — UPDATE HOMEPAGE (USER-FIRST, PREMIUM, CLEAR)
+🎯 OBJECTIF
+
+Refondre le wording de la Home page pour :
+
+Être compréhensible immédiatement par un créateur
+
+Supprimer le vocabulaire technique (pattern, intelligence layer, execution engine…)
+
+Garder une perception premium SaaS US
+
+Mettre en avant la valeur concrète
+
+Conserver la crédibilité des niches (Personal Branding, Real Estate, Fitness)
+
+Augmenter la conversion
+
+Ton général :
+👉 clair
+👉 humain
+👉 direct
+👉 rassurant
+👉 premium minimal
+
+🟣 1️⃣ HERO SECTION
+🔥 Nouveau Hero (remplacer l’existant)
+
+Headline :
+
+Stop guessing what to post.
+See what actually works.
+Get clear content ideas — instantly.
+
+Subheadline :
+
+Craflect analyzes what’s already performing in your niche
+and turns it into simple, ready-to-use content ideas.
+
+Trust line sous le subheadline :
+
+Now live for:
+[Personal Branding] [Real Estate] [Fitness]
+
+(Format badge / pill)
+
+CTA principal (gros bouton violet) :
+
+Start with your niche →
+
+CTA secondaire (texte discret) :
+
+See how it works →
+
+🟣 2️⃣ SECTION — REMOVE DOUBT
+Titre :
+
+Stop guessing. Start building what works.
+
+Texte :
+
+Craflect removes the noise and shows you what’s consistently performing in your niche — so you can focus on creating, not guessing.
+
+3 colonnes simples (ultra claires)
+1️⃣ Choose your niche
+
+Pick your vertical and activate your insights.
+
+2️⃣ See what’s working
+
+We highlight the hooks, formats, and angles that drive results.
+
+3️⃣ Get ready-to-use ideas
+
+Turn insights into clear, structured content briefs.
+
+⚠️ Important :
+Ne pas parler de “patterns extraction”, “AI layer”, etc.
+
+🟣 3️⃣ INSIDE YOUR NICHE SECTION
+Titre :
+
+Inside your niche insights
+
+Sous-texte :
+
+Real examples based on hundreds of analyzed videos.
+
+Dans la carte “Niche Insights” :
+
+Remplacer :
+
+“Confidence score”
+
+par :
+
+“Insight confidence”
+
+Et garder :
+
+Based on XXX analyzed videos
+
+⚠️ Mettre en évidence le nombre de vidéos analysées (plus visible visuellement)
+
+Dans la carte “Execution Brief”
+
+Renommer en :
+
+Content Brief
+
+Et garder structure simple :
+
+Hook
+Flow
+CTA example
+
+Langage simple, humain.
+
+CTA sous cette section :
+
+Generate your first idea →
+
+🟣 4️⃣ DIFFERENTIATION SECTION
+Titre :
+
+Not another AI content generator.
+
+Sous-titre :
+
+Craflect doesn’t invent random ideas.
+It shows you what’s already working — and helps you build on it.
+
+4 blocs simples :
+🔹 Built on real performance
+
+Ideas are based on what actually works in your niche.
+
+🔹 Focused on your vertical
+
+Each niche has its own dedicated insights.
+
+🔹 Updated continuously
+
+The more content analyzed, the clearer the signal.
+
+🔹 Designed for short-form
+
+Built specifically for TikTok, Reels, and Shorts.
+
+⚠️ On reste simple.
+Pas de jargon technique.
+
+🟣 5️⃣ FINAL CTA SECTION
+Titre :
+
+Ready to stop guessing?
+
+Sous-texte :
+
+Activate your niche insights and start posting with clarity.
+
+Bouton :
+
+Unlock your niche insights →
+
+🟣 6️⃣ HEADER ADJUSTMENTS
+
+Bouton header à droite :
+
+Start with your niche →
+
+Lien Pricing reste simple.
+
+🟣 7️⃣ TONE & DESIGN GUIDELINES
+
+Important pour Replit :
+
+Beaucoup d’espace blanc
+
+Typography bold pour headlines
+
+Pas de surcharge visuelle
+
+Badge niches bien visibles
+
+CTA principal toujours violet
+
+CTA secondaires discrets
+
+On veut :
+
+Calme
+Clair
+Premium
+Confiant
+
+🟣 8️⃣ CE QU’ON NE VEUT PAS SUR LA HOME
+
+❌ Pattern intelligence
+❌ Vertical AI layer
+❌ Statistical dominance
+❌ Execution engine
+❌ Taxonomies
+❌ Moat
+❌ Data architecture
+
+Ça = pitch deck uniquement.
+
+🟣 POSITIONNEMENT FINAL HOME
+
+Ce que la Home doit faire ressentir :
+
+👉 “Ah ok, ça me montre ce qui marche.”
+👉 “Ça m’aide à savoir quoi poster.”
+👉 “C’est simple.”
+👉 “Je veux tester.”
+
+Pas :
+
+👉 “C’est complexe.”
+👉 “C’est technique.”
+👉 “Je ne comprends pas.”
+
+🎯 Résultat attendu
+
+Une landing :
+
+Simple à comprendre en 3 secondes
+
+Premium US SaaS
+
+Orientée créateur
+
+Positionnée sur la clarté
+
+Sans jargon technique
+
+Mais avec crédibilité forte
