@@ -133,6 +133,9 @@ export async function registerRoutes(
       const source = await storage.getContentSourceById(req.params.sourceId);
       if (!source) return res.status(404).json({ message: "Source not found" });
 
+      const ws = await storage.getWorkspaceById(source.workspaceId);
+      if (!ws || ws.ownerId !== req.user.id) return res.status(403).json({ message: "Forbidden" });
+
       await storage.updateContentSource(source.id, { ingestionStatus: "processing" });
 
       const scrapedMeta = source.url ? await scrapePublicMetadata(source.url) : {};
@@ -230,6 +233,9 @@ Be analytical. Score based on content structure quality, not estimated popularit
     try {
       const source = await storage.getContentSourceById(req.params.sourceId);
       if (!source) return res.status(404).json({ message: "Source not found" });
+
+      const ws = await storage.getWorkspaceById(source.workspaceId);
+      if (!ws || ws.ownerId !== req.user.id) return res.status(403).json({ message: "Forbidden" });
 
       const contextParts = [];
       if (source.title) contextParts.push(`Title: ${source.title}`);

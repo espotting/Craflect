@@ -9,7 +9,8 @@ const openai = new OpenAI({
   baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
 });
 
-function validateEnum<T extends string>(value: string, allowed: readonly T[], fallback: T): T {
+function validateEnum<T extends string>(value: unknown, allowed: readonly T[], fallback: T): T {
+  if (!value || typeof value !== "string") return fallback;
   if ((allowed as readonly string[]).includes(value)) return value as T;
   const normalized = value.replace(/\s+/g, "_");
   if ((allowed as readonly string[]).includes(normalized)) return normalized as T;

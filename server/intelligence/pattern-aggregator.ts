@@ -9,10 +9,14 @@ import { eq } from "drizzle-orm";
 function calcDistribution(values: string[], taxonomy: readonly string[]): Record<string, number> {
   const counts: Record<string, number> = {};
   for (const t of taxonomy) counts[t] = 0;
+  let validCount = 0;
   for (const v of values) {
-    if (counts[v] !== undefined) counts[v]++;
+    if (v && counts[v] !== undefined) {
+      counts[v]++;
+      validCount++;
+    }
   }
-  const total = values.length || 1;
+  const total = validCount || 1;
   const dist: Record<string, number> = {};
   for (const t of taxonomy) {
     dist[t] = Math.round((counts[t] / total) * 10000) / 100;

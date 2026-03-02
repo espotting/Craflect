@@ -120,10 +120,13 @@ shared/
 ## Key Patterns
 - Workspaces belong to users (ownerId) and optionally link to a niche (nicheId), verifyWorkspaceOwnership middleware on all workspace routes
 - Content sources belong to workspaces, ingestionStatus tracks analysis pipeline
+- Source-level routes (/api/sources/:id/analyze, /api/sources/:id/generate) verify workspace ownership via source→workspace→ownerId check
 - Generated content belongs to workspaces, optionally to sources or briefs
 - Briefs/Insights belong to workspaces, contain pattern analysis data
 - All protected routes use `isAuthenticated` middleware
 - Admin routes additionally use `isAdmin` middleware
+- SSRF protection: scraper blocks private/localhost/internal URLs before fetching
+- LLM classification validates taxonomy values with null-safe fallbacks
 
 ## Environment Variables
 - DATABASE_URL (auto)

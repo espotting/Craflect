@@ -9,6 +9,24 @@ function decodeHTMLEntities(text: string): string {
     .replace(/&#x2F;/g, "/");
 }
 
+function isPrivateUrl(urlStr: string): boolean {
+  try {
+    const parsed = new URL(urlStr);
+    const hostname = parsed.hostname.toLowerCase();
+    if (["localhost", "127.0.0.1", "0.0.0.0", "[::1]", "[::]"].includes(hostname)) return true;
+    if (hostname.endsWith(".local") || hostname.endsWith(".internal")) return true;
+    const parts = hostname.split(".");
+    if (parts[0] === "10") return true;
+    if (parts[0] === "172" && parseInt(parts[1]) >= 16 && parseInt(parts[1]) <= 31) return true;
+    if (parts[0] === "192" && parts[1] === "168") return true;
+    if (parts[0] === "169" && parts[1] === "254") return true;
+    if (!["http:", "https:"].includes(parsed.protocol)) return true;
+    return false;
+  } catch {
+    return true;
+  }
+}
+
 export async function scrapePublicMetadata(url: string): Promise<{
   title?: string;
   description?: string;
@@ -20,6 +38,10 @@ export async function scrapePublicMetadata(url: string): Promise<{
   publishedAt?: string;
   thumbnailUrl?: string;
 }> {
+  if (isPrivateUrl(url)) {
+    console.log("Blocked private/internal URL:", url);
+    return {};
+  }
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 8000);
