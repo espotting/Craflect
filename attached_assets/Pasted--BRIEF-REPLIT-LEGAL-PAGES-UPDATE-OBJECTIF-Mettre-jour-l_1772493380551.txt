@@ -1,0 +1,194 @@
+📌 BRIEF REPLIT — LEGAL PAGES UPDATE
+🎯 OBJECTIF
+
+Mettre à jour les documents légaux pour :
+
+Aligner avec le positionnement actuel (insights & briefs, pas génération automatique)
+
+Renforcer la protection juridique
+
+Clarifier l’analyse de contenu public uniquement
+
+Clarifier l’absence de garantie de performance
+
+Clarifier le fonctionnement du free trial
+
+Encadrer l’usage des données anonymisées
+
+Ajouter les protections standards SaaS internationales
+
+Ne pas modifier le ton général.
+Rester professionnel, simple, clair.
+
+🟣 1️⃣ TERMS OF SERVICE — /terms
+🔄 Remplacer section 1 — Overview
+
+Remplacer par :
+
+Craflect is a content insights platform that analyzes publicly available short-form video content and provides users with structured insights and content recommendations.
+
+Craflect does not access private accounts, require social media login credentials, publish content on behalf of users, or connect directly to social media platforms.
+
+The service is operated by WEDEEN FZE, Ajman Free Zone, United Arab Emirates.
+
+🔄 Mettre à jour section 3 — Service Nature
+
+Remplacer par :
+
+Craflect provides informational insights and AI-generated content suggestions based on publicly available content submitted by users.
+
+The service does not guarantee performance, engagement, audience growth, revenue, or business results.
+
+Users remain fully responsible for all content they create and publish using insights provided by Craflect.
+
+🔄 Mettre à jour section 4 — Acceptable Use
+
+Ajouter :
+
+Users may only submit URLs to content that is publicly accessible and legally available.
+
+Users may not submit private, restricted, confidential, or unlawfully obtained content.
+
+🔄 Mettre à jour section 5 — AI Disclaimer
+
+Ajouter :
+
+AI-generated outputs may contain inaccuracies and may be similar to content generated for other users due to the nature of AI systems.
+
+Craflect does not guarantee uniqueness of generated ideas or recommendations.
+
+🔄 Section 8 — Limitation of Liability
+
+Renforcer avec :
+
+Craflect shall not be liable for indirect, incidental, special, consequential, or business losses arising from use of the service.
+
+🟣 2️⃣ COMMERCIAL TERMS — /billing
+🔄 Section Subscription
+
+Ajouter :
+
+Subscriptions automatically renew at the end of each billing cycle unless canceled before renewal.
+
+🔄 Section Free Trial
+
+Remplacer par :
+
+A 7-day free trial may be offered.
+If the subscription is not canceled before the end of the trial period, it will automatically convert into a paid monthly subscription.
+
+🔄 Section Payments
+
+Remplacer par :
+
+All payments are final and non-refundable, except where required by applicable law.
+
+🟣 3️⃣ PRIVACY POLICY — /privacy
+🔄 Section Purpose
+
+Remplacer phrase IA par :
+
+Aggregated and anonymized data may be used to improve system performance and service quality. No private social media accounts are accessed.
+
+🔄 Ajouter section International Transfers
+
+User data may be processed and stored outside the user’s country of residence, including in jurisdictions that may have different data protection standards.
+
+🔄 Ajouter section Lawful Basis
+
+Where applicable, data processing is based on contractual necessity and legitimate interest in providing and improving the service.
+
+🟣 4️⃣ DATA PROCESSING AGREEMENT — /dpa
+
+Modifier description rôle :
+
+Craflect processes user account data as a Data Processor.
+Publicly available content metadata submitted by users is processed solely to provide the service functionality.
+
+Ajouter :
+
+Craflect implements appropriate technical and organizational security measures including encryption in transit and access controls.
+
+🟣 5️⃣ FAQ — /faq
+
+Ajouter les questions suivantes :
+
+Does Craflect access private social media accounts?
+
+No. Craflect only analyzes publicly available content submitted by users.
+
+Does Craflect post content for me?
+
+No. Craflect provides insights and structured content briefs. Users remain responsible for publishing their own content.
+
+Does Craflect guarantee performance?
+
+No. Craflect provides informational insights only and does not guarantee engagement, growth, or business results.
+
+🟣 6️⃣ SECURITY PAGE — /security
+
+Ajouter :
+
+Craflect does not require social media login credentials or access to private accounts.
+
+User data is encrypted in transit and stored on secure infrastructure.
+
+Users may request deletion of their account and associated data at any time.
+
+🟣 7️⃣ FOOTER — Vérification
+
+Vérifier que les liens suivants existent :
+
+Product
+
+Pricing
+
+FAQ
+
+Security
+
+Legal
+
+Terms
+
+Billing
+
+Privacy
+
+Cookies
+
+DPA
+
+Company
+
+Contact
+
+🟣 IMPORTANT
+
+Ne pas :
+
+Mentionner l’hébergeur
+
+Mentionner Replit
+
+Mentionner fournisseur cloud spécifique
+
+Mentionner nom du LLM
+
+Mentionner infrastructure technique
+
+🎯 RÉSULTAT ATTENDU
+
+Après mise à jour :
+
+Protection juridique renforcée
+
+Positionnement cohérent avec “insights & briefs”
+
+Clarification public-only
+
+Protection contre promesse performance
+
+Trial sécurisé juridiquement
+
+RGPD-compatible niveau SaaS early stage

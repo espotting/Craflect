@@ -22,6 +22,7 @@ export default function FaqPage() {
     { value: "q4", trigger: t.faq.q4, content: t.faq.a4 },
     { value: "q5", trigger: t.faq.q5, content: t.faq.a5 },
     { value: "q6", trigger: t.faq.q6, content: t.faq.a6 },
+    { value: "q7", trigger: t.faq.q7, content: t.faq.a7 },
   ];
 
   return (
