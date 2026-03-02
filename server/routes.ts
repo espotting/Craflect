@@ -583,7 +583,11 @@ The content should directly apply the recommendations from the insight report. W
   app.get("/api/intelligence/niches", isAuthenticated, isAdmin, async (req: any, res) => {
     try {
       const items = await storage.getNiches();
-      res.json(items);
+      const enriched = await Promise.all(items.map(async (n) => ({
+        ...n,
+        videoCount: await storage.getVideoPrimitiveCount(n.id),
+      })));
+      res.json(enriched);
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }

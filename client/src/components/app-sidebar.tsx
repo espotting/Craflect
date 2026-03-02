@@ -7,7 +7,8 @@ import {
   LogOut,
   Sun,
   Moon,
-  Shield
+  Shield,
+  Brain
 } from "lucide-react";
 import { useLocation } from "wouter";
 import {
@@ -130,6 +131,21 @@ export function AppSidebar() {
                     <button className="flex items-center gap-3 w-full" data-testid="nav-admin">
                       <Shield className="w-5 h-5" />
                       <span className="font-medium">{t.sidebar.admin}</span>
+                    </button>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
+              {user?.isAdmin && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton 
+                    asChild 
+                    isActive={location === "/intelligence"}
+                    className={location === "/intelligence" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-accent"}
+                    onClick={() => setLocation("/intelligence")}
+                  >
+                    <button className="flex items-center gap-3 w-full" data-testid="nav-intelligence">
+                      <Brain className="w-5 h-5" />
+                      <span className="font-medium">{t.sidebar.intelligence}</span>
                     </button>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

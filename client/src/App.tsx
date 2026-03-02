@@ -16,6 +16,7 @@ import Analytics from "@/pages/analytics";
 import Settings from "@/pages/settings";
 import Welcome from "@/pages/welcome";
 import Admin from "@/pages/admin";
+import Intelligence from "@/pages/intelligence";
 import Pricing from "@/pages/pricing";
 import { TermsPage, BillingPage, PrivacyPage, CookiesPage, DpaPage, SecurityPage } from "@/pages/legal";
 import FaqPage from "@/pages/faq";
@@ -33,6 +34,7 @@ function Router() {
       <Route path="/analytics" component={Analytics} />
       <Route path="/settings" component={Settings} />
       <Route path="/admin" component={Admin} />
+      <Route path="/intelligence" component={Intelligence} />
       <Route path="/terms" component={TermsPage} />
       <Route path="/billing" component={BillingPage} />
       <Route path="/privacy" component={PrivacyPage} />

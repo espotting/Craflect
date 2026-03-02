@@ -18,7 +18,7 @@ client/src/
 ├── components/       # app-sidebar.tsx, layout.tsx, ui/
 ├── hooks/            # use-auth.ts, use-theme.ts, use-workspaces.ts, use-sources.ts, use-briefs.ts, use-analytics.ts, use-events.ts, use-toast.ts
 ├── lib/              # queryClient.ts
-├── pages/            # landing.tsx, auth.tsx, welcome.tsx, dashboard.tsx, library.tsx, briefs.tsx, analytics.tsx, settings.tsx, admin.tsx, pricing.tsx, legal.tsx, faq.tsx
+├── pages/            # landing.tsx, auth.tsx, welcome.tsx, dashboard.tsx, library.tsx, briefs.tsx, analytics.tsx, settings.tsx, admin.tsx, intelligence.tsx, pricing.tsx, legal.tsx, faq.tsx
 server/
 ├── replit_integrations/auth/  # replitAuth.ts (Google OAuth), storage.ts, routes.ts
 ├── replit_integrations/chat/  # AI chat integration
