@@ -75,7 +75,7 @@ export default function Landing() {
   const { isAuthenticated, isLoading } = useAuth();
   const [, setLocation] = useLocation();
   const { isDark, toggleTheme } = useTheme();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [showSticky, setShowSticky] = useState(false);
 
   useEffect(() => {
@@ -181,7 +181,7 @@ export default function Landing() {
               <span>{t.landing.badge}</span>
             </div>
 
-            <h1 className="font-display text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-extrabold tracking-tight text-foreground mb-6 leading-tight whitespace-nowrap text-center">
+            <h1 className={`font-display text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-extrabold tracking-tight text-foreground mb-6 leading-tight whitespace-nowrap ${language === "fr" ? "text-left" : "text-center"}`}>
               <span className="block">{t.landing.heroLine1}</span>
               <span className="block text-transparent bg-clip-text bg-gradient-to-r from-primary via-[#8b5cf6] to-secondary">
                 {t.landing.heroLine2}
