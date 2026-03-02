@@ -1,13 +1,20 @@
 import { db } from "./db";
 import { 
   workspaces, contentSources, briefs, generatedContent, performance, events, subscriptions,
+  niches, creators, videoPrimitives, nichePatterns, nicheStatistics, nicheProfiles,
   type Workspace, type InsertWorkspace,
   type ContentSource, type InsertContentSource,
   type Brief, type InsertBrief,
   type GeneratedContent, type InsertGeneratedContent,
   type Performance, type InsertPerformance,
   type InsertEvent, type Event,
-  type Subscription
+  type Subscription,
+  type Niche, type InsertNiche,
+  type Creator, type InsertCreator,
+  type VideoPrimitive, type InsertVideoPrimitive,
+  type NichePattern,
+  type NicheStatistic,
+  type NicheProfile
 } from "@shared/schema";
 import { users, type User } from "@shared/models/auth";
 import { eq, desc, sql, count, and } from "drizzle-orm";
@@ -58,6 +65,28 @@ export interface IStorage {
     generatedCount: number;
     briefCount: number;
   }>;
+
+  createNiche(niche: InsertNiche): Promise<Niche>;
+  getNiches(): Promise<Niche[]>;
+  getNicheById(id: string): Promise<Niche | undefined>;
+  getNicheByName(name: string): Promise<Niche | undefined>;
+
+  createCreator(creator: InsertCreator): Promise<Creator>;
+  getCreatorsByNiche(nicheId: string): Promise<Creator[]>;
+  getCreatorByUsername(platform: string, username: string): Promise<Creator | undefined>;
+
+  createVideoPrimitive(primitive: InsertVideoPrimitive): Promise<VideoPrimitive>;
+  getVideoPrimitivesByNiche(nicheId: string): Promise<VideoPrimitive[]>;
+  getVideoPrimitiveCount(nicheId: string): Promise<number>;
+
+  upsertNichePatterns(nicheId: string, data: Partial<NichePattern>): Promise<NichePattern>;
+  getNichePatterns(nicheId: string): Promise<NichePattern | undefined>;
+
+  upsertNicheStatistics(nicheId: string, data: Partial<NicheStatistic>): Promise<NicheStatistic>;
+  getNicheStatistics(nicheId: string): Promise<NicheStatistic | undefined>;
+
+  upsertNicheProfile(nicheId: string, data: Partial<NicheProfile>): Promise<NicheProfile>;
+  getNicheProfile(nicheId: string): Promise<NicheProfile | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -225,6 +254,98 @@ export class DatabaseStorage implements IStorage {
       generatedCount: genCount.count,
       briefCount: briefCount.count,
     };
+  }
+
+  async createNiche(niche: InsertNiche): Promise<Niche> {
+    const [created] = await db.insert(niches).values(niche).returning();
+    return created;
+  }
+
+  async getNiches(): Promise<Niche[]> {
+    return await db.select().from(niches).orderBy(desc(niches.createdAt));
+  }
+
+  async getNicheById(id: string): Promise<Niche | undefined> {
+    const [niche] = await db.select().from(niches).where(eq(niches.id, id));
+    return niche;
+  }
+
+  async getNicheByName(name: string): Promise<Niche | undefined> {
+    const [niche] = await db.select().from(niches).where(eq(niches.name, name));
+    return niche;
+  }
+
+  async createCreator(creator: InsertCreator): Promise<Creator> {
+    const [created] = await db.insert(creators).values(creator).returning();
+    return created;
+  }
+
+  async getCreatorsByNiche(nicheId: string): Promise<Creator[]> {
+    return await db.select().from(creators).where(eq(creators.nicheId, nicheId)).orderBy(desc(creators.createdAt));
+  }
+
+  async getCreatorByUsername(platform: string, username: string): Promise<Creator | undefined> {
+    const [creator] = await db.select().from(creators).where(and(eq(creators.platform, platform), eq(creators.username, username)));
+    return creator;
+  }
+
+  async createVideoPrimitive(primitive: InsertVideoPrimitive): Promise<VideoPrimitive> {
+    const [created] = await db.insert(videoPrimitives).values(primitive).returning();
+    return created;
+  }
+
+  async getVideoPrimitivesByNiche(nicheId: string): Promise<VideoPrimitive[]> {
+    return await db.select().from(videoPrimitives).where(eq(videoPrimitives.nicheId, nicheId)).orderBy(desc(videoPrimitives.createdAt));
+  }
+
+  async getVideoPrimitiveCount(nicheId: string): Promise<number> {
+    const [result] = await db.select({ count: count() }).from(videoPrimitives).where(eq(videoPrimitives.nicheId, nicheId));
+    return result.count;
+  }
+
+  async upsertNichePatterns(nicheId: string, data: Partial<NichePattern>): Promise<NichePattern> {
+    const existing = await this.getNichePatterns(nicheId);
+    if (existing) {
+      const [updated] = await db.update(nichePatterns).set({ ...data, updatedAt: new Date() }).where(eq(nichePatterns.nicheId, nicheId)).returning();
+      return updated;
+    }
+    const [created] = await db.insert(nichePatterns).values({ nicheId, ...data }).returning();
+    return created;
+  }
+
+  async getNichePatterns(nicheId: string): Promise<NichePattern | undefined> {
+    const [pattern] = await db.select().from(nichePatterns).where(eq(nichePatterns.nicheId, nicheId));
+    return pattern;
+  }
+
+  async upsertNicheStatistics(nicheId: string, data: Partial<NicheStatistic>): Promise<NicheStatistic> {
+    const existing = await this.getNicheStatistics(nicheId);
+    if (existing) {
+      const [updated] = await db.update(nicheStatistics).set({ ...data, updatedAt: new Date() }).where(eq(nicheStatistics.nicheId, nicheId)).returning();
+      return updated;
+    }
+    const [created] = await db.insert(nicheStatistics).values({ nicheId, ...data }).returning();
+    return created;
+  }
+
+  async getNicheStatistics(nicheId: string): Promise<NicheStatistic | undefined> {
+    const [stat] = await db.select().from(nicheStatistics).where(eq(nicheStatistics.nicheId, nicheId));
+    return stat;
+  }
+
+  async upsertNicheProfile(nicheId: string, data: Partial<NicheProfile>): Promise<NicheProfile> {
+    const existing = await this.getNicheProfile(nicheId);
+    if (existing) {
+      const [updated] = await db.update(nicheProfiles).set({ ...data, lastUpdated: new Date() }).where(eq(nicheProfiles.nicheId, nicheId)).returning();
+      return updated;
+    }
+    const [created] = await db.insert(nicheProfiles).values({ nicheId, ...data }).returning();
+    return created;
+  }
+
+  async getNicheProfile(nicheId: string): Promise<NicheProfile | undefined> {
+    const [profile] = await db.select().from(nicheProfiles).where(eq(nicheProfiles.nicheId, nicheId));
+    return profile;
   }
 }
 

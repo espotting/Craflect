@@ -22,11 +22,16 @@ client/src/
 server/
 ├── replit_integrations/auth/  # replitAuth.ts (Google OAuth), storage.ts, routes.ts
 ├── replit_integrations/chat/  # AI chat integration
-├── routes.ts         # API routes (workspaces, sources, ingestion, analysis, insights, AI generation, analytics, admin, events)
+├── routes.ts         # API routes (workspaces, sources, ingestion, analysis, insights, AI generation, analytics, admin, events, intelligence)
 ├── storage.ts        # IStorage interface + DatabaseStorage implementation
 ├── db.ts             # Drizzle DB connection
+├── utils/scraper.ts  # Shared scraping utilities (scrapePublicMetadata, detectPlatform, extractCreatorHandle)
+├── intelligence/     # Intelligence Layer
+│   ├── ingestion-pipeline.ts   # URL → LLM classification → video_primitive + pattern update
+│   ├── pattern-aggregator.ts   # Distribution calculation, stability/confidence scoring
+│   └── profile-generator.ts    # LLM-generated niche intelligence profiles
 shared/
-├── schema.ts         # Drizzle schemas (workspaces, content_sources, generated_content, briefs, performance, events)
+├── schema.ts         # Drizzle schemas (workspaces, content_sources, generated_content, briefs, performance, events, niches, creators, video_primitives, niche_patterns, niche_statistics, niche_profiles)
 ├── models/auth.ts    # users (with password, isAdmin, onboardingCompleted) + sessions + verification_codes tables
 ├── routes.ts         # API route definitions with Zod validation
 ```
@@ -52,6 +57,16 @@ shared/
 3. **Understand**: AI extracts pattern features ONLY (hookType, narrativeStructure, contentAngle, contentFormat, performanceScore). Metrics are NEVER simulated by AI — only real scraped data or "Metrics unavailable".
 4. **Recommend**: Pattern analysis across all workspace sources → identifies top hooks, winning formats, optimal structures
 5. **Produce**: Generate optimized content recommendations based on niche patterns
+
+## Intelligence Layer Architecture (V1)
+- **Closed Taxonomies**: HOOK_TYPES (15), STRUCTURE_MODELS (10), ANGLE_CATEGORIES (12), FORMAT_TYPES (6) — no free-form categories
+- **Tables**: niches, creators, video_primitives, niche_patterns, niche_statistics, niche_profiles
+- **Pipeline**: URL → scrape metadata → LLM classification (gpt-4.1-mini) → video_primitive → pattern aggregation → statistics update
+- **Pattern Stability Score**: `1 - normalized_entropy(hook_distribution)` — measures how concentrated patterns are
+- **Confidence Score**: `min(1, log(total_videos)/log(1000)) * pattern_stability_score`
+- **Profile Generation**: LLM generates intelligence_summary + strategic_recommendation from patterns/statistics
+- **API Routes**: All under `/api/intelligence/niches/...` (admin-only)
+- **No video storage**: Only normalized abstractions (video_primitives)
 
 ## Data V1 Architecture
 - **Metrics and AI analysis are decoupled**: AI analyzes patterns independently of metrics availability

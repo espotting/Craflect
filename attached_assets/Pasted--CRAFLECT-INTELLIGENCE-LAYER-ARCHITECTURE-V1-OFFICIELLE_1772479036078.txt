@@ -1,0 +1,420 @@
+📘 CRAFLECT — INTELLIGENCE LAYER ARCHITECTURE (V1 OFFICIELLE)
+🎯 OBJECTIF
+
+Construire une infrastructure d’intelligence verticale basée sur :
+
+Video Primitives normalisées
+
+Pattern Extraction Engine
+
+Statistical Layer
+
+Niche Intelligence Profiles
+
+Dashboard Intelligence (UX orienté B — Data on demand)
+
+Phase 1 : 3 niches profondes
+Scalable vers 10+ niches.
+
+🧱 1️⃣ DATABASE ARCHITECTURE
+TABLE: niches
+
+id (uuid, pk)
+
+name (string, unique)
+
+description (text)
+
+created_at (timestamp)
+
+TABLE: creators
+
+id (uuid, pk)
+
+niche_id (fk → niches.id)
+
+platform (enum: tiktok, instagram, youtube)
+
+username (string)
+
+created_at
+
+TABLE: video_primitives
+
+⚠️ Aucun stockage vidéo brut.
+
+id (uuid, pk)
+
+niche_id (fk)
+
+creator_id (fk)
+
+platform (enum)
+
+publish_date (timestamp)
+
+duration_seconds (integer)
+
+engagement_ratio (float, nullable)
+
+hook_text (text)
+
+hook_type (enum — voir taxonomie)
+
+hook_length_seconds (float)
+
+structure_model (enum — voir taxonomie)
+
+format_type (enum — voir taxonomie)
+
+angle_category (enum — voir taxonomie)
+
+topic_cluster (string)
+
+cta_present (boolean)
+
+pacing_score (float 0–1)
+
+authority_score (float 0–1)
+
+emotional_intensity_score (float 0–1)
+
+transcript_embedding (vector)
+
+created_at (timestamp)
+
+🧠 2️⃣ TAXONOMIES FERMÉES (À CRÉER EXACTEMENT)
+
+⚠️ Aucune catégorie libre autorisée.
+
+HOOK TYPES (15 EXACT)
+
+Question
+
+Bold_Claim
+
+Statistic
+
+Story_Start
+
+Shock
+
+Promise
+
+Problem
+
+Curiosity_Gap
+
+Authority_Intro
+
+Controversial
+
+Relatable
+
+Tutorial_Intro
+
+Before_After
+
+Myth_Busting
+
+Direct_Statement
+
+STRUCTURE MODELS (10 EXACT)
+
+Problem_Solution
+
+Hook_Value_CTA
+
+Story_Lesson
+
+List_Format
+
+Tutorial_Step
+
+Authority_Breakdown
+
+Emotional_Arc
+
+Before_After_Transformation
+
+Myth_Truth
+
+Quick_Tip
+
+ANGLE CATEGORIES (12 EXACT)
+
+Educational
+
+Emotional
+
+Authority
+
+Inspirational
+
+Relatable
+
+Fear_Based
+
+Aspirational
+
+Tactical
+
+Analytical
+
+Storytelling
+
+Controversial
+
+Social_Proof
+
+FORMAT TYPES (6 EXACT)
+
+Talking_Head
+
+B_Roll_Voiceover
+
+Text_Overlay
+
+Interview
+
+Montage
+
+Mixed_Format
+
+⚙️ 3️⃣ INGESTION PIPELINE
+
+Créer service :
+
+niche_ingestion_pipeline
+
+Workflow exact :
+
+Input : URL
+
+Extract transcript
+
+Generate transcript embedding
+
+LLM classification :
+
+hook_type
+
+structure_model
+
+angle_category
+
+format_type
+
+cta_present
+
+pacing_score
+
+authority_score
+
+emotional_intensity_score
+
+Save normalized video_primitive
+
+Trigger pattern aggregation update
+
+🤖 4️⃣ PROMPTS LLM (À IMPLÉMENTER STRICTEMENT)
+HOOK CLASSIFICATION PROMPT
+
+Classify the hook into one of the following categories only:
+[Question, Bold_Claim, Statistic, Story_Start, Shock, Promise, Problem, Curiosity_Gap, Authority_Intro, Controversial, Relatable, Tutorial_Intro, Before_After, Myth_Busting, Direct_Statement]
+
+Return only one category name.
+
+STRUCTURE PROMPT
+
+Classify the structure into one of:
+[Problem_Solution, Hook_Value_CTA, Story_Lesson, List_Format, Tutorial_Step, Authority_Breakdown, Emotional_Arc, Before_After_Transformation, Myth_Truth, Quick_Tip]
+
+Return only one.
+
+ANGLE PROMPT
+
+Choose only one:
+[Educational, Emotional, Authority, Inspirational, Relatable, Fear_Based, Aspirational, Tactical, Analytical, Storytelling, Controversial, Social_Proof]
+
+Return only one.
+
+SCORING PROMPT
+
+Score from 0 to 1:
+
+emotional_intensity
+
+authority_score
+
+pacing_strength
+
+Return JSON only.
+
+📊 5️⃣ PATTERN EXTRACTION ENGINE
+
+Service: pattern_aggregator
+
+À chaque insertion :
+
+Recalculer :
+
+hook_distribution (%)
+
+structure_distribution (%)
+
+angle_distribution (%)
+
+format_distribution (%)
+
+avg_duration
+
+median_duration
+
+dominant_patterns
+
+Stocker dans niche_patterns.
+
+📈 6️⃣ STATISTICAL LAYER
+
+TABLE: niche_statistics
+
+niche_id
+
+total_videos
+
+dominant_hook
+
+dominant_structure
+
+dominant_angle
+
+dominant_format
+
+median_duration
+
+pattern_stability_score
+
+confidence_score
+
+updated_at
+
+🧮 7️⃣ SCORING SYSTEM
+Pattern Stability Score
+
+Mesure concentration des hooks :
+
+stability = 1 - normalized_entropy(hook_distribution)
+
+Plus distribution concentrée → score élevé.
+
+Confidence Score
+
+confidence = min(1, log(total_videos)/log(1000)) * pattern_stability_score
+
+🧠 8️⃣ NICHE INTELLIGENCE PROFILE
+
+TABLE: niche_profiles
+
+niche_id
+
+intelligence_summary (LLM generated)
+
+strategic_recommendation
+
+dominant_patterns
+
+niche_shift_signal
+
+confidence_score
+
+last_updated
+
+🎛️ 9️⃣ DASHBOARD UX (HYBRIDE B)
+DEFAULT VIEW
+Section 1 — Niche Snapshot
+
+Dominant Hook
+
+Dominant Structure
+
+Ideal Duration
+
+Recommended Angle
+
+Pattern Stability
+
+Confidence Level
+
+Based on X videos
+
+Section 2 — What To Post Next
+
+Hook suggestion
+
+Structure template
+
+Angle
+
+Duration
+
+CTA type
+
+Section 3 — Niche Signal
+
+Simple text insight.
+
+DATA ON DEMAND
+
+Button: “See Pattern Breakdown”
+
+Drawer panel:
+
+Hook distribution
+
+Structure distribution
+
+Duration histogram
+
+Angle distribution
+
+Topic clusters
+
+🚀 10️⃣ SEED STRATEGY
+
+Phase 1:
+
+3 niches
+300–800 videos chacune
+30–50 creators
+Top performing content uniquement
+
+Script: bulk_niche_seed.py
+
+🛣️ ROADMAP 90 JOURS
+
+Weeks 1–2:
+Schema + taxonomies + ingestion pipeline
+
+Weeks 3–5:
+Seed 3 niches
+
+Weeks 6–8:
+Pattern engine stable
+
+Weeks 9–12:
+Dashboard Intelligence + launch vertical
+
+🔒 RÈGLES NON NÉGOCIABLES
+
+Taxonomies fixes
+
+Aucun champ libre
+
+Pas de stockage vidéo brute
+
+Complexité backend invisible
+
+UX minimaliste
+
+Intelligence first, data on demand

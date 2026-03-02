@@ -1,10 +1,31 @@
-import { pgTable, text, varchar, timestamp, integer, doublePrecision, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, integer, doublePrecision, jsonb, boolean, real } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { sql } from "drizzle-orm";
 
 export * from "./models/auth";
 export * from "./models/chat";
+
+export const HOOK_TYPES = [
+  "Question", "Bold_Claim", "Statistic", "Story_Start", "Shock",
+  "Promise", "Problem", "Curiosity_Gap", "Authority_Intro", "Controversial",
+  "Relatable", "Tutorial_Intro", "Before_After", "Myth_Busting", "Direct_Statement",
+] as const;
+
+export const STRUCTURE_MODELS = [
+  "Problem_Solution", "Hook_Value_CTA", "Story_Lesson", "List_Format", "Tutorial_Step",
+  "Authority_Breakdown", "Emotional_Arc", "Before_After_Transformation", "Myth_Truth", "Quick_Tip",
+] as const;
+
+export const ANGLE_CATEGORIES = [
+  "Educational", "Emotional", "Authority", "Inspirational", "Relatable",
+  "Fear_Based", "Aspirational", "Tactical", "Analytical", "Storytelling",
+  "Controversial", "Social_Proof",
+] as const;
+
+export const FORMAT_TYPES = [
+  "Talking_Head", "B_Roll_Voiceover", "Text_Overlay", "Interview", "Montage", "Mixed_Format",
+] as const;
 
 export const workspaces = pgTable("workspaces", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -133,3 +154,95 @@ export type InsertSubscription = z.infer<typeof insertSubscriptionSchema>;
 
 export type Event = typeof events.$inferSelect;
 export type InsertEvent = z.infer<typeof insertEventSchema>;
+
+export const niches = pgTable("niches", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull().unique(),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const creators = pgTable("creators", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  nicheId: varchar("niche_id").notNull(),
+  platform: text("platform").notNull(),
+  username: text("username").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const videoPrimitives = pgTable("video_primitives", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  nicheId: varchar("niche_id").notNull(),
+  creatorId: varchar("creator_id").notNull(),
+  platform: text("platform").notNull(),
+  publishDate: timestamp("publish_date"),
+  durationSeconds: integer("duration_seconds"),
+  engagementRatio: real("engagement_ratio"),
+  hookText: text("hook_text"),
+  hookType: text("hook_type").notNull(),
+  hookLengthSeconds: real("hook_length_seconds"),
+  structureModel: text("structure_model").notNull(),
+  formatType: text("format_type").notNull(),
+  angleCategory: text("angle_category").notNull(),
+  topicCluster: text("topic_cluster"),
+  ctaPresent: boolean("cta_present").default(false).notNull(),
+  pacingScore: real("pacing_score"),
+  authorityScore: real("authority_score"),
+  emotionalIntensityScore: real("emotional_intensity_score"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const nichePatterns = pgTable("niche_patterns", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  nicheId: varchar("niche_id").notNull(),
+  hookDistribution: jsonb("hook_distribution"),
+  structureDistribution: jsonb("structure_distribution"),
+  angleDistribution: jsonb("angle_distribution"),
+  formatDistribution: jsonb("format_distribution"),
+  avgDuration: real("avg_duration"),
+  medianDuration: real("median_duration"),
+  dominantPatterns: jsonb("dominant_patterns"),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const nicheStatistics = pgTable("niche_statistics", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  nicheId: varchar("niche_id").notNull(),
+  totalVideos: integer("total_videos").default(0).notNull(),
+  dominantHook: text("dominant_hook"),
+  dominantStructure: text("dominant_structure"),
+  dominantAngle: text("dominant_angle"),
+  dominantFormat: text("dominant_format"),
+  medianDuration: real("median_duration"),
+  patternStabilityScore: real("pattern_stability_score"),
+  confidenceScore: real("confidence_score"),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const nicheProfiles = pgTable("niche_profiles", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  nicheId: varchar("niche_id").notNull(),
+  intelligenceSummary: text("intelligence_summary"),
+  strategicRecommendation: text("strategic_recommendation"),
+  dominantPatterns: jsonb("dominant_patterns"),
+  nicheShiftSignal: text("niche_shift_signal"),
+  confidenceScore: real("confidence_score"),
+  lastUpdated: timestamp("last_updated").defaultNow().notNull(),
+});
+
+export const insertNicheSchema = createInsertSchema(niches).omit({ id: true, createdAt: true });
+export const insertCreatorSchema = createInsertSchema(creators).omit({ id: true, createdAt: true });
+export const insertVideoPrimitiveSchema = createInsertSchema(videoPrimitives).omit({ id: true, createdAt: true });
+export const insertNichePatternsSchema = createInsertSchema(nichePatterns).omit({ id: true, updatedAt: true });
+export const insertNicheStatisticsSchema = createInsertSchema(nicheStatistics).omit({ id: true, updatedAt: true });
+export const insertNicheProfileSchema = createInsertSchema(nicheProfiles).omit({ id: true, lastUpdated: true });
+
+export type Niche = typeof niches.$inferSelect;
+export type InsertNiche = z.infer<typeof insertNicheSchema>;
+export type Creator = typeof creators.$inferSelect;
+export type InsertCreator = z.infer<typeof insertCreatorSchema>;
+export type VideoPrimitive = typeof videoPrimitives.$inferSelect;
+export type InsertVideoPrimitive = z.infer<typeof insertVideoPrimitiveSchema>;
+export type NichePattern = typeof nichePatterns.$inferSelect;
+export type NicheStatistic = typeof nicheStatistics.$inferSelect;
+export type NicheProfile = typeof nicheProfiles.$inferSelect;
