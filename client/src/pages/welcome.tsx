@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -164,7 +165,12 @@ export default function Welcome() {
   const [step, setStep] = useState(0);
   const [showIntro, setShowIntro] = useState(true);
   const [workspaceName, setWorkspaceName] = useState("");
+  const [selectedNicheId, setSelectedNicheId] = useState<string | null>(null);
   const [createdWorkspaceId, setCreatedWorkspaceId] = useState<string | null>(null);
+
+  const { data: availableNiches } = useQuery<any[]>({
+    queryKey: ["/api/niches/available"],
+  });
   const [urls, setUrls] = useState<string[]>([""]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
@@ -210,7 +216,9 @@ export default function Welcome() {
     if (!workspaceName.trim()) return;
     setIsSubmitting(true);
     try {
-      const res = await apiRequest("POST", "/api/workspaces", { name: workspaceName });
+      const payload: any = { name: workspaceName };
+      if (selectedNicheId) payload.nicheId = selectedNicheId;
+      const res = await apiRequest("POST", "/api/workspaces", payload);
       const workspace = await res.json();
       setCreatedWorkspaceId(workspace.id);
       queryClient.invalidateQueries({ queryKey: ["/api/workspaces"] });
@@ -221,7 +229,7 @@ export default function Welcome() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [workspaceName, toast]);
+  }, [workspaceName, selectedNicheId, toast]);
 
   const handleAddUrl = useCallback(() => {
     setUrls((prev) => [...prev, ""]);
@@ -490,7 +498,7 @@ export default function Welcome() {
                     <CardContent className="p-8 space-y-6">
                       <div className="flex items-center gap-3 mb-2">
                         <div className="w-10 h-10 rounded-md bg-primary/10 flex items-center justify-center">
-                          <FolderKanban className="w-5 h-5 text-primary" />
+                          <Brain className="w-5 h-5 text-primary" />
                         </div>
                         <div>
                           <h2 className="text-2xl font-display font-bold text-foreground" data-testid="text-step-title">
@@ -507,32 +515,55 @@ export default function Welcome() {
                         {t.welcome.nicheHint}
                       </div>
 
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium text-muted-foreground">
-                          {t.welcome.whatNiche}
-                        </label>
-                        <Input
-                          placeholder={t.welcome.nichePlaceholder}
-                          value={workspaceName}
-                          onChange={(e) => setWorkspaceName(e.target.value)}
-                          className="bg-background border-border text-foreground"
-                          autoFocus
-                          data-testid="input-onboarding-workspace"
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              e.preventDefault();
-                              handleCreateWorkspace();
-                            }
-                          }}
-                        />
-                        <p className="text-[11px] text-muted-foreground/60">
-                          {t.welcome.nicheHelper}
-                        </p>
+                      <div className="space-y-3">
+                        {availableNiches?.map((niche: any) => (
+                          <button
+                            key={niche.id}
+                            onClick={() => {
+                              setSelectedNicheId(niche.id);
+                              setWorkspaceName(niche.name.replace(/_/g, " "));
+                            }}
+                            className={`w-full text-left p-4 rounded-xl border-2 transition-all ${
+                              selectedNicheId === niche.id
+                                ? "border-primary bg-primary/5 dark:bg-primary/10"
+                                : "border-border hover:border-primary/40 hover:bg-muted/50"
+                            }`}
+                            data-testid={`button-select-niche-${niche.id}`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="text-sm font-bold text-foreground capitalize">
+                                  {niche.name.replace(/_/g, " ")}
+                                </p>
+                                {niche.description && (
+                                  <p className="text-xs text-muted-foreground mt-0.5">{niche.description}</p>
+                                )}
+                              </div>
+                              {selectedNicheId === niche.id && (
+                                <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+                                  <Check className="w-3.5 h-3.5 text-white" />
+                                </div>
+                              )}
+                            </div>
+                            {niche.videoCount > 0 && (
+                              <div className="mt-2 flex items-center gap-2">
+                                <Badge variant="outline" className="text-[10px] rounded-full">
+                                  {niche.videoCount} videos analyzed
+                                </Badge>
+                                {niche.isReady && (
+                                  <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-[10px] rounded-full">
+                                    Ready
+                                  </Badge>
+                                )}
+                              </div>
+                            )}
+                          </button>
+                        ))}
                       </div>
 
                       <Button
                         onClick={handleCreateWorkspace}
-                        disabled={isSubmitting || !workspaceName.trim()}
+                        disabled={isSubmitting || !selectedNicheId}
                         className="w-full"
                         data-testid="button-onboarding-create-workspace"
                       >

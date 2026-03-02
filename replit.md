@@ -118,7 +118,7 @@ shared/
 - recommendations (JSON: actionable recommendations with priority)
 
 ## Key Patterns
-- Workspaces belong to users (ownerId), verifyWorkspaceOwnership middleware on all workspace routes
+- Workspaces belong to users (ownerId) and optionally link to a niche (nicheId), verifyWorkspaceOwnership middleware on all workspace routes
 - Content sources belong to workspaces, ingestionStatus tracks analysis pipeline
 - Generated content belongs to workspaces, optionally to sources or briefs
 - Briefs/Insights belong to workspaces, contain pattern analysis data

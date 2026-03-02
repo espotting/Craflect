@@ -31,6 +31,7 @@ export const workspaces = pgTable("workspaces", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   ownerId: varchar("owner_id").notNull(), 
   name: text("name").notNull(),
+  nicheId: varchar("niche_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -159,6 +160,8 @@ export const niches = pgTable("niches", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull().unique(),
   description: text("description"),
+  minRequiredVideos: integer("min_required_videos").default(500).notNull(),
+  isPublic: boolean("is_public").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

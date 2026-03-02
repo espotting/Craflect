@@ -6,7 +6,7 @@ import { useSubscription } from "@/hooks/use-subscription";
 import { useLanguage } from "@/hooks/use-language";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, FolderKanban, ArrowRight, Loader2, Sparkles, Wand2, TrendingUp, Brain, CreditCard, Zap, AlertTriangle } from "lucide-react";
+import { Plus, FolderKanban, ArrowRight, Loader2, Sparkles, Wand2, TrendingUp, Brain, CreditCard, Zap, AlertTriangle, ChevronDown, Target, BarChart3, Clock, Shield, Activity } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -15,6 +15,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,6 +29,43 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+
+function DistributionBar({ data, label }: { data: Record<string, number> | null; label: string }) {
+  if (!data) return null;
+  const sorted = Object.entries(data).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]);
+  if (sorted.length === 0) return null;
+  const colors = ["bg-primary", "bg-blue-500", "bg-emerald-500", "bg-amber-500", "bg-rose-500", "bg-violet-500"];
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{label}</p>
+      <div className="space-y-1.5">
+        {sorted.slice(0, 5).map(([key, value], i) => (
+          <div key={key} className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground w-28 truncate" title={key.replace(/_/g, " ")}>{key.replace(/_/g, " ")}</span>
+            <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+              <div className={`h-full rounded-full ${colors[i % colors.length]}`} style={{ width: `${Math.round(value * 100)}%` }} />
+            </div>
+            <span className="text-[10px] font-mono text-muted-foreground w-8 text-right">{Math.round(value * 100)}%</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ScoreGauge({ value, label, size = "normal" }: { value: number | null; label: string; size?: "normal" | "large" }) {
+  if (value == null) return null;
+  const pct = Math.round(value * 100);
+  const color = pct >= 70 ? "text-emerald-500" : pct >= 40 ? "text-amber-500" : "text-rose-500";
+  const bgColor = pct >= 70 ? "bg-emerald-500/10" : pct >= 40 ? "bg-amber-500/10" : "bg-rose-500/10";
+  return (
+    <div className={`flex flex-col items-center gap-1 p-3 rounded-xl ${bgColor}`}>
+      <span className={`font-bold font-mono ${color} ${size === "large" ? "text-2xl" : "text-lg"}`}>{pct}%</span>
+      <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">{label}</span>
+    </div>
+  );
+}
 
 export default function Dashboard() {
   const { data: workspaces, isLoading } = useWorkspaces();
@@ -37,6 +81,19 @@ export default function Dashboard() {
   const { data: generatedContent } = useGeneratedContent(selectedWorkspace?.id);
   const { data: briefs } = useBriefs(selectedWorkspace?.id);
   const { data: subscription } = useSubscription();
+
+  const { data: availableNiches } = useQuery<any[]>({
+    queryKey: ["/api/niches/available"],
+  });
+
+  const [selectedNicheId, setSelectedNicheId] = useState<string | null>(null);
+
+  const activeNicheId = selectedNicheId || availableNiches?.[0]?.id;
+
+  const { data: snapshotData } = useQuery<any>({
+    queryKey: ["/api/niches", activeNicheId, "snapshot"],
+    enabled: !!activeNicheId,
+  });
 
   const latestInsight = briefs?.[0];
   const latestContent = generatedContent?.slice(0, 3);
@@ -61,19 +118,6 @@ export default function Dashboard() {
   const renewalDays = subscription?.renewalDate
     ? Math.max(0, Math.ceil((new Date(subscription.renewalDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
     : null;
-
-  let insightTags: string[] = [];
-  if (latestInsight) {
-    try {
-      const insightsJson = typeof latestInsight.insights === "string" ? JSON.parse(latestInsight.insights) : latestInsight.insights;
-      if (insightsJson?.contentAngles) {
-        insightTags = insightsJson.contentAngles.slice(0, 2).map((a: any) => typeof a === "string" ? a : (a.angle || a.name || ""));
-      }
-      if (latestInsight.format && insightTags.length < 3) {
-        insightTags.push(latestInsight.format.replace(/_/g, " "));
-      }
-    } catch {}
-  }
 
   const getNextAction = () => {
     if (!hasWorkspace) return { label: t.dashboard.actions.createWorkspace, action: () => setIsOpen(true), cta: t.common.continue };
@@ -117,8 +161,8 @@ export default function Dashboard() {
         <form onSubmit={handleCreate} className="space-y-6 pt-4">
           <div className="space-y-2">
             <label className="text-sm font-medium text-muted-foreground">{t.dashboard.workspaceName}</label>
-            <Input 
-              placeholder="e.g. Acme Corp Marketing" 
+            <Input
+              placeholder="e.g. Acme Corp Marketing"
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="bg-background border-border text-foreground h-12 rounded-xl focus-visible:ring-primary focus-visible:border-primary"
@@ -126,8 +170,8 @@ export default function Dashboard() {
               data-testid="input-workspace-name"
             />
           </div>
-          <Button 
-            type="submit" 
+          <Button
+            type="submit"
             className="w-full h-12 rounded-xl bg-gradient-to-r from-primary to-secondary hover:opacity-90 font-medium text-white"
             disabled={createMutation.isPending || !name.trim()}
             data-testid="button-create-workspace"
@@ -169,6 +213,19 @@ export default function Dashboard() {
     );
   }
 
+  const snapshot = snapshotData?.snapshot;
+  const recommendation = snapshotData?.recommendation;
+  const distributions = snapshotData?.distributions;
+  const selectedNiche = availableNiches?.find((n: any) => n.id === activeNicheId);
+
+  const getSignalMessage = () => {
+    if (recommendation?.nicheShiftSignal) return recommendation.nicheShiftSignal;
+    if (snapshot?.patternStabilityScore >= 0.6) return t.dashboard.nicheStable;
+    return null;
+  };
+
+  const signalMessage = getSignalMessage();
+
   return (
     <DashboardLayout>
       <div className="space-y-6 max-w-4xl">
@@ -178,50 +235,124 @@ export default function Dashboard() {
           {t.dashboard.aiLearning}
         </div>
 
-        {latestInsight ? (
-          <Card className="border-primary/20 bg-card overflow-hidden relative" data-testid="card-latest-insight">
-            <div className="absolute top-0 right-0 w-48 h-48 bg-primary/5 dark:bg-primary/10 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2 pointer-events-none" />
-            <CardContent className="p-6 relative z-10 space-y-4">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-primary" />
-                <span className="text-[10px] font-bold uppercase tracking-widest text-primary">{t.dashboard.latestInsight}</span>
-              </div>
-              <h2 className="text-lg sm:text-xl font-display font-bold text-foreground leading-snug line-clamp-2" data-testid="text-insight-topic">
-                {latestInsight.topic}
-              </h2>
-              <p className="text-sm text-muted-foreground line-clamp-2" data-testid="text-insight-hook">
-                {latestInsight.hook}
-              </p>
-              {insightTags.length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  {insightTags.map((tag, i) => (
-                    <Badge key={i} variant="secondary" className="text-[10px] capitalize" data-testid={`badge-insight-tag-${i}`}>
-                      {tag}
-                    </Badge>
-                  ))}
+        {availableNiches && availableNiches.length > 1 && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs text-muted-foreground font-medium">{t.dashboard.selectNiche}:</span>
+            {availableNiches.map((n: any) => (
+              <Button
+                key={n.id}
+                variant={n.id === activeNicheId ? "default" : "outline"}
+                size="sm"
+                className="rounded-full text-xs h-7 px-3"
+                onClick={() => setSelectedNicheId(n.id)}
+                data-testid={`button-niche-${n.id}`}
+              >
+                {n.name.replace(/_/g, " ")}
+              </Button>
+            ))}
+          </div>
+        )}
+
+        {snapshot ? (
+          <>
+            <Card className="border-primary/20 bg-card overflow-hidden relative" data-testid="card-snapshot">
+              <div className="absolute top-0 right-0 w-48 h-48 bg-primary/5 dark:bg-primary/10 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+              <CardContent className="p-6 relative z-10 space-y-5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Brain className="w-4 h-4 text-primary" />
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-primary">{t.dashboard.snapshot}</span>
+                  </div>
+                  <Badge variant="outline" className="text-[10px] rounded-full" data-testid="badge-video-count">
+                    {t.dashboard.basedOn.replace("{count}", String(snapshot.totalVideos || 0))}
+                  </Badge>
                 </div>
-              )}
-              <div className="flex items-center gap-3 pt-1">
-                <Button onClick={() => setLocation("/briefs")} className="bg-primary hover:bg-primary/90 text-white rounded-lg h-10 px-6 text-sm font-medium" data-testid="button-view-insight">
-                  {t.dashboard.viewInsight}
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </Button>
-                <Button onClick={() => setLocation("/briefs")} variant="outline" className="rounded-lg h-10 px-5 text-sm" data-testid="button-generate-content">
-                  <Sparkles className="w-4 h-4 mr-1.5" />
-                  {t.dashboard.generateContent}
-                </Button>
-              </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <SnapshotStat icon={Sparkles} label={t.dashboard.dominantHook} value={snapshot.dominantHook?.replace(/_/g, " ")} />
+                  <SnapshotStat icon={Target} label={t.dashboard.dominantStructure} value={snapshot.dominantStructure?.replace(/_/g, " ")} />
+                  <SnapshotStat icon={Clock} label={t.dashboard.idealDuration} value={snapshot.medianDuration ? `${Math.round(snapshot.medianDuration)}s` : "—"} />
+                  <SnapshotStat icon={TrendingUp} label={t.dashboard.recommendedAngle} value={snapshot.dominantAngle?.replace(/_/g, " ")} />
+                </div>
+
+                <div className="flex items-center gap-4 justify-center pt-1">
+                  <ScoreGauge value={snapshot.patternStabilityScore} label={t.dashboard.patternStability} />
+                  <ScoreGauge value={snapshot.confidenceScore} label={t.dashboard.confidenceLevel} />
+                </div>
+              </CardContent>
+            </Card>
+
+            {recommendation?.strategicRecommendation && (
+              <Card className="border-border" data-testid="card-what-to-post">
+                <CardContent className="p-5 space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Wand2 className="w-4 h-4 text-primary" />
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-primary">{t.dashboard.whatToPostNext}</span>
+                  </div>
+                  <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap" data-testid="text-recommendation">
+                    {recommendation.strategicRecommendation}
+                  </p>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pt-1">
+                    <MiniStat label={t.dashboard.hookSuggestion} value={snapshot.dominantHook?.replace(/_/g, " ")} />
+                    <MiniStat label={t.dashboard.structureTemplate} value={snapshot.dominantStructure?.replace(/_/g, " ")} />
+                    <MiniStat label={t.dashboard.angle} value={snapshot.dominantAngle?.replace(/_/g, " ")} />
+                    <MiniStat label={t.dashboard.duration} value={snapshot.medianDuration ? `~${Math.round(snapshot.medianDuration)}s` : "—"} />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {signalMessage && (
+              <Card className={`border-border ${snapshot.patternStabilityScore >= 0.6 ? "bg-emerald-500/5 border-emerald-500/20" : "bg-amber-500/5 border-amber-500/20"}`} data-testid="card-niche-signal">
+                <CardContent className="p-5 flex items-center gap-3">
+                  <Activity className={`w-5 h-5 flex-shrink-0 ${snapshot.patternStabilityScore >= 0.6 ? "text-emerald-500" : "text-amber-500"}`} />
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground block mb-1">{t.dashboard.nicheSignal}</span>
+                    <p className="text-sm text-foreground" data-testid="text-niche-signal">{signalMessage}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {distributions && (
+              <Drawer>
+                <DrawerTrigger asChild>
+                  <Button variant="outline" className="w-full rounded-xl text-xs text-muted-foreground" data-testid="button-data-on-demand">
+                    <BarChart3 className="w-4 h-4 mr-2" />
+                    {t.dashboard.dataOnDemand}
+                    <ChevronDown className="w-4 h-4 ml-2" />
+                  </Button>
+                </DrawerTrigger>
+                <DrawerContent className="max-h-[70vh]">
+                  <DrawerHeader>
+                    <DrawerTitle className="font-display">{t.dashboard.dataOnDemand}</DrawerTitle>
+                  </DrawerHeader>
+                  <div className="p-6 space-y-6 overflow-y-auto">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <DistributionBar data={distributions.hookDistribution} label={t.intelligence?.hookDistribution || "Hook Distribution"} />
+                      <DistributionBar data={distributions.structureDistribution} label={t.intelligence?.structureDistribution || "Structure Distribution"} />
+                      <DistributionBar data={distributions.angleDistribution} label={t.intelligence?.angleDistribution || "Angle Distribution"} />
+                      <DistributionBar data={distributions.formatDistribution} label={t.intelligence?.formatDistribution || "Format Distribution"} />
+                    </div>
+                  </div>
+                </DrawerContent>
+              </Drawer>
+            )}
+          </>
+        ) : selectedNiche && !selectedNiche.isReady ? (
+          <Card className="border-border border-dashed border-2" data-testid="card-niche-not-ready">
+            <CardContent className="p-8 flex flex-col items-center text-center">
+              <Brain className="w-10 h-10 text-muted-foreground/20 mb-4" />
+              <Badge variant="outline" className="mb-3 rounded-full">{t.dashboard.comingSoon}</Badge>
+              <p className="text-sm text-muted-foreground">{t.dashboard.nicheNotReady}</p>
             </CardContent>
           </Card>
         ) : (
-          <Card className="border-border border-dashed border-2" data-testid="card-no-insight">
+          <Card className="border-border border-dashed border-2" data-testid="card-no-snapshot">
             <CardContent className="p-8 flex flex-col items-center text-center">
-              <TrendingUp className="w-10 h-10 text-muted-foreground/20 mb-4" />
-              <h3 className="font-display text-lg font-bold text-foreground mb-1">{t.dashboard.noInsightsTitle}</h3>
-              <p className="text-sm text-muted-foreground mb-5">{t.dashboard.noInsightsDesc}</p>
-              <Button onClick={() => setLocation(hasSources ? "/briefs" : "/library")} className="rounded-lg" data-testid="button-go-insights">
-                {hasSources ? t.dashboard.generateFirstBrief : t.dashboard.generateFirstAnalysis}
-              </Button>
+              <Brain className="w-10 h-10 text-muted-foreground/20 mb-4" />
+              <h3 className="font-display text-lg font-bold text-foreground mb-1">{t.dashboard.noNicheSelected}</h3>
+              <p className="text-sm text-muted-foreground">{t.dashboard.noWorkspacesDesc}</p>
             </CardContent>
           </Card>
         )}
@@ -378,5 +509,28 @@ export default function Dashboard() {
 
       </div>
     </DashboardLayout>
+  );
+}
+
+function SnapshotStat({ icon: Icon, label, value }: { icon: any; label: string; value: string | undefined }) {
+  return (
+    <div className="p-3 rounded-xl bg-muted/40 dark:bg-muted/20 space-y-1">
+      <div className="flex items-center gap-1.5">
+        <Icon className="w-3.5 h-3.5 text-primary" />
+        <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">{label}</span>
+      </div>
+      <p className="text-sm font-bold font-display text-foreground capitalize" data-testid={`text-snapshot-${label.toLowerCase().replace(/\s/g, "-")}`}>
+        {value || "—"}
+      </p>
+    </div>
+  );
+}
+
+function MiniStat({ label, value }: { label: string; value: string | undefined }) {
+  return (
+    <div className="p-2 rounded-lg bg-muted/30 dark:bg-muted/15">
+      <span className="text-[10px] text-muted-foreground block">{label}</span>
+      <span className="text-xs font-medium text-foreground capitalize">{value || "—"}</span>
+    </div>
   );
 }
