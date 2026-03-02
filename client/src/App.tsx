@@ -17,6 +17,8 @@ import Settings from "@/pages/settings";
 import Welcome from "@/pages/welcome";
 import Admin from "@/pages/admin";
 import Pricing from "@/pages/pricing";
+import { TermsPage, BillingPage, PrivacyPage, CookiesPage, DpaPage, SecurityPage } from "@/pages/legal";
+import FaqPage from "@/pages/faq";
 
 function Router() {
   return (
@@ -31,6 +33,13 @@ function Router() {
       <Route path="/analytics" component={Analytics} />
       <Route path="/settings" component={Settings} />
       <Route path="/admin" component={Admin} />
+      <Route path="/terms" component={TermsPage} />
+      <Route path="/billing" component={BillingPage} />
+      <Route path="/privacy" component={PrivacyPage} />
+      <Route path="/cookies" component={CookiesPage} />
+      <Route path="/dpa" component={DpaPage} />
+      <Route path="/faq" component={FaqPage} />
+      <Route path="/security" component={SecurityPage} />
       <Route component={NotFound} />
     </Switch>
   );

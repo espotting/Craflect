@@ -1,6 +1,6 @@
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useAuth } from "@/hooks/use-auth";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { useEffect, useState } from "react";
 import {
   Sparkles,
@@ -514,15 +514,47 @@ export default function Landing() {
           </div>
         </section>
 
-        <footer className="px-4 py-8 border-t border-border/50">
-          <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <img src={isDark ? logoTransparent : logoLight} alt="Craflect" className="h-10 w-auto" />
-              <span className="text-xs text-muted-foreground">{t.landing.footer}</span>
+        <footer className="px-4 py-12 border-t border-border/50">
+          <div className="max-w-5xl mx-auto">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10">
+              <div className="col-span-2 md:col-span-1">
+                <img src={isDark ? logoTransparent : logoLight} alt="Craflect" className="h-10 w-auto mb-3" />
+                <p className="text-xs text-muted-foreground">{t.landing.footer}</p>
+              </div>
+
+              <div>
+                <h4 className="text-sm font-semibold text-foreground mb-3" data-testid="footer-product-heading">{t.footerLinks.product}</h4>
+                <ul className="space-y-2">
+                  <li><Link href="/pricing" className="text-sm text-muted-foreground hover-elevate" data-testid="footer-link-pricing">{t.footerLinks.pricing}</Link></li>
+                  <li><Link href="/faq" className="text-sm text-muted-foreground hover-elevate" data-testid="footer-link-faq">{t.footerLinks.faq}</Link></li>
+                  <li><Link href="/security" className="text-sm text-muted-foreground hover-elevate" data-testid="footer-link-security">{t.footerLinks.security}</Link></li>
+                </ul>
+              </div>
+
+              <div>
+                <h4 className="text-sm font-semibold text-foreground mb-3" data-testid="footer-legal-heading">{t.footerLinks.legal}</h4>
+                <ul className="space-y-2">
+                  <li><Link href="/terms" className="text-sm text-muted-foreground hover-elevate" data-testid="footer-link-terms">{t.footerLinks.terms}</Link></li>
+                  <li><Link href="/billing" className="text-sm text-muted-foreground hover-elevate" data-testid="footer-link-billing">{t.footerLinks.billing}</Link></li>
+                  <li><Link href="/privacy" className="text-sm text-muted-foreground hover-elevate" data-testid="footer-link-privacy">{t.footerLinks.privacy}</Link></li>
+                  <li><Link href="/cookies" className="text-sm text-muted-foreground hover-elevate" data-testid="footer-link-cookies">{t.footerLinks.cookies}</Link></li>
+                  <li><Link href="/dpa" className="text-sm text-muted-foreground hover-elevate" data-testid="footer-link-dpa">{t.footerLinks.dpa}</Link></li>
+                </ul>
+              </div>
+
+              <div>
+                <h4 className="text-sm font-semibold text-foreground mb-3" data-testid="footer-company-heading">{t.footerLinks.company}</h4>
+                <ul className="space-y-2">
+                  <li><a href="mailto:contact@craflect.com" className="text-sm text-muted-foreground hover-elevate" data-testid="footer-link-contact">{t.footerLinks.contact}</a></li>
+                </ul>
+              </div>
             </div>
-            <p className="text-xs text-muted-foreground">
-              {t.landing.copyright.replace("{year}", new Date().getFullYear().toString())}
-            </p>
+
+            <div className="pt-6 border-t border-border/30 text-center">
+              <p className="text-xs text-muted-foreground">
+                {t.landing.copyright.replace("{year}", new Date().getFullYear().toString())}
+              </p>
+            </div>
           </div>
         </footer>
       </main>
