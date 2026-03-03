@@ -189,12 +189,13 @@ export default function Landing() {
               {t.landing.subtitle}
             </p>
 
-            <div className="flex flex-wrap items-center justify-center gap-2 mb-8">
-              <span className="text-xs text-muted-foreground font-medium mr-1">{t.landing.verticalBadgeTitle}</span>
-              {t.landing.verticals.map((v: string) => (
-                <Badge key={v} variant="secondary" className="rounded-full px-3 py-1 text-xs font-medium bg-primary/10 dark:bg-primary/15 text-primary border-primary/20" data-testid={`badge-vertical-${v.toLowerCase().replace(/\s/g, '-')}`}>
-                  {v}
-                </Badge>
+            <div className="flex items-center justify-center gap-2 mb-8" data-testid="platforms-bar">
+              <span className="text-xs text-muted-foreground font-medium mr-1">{t.landing.builtForCreators}</span>
+              {["TikTok", "Instagram Reels", "YouTube Shorts"].map((p, i) => (
+                <span key={p} className="flex items-center gap-0 text-xs font-medium text-foreground/75">
+                  {i > 0 && <span className="mx-1.5 text-foreground/40">·</span>}
+                  {p}
+                </span>
               ))}
             </div>
 
