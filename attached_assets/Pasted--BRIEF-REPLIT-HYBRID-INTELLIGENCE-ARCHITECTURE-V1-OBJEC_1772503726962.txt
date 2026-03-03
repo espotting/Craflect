@@ -1,0 +1,233 @@
+📌 BRIEF REPLIT — HYBRID INTELLIGENCE ARCHITECTURE V1
+🎯 OBJECTIF
+
+Implémenter une architecture hybride :
+
+🧠 Global Niche Intelligence (agrégée)
+
+📊 Workspace Intelligence (personnelle)
+
+Toggle simple pour basculer entre les deux
+
+Aucune pollution UX
+
+Aucune influence workspace → global (phase 1)
+
+1️⃣ STRUCTURE ARCHITECTURE DATA
+🧠 A. GLOBAL NICHE INTELLIGENCE
+
+Table existante ou à créer :
+
+niche_intelligence
+- niche_id (PK)
+- total_videos
+- dominant_hook_id
+- dominant_structure_id
+- dominant_format_id
+- dominant_angle_id
+- hook_distribution_json
+- structure_distribution_json
+- format_distribution_json
+- angle_distribution_json
+- confidence_score
+- signal_strength
+- last_updated
+
+⚠️ Calcul basé sur :
+
+videos WHERE niche_id = X
+
+⚠️ Ne jamais inclure données cross-niche.
+
+⚠️ Le global n’est PAS influencé par les données workspace utilisateur pour le moment.
+
+📊 B. WORKSPACE INTELLIGENCE
+
+Nouvelle table :
+
+workspace_intelligence
+- workspace_id (PK)
+- niche_id
+- total_videos
+- dominant_hook_id
+- dominant_structure_id
+- dominant_format_id
+- dominant_angle_id
+- hook_distribution_json
+- structure_distribution_json
+- format_distribution_json
+- angle_distribution_json
+- confidence_score
+- signal_strength
+- last_updated
+
+Calcul basé uniquement sur :
+
+videos WHERE workspace_id = X
+2️⃣ CONFIDENCE SCORE (APPLIQUÉ AUX DEUX LAYERS)
+
+Formule identique pour Global et Workspace.
+
+Volume Score (40%)
+volume_score = min(total_videos / 500, 1)
+Consistency Score (40%)
+consistency_score =
+average(
+dominant_hook_percentage,
+dominant_structure_percentage,
+dominant_format_percentage
+) / 100
+Stability Score (20%)
+
+Simplification V1 acceptable.
+
+Final
+confidence =
+(0.4 × volume_score) +
+(0.4 × consistency_score) +
+(0.2 × stability_score)
+
+Affichage en %.
+
+3️⃣ SIGNAL STRENGTH
+signal_strength =
+average(
+dominant_hook_percentage,
+dominant_structure_percentage,
+dominant_format_percentage
+)
+
+Affichage en %.
+
+4️⃣ DASHBOARD — TOGGLE IMPLEMENTATION
+Positionnement
+
+En haut du Dashboard, sous le titre niche :
+
+[ Global Signal ]  |  [ Your Dataset ]
+
+Style toggle simple.
+
+Global = actif par défaut.
+
+Comportement
+
+Le toggle change :
+
+Confidence %
+
+Signal Strength %
+
+Dominant hook
+
+Dominant structure
+
+Dominant format
+
+Dominant angle
+
+Total videos analyzed
+
+⚠️ Ne pas modifier la structure visuelle.
+⚠️ Uniquement les données changent.
+
+5️⃣ EMPTY STATE WORKSPACE
+
+Si workspace_videos = 0 :
+
+En mode "Your Dataset" afficher :
+
+You have not added niche-specific videos yet.
+
+Confidence = 0
+Signal = 0
+
+Pas de données fictives.
+
+6️⃣ NICHE ISOLATION STRICTE
+
+Règle absolue :
+
+Toutes les requêtes doivent inclure :
+
+WHERE niche_id = workspace.niche_id
+
+Aucune requête globale non filtrée.
+
+7️⃣ NICHE SELECTOR
+
+Remplacer boutons par :
+
+Searchable Dropdown :
+
+Recherche texte
+
+Liste scrollable
+
+1 niche active
+
+Pas de "+ Create new niche" pour le moment
+
+8️⃣ IMPORTANT — GLOBAL PROTECTION
+
+Phase 1 :
+
+Le global niche intelligence n’est PAS influencé par les workspaces utilisateurs.
+
+Plus tard (phase 2) :
+
+On pourra introduire :
+
+Trust score
+
+Community weighting
+
+Validation layer
+
+Mais pas maintenant.
+
+9️⃣ ANALYTICS PAGE
+
+Afficher le layer correspondant au toggle actif.
+
+Message dynamique :
+
+Global mode :
+
+Based on aggregated niche intelligence.
+
+Workspace mode :
+
+Based on your uploaded dataset.
+
+10️⃣ PERFORMANCE
+
+Ajouter index sur :
+
+videos.niche_id
+videos.workspace_id
+workspace_intelligence.workspace_id
+niche_intelligence.niche_id
+11️⃣ OBJECTIF FINAL
+
+Avec cette architecture :
+
+Nouveau user bénéficie immédiatement du global
+
+Il peut comparer avec son dataset
+
+Aucune pollution cross-niche
+
+UX simple
+
+Moteur data puissant
+
+Scalable à 100+ niches
+
+🎯 RÉSULTAT ATTENDU
+
+Craflect devient :
+
+A vertical intelligence engine with personal benchmarking.
+
+Pas un simple outil d’analyse.

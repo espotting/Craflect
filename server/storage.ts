@@ -51,6 +51,9 @@ export interface IStorage {
 
   getSubscription(userId: string): Promise<Subscription | undefined>;
   getOrCreateSubscription(userId: string): Promise<Subscription>;
+  updateSubscription(userId: string, data: Partial<Subscription>): Promise<Subscription>;
+  getSubscriptionByStripeCustomerId(stripeCustomerId: string): Promise<Subscription | undefined>;
+  getSubscriptionByStripeSubscriptionId(stripeSubscriptionId: string): Promise<Subscription | undefined>;
   
   getAllUsers(): Promise<User[]>;
   getGlobalStats(): Promise<{
@@ -219,6 +222,21 @@ export class DatabaseStorage implements IStorage {
       renewalDate,
     }).returning();
     return created;
+  }
+
+  async updateSubscription(userId: string, data: Partial<Subscription>): Promise<Subscription> {
+    const [updated] = await db.update(subscriptions).set({ ...data, updatedAt: new Date() }).where(eq(subscriptions.userId, userId)).returning();
+    return updated;
+  }
+
+  async getSubscriptionByStripeCustomerId(stripeCustomerId: string): Promise<Subscription | undefined> {
+    const [sub] = await db.select().from(subscriptions).where(eq(subscriptions.stripeCustomerId, stripeCustomerId));
+    return sub;
+  }
+
+  async getSubscriptionByStripeSubscriptionId(stripeSubscriptionId: string): Promise<Subscription | undefined> {
+    const [sub] = await db.select().from(subscriptions).where(eq(subscriptions.stripeSubscriptionId, stripeSubscriptionId));
+    return sub;
   }
 
   async updateUserProfile(id: string, data: { firstName?: string; lastName?: string; onboardingCompleted?: boolean }): Promise<User> {

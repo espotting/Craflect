@@ -245,10 +245,17 @@ export default function Briefs() {
     [];
 
   const hasData = !!latestBrief || (scoring && scoring.totalVideos > 0);
+  const notReady = !scoring || scoring.totalVideos < 3;
+  const confidence = scoring?.confidencePercent ?? 0;
 
-  const headerTitle = hasData
-    ? (latestBrief ? t.insights.signalClear : t.insights.whatWins)
-    : t.insights.noSignalYet;
+  const headerTitle = (() => {
+    if (!latestBrief && (!scoring || scoring.totalVideos === 0)) {
+      return t.insights.noSignalYet;
+    }
+    if (confidence < 40) return t.insights.signalBuilding;
+    if (confidence < 70) return t.insights.signalEmerging;
+    return t.insights.signalClear;
+  })();
 
   if (!workspacesLoading && !selectedWorkspace) {
     return (
@@ -332,6 +339,15 @@ export default function Briefs() {
         ) : (
           <div className="space-y-8">
             {scoring && <NicheProfileCard scoring={scoring} />}
+
+            {notReady && (
+              <div className="flex flex-col items-center justify-center p-12 rounded-md border-dashed border-2 border-border text-center">
+                <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center mb-4">
+                  <Brain className="w-7 h-7 text-muted-foreground/40" />
+                </div>
+                <p className="text-muted-foreground text-sm max-w-sm" data-testid="text-not-ready">{t.insights.noInsightsDesc}</p>
+              </div>
+            )}
 
             {latestBrief && (
               <div className="flex items-center gap-3 flex-wrap" data-testid="card-latest-brief">

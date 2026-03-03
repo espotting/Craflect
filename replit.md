@@ -83,7 +83,7 @@ shared/
 - **Insights (Briefs)**: Niche Intelligence Profile card, Winning Patterns (3 compact cards), max 3 one-line recommendations, "View Data Behind These Insights" link
 - **Analytics (Learning Loop)**: 4 metric cards (Content Created, Content Tracked, Signal Strength, Confidence), signal interpretation
 - **Data Breakdown** (`/niche-data`): Full distribution tables (hooks, structures, formats, angles), confidence computation details
-- **Plan & Billing** (`/plan-billing`): Current plan, usage progress bars, upgrade CTA
+- **Plan & Billing** (`/plan-billing`): Stripe-powered subscription (Checkout, Portal, Invoices), plan cards (Starter €29, Pro €69, Studio €199), invoice history with PDF download
 - **Settings**: Profile editing with save, theme toggle
 - **Admin Panel**: KPI cards, user list, event feed
 - **Instrumentation**: Event tracking (content_uploaded, brief_generated, content_generated, analytics_viewed)
@@ -120,7 +120,8 @@ shared/
 - recommendations (JSON: actionable recommendations with priority)
 
 ## Key Patterns
-- Workspaces belong to users (ownerId) and optionally link to a niche (nicheId), verifyWorkspaceOwnership middleware on all workspace routes
+- Workspaces belong to users (ownerId) and MUST link to a niche (nicheId required), verifyWorkspaceOwnership middleware on all workspace routes
+- Niche isolation: workspace = 1 niche, all data filtered by niche, changing niche resets displayed data
 - Content sources belong to workspaces, ingestionStatus tracks analysis pipeline
 - Source-level routes (/api/sources/:id/analyze, /api/sources/:id/generate) verify workspace ownership via source→workspace→ownerId check
 - Generated content belongs to workspaces, optionally to sources or briefs
@@ -130,10 +131,22 @@ shared/
 - SSRF protection: scraper blocks private/localhost/internal URLs before fetching
 - LLM classification validates taxonomy values with null-safe fallbacks
 
+## Stripe Billing
+- **Integration**: Manual Stripe SDK (not via Replit integration), uses STRIPE_SECRET_KEY and STRIPE_PUBLISHABLE_KEY env secrets
+- **Products/Prices**: Created lazily via ensureStripePrices() — Starter €29/mo, Pro €69/mo, Studio €199/mo
+- **Tax**: tax_behavior=exclusive on prices, automatic_tax=true on checkout sessions (Stripe Tax)
+- **Webhook**: POST /api/billing/webhook (needs STRIPE_WEBHOOK_SECRET for signature verification)
+- **Flow**: User clicks Subscribe → POST /api/billing/checkout → Stripe Checkout → webhook updates subscription
+- **Portal**: POST /api/billing/portal → Stripe Customer Portal (card management, cancellation)
+- **Invoices**: GET /api/billing/invoices → list from Stripe API
+- **Schema**: subscriptions table has stripeCustomerId, stripeSubscriptionId
+
 ## Environment Variables
 - DATABASE_URL (auto)
 - GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
 - SESSION_SECRET
+- STRIPE_SECRET_KEY, STRIPE_PUBLISHABLE_KEY (manual secrets)
+- STRIPE_WEBHOOK_SECRET (optional, for webhook signature verification)
 - AI_INTEGRATIONS_OPENAI_API_KEY, AI_INTEGRATIONS_OPENAI_BASE_URL (auto)
 
 ## Pages

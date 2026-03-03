@@ -1,5 +1,5 @@
 import { DashboardLayout } from "@/components/layout";
-import { Activity, BarChart3, Zap, TrendingUp, Plus } from "lucide-react";
+import { Activity, BarChart3, Zap, TrendingUp, Plus, Brain } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,7 @@ export default function Analytics() {
       signalStrengthPercent: number;
       intelligenceStatus: string;
     };
+    notReady?: boolean;
     recommendation: any;
     distributions: any;
   }>({
@@ -42,6 +43,7 @@ export default function Analytics() {
   const contentTracked = analytics?.performanceData?.length ?? 0;
   const signalStrengthPct = snapshot?.scoring?.signalStrengthPercent ?? 0;
   const confidencePct = snapshot?.scoring?.confidencePercent ?? 0;
+  const hasNoData = !snapshot || snapshot.notReady || (snapshot.scoring?.totalVideos ?? 0) < 3;
 
   function getSignalInterpretation(pct: number): string {
     if (pct < 40) return t.analytics.signalWeak;
@@ -91,54 +93,74 @@ export default function Analytics() {
           </h1>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {isLoading
-            ? [1, 2, 3, 4].map((i) => (
-                <Card key={i}>
-                  <CardContent className="pt-6 space-y-3">
-                    <Skeleton className="h-8 w-8 rounded-md" />
-                    <Skeleton className="h-3 w-20" />
-                    <Skeleton className="h-7 w-16" />
-                  </CardContent>
-                </Card>
-              ))
-            : metrics.map((m) => (
-                <Card key={m.testId} data-testid={`card-metric-${m.testId}`}>
-                  <CardContent className="pt-6">
-                    <div className={`p-2 rounded-md bg-muted border border-border w-fit mb-3 ${m.color}`}>
-                      <m.icon className="w-4 h-4" />
-                    </div>
-                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-1">
-                      {m.label}
-                    </p>
-                    <p className="text-2xl font-bold text-foreground" data-testid={`text-${m.testId}`}>
-                      {m.value}
-                    </p>
-                    {m.badge && (
-                      <Badge variant="secondary" className="mt-2" data-testid={`badge-${m.testId}`}>
-                        {m.badge}
-                      </Badge>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-        </div>
+        {hasNoData && !isLoading ? (
+          <Card data-testid="card-analytics-empty">
+            <CardContent className="py-16 flex flex-col items-center text-center">
+              <Brain className="w-10 h-10 text-muted-foreground/20 mb-4" />
+              <h3 className="text-lg font-bold text-foreground mb-1" data-testid="text-no-data-title">
+                {t.analytics.noDataTitle}
+              </h3>
+              <p className="text-sm text-muted-foreground max-w-sm mb-6" data-testid="text-no-data-desc">
+                {t.analytics.noDataDesc}
+              </p>
+              <Button onClick={() => setLocation("/library")} data-testid="button-add-content-empty">
+                <Plus className="w-4 h-4 mr-2" />
+                {t.analytics.addContent}
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {isLoading
+                ? [1, 2, 3, 4].map((i) => (
+                    <Card key={i}>
+                      <CardContent className="pt-6 space-y-3">
+                        <Skeleton className="h-8 w-8 rounded-md" />
+                        <Skeleton className="h-3 w-20" />
+                        <Skeleton className="h-7 w-16" />
+                      </CardContent>
+                    </Card>
+                  ))
+                : metrics.map((m) => (
+                    <Card key={m.testId} data-testid={`card-metric-${m.testId}`}>
+                      <CardContent className="pt-6">
+                        <div className={`p-2 rounded-md bg-muted border border-border w-fit mb-3 ${m.color}`}>
+                          <m.icon className="w-4 h-4" />
+                        </div>
+                        <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-1">
+                          {m.label}
+                        </p>
+                        <p className="text-2xl font-bold text-foreground" data-testid={`text-${m.testId}`}>
+                          {m.value}
+                        </p>
+                        {m.badge && (
+                          <Badge variant="secondary" className="mt-2" data-testid={`badge-${m.testId}`}>
+                            {m.badge}
+                          </Badge>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
+            </div>
 
-        <Card data-testid="card-learning-message">
-          <CardContent className="pt-6 flex items-center gap-3">
-            <div className="w-2 h-2 rounded-full bg-primary animate-pulse shrink-0" />
-            <p className="text-sm text-muted-foreground" data-testid="text-analytics-subtitle">
-              {t.analytics.subtitle}
-            </p>
-          </CardContent>
-        </Card>
+            <Card data-testid="card-learning-message">
+              <CardContent className="pt-6 flex items-center gap-3">
+                <div className="w-2 h-2 rounded-full bg-primary animate-pulse shrink-0" />
+                <p className="text-sm text-muted-foreground" data-testid="text-analytics-subtitle">
+                  {t.analytics.subtitle}
+                </p>
+              </CardContent>
+            </Card>
 
-        <div className="flex justify-start">
-          <Button onClick={() => setLocation("/library")} data-testid="button-add-content">
-            <Plus className="w-4 h-4 mr-2" />
-            {t.analytics.addContent}
-          </Button>
-        </div>
+            <div className="flex justify-start">
+              <Button onClick={() => setLocation("/library")} data-testid="button-add-content">
+                <Plus className="w-4 h-4 mr-2" />
+                {t.analytics.addContent}
+              </Button>
+            </div>
+          </>
+        )}
       </div>
     </DashboardLayout>
   );

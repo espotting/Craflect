@@ -11,6 +11,7 @@ import { ingestVideoForNiche } from "./intelligence/ingestion-pipeline";
 import { updateNichePatterns, updateNicheStatistics } from "./intelligence/pattern-aggregator";
 import { generateNicheProfile } from "./intelligence/profile-generator";
 import { computeNicheScoring } from "./intelligence/scoring";
+import { stripe, getOrCreateStripeCustomer, createCheckoutSession, createBillingPortalSession, getCustomerInvoices, ensureStripePrices, PLANS } from "./stripe";
 
 const openai = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
@@ -51,7 +52,7 @@ export async function registerRoutes(
 
   app.post("/api/workspaces", isAuthenticated, async (req: any, res) => {
     try {
-      const input = z.object({ name: z.string().min(1), nicheId: z.string().optional() }).parse(req.body);
+      const input = z.object({ name: z.string().min(1), nicheId: z.string().min(1, "A niche must be selected") }).parse(req.body);
       const workspace = await storage.createWorkspace(req.user.id, input);
       await storage.createEvent({ userId: req.user.id, eventName: "workspace_created", metadata: { workspaceId: workspace.id } });
       res.status(201).json(workspace);
@@ -724,9 +725,11 @@ The content should directly apply the recommendations from the insight report. W
         storage.getNicheProfile(nicheId),
         computeNicheScoring(nicheId),
       ]);
+      const notReady = scoring.totalVideos < 3;
       res.json({
         niche: { id: niche.id, name: niche.name, description: niche.description },
         scoring,
+        notReady,
         recommendation: profile ? {
           intelligenceSummary: profile.intelligenceSummary,
           strategicRecommendation: profile.strategicRecommendation,
@@ -742,6 +745,158 @@ The content should directly apply the recommendations from the insight report. W
         } : null,
       });
     } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // ─── Stripe Billing ───
+
+  app.post("/api/billing/checkout", isAuthenticated, async (req: any, res) => {
+    try {
+      const { plan } = z.object({ plan: z.enum(["starter", "pro", "studio"]) }).parse(req.body);
+      const sub = await storage.getOrCreateSubscription(req.user.id);
+      const customerId = await getOrCreateStripeCustomer(
+        req.user.email,
+        `${req.user.firstName || ""} ${req.user.lastName || ""}`.trim() || req.user.email,
+        sub.stripeCustomerId
+      );
+      if (!sub.stripeCustomerId) {
+        await storage.updateSubscription(req.user.id, { stripeCustomerId: customerId });
+      }
+      const protocol = req.headers["x-forwarded-proto"] || "https";
+      const host = req.headers.host;
+      const baseUrl = `${protocol}://${host}`;
+      const url = await createCheckoutSession(
+        customerId,
+        plan,
+        `${baseUrl}/plan-billing?success=true`,
+        `${baseUrl}/plan-billing?canceled=true`
+      );
+      res.json({ url });
+    } catch (err: any) {
+      console.error("Checkout session error:", err);
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/billing/portal", isAuthenticated, async (req: any, res) => {
+    try {
+      const sub = await storage.getOrCreateSubscription(req.user.id);
+      if (!sub.stripeCustomerId) {
+        return res.status(400).json({ message: "No billing account found. Subscribe to a plan first." });
+      }
+      const protocol = req.headers["x-forwarded-proto"] || "https";
+      const host = req.headers.host;
+      const baseUrl = `${protocol}://${host}`;
+      const url = await createBillingPortalSession(sub.stripeCustomerId, `${baseUrl}/plan-billing`);
+      res.json({ url });
+    } catch (err: any) {
+      console.error("Portal session error:", err);
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/billing/invoices", isAuthenticated, async (req: any, res) => {
+    try {
+      const sub = await storage.getOrCreateSubscription(req.user.id);
+      if (!sub.stripeCustomerId) {
+        return res.json([]);
+      }
+      const invoices = await getCustomerInvoices(sub.stripeCustomerId);
+      res.json(invoices);
+    } catch (err: any) {
+      console.error("Invoice listing error:", err);
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/billing/webhook", async (req: any, res) => {
+    const sig = req.headers["stripe-signature"];
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+    let event: any;
+    if (webhookSecret && sig) {
+      try {
+        event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+      } catch (err: any) {
+        console.error("Webhook signature verification failed:", err.message);
+        return res.status(400).send(`Webhook Error: ${err.message}`);
+      }
+    } else {
+      event = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
+    }
+
+    try {
+      switch (event.type) {
+        case "checkout.session.completed": {
+          const session = event.data.object;
+          if (session.mode === "subscription" && session.customer) {
+            const sub = await storage.getSubscriptionByStripeCustomerId(session.customer);
+            if (sub) {
+              await storage.updateSubscription(sub.userId, {
+                stripeSubscriptionId: session.subscription,
+                billingStatus: "active",
+              });
+            }
+          }
+          break;
+        }
+        case "invoice.paid": {
+          const invoice = event.data.object;
+          if (invoice.subscription) {
+            const sub = await storage.getSubscriptionByStripeSubscriptionId(invoice.subscription);
+            if (sub) {
+              await storage.updateSubscription(sub.userId, {
+                billingStatus: "active",
+                renewalDate: new Date((invoice.lines?.data?.[0]?.period?.end || Math.floor(Date.now() / 1000) + 30 * 86400) * 1000),
+              });
+            }
+          }
+          break;
+        }
+        case "customer.subscription.updated": {
+          const subscription = event.data.object;
+          const sub = await storage.getSubscriptionByStripeSubscriptionId(subscription.id);
+          if (sub) {
+            const planItem = subscription.items?.data?.[0];
+            const planLookup: Record<number, { plan: string; limit: number; nichesLimit: number }> = {
+              2900: { plan: "starter", limit: 20, nichesLimit: 1 },
+              6900: { plan: "pro", limit: 100, nichesLimit: 3 },
+              19900: { plan: "studio", limit: 300, nichesLimit: 999 },
+            };
+            const amount = planItem?.price?.unit_amount || 0;
+            const planInfo = planLookup[amount] || { plan: sub.plan, limit: sub.analysesLimit, nichesLimit: sub.nichesLimit };
+
+            let billingStatus = "active";
+            if (subscription.status === "past_due") billingStatus = "past_due";
+            else if (subscription.status === "canceled" || subscription.status === "unpaid") billingStatus = "canceled";
+            else if (subscription.status === "trialing") billingStatus = "trial";
+
+            await storage.updateSubscription(sub.userId, {
+              plan: planInfo.plan,
+              analysesLimit: planInfo.limit,
+              nichesLimit: planInfo.nichesLimit,
+              billingStatus,
+              renewalDate: subscription.current_period_end ? new Date(subscription.current_period_end * 1000) : sub.renewalDate,
+            });
+          }
+          break;
+        }
+        case "customer.subscription.deleted": {
+          const subscription = event.data.object;
+          const sub = await storage.getSubscriptionByStripeSubscriptionId(subscription.id);
+          if (sub) {
+            await storage.updateSubscription(sub.userId, {
+              billingStatus: "canceled",
+              stripeSubscriptionId: null,
+            });
+          }
+          break;
+        }
+      }
+      res.json({ received: true });
+    } catch (err: any) {
+      console.error("Webhook processing error:", err);
       res.status(500).json({ message: err.message });
     }
   });

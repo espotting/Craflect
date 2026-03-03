@@ -115,6 +115,8 @@ export const subscriptions = pgTable("subscriptions", {
   billingStatus: text("billing_status").default("trial").notNull(),
   trialEndDate: timestamp("trial_end_date"),
   renewalDate: timestamp("renewal_date"),
+  stripeCustomerId: varchar("stripe_customer_id"),
+  stripeSubscriptionId: varchar("stripe_subscription_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

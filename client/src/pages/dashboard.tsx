@@ -3,7 +3,7 @@ import { useWorkspaces, useCreateWorkspace } from "@/hooks/use-workspaces";
 import { useLanguage } from "@/hooks/use-language";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Loader2, Brain, Info, BarChart3, Zap, Target, ArrowRight, Activity } from "lucide-react";
+import { Plus, Loader2, Brain, Info, BarChart3, Zap, Target, ArrowRight, Activity, Check, ChevronsUpDown } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -12,6 +12,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
@@ -21,6 +23,7 @@ import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { FolderKanban } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 function StatusBadge({ status }: { status: string }) {
   const colorMap: Record<string, string> = {
@@ -101,7 +104,11 @@ export default function Dashboard() {
   });
 
   const [selectedNicheId, setSelectedNicheId] = useState<string | null>(null);
-  const activeNicheId = selectedNicheId || availableNiches?.[0]?.id;
+  const [nicheOpen, setNicheOpen] = useState(false);
+
+  const selectedWorkspace = workspaces?.[0];
+  const workspaceNicheId = selectedWorkspace?.nicheId;
+  const activeNicheId = workspaceNicheId || selectedNicheId || availableNiches?.[0]?.id;
 
   const { data: snapshotData, isLoading: isSnapshotLoading } = useQuery<any>({
     queryKey: ["/api/niches", activeNicheId, "snapshot"],
@@ -196,24 +203,66 @@ export default function Dashboard() {
     <DashboardLayout>
       <div className="space-y-6 max-w-4xl">
 
-        {availableNiches && availableNiches.length > 1 && (
+        {availableNiches && availableNiches.length > 0 && !workspaceNicheId && (
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs text-muted-foreground font-medium">{t.dashboard.selectNiche}:</span>
-            {availableNiches.map((n: any) => (
-              <Button
-                key={n.id}
-                variant={n.id === activeNicheId ? "default" : "outline"}
-                size="sm"
-                onClick={() => setSelectedNicheId(n.id)}
-                data-testid={`button-niche-${n.id}`}
-              >
-                {n.name.replace(/_/g, " ")}
-              </Button>
-            ))}
+            <Popover open={nicheOpen} onOpenChange={setNicheOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={nicheOpen}
+                  className="w-[240px] justify-between"
+                  data-testid="combobox-niche-trigger"
+                >
+                  {selectedNiche
+                    ? selectedNiche.name.replace(/_/g, " ")
+                    : t.dashboard.selectNiche}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[240px] p-0">
+                <Command>
+                  <CommandInput placeholder={t.dashboard.searchNiche} data-testid="input-niche-search" />
+                  <CommandList>
+                    <CommandEmpty data-testid="text-no-niche-found">{t.dashboard.noNicheFound}</CommandEmpty>
+                    <CommandGroup>
+                      {availableNiches.map((n: any) => (
+                        <CommandItem
+                          key={n.id}
+                          value={n.name}
+                          onSelect={() => {
+                            setSelectedNicheId(n.id);
+                            setNicheOpen(false);
+                          }}
+                          data-testid={`combobox-niche-item-${n.id}`}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              n.id === activeNicheId ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          {n.name.replace(/_/g, " ")}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
         )}
 
-        {scoring ? (
+        {snapshotData?.notReady || (scoring && scoring.totalVideos < 3) ? (
+          <Card data-testid="card-empty-state">
+            <CardContent className="p-8 flex flex-col items-center text-center">
+              <Brain className="w-10 h-10 text-muted-foreground/20 mb-4" />
+              <h3 className="text-lg font-bold text-foreground mb-1" data-testid="text-empty-state-title">{t.dashboard.emptyStateTitle}</h3>
+              <p className="text-sm text-muted-foreground" data-testid="text-empty-state-desc">{t.dashboard.emptyStateDesc}</p>
+            </CardContent>
+          </Card>
+        ) : scoring ? (
           <>
             <Card data-testid="card-niche-intelligence">
               <CardContent className="p-5 space-y-4">
