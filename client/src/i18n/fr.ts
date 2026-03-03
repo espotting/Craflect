@@ -58,7 +58,7 @@ const fr: Translations = {
     heroLine3: "Des idées de contenu claires — tout de suite.",
     subtitle: "Craflect analyse ce qui performe déjà dans votre niche et le transforme en idées de contenu simples, prêtes à l'emploi.",
     builtForCreators: "Conçu pour les créateurs sur",
-    ctaPrimary: "Commencez avec votre niche",
+    ctaPrimary: "Obtenez votre premier insight",
     ctaSecondary: "Découvrir comment ça marche",
     clarityTitle: "Arrêtez de deviner. Créez ce qui marche.",
     claritySubtitle: "Craflect élimine le bruit et vous montre ce qui performe régulièrement dans votre niche — pour que vous puissiez créer, au lieu de deviner.",

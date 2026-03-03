@@ -56,7 +56,7 @@ const en = {
     heroLine3: "Get clear content ideas — instantly.",
     subtitle: "Craflect analyzes what's already performing in your niche and turns it into simple, ready-to-use content ideas.",
     builtForCreators: "Built for creators on",
-    ctaPrimary: "Start with your niche",
+    ctaPrimary: "Get your first insight",
     ctaSecondary: "See how it works",
     clarityTitle: "Stop guessing. Start building what works.",
     claritySubtitle: "Craflect removes the noise and shows you what's consistently performing in your niche — so you can focus on creating, not guessing.",
