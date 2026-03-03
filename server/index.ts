@@ -62,9 +62,7 @@ app.use((req, res, next) => {
 
 async function seedNiches() {
   const SEED_NICHES = [
-    { name: "personal_branding", description: "Personal branding & solopreneur content strategies" },
-    { name: "real_estate", description: "Real estate creator content patterns" },
-    { name: "fitness", description: "Fitness coaching short-form content" },
+    { name: "Influencer / Creator Economy", description: "Content patterns for influencers and creator economy professionals." },
   ];
   for (const niche of SEED_NICHES) {
     const existing = await storage.getNicheByName(niche.name);

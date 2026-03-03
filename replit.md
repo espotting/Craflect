@@ -31,7 +31,8 @@ The application is built with a React, TypeScript, Tailwind CSS, shadcn/ui, and 
     - **Scoring Engine:** Computes "Confidence" (based on volume, consistency, stability) and "Signal Strength," and determines "Intelligence Status" (Building, Active, Mature).
     - **Profile Generator:** LLM-generates niche intelligence summaries and strategic recommendations.
 - **Content Source Processing:** AI extracts pattern features using closed taxonomies (e.g., HOOK_TYPES, STRUCTURE_MODELS), ensuring consistent categorization.
-- **Hybrid Intelligence:** Supports both 'Global Intelligence' (admin-ingested niche data) and 'Workspace Intelligence' (user's personal dataset).
+- **Hybrid Intelligence:** Supports both 'Global Intelligence' (admin-ingested niche data, sourceType='admin') and 'Workspace Intelligence' (user's personal dataset, sourceType='user'). All data flows through the unified `video_primitives` table. Content sources are automatically converted to video primitives upon analysis. The `workspace_intelligence` table caches per-workspace scoring.
+    - **Data State:** Single niche "Influencer / Creator Economy" (public, id=504c98ef), 10 admin primitives (Global Signal), 6 user primitives across workspaces. Workspace "KT" (fed26535) has 5 user primitives.
 - **Stripe Billing:** Integrated for subscription management, product/price creation, and webhook handling for subscription status updates.
 - **Scraping:** Lightweight public metadata scraping (title, description, views, likes, etc.) is non-blocking and continues analysis even if full metadata is unavailable. SSRF protection is implemented.
 
