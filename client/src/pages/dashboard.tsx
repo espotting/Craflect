@@ -1,6 +1,7 @@
 import { DashboardLayout } from "@/components/layout";
 import { useWorkspaces, useCreateWorkspace } from "@/hooks/use-workspaces";
 import { useLanguage } from "@/hooks/use-language";
+import { useSelectedNiche } from "@/hooks/use-selected-niche";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Loader2, Brain, Info, BarChart3, Zap, Target, ArrowRight, Activity, Check, ChevronsUpDown } from "lucide-react";
@@ -103,7 +104,7 @@ export default function Dashboard() {
     queryKey: ["/api/niches/available"],
   });
 
-  const [selectedNicheId, setSelectedNicheId] = useState<string | null>(null);
+  const { selectedNicheId, setSelectedNicheId } = useSelectedNiche();
   const [nicheOpen, setNicheOpen] = useState(false);
   const [intelligenceMode, setIntelligenceMode] = useState<"global" | "workspace">("global");
 

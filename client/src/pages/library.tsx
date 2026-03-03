@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { DashboardLayout } from "@/components/layout";
 import { useWorkspaces } from "@/hooks/use-workspaces";
+import { useSelectedNiche } from "@/hooks/use-selected-niche";
 import { useSources, useIngestUrls, useAnalyzeSource } from "@/hooks/use-sources";
 import { useLanguage } from "@/hooks/use-language";
 import { Button } from "@/components/ui/button";
@@ -334,7 +335,7 @@ export default function Library() {
   const [platformFilter, setPlatformFilter] = useState<string>("all");
   const [hookFilter, setHookFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("recent");
-  const [selectedNicheId, setSelectedNicheId] = useState<string | null>(null);
+  const { selectedNicheId, setSelectedNicheId } = useSelectedNiche();
   const [nicheOpen, setNicheOpen] = useState(false);
   const { data: workspaces, isLoading: workspacesLoading } = useWorkspaces();
   const { data: availableNiches } = useQuery<any[]>({ queryKey: ["/api/niches/available"] });
