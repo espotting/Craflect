@@ -325,10 +325,7 @@ export class DatabaseStorage implements IStorage {
 
   async getVideoPrimitiveCount(nicheId: string): Promise<number> {
     const [result] = await db.select({ count: count() }).from(videoPrimitives).where(
-      and(
-        eq(videoPrimitives.nicheId, nicheId),
-        or(eq(videoPrimitives.sourceType, "admin"), isNull(videoPrimitives.sourceType))
-      )
+      eq(videoPrimitives.nicheId, nicheId)
     );
     return result.count;
   }

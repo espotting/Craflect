@@ -58,10 +58,7 @@ export async function updateNichePatterns(nicheId: string) {
   const primitives = await db
     .select()
     .from(videoPrimitives)
-    .where(and(
-      eq(videoPrimitives.nicheId, nicheId),
-      or(eq(videoPrimitives.sourceType, "admin"), isNull(videoPrimitives.sourceType))
-    ));
+    .where(eq(videoPrimitives.nicheId, nicheId));
 
   if (primitives.length === 0) return;
 
@@ -96,10 +93,7 @@ export async function updateNicheStatistics(nicheId: string) {
   const primitives = await db
     .select()
     .from(videoPrimitives)
-    .where(and(
-      eq(videoPrimitives.nicheId, nicheId),
-      or(eq(videoPrimitives.sourceType, "admin"), isNull(videoPrimitives.sourceType))
-    ));
+    .where(eq(videoPrimitives.nicheId, nicheId));
 
   const totalVideos = primitives.length;
   if (totalVideos === 0) return;

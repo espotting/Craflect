@@ -62,17 +62,15 @@ app.use((req, res, next) => {
 
 async function seedNiches() {
   const SEED_NICHES = [
-    { name: "Influencer / Creator Economy", description: "Content patterns for influencers and creator economy professionals." },
-    { name: "Personal Branding", description: "Personal branding & solopreneur content strategies." },
-    { name: "Fitness & Wellness", description: "Fitness coaching and wellness short-form content." },
-    { name: "Real Estate", description: "Real estate creator content patterns and lead generation." },
-    { name: "E-Commerce & DTC", description: "E-commerce and direct-to-consumer brand content." },
-    { name: "SaaS & Tech", description: "SaaS product marketing and tech content strategies." },
+    { name: "personal_branding", description: "Personal branding & solopreneur content strategies" },
+    { name: "real_estate", description: "Real estate creator content patterns" },
+    { name: "fitness", description: "Fitness coaching short-form content" },
+    { name: "Influencer / Creator Economy", description: "Content patterns for influencers and creator economy professionals.", isPublic: true },
   ];
   for (const niche of SEED_NICHES) {
     const existing = await storage.getNicheByName(niche.name);
     if (!existing) {
-      await storage.createNiche({ name: niche.name, description: niche.description, isPublic: true });
+      await storage.createNiche({ name: niche.name, description: niche.description, isPublic: niche.isPublic || false });
       log(`Seeded niche: ${niche.name}`);
     }
   }
