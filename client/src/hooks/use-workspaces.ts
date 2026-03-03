@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api, type InsertWorkspace, type Workspace } from "@shared/routes";
+import { api } from "@shared/routes";
+import type { InsertWorkspace, Workspace } from "@shared/schema";
 
 export function useWorkspaces() {
   return useQuery({

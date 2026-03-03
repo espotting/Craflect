@@ -10,6 +10,7 @@ import { scrapePublicMetadata, detectPlatform, extractCreatorHandle } from "./ut
 import { ingestVideoForNiche } from "./intelligence/ingestion-pipeline";
 import { updateNichePatterns, updateNicheStatistics } from "./intelligence/pattern-aggregator";
 import { generateNicheProfile } from "./intelligence/profile-generator";
+import { computeNicheScoring } from "./intelligence/scoring";
 
 const openai = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
@@ -690,20 +691,21 @@ The content should directly apply the recommendations from the insight report. W
     try {
       const allNiches = await storage.getNiches();
       const enriched = await Promise.all(allNiches.map(async (n) => {
-        const stats = await storage.getNicheStatistics(n.id);
-        const videoCount = await storage.getVideoPrimitiveCount(n.id);
-        const isReady = videoCount >= n.minRequiredVideos
-          && (stats?.patternStabilityScore ?? 0) >= 0.4
-          && (stats?.confidenceScore ?? 0) >= 0.6;
+        const scoring = await computeNicheScoring(n.id);
+        const isReady = scoring.totalVideos >= n.minRequiredVideos
+          && scoring.confidence >= 0.5;
         return {
           id: n.id,
           name: n.name,
           description: n.description,
           isPublic: n.isPublic,
           isReady,
-          videoCount,
-          stability: stats?.patternStabilityScore ?? null,
-          confidence: stats?.confidenceScore ?? null,
+          videoCount: scoring.totalVideos,
+          confidence: scoring.confidence,
+          confidencePercent: scoring.confidencePercent,
+          signalStrength: scoring.signalStrength,
+          signalStrengthPercent: scoring.signalStrengthPercent,
+          intelligenceStatus: scoring.intelligenceStatus,
         };
       }));
       res.json(enriched);
@@ -717,24 +719,14 @@ The content should directly apply the recommendations from the insight report. W
       const { nicheId } = req.params;
       const niche = await storage.getNicheById(nicheId);
       if (!niche) return res.status(404).json({ message: "Niche not found" });
-      const [statistics, patterns, profile] = await Promise.all([
-        storage.getNicheStatistics(nicheId),
+      const [patterns, profile, scoring] = await Promise.all([
         storage.getNichePatterns(nicheId),
         storage.getNicheProfile(nicheId),
+        computeNicheScoring(nicheId),
       ]);
-      const videoCount = await storage.getVideoPrimitiveCount(nicheId);
       res.json({
         niche: { id: niche.id, name: niche.name, description: niche.description },
-        snapshot: statistics ? {
-          dominantHook: statistics.dominantHook,
-          dominantStructure: statistics.dominantStructure,
-          dominantAngle: statistics.dominantAngle,
-          dominantFormat: statistics.dominantFormat,
-          medianDuration: statistics.medianDuration,
-          patternStabilityScore: statistics.patternStabilityScore,
-          confidenceScore: statistics.confidenceScore,
-          totalVideos: statistics.totalVideos,
-        } : null,
+        scoring,
         recommendation: profile ? {
           intelligenceSummary: profile.intelligenceSummary,
           strategicRecommendation: profile.strategicRecommendation,
@@ -748,7 +740,6 @@ The content should directly apply the recommendations from the insight report. W
           avgDuration: patterns.avgDuration,
           medianDuration: patterns.medianDuration,
         } : null,
-        videoCount,
       });
     } catch (err: any) {
       res.status(500).json({ message: err.message });

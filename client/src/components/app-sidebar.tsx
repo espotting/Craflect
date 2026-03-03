@@ -8,7 +8,8 @@ import {
   Sun,
   Moon,
   Shield,
-  Brain
+  Brain,
+  CreditCard
 } from "lucide-react";
 import { useLocation } from "wouter";
 import {
@@ -42,6 +43,7 @@ export function AppSidebar() {
     { title: t.sidebar.analyzedContent, url: "/library", icon: Library },
     { title: t.sidebar.insights, url: "/briefs", icon: Sparkles },
     { title: t.sidebar.analytics, url: "/analytics", icon: BarChart3 },
+    { title: t.sidebar.planBilling, url: "/plan-billing", icon: CreditCard },
   ];
 
   return (

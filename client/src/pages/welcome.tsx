@@ -664,6 +664,12 @@ export default function Welcome() {
                         </Button>
                       </div>
 
+                      {validUrls.length > 0 && validUrls.length < 3 && (
+                        <p className="text-xs text-amber-500 dark:text-amber-400 font-medium" data-testid="text-min-urls-warning">
+                          {t.welcome.minVideosWarning}
+                        </p>
+                      )}
+
                       <div className="flex items-center gap-3">
                         <Button
                           variant="outline"
@@ -675,7 +681,7 @@ export default function Welcome() {
                         </Button>
                         <Button
                           onClick={handleIngestUrls}
-                          disabled={isSubmitting || validUrls.length === 0}
+                          disabled={isSubmitting || validUrls.length < 3}
                           className="flex-1"
                           data-testid="button-onboarding-ingest"
                         >

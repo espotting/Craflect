@@ -8,121 +8,82 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import type { Brief } from "@shared/schema";
 import { useLanguage } from "@/hooks/use-language";
 import {
+  Brain,
   Sparkles,
-  History,
-  Loader2,
-  ArrowRight,
-  TrendingUp,
   Target,
-  Lightbulb,
-  BarChart3,
   Zap,
-  FileText,
+  ArrowRight,
   ChevronDown,
-  ChevronUp,
-  Star,
-  Play,
-  AlertCircle,
+  Wand2,
+  RefreshCw,
+  Loader2,
 } from "lucide-react";
 
-interface InsightHook {
-  type: string;
-  score: number;
-  description: string;
+interface SnapshotScoring {
+  totalVideos: number;
+  confidencePercent: number;
+  signalStrengthPercent: number;
+  intelligenceStatus: string;
+  dominantHook: string | null;
+  dominantStructure: string | null;
+  dominantFormat: string | null;
+  dominantAngle: string | null;
+  topHooks: { name: string; pct: number }[];
+  topFormats: { name: string; pct: number }[];
+  topAngles: { name: string; pct: number }[];
 }
 
-interface WinningFormat {
-  format: string;
-  percentage: number;
-  description: string;
-}
-
-interface ContentAngle {
-  angle: string;
-  performance: number | string;
-  description: string;
-}
-
-interface NichePattern {
-  pattern: string;
-  frequency: number | string;
-  impact: string;
-}
-
-interface Recommendation {
-  action: string;
-  reason: string;
-  priority: string;
+interface NicheSnapshot {
+  niche: { id: string; name: string; description: string };
+  scoring: SnapshotScoring;
+  recommendation: {
+    intelligenceSummary: string | null;
+    strategicRecommendation: string | null;
+    nicheShiftSignal: string | null;
+  } | null;
+  distributions: Record<string, unknown> | null;
 }
 
 function parseInsights(insightsStr: string | null) {
   if (!insightsStr) return null;
   try {
-    const parsed = JSON.parse(insightsStr);
-    return parsed as {
-      topHooks?: InsightHook[];
-      winningFormats?: WinningFormat[];
-      contentAngles?: ContentAngle[];
-      nichePatterns?: NichePattern[];
+    return JSON.parse(insightsStr) as {
+      topHooks?: { type: string; score: number }[];
+      winningFormats?: { format: string; percentage: number }[];
+      contentAngles?: { angle: string; performance: number | string }[];
     };
   } catch {
     return null;
   }
 }
 
-function parseRecommendations(recStr: string | null): Recommendation[] {
+function parseRecommendations(recStr: string | null): { action: string }[] {
   if (!recStr) return [];
   try {
     const parsed = JSON.parse(recStr);
-    return Array.isArray(parsed) ? parsed : [];
+    return Array.isArray(parsed) ? parsed.slice(0, 3) : [];
   } catch {
     return [];
   }
 }
 
-function ScoreBadge({ score }: { score: number }) {
-  let colorClass = "border-red-500/50 text-red-600 dark:text-red-400 bg-red-500/5";
-  if (score >= 80) colorClass = "border-green-500/50 text-green-600 dark:text-green-400 bg-green-500/5";
-  else if (score >= 60) colorClass = "border-yellow-500/50 text-yellow-600 dark:text-yellow-400 bg-yellow-500/5";
-  else if (score >= 40) colorClass = "border-orange-500/50 text-orange-600 dark:text-orange-400 bg-orange-500/5";
-  return (
-    <Badge variant="outline" className={`rounded-full text-[10px] uppercase font-bold ${colorClass}`}>
-      {score}/100
-    </Badge>
-  );
-}
-
-function PriorityBadge({ priority }: { priority: string }) {
-  const styles: Record<string, string> = {
-    high: "border-red-500/50 text-red-600 dark:text-red-400 bg-red-500/5",
-    medium: "border-yellow-500/50 text-yellow-600 dark:text-yellow-400 bg-yellow-500/5",
-    low: "border-blue-500/50 text-blue-600 dark:text-blue-400 bg-blue-500/5",
-  };
-  return (
-    <Badge variant="outline" className={`rounded-full text-[10px] uppercase font-bold ${styles[priority.toLowerCase()] || styles.medium}`}>
-      {priority}
-    </Badge>
-  );
-}
-
 function InsightSkeleton() {
   return (
     <div className="space-y-6">
-      <Card className="border-border">
+      <Card>
         <CardHeader>
           <Skeleton className="h-8 w-3/4" />
-          <Skeleton className="h-5 w-full mt-2" />
         </CardHeader>
         <CardContent className="space-y-4">
           <Skeleton className="h-20 w-full" />
-          <Skeleton className="h-16 w-full" />
-          <Skeleton className="h-16 w-full" />
         </CardContent>
       </Card>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Skeleton className="h-40" />
         <Skeleton className="h-40" />
         <Skeleton className="h-40" />
       </div>
@@ -130,281 +91,76 @@ function InsightSkeleton() {
   );
 }
 
-function TopHooksSection({ hooks }: { hooks: InsightHook[] }) {
+function NicheProfileCard({ scoring }: { scoring: SnapshotScoring }) {
   const { t } = useLanguage();
-  if (!hooks || hooks.length === 0) return null;
-  const sorted = [...hooks].sort((a, b) => (b.score || 0) - (a.score || 0));
+
   return (
-    <Card className="border-border" data-testid="card-top-hooks">
+    <Card data-testid="card-niche-profile">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base font-bold">
-          <Target className="w-4 h-4 text-primary" />
-          {t.insights.topHooks}
+        <CardTitle className="flex items-center gap-2 text-base font-bold flex-wrap">
+          <Brain className="w-4 h-4 text-primary" />
+          {t.insights.nicheProfile}
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3">
-        {sorted.map((hook, i) => (
-          <div key={i} className="flex items-start gap-3 p-3 rounded-md bg-background/50 border border-border" data-testid={`hook-item-${i}`}>
-            <div className="flex items-center justify-center w-7 h-7 rounded-full bg-primary/10 text-primary text-xs font-bold shrink-0 mt-0.5">
-              {i + 1}
+      <CardContent>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="space-y-1" data-testid="text-sample-size">
+            <p className="text-xs text-muted-foreground uppercase tracking-wider">{t.insights.sampleSize}</p>
+            <p className="text-lg font-bold text-foreground">{scoring.totalVideos}</p>
+          </div>
+          <div className="space-y-1" data-testid="text-dominant-hook">
+            <p className="text-xs text-muted-foreground uppercase tracking-wider">{t.insights.topHooks}</p>
+            <p className="text-sm font-semibold text-foreground capitalize">{scoring.dominantHook?.replace(/_/g, " ") || "—"}</p>
+          </div>
+          <div className="space-y-1" data-testid="text-dominant-format">
+            <p className="text-xs text-muted-foreground uppercase tracking-wider">{t.insights.winningFormats}</p>
+            <p className="text-sm font-semibold text-foreground capitalize">{scoring.dominantFormat?.replace(/_/g, " ") || "—"}</p>
+          </div>
+          <div className="flex flex-col gap-2">
+            <div className="space-y-1" data-testid="text-confidence">
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">Confidence</p>
+              <Badge variant="outline" className="text-xs">{scoring.confidencePercent}%</Badge>
             </div>
-            <div className="flex-1 min-w-0 space-y-1">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-semibold text-sm text-foreground capitalize">{hook.type?.replace(/_/g, " ")}</span>
-                {typeof hook.score === "number" && <ScoreBadge score={hook.score} />}
-              </div>
-              <p className="text-xs text-muted-foreground">{hook.description}</p>
+            <div className="space-y-1" data-testid="text-maturity">
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">{t.insights.maturity}</p>
+              <Badge variant="secondary" className="text-xs">{scoring.intelligenceStatus}</Badge>
             </div>
           </div>
-        ))}
-      </CardContent>
-    </Card>
-  );
-}
-
-function WinningFormatsSection({ formats }: { formats: WinningFormat[] }) {
-  const { t } = useLanguage();
-  if (!formats || formats.length === 0) return null;
-  return (
-    <Card className="border-border" data-testid="card-winning-formats">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base font-bold">
-          <Play className="w-4 h-4 text-primary" />
-          {t.insights.winningFormats}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        {formats.map((fmt, i) => (
-          <div key={i} className="flex items-start gap-3 p-3 rounded-md bg-background/50 border border-border" data-testid={`format-item-${i}`}>
-            <div className="flex-1 min-w-0 space-y-1">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-semibold text-sm text-foreground capitalize">{fmt.format?.replace(/_/g, " ")}</span>
-                {typeof fmt.percentage === "number" && (
-                  <Badge variant="secondary" className="text-[10px]">{fmt.percentage}%</Badge>
-                )}
-              </div>
-              <p className="text-xs text-muted-foreground">{fmt.description}</p>
-            </div>
-          </div>
-        ))}
-      </CardContent>
-    </Card>
-  );
-}
-
-function ContentAnglesSection({ angles }: { angles: ContentAngle[] }) {
-  const { t } = useLanguage();
-  if (!angles || angles.length === 0) return null;
-  return (
-    <Card className="border-border" data-testid="card-content-angles">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base font-bold">
-          <Lightbulb className="w-4 h-4 text-primary" />
-          {t.insights.contentAngles}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        {angles.map((angle, i) => (
-          <div key={i} className="flex items-start gap-3 p-3 rounded-md bg-background/50 border border-border" data-testid={`angle-item-${i}`}>
-            <div className="flex-1 min-w-0 space-y-1">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-semibold text-sm text-foreground capitalize">{angle.angle?.replace(/_/g, " ")}</span>
-                {angle.performance && (
-                  <Badge variant="secondary" className="text-[10px]">
-                    {typeof angle.performance === "number" ? `${angle.performance}/100` : angle.performance}
-                  </Badge>
-                )}
-              </div>
-              <p className="text-xs text-muted-foreground">{angle.description}</p>
-            </div>
-          </div>
-        ))}
-      </CardContent>
-    </Card>
-  );
-}
-
-function NichePatternsSection({ patterns }: { patterns: NichePattern[] }) {
-  const { t } = useLanguage();
-  if (!patterns || patterns.length === 0) return null;
-  return (
-    <Card className="border-border" data-testid="card-niche-patterns">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base font-bold">
-          <BarChart3 className="w-4 h-4 text-primary" />
-          {t.insights.nichePatterns}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        {patterns.map((pat, i) => (
-          <div key={i} className="flex items-start gap-3 p-3 rounded-md bg-background/50 border border-border" data-testid={`pattern-item-${i}`}>
-            <div className="flex-1 min-w-0 space-y-1">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-semibold text-sm text-foreground">{pat.pattern}</span>
-                {pat.frequency && (
-                  <Badge variant="secondary" className="text-[10px]">
-                    {typeof pat.frequency === "number" ? `${pat.frequency}x` : pat.frequency}
-                  </Badge>
-                )}
-              </div>
-              <p className="text-xs text-muted-foreground">{pat.impact}</p>
-            </div>
-          </div>
-        ))}
-      </CardContent>
-    </Card>
-  );
-}
-
-function RecommendationsSection({ recommendations }: { recommendations: Recommendation[] }) {
-  const { t } = useLanguage();
-  if (!recommendations || recommendations.length === 0) return null;
-  return (
-    <Card className="border-border" data-testid="card-recommendations">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base font-bold">
-          <AlertCircle className="w-4 h-4 text-primary" />
-          {t.insights.recommendations}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        {recommendations.map((rec, i) => (
-          <div key={i} className="p-3 rounded-md bg-background/50 border border-border space-y-2" data-testid={`recommendation-item-${i}`}>
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-semibold text-sm text-foreground">{rec.action}</span>
-              <PriorityBadge priority={rec.priority} />
-            </div>
-            <p className="text-xs text-muted-foreground">{rec.reason}</p>
-          </div>
-        ))}
-      </CardContent>
-    </Card>
-  );
-}
-
-function InsightReportCard({ brief, workspaceId, isLatest }: { brief: Brief; workspaceId: string; isLatest: boolean }) {
-  const { t } = useLanguage();
-  const { toast } = useToast();
-  const generateFromBrief = useGenerateFromBrief();
-  const [expanded, setExpanded] = useState(isLatest);
-
-  const insights = parseInsights(brief.insights);
-  const recommendations = parseRecommendations(brief.recommendations);
-
-  const handleGenerate = () => {
-    generateFromBrief.mutate(
-      { briefId: brief.id, workspaceId },
-      {
-        onSuccess: (data) => {
-          toast({
-            title: "Content generated",
-            description: `${data.length} content piece(s) created from these insights.`,
-          });
-        },
-        onError: (err) => {
-          toast({
-            title: "Generation failed",
-            description: err.message,
-            variant: "destructive",
-          });
-        },
-      }
-    );
-  };
-
-  const createdDate = new Date(brief.createdAt).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-
-  return (
-    <div className="space-y-4" data-testid={`card-insight-${brief.id}`}>
-      <Card className={`border-border ${isLatest ? "border-primary/20 relative" : ""}`}>
-        <CardHeader>
-          <div className="flex items-center justify-between gap-2 flex-wrap">
-            <div className="flex items-center gap-2 flex-wrap">
-              {isLatest && (
-                <Badge variant="outline" className="rounded-full text-[10px] uppercase font-bold border-primary/50 text-primary bg-primary/5">
-                  {t.insights.latest}
-                </Badge>
-              )}
-              <Badge variant="outline" className="rounded-full text-[10px] uppercase font-bold border-muted-foreground/50 text-muted-foreground">
-                {brief.format}
-              </Badge>
-            </div>
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              {isLatest && <Zap className="w-3 h-3 text-yellow-500" />}
-              {createdDate}
-            </div>
-          </div>
-          <CardTitle className="text-xl font-display text-foreground mt-3" data-testid={`text-insight-topic-${brief.id}`}>
-            {brief.topic}
-          </CardTitle>
-          <p className="text-sm text-muted-foreground mt-1 italic" data-testid={`text-insight-hook-${brief.id}`}>
-            {brief.hook}
-          </p>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <button
-            onClick={() => setExpanded(!expanded)}
-            className="flex items-center gap-1 text-xs font-semibold text-primary"
-            data-testid={`button-toggle-details-${brief.id}`}
-          >
-            {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-            {expanded ? t.insights.hideDetails : t.insights.showDetails}
-          </button>
-
-          {expanded && (
-            <div className="space-y-3">
-              <div className="p-4 rounded-md bg-background/50 border border-border">
-                <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">{t.insights.analysis}</h4>
-                <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-line" data-testid={`text-insight-analysis-${brief.id}`}>
-                  {brief.script}
-                </p>
-              </div>
-            </div>
-          )}
-
-          <div className="flex items-center gap-3 pt-2 flex-wrap">
-            <Button
-              onClick={handleGenerate}
-              disabled={generateFromBrief.isPending}
-              data-testid={`button-generate-from-insight-${brief.id}`}
-            >
-              {generateFromBrief.isPending ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Sparkles className="w-4 h-4 mr-2" />
-              )}
-              {generateFromBrief.isPending ? t.insights.generating : t.insights.generateRecommended}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {expanded && insights && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {insights.topHooks && insights.topHooks.length > 0 && (
-            <TopHooksSection hooks={insights.topHooks} />
-          )}
-          {insights.winningFormats && insights.winningFormats.length > 0 && (
-            <WinningFormatsSection formats={insights.winningFormats} />
-          )}
-          {insights.contentAngles && insights.contentAngles.length > 0 && (
-            <ContentAnglesSection angles={insights.contentAngles} />
-          )}
-          {insights.nichePatterns && insights.nichePatterns.length > 0 && (
-            <NichePatternsSection patterns={insights.nichePatterns} />
-          )}
         </div>
-      )}
+      </CardContent>
+    </Card>
+  );
+}
 
-      {expanded && recommendations.length > 0 && (
-        <RecommendationsSection recommendations={recommendations} />
-      )}
-    </div>
+function PatternCard({
+  title,
+  icon: Icon,
+  items,
+  testId,
+}: {
+  title: string;
+  icon: React.ElementType;
+  items: { name: string; pct: number }[];
+  testId: string;
+}) {
+  if (!items || items.length === 0) return null;
+  return (
+    <Card data-testid={testId}>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-sm font-bold flex-wrap">
+          <Icon className="w-4 h-4 text-primary" />
+          {title}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {items.map((item, i) => (
+          <div key={i} className="flex items-center justify-between gap-2" data-testid={`${testId}-item-${i}`}>
+            <span className="text-sm text-foreground capitalize">{item.name.replace(/_/g, " ")}</span>
+            <Badge variant="outline" className="text-xs">{item.pct}%</Badge>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -413,12 +169,21 @@ export default function Briefs() {
   const { data: workspaces, isLoading: workspacesLoading } = useWorkspaces();
   const selectedWorkspace = workspaces?.[0];
   const workspaceId = selectedWorkspace?.id;
+  const nicheId = selectedWorkspace?.nicheId;
 
   const { data: briefs, isLoading: briefsLoading } = useBriefs(workspaceId);
   const generateBrief = useGenerateBrief(workspaceId);
+  const generateFromBrief = useGenerateFromBrief();
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const [showHistory, setShowHistory] = useState(false);
+
+  const { data: snapshot } = useQuery<NicheSnapshot>({
+    queryKey: ["/api/niches", nicheId, "snapshot"],
+    enabled: !!nicheId,
+  });
+
+  const scoring = snapshot?.scoring;
 
   const handleGenerateInsights = () => {
     if (!workspaceId) {
@@ -431,19 +196,26 @@ export default function Briefs() {
     }
     generateBrief.mutate(undefined, {
       onSuccess: () => {
-        toast({
-          title: "Insights generated",
-          description: "Your performance insights are ready.",
-        });
+        toast({ title: "Insights generated", description: "Your performance insights are ready." });
       },
       onError: (err) => {
-        toast({
-          title: "Generation failed",
-          description: err.message,
-          variant: "destructive",
-        });
+        toast({ title: "Generation failed", description: err.message, variant: "destructive" });
       },
     });
+  };
+
+  const handleGenerateContent = (brief: Brief) => {
+    generateFromBrief.mutate(
+      { briefId: brief.id, workspaceId: workspaceId! },
+      {
+        onSuccess: (data) => {
+          toast({ title: "Content generated", description: `${data.length} content piece(s) created.` });
+        },
+        onError: (err) => {
+          toast({ title: "Generation failed", description: err.message, variant: "destructive" });
+        },
+      }
+    );
   };
 
   const isLoading = workspacesLoading || briefsLoading;
@@ -451,12 +223,39 @@ export default function Briefs() {
   const latestBrief = sortedBriefs[0];
   const historyBriefs = sortedBriefs.slice(1);
 
+  const latestInsights = latestBrief ? parseInsights(latestBrief.insights) : null;
+  const latestRecommendations = latestBrief ? parseRecommendations(latestBrief.recommendations) : [];
+
+  const topHooksData: { name: string; pct: number }[] =
+    latestInsights?.topHooks?.map((h) => ({ name: h.type, pct: h.score })) ||
+    scoring?.topHooks ||
+    [];
+
+  const winningFormatsData: { name: string; pct: number }[] =
+    latestInsights?.winningFormats?.map((f) => ({ name: f.format, pct: f.percentage })) ||
+    scoring?.topFormats ||
+    [];
+
+  const topAnglesData: { name: string; pct: number }[] =
+    latestInsights?.contentAngles?.map((a) => ({
+      name: a.angle,
+      pct: typeof a.performance === "number" ? a.performance : 0,
+    })) ||
+    scoring?.topAngles ||
+    [];
+
+  const hasData = !!latestBrief || (scoring && scoring.totalVideos > 0);
+
+  const headerTitle = hasData
+    ? (latestBrief ? t.insights.signalClear : t.insights.whatWins)
+    : t.insights.noSignalYet;
+
   if (!workspacesLoading && !selectedWorkspace) {
     return (
       <DashboardLayout>
         <div className="flex flex-col items-center justify-center p-20 rounded-md border-dashed border-2 border-border text-center">
           <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-6">
-            <TrendingUp className="w-10 h-10 text-primary" />
+            <Brain className="w-10 h-10 text-primary" />
           </div>
           <h3 className="font-display text-2xl font-bold text-foreground mb-2" data-testid="text-no-workspace">{t.insights.noWorkspaceTitle}</h3>
           <p className="text-muted-foreground max-w-md mb-8">{t.insights.noWorkspaceDesc}</p>
@@ -473,8 +272,8 @@ export default function Briefs() {
       <div className="space-y-8">
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div>
-            <h1 className="font-display text-4xl font-bold text-foreground mb-2" data-testid="text-page-title">{t.insights.title}</h1>
-            <p className="text-muted-foreground">{t.insights.subtitle}</p>
+            <h1 className="font-display text-4xl font-bold text-foreground mb-1" data-testid="text-page-title">{t.insights.title}</h1>
+            <p className="text-muted-foreground" data-testid="text-page-subtitle">{headerTitle}</p>
           </div>
           <div className="flex gap-3 flex-wrap">
             {historyBriefs.length > 0 && (
@@ -483,7 +282,7 @@ export default function Briefs() {
                 onClick={() => setShowHistory(!showHistory)}
                 data-testid="button-history"
               >
-                <History className="w-4 h-4 mr-2" />
+                <ChevronDown className="w-4 h-4 mr-2" />
                 {showHistory ? t.insights.hideHistory : `${t.insights.history} (${historyBriefs.length})`}
               </Button>
             )}
@@ -495,7 +294,7 @@ export default function Briefs() {
               {generateBrief.isPending ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
               ) : (
-                <TrendingUp className="w-4 h-4 mr-2" />
+                <RefreshCw className="w-4 h-4 mr-2" />
               )}
               {generateBrief.isPending ? t.insights.analyzing : t.insights.generateInsights}
             </Button>
@@ -504,51 +303,13 @@ export default function Briefs() {
 
         {isLoading || generateBrief.isPending ? (
           <InsightSkeleton />
-        ) : latestBrief ? (
-          <div className="space-y-8">
-            <InsightReportCard brief={latestBrief} workspaceId={workspaceId!} isLatest />
-
-            <div className="flex flex-col items-center justify-center p-8 rounded-md border-dashed border-2 border-border text-center">
-              <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
-                <Star className="w-6 h-6 text-muted-foreground/40" />
-              </div>
-              <h3 className="font-display text-lg font-bold text-foreground mb-2" data-testid="text-generate-cta">{t.insights.wantFresh}</h3>
-              <p className="text-muted-foreground text-sm max-w-sm mb-4">{t.insights.wantFreshDesc}</p>
-              <div className="flex gap-3 flex-wrap justify-center">
-                <Button
-                  variant="outline"
-                  onClick={handleGenerateInsights}
-                  disabled={generateBrief.isPending}
-                  data-testid="button-generate-another"
-                >
-                  <TrendingUp className="w-4 h-4 mr-2" />
-                  {t.insights.regenerate}
-                </Button>
-                <Button variant="outline" onClick={() => navigate("/library")} data-testid="link-go-to-library">
-                  <ArrowRight className="w-4 h-4 mr-2" />
-                  {t.insights.addContent}
-                </Button>
-              </div>
-            </div>
-
-            {showHistory && historyBriefs.length > 0 && (
-              <div className="space-y-6">
-                <h2 className="font-display text-xl font-bold text-foreground" data-testid="text-history-title">{t.insights.pastReports}</h2>
-                {historyBriefs.map((brief) => (
-                  <InsightReportCard key={brief.id} brief={brief} workspaceId={workspaceId!} isLatest={false} />
-                ))}
-              </div>
-            )}
-          </div>
-        ) : (
+        ) : !hasData ? (
           <div className="flex flex-col items-center justify-center p-16 rounded-md border-dashed border-2 border-border text-center">
             <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-6">
-              <TrendingUp className="w-8 h-8 text-muted-foreground/40" />
+              <Brain className="w-8 h-8 text-muted-foreground/40" />
             </div>
             <h3 className="font-display text-lg font-bold text-foreground mb-2" data-testid="text-empty-state">{t.insights.noInsightsTitle}</h3>
-            <p className="text-muted-foreground text-sm max-w-sm mb-6">
-              {t.insights.noInsightsDesc}
-            </p>
+            <p className="text-muted-foreground text-sm max-w-sm mb-6">{t.insights.noInsightsDesc}</p>
             <div className="flex gap-3 flex-wrap justify-center">
               <Button
                 onClick={handleGenerateInsights}
@@ -558,7 +319,7 @@ export default function Briefs() {
                 {generateBrief.isPending ? (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 ) : (
-                  <TrendingUp className="w-4 h-4 mr-2" />
+                  <Wand2 className="w-4 h-4 mr-2" />
                 )}
                 {t.insights.generateFirst}
               </Button>
@@ -567,6 +328,122 @@ export default function Briefs() {
                 {t.insights.goToLibrary}
               </Button>
             </div>
+          </div>
+        ) : (
+          <div className="space-y-8">
+            {scoring && <NicheProfileCard scoring={scoring} />}
+
+            {latestBrief && (
+              <div className="flex items-center gap-3 flex-wrap" data-testid="card-latest-brief">
+                <Badge variant="outline" className="text-xs">{t.insights.latest}</Badge>
+                <span className="text-sm font-semibold text-foreground" data-testid="text-latest-topic">{latestBrief.topic}</span>
+                <span className="text-xs text-muted-foreground">
+                  {new Date(latestBrief.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                </span>
+              </div>
+            )}
+
+            <div>
+              <h2 className="font-display text-xl font-bold text-foreground mb-4" data-testid="text-winning-patterns">
+                <Sparkles className="w-5 h-5 text-primary inline mr-2" />
+                {t.insights.winningPatterns}
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <PatternCard
+                  title={t.insights.topHooks}
+                  icon={Target}
+                  items={topHooksData}
+                  testId="card-top-hooks"
+                />
+                <PatternCard
+                  title={t.insights.winningFormats}
+                  icon={Zap}
+                  items={winningFormatsData}
+                  testId="card-winning-formats"
+                />
+                <PatternCard
+                  title={t.insights.topAngles}
+                  icon={Brain}
+                  items={topAnglesData}
+                  testId="card-top-angles"
+                />
+              </div>
+            </div>
+
+            {latestRecommendations.length > 0 && (
+              <div>
+                <h2 className="font-display text-xl font-bold text-foreground mb-4" data-testid="text-what-to-do-next">
+                  <Wand2 className="w-5 h-5 text-primary inline mr-2" />
+                  {t.insights.whatToDoNext}
+                </h2>
+                <Card data-testid="card-recommendations">
+                  <CardContent className="pt-6 space-y-3">
+                    {latestRecommendations.map((rec, i) => (
+                      <div key={i} className="flex items-center gap-3" data-testid={`recommendation-item-${i}`}>
+                        <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold shrink-0">
+                          {i + 1}
+                        </div>
+                        <span className="text-sm text-foreground">{rec.action}</span>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            <div className="flex items-center gap-3 flex-wrap">
+              <Button
+                variant="outline"
+                onClick={() => navigate("/niche-data")}
+                data-testid="button-view-data"
+              >
+                <ArrowRight className="w-4 h-4 mr-2" />
+                {t.insights.viewDataBehind}
+              </Button>
+              {latestBrief && (
+                <Button
+                  onClick={() => handleGenerateContent(latestBrief)}
+                  disabled={generateFromBrief.isPending}
+                  data-testid="button-generate-recommended"
+                >
+                  {generateFromBrief.isPending ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-4 h-4 mr-2" />
+                  )}
+                  {generateFromBrief.isPending ? t.insights.generating : t.insights.generateRecommended}
+                </Button>
+              )}
+            </div>
+
+            {showHistory && historyBriefs.length > 0 && (
+              <div className="space-y-4">
+                <h2 className="font-display text-xl font-bold text-foreground" data-testid="text-history-title">{t.insights.pastReports}</h2>
+                {historyBriefs.map((brief) => {
+                  const date = new Date(brief.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+                  return (
+                    <Card key={brief.id} data-testid={`card-history-${brief.id}`}>
+                      <CardContent className="flex items-center justify-between gap-4 py-4 flex-wrap">
+                        <div className="flex items-center gap-3 flex-wrap">
+                          <span className="text-sm font-semibold text-foreground" data-testid={`text-history-topic-${brief.id}`}>{brief.topic}</span>
+                          <span className="text-xs text-muted-foreground">{date}</span>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleGenerateContent(brief)}
+                          disabled={generateFromBrief.isPending}
+                          data-testid={`button-generate-from-${brief.id}`}
+                        >
+                          <Sparkles className="w-3 h-3 mr-1" />
+                          {t.insights.generateRecommended}
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
       </div>

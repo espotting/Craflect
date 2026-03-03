@@ -18,7 +18,7 @@ client/src/
 ├── components/       # app-sidebar.tsx, layout.tsx, ui/
 ├── hooks/            # use-auth.ts, use-theme.ts, use-workspaces.ts, use-sources.ts, use-briefs.ts, use-analytics.ts, use-events.ts, use-toast.ts
 ├── lib/              # queryClient.ts
-├── pages/            # landing.tsx, auth.tsx, welcome.tsx, dashboard.tsx, library.tsx, briefs.tsx, analytics.tsx, settings.tsx, admin.tsx, intelligence.tsx, pricing.tsx, legal.tsx, faq.tsx
+├── pages/            # landing.tsx, auth.tsx, welcome.tsx, dashboard.tsx, library.tsx, briefs.tsx, analytics.tsx, settings.tsx, admin.tsx, intelligence.tsx, pricing.tsx, legal.tsx, faq.tsx, niche-data.tsx, plan-billing.tsx
 server/
 ├── replit_integrations/auth/  # replitAuth.ts (Google OAuth), storage.ts, routes.ts
 ├── replit_integrations/chat/  # AI chat integration
@@ -29,6 +29,7 @@ server/
 ├── intelligence/     # Intelligence Layer
 │   ├── ingestion-pipeline.ts   # URL → LLM classification → video_primitive + pattern update
 │   ├── pattern-aggregator.ts   # Distribution calculation, stability/confidence scoring
+│   ├── scoring.ts              # Confidence, signal strength, intelligence status computation
 │   └── profile-generator.ts    # LLM-generated niche intelligence profiles
 shared/
 ├── schema.ts         # Drizzle schemas (workspaces, content_sources, generated_content, briefs, performance, events, niches, creators, video_primitives, niche_patterns, niche_statistics, niche_profiles)
@@ -76,14 +77,15 @@ shared/
 - **Value proposition**: "Why it works" (patterns) > "How many views" (metrics)
 
 ## Features
-- **Onboarding**: 3-step (workspace → paste URLs → first insights), URL input with platform auto-detection, confetti
-- **Intelligence Cockpit (Dashboard)**: Next best action, latest insight, niche overview stats, generated content, onboarding progress
+- **Onboarding**: 4-step (choose niche → paste min 3 URLs → processing animation → results/dashboard), URL input with platform auto-detection, confetti
+- **Dashboard (Signal Only)**: Niche Intelligence Status card (status badge, confidence %, signal strength %, videos analyzed), Quick Snapshot (3 cards: dominant hooks/formats/angles with %), CTA to Data Breakdown
 - **Analyzed Content (Library)**: URL ingestion with platform auto-detect, source cards with metrics/AI tags/performance score, filter/sort by platform/score/hook type
-- **Insights (Briefs)**: Pattern analysis reports — top hooks, winning formats, content angles, niche patterns, actionable recommendations, generate recommended content
-- **Analytics**: Real performance data, content pipeline tracking, workspace stats
+- **Insights (Briefs)**: Niche Intelligence Profile card, Winning Patterns (3 compact cards), max 3 one-line recommendations, "View Data Behind These Insights" link
+- **Analytics (Learning Loop)**: 4 metric cards (Content Created, Content Tracked, Signal Strength, Confidence), signal interpretation
+- **Data Breakdown** (`/niche-data`): Full distribution tables (hooks, structures, formats, angles), confidence computation details
+- **Plan & Billing** (`/plan-billing`): Current plan, usage progress bars, upgrade CTA
 - **Settings**: Profile editing with save, theme toggle
 - **Admin Panel**: KPI cards, user list, event feed
-- **Scheduler**: Schedule generated content with date/time
 - **Instrumentation**: Event tracking (content_uploaded, brief_generated, content_generated, analytics_viewed)
 
 ## API Routes
@@ -138,10 +140,12 @@ shared/
 - **Landing** (`/`): Public hero page with "Show me what works → Tell me what to post → Create it for me"
 - **Pricing** (`/pricing`): Public pricing page with 3 plans (Starter €29, Pro €69, Studio €199), comparison table, FAQ, "Free trial • No commitment • Cancel anytime" messaging
 - **Auth** (`/auth`): Login/signup with email+password or Google OAuth
-- **Dashboard** (`/dashboard`): Simplified cockpit — AI learning bar, latest insight hero, next best action, progress stats, latest generated content
+- **Dashboard** (`/dashboard`): Signal-only — Niche Intelligence Status, Quick Snapshot (hooks/formats/angles), View Data Breakdown CTA
 - **Library** (`/library`): Analyzed Content — URL ingestion, source cards with AI tags
-- **Briefs** (`/briefs`): Insights — pattern analysis, recommendations, content generation
-- **Analytics** (`/analytics`): Performance data
+- **Briefs** (`/briefs`): Insights — Niche Profile, Winning Patterns, Recommendations, View Data CTA
+- **Analytics** (`/analytics`): Learning Loop — Content Created/Tracked, Signal Strength, Confidence
+- **Niche Data** (`/niche-data`): Full distribution tables, confidence computation details
+- **Plan & Billing** (`/plan-billing`): Subscription management, usage limits, upgrade CTA
 - **Settings** (`/settings`): Profile editing
 - **Admin** (`/admin`): KPI cards, user list, event feed
 
@@ -156,6 +160,17 @@ shared/
 - **Adding new text**: Add key to both `en.ts` and `fr.ts`, then use `t.section.key` in components
 - **Dynamic text**: Use `.replace("{var}", value)` for variables like `{name}`, `{count}`, `{year}`
 
+## Scoring Engine
+- **Confidence**: 0.4 × volume_score + 0.4 × consistency_score + 0.2 × stability_score
+  - volume_score: min(totalVideos / 500, 1)
+  - consistency_score: avg(dominant_hook%, dominant_structure%, dominant_format%) / 100
+  - stability_score: 1 - normalized_variance
+- **Signal Strength**: average(dominant_hook%, dominant_structure%, dominant_format%)
+- **Intelligence Status**: Building (<100 videos OR conf<0.5), Active (100-500 AND conf≥0.5), Mature (≥500 AND conf≥0.7)
+- **API**: `/api/niches/available` and `/api/niches/:nicheId/snapshot` include scoring data
+
 ## Sidebar Labels
 - "Analyzed Content" (was "Content"/"Library")
 - "Insights" (was "Briefs"/"Daily Briefs")
+- "Learning Loop" (was "Analytics")
+- "Plan & Billing" (new)

@@ -18,6 +18,8 @@ import Welcome from "@/pages/welcome";
 import Admin from "@/pages/admin";
 import Intelligence from "@/pages/intelligence";
 import Pricing from "@/pages/pricing";
+import NicheData from "@/pages/niche-data";
+import PlanBilling from "@/pages/plan-billing";
 import { TermsPage, BillingPage, PrivacyPage, CookiesPage, DpaPage, SecurityPage } from "@/pages/legal";
 import FaqPage from "@/pages/faq";
 
@@ -35,6 +37,8 @@ function Router() {
       <Route path="/settings" component={Settings} />
       <Route path="/admin" component={Admin} />
       <Route path="/intelligence" component={Intelligence} />
+      <Route path="/niche-data" component={NicheData} />
+      <Route path="/plan-billing" component={PlanBilling} />
       <Route path="/terms" component={TermsPage} />
       <Route path="/billing" component={BillingPage} />
       <Route path="/privacy" component={PrivacyPage} />

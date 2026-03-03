@@ -1,0 +1,282 @@
+🎯 OBJECTIF
+
+Recentrer Craflect comme une Vertical Intelligence Platform.
+
+Priorités :
+
+Dashboard = signal clair, synthétique
+
+Insights = action
+
+Data = accessible mais jamais intrusive
+
+Intelligence mesurable (Confidence + Signal Strength)
+
+🟣 1️⃣ INTELLIGENCE STATUS LOGIC
+Seuils validés :
+Building  : < 100 vidéos OR confidence < 0.5
+Active    : 100–500 vidéos AND confidence ≥ 0.5
+Mature    : ≥ 500 vidéos AND confidence ≥ 0.7
+
+Le statut est affiché :
+
+🧠 Niche Intelligence Status
+Building / Active / Mature
+
+🟣 2️⃣ CONFIDENCE SCORE — V1 LOGIC
+🎯 Objectif
+
+Mesure la fiabilité statistique du signal de niche.
+Pas une métrique de performance utilisateur.
+
+2.1 Data Volume Score (40%)
+volume_score = min(total_videos / 500, 1)
+2.2 Pattern Consistency Score (40%)
+consistency_score =
+average(
+dominant_hook_percentage,
+dominant_structure_percentage,
+dominant_format_percentage
+) / 100
+2.3 Signal Stability Score (20%)
+
+Simplification V1 acceptable :
+
+stability_score = 1 - normalized_variance_between_top_patterns
+
+Si simplification nécessaire :
+
+If top 3 dominant patterns all score > 70 → stability_score = 0.8–1
+Else moderate value.
+
+2.4 Final Formula
+confidence_score =
+(0.4 × volume_score) +
+(0.4 × consistency_score) +
+(0.2 × stability_score)
+
+Affichage : 0–100%
+
+🟣 3️⃣ SIGNAL STRENGTH (Analytics Layer)
+🎯 Objectif
+
+Mesurer la clarté actuelle du signal dans la niche.
+
+Différent du confidence.
+
+Confidence = fiabilité statistique
+Signal Strength = dominance réelle des patterns
+
+Formule V1
+signal_strength =
+average(
+dominant_hook_percentage,
+dominant_structure_percentage,
+dominant_format_percentage
+)
+
+Affichage : 0–100%
+
+Interprétation
+Signal Strength	Meaning
+< 40	Signal weak
+40–60	Signal emerging
+60–80	Strong signal
+80+	Clear dominant patterns
+🟣 4️⃣ DASHBOARD STRUCTURE — FINAL VERSION
+
+⚠️ Dashboard = SIGNAL ONLY
+No long text. No explanation paragraphs.
+
+🔹 SECTION 1 — Niche Intelligence Status Card
+
+Card content:
+
+Active niche name
+
+Intelligence Status (Building / Active / Mature)
+
+Confidence Score (%)
+
+Total Videos Analyzed
+
+Signal Strength (%)
+
+Layout minimal.
+No paragraph explanation.
+
+Add small tooltip icons for definitions.
+
+🔹 SECTION 2 — Quick Snapshot (3 Cards)
+Hooks Dominant
+
+Story — 72%
+
+Tutorial — 18%
+
+Formats Dominant
+
+Face Cam — 60%
+
+Mixed — 30%
+
+Angles Dominant
+
+Entertainment — 65%
+
+How-To — 25%
+
+No explanations.
+
+🔹 SECTION 3 — Button
+
+Primary CTA:
+
+"View Data Breakdown"
+
+This opens:
+
+🟣 5️⃣ DATA BREAKDOWN PAGE (SECONDARY PAGE)
+
+Route: /niche-data
+
+This page contains:
+
+Full hook distribution (% + counts)
+
+Structure distribution
+
+Format distribution
+
+Angle distribution
+
+Score distributions
+
+Variance data
+
+Volume evolution graph (optional simple version)
+
+This page is analytical.
+Not the main UX.
+
+This respects:
+
+Signal > Explanation on Dashboard
+
+🟣 6️⃣ INSIGHTS PAGE — FINAL STRUCTURE
+Header
+
+Short dynamic title:
+
+"Your niche signal is clear."
+
+Section 1 — Winning Patterns
+
+Compact cards:
+
+Top Hooks
+Top Formats
+Top Angles
+
+No paragraphs.
+
+Section 2 — Actionable Recommendations (max 3)
+
+One line each:
+
+Focus on storytelling or list formats
+
+Use emotionally strong openings
+
+Prioritize entertainment or how-to angles
+
+No justification paragraphs.
+
+Section 3 — Toggle
+
+Button:
+
+"View Data Behind These Insights"
+
+Opens the same /niche-data page.
+
+🟣 7️⃣ ANALYTICS PAGE — LEARNING LOOP
+
+Rename page conceptually:
+
+Learning Loop
+
+Show:
+
+Content Created
+
+Content Tracked
+
+Signal Strength
+
+Confidence Evolution (optional simple line)
+
+Message:
+
+"The more content you analyze, the clearer your niche signal becomes."
+
+No fake pipeline.
+No decorative progress bars.
+
+🟣 8️⃣ ONBOARDING FLOW
+
+Keep:
+
+Choose niche
+
+Message: "We need at least 3 public videos to activate your first insights."
+
+Add URLs
+
+Processing animation
+
+Redirect to Dashboard
+
+🟣 9️⃣ ORDER OF IMPLEMENTATION
+
+Sidebar + Billing tab
+
+Dashboard redesign
+
+Confidence & Signal engine
+
+Insights simplification
+
+Data breakdown page
+
+Analytics simplification
+
+Onboarding alignment
+
+🟣 10️⃣ IMPORTANT DESIGN PRINCIPLE
+
+Never display:
+
+Raw math formulas
+
+Too many metrics
+
+Long AI paragraphs
+
+Always display:
+
+Signal
+Clarity
+Authority
+
+🧠 STRATEGIC NOTE
+
+This implementation transforms Craflect from:
+
+AI content analyzer
+
+Into:
+
+Structured Vertical Intelligence Engine
+
+Without increasing UI complexity.
