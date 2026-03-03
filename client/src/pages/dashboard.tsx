@@ -210,24 +210,26 @@ export default function Dashboard() {
       <div className="space-y-6 max-w-4xl">
 
         {availableNiches && availableNiches.length > 0 && (
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs text-muted-foreground font-medium">{t.dashboard.selectNiche}:</span>
+          <div className="flex items-center gap-3 flex-wrap">
+            <span className="text-sm font-semibold text-primary">{t.dashboard.selectNiche}:</span>
             <Popover open={nicheOpen} onOpenChange={setNicheOpen}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
                   role="combobox"
                   aria-expanded={nicheOpen}
-                  className="w-[240px] justify-between"
+                  className="min-w-[280px] justify-between border-primary/30 hover:border-primary hover:bg-primary/5 transition-colors"
                   data-testid="combobox-niche-trigger"
                 >
-                  {selectedNiche
-                    ? selectedNiche.name.replace(/_/g, " ")
-                    : t.dashboard.selectNiche}
+                  <span className="truncate">
+                    {selectedNiche
+                      ? selectedNiche.name.replace(/_/g, " ")
+                      : t.dashboard.selectNiche}
+                  </span>
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[240px] p-0">
+              <PopoverContent className="w-[280px] p-0">
                 <Command>
                   <CommandInput placeholder={t.dashboard.searchNiche} data-testid="input-niche-search" />
                   <CommandList>
@@ -246,7 +248,7 @@ export default function Dashboard() {
                           <Check
                             className={cn(
                               "mr-2 h-4 w-4",
-                              n.id === activeNicheId ? "opacity-100" : "opacity-0"
+                              n.id === activeNicheId ? "opacity-100 text-primary" : "opacity-0"
                             )}
                           />
                           {n.name.replace(/_/g, " ")}
@@ -265,10 +267,10 @@ export default function Dashboard() {
             <button
               onClick={() => setIntelligenceMode("global")}
               className={cn(
-                "px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
+                "px-3 py-1.5 text-xs font-medium rounded-md transition-all",
                 intelligenceMode === "global"
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "bg-primary text-white shadow-sm"
+                  : "text-muted-foreground hover:text-primary hover:bg-primary/10"
               )}
               data-testid="button-global-signal"
             >
@@ -277,10 +279,10 @@ export default function Dashboard() {
             <button
               onClick={() => setIntelligenceMode("workspace")}
               className={cn(
-                "px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
+                "px-3 py-1.5 text-xs font-medium rounded-md transition-all",
                 intelligenceMode === "workspace"
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "bg-primary text-white shadow-sm"
+                  : "text-muted-foreground hover:text-primary hover:bg-primary/10"
               )}
               data-testid="button-your-dataset"
             >
