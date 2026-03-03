@@ -193,17 +193,17 @@ export default function Landing() {
             <div className="flex flex-col items-center gap-2 mb-8" data-testid="platforms-bar">
               <span className="text-sm text-muted-foreground font-medium">{t.landing.builtForCreators}</span>
               <div className="flex items-center gap-0">
-                <span className="flex items-center gap-1.5 text-xs font-medium text-foreground/75">
+                <span className="flex items-center gap-1.5 text-xs font-medium text-foreground/50">
                   <SiTiktok className="w-3.5 h-3.5" />
                   TikTok
                 </span>
-                <span className="mx-3 text-lg text-foreground/50 font-bold select-none">·</span>
-                <span className="flex items-center gap-1.5 text-xs font-medium text-foreground/75">
+                <span className="mx-3 text-lg text-foreground/30 font-bold select-none">·</span>
+                <span className="flex items-center gap-1.5 text-xs font-medium text-foreground/50">
                   <SiInstagram className="w-3.5 h-3.5" />
                   Instagram Reels
                 </span>
-                <span className="mx-3 text-lg text-foreground/50 font-bold select-none">·</span>
-                <span className="flex items-center gap-1.5 text-xs font-medium text-foreground/75">
+                <span className="mx-3 text-lg text-foreground/30 font-bold select-none">·</span>
+                <span className="flex items-center gap-1.5 text-xs font-medium text-foreground/50">
                   <SiYoutube className="w-3.5 h-3.5" />
                   YouTube Shorts
                 </span>
