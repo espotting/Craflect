@@ -1,0 +1,324 @@
+📌 BRIEF REPLIT — ALIGNEMENT PRODUIT V2 (PRODUCTION READY)
+🎯 OBJECTIF
+
+Passer de MVP intelligent à :
+
+→ SaaS Premium structuré
+→ Billing compliant UAE
+→ Moteur strictement niche-isolated
+→ Architecture scalable multi-niche
+
+1️⃣ NICHE ISOLATION STRICTE (CRITIQUE)
+🚨 Problème actuel
+
+Les insights affichent des données non liées à la niche active.
+
+C’est interdit.
+
+✅ Nouvelle règle absolue
+
+Chaque vidéo doit obligatoirement avoir :
+
+niche_id
+
+Toutes les requêtes Insights, Dashboard, Signal, Confidence doivent filtrer :
+
+WHERE niche_id = selected_niche
+
+Aucune donnée globale.
+
+🔒 Si dataset niche insuffisant
+
+Si :
+
+niche_video_count < 3
+
+Afficher :
+
+"Add at least 3 niche-specific videos to activate your insights."
+
+Ne jamais afficher de faux insights pour “remplir”.
+
+🔄 Lors du changement de niche
+
+Reset :
+
+Signal strength
+
+Confidence
+
+Insights
+
+Snapshot
+
+Recalculation uniquement sur la niche active.
+
+2️⃣ NICHE SELECTOR SCALABLE
+
+Remplacer boutons actuels par :
+
+🔎 Searchable Dropdown
+
+Fonctionnalités :
+
+Champ de recherche
+
+Liste scrollable
+
+Une niche active
+
+Mise en évidence niche active
+
+Future option : "+ Create new niche"
+
+Pas de boutons fixes.
+
+3️⃣ DASHBOARD STRUCTURE (VALIDÉE)
+
+Section 1 — Niche Intelligence Status
+
+Afficher :
+
+Nom niche
+
+Status (Building / Active / Mature)
+
+Confidence %
+
+Signal Strength %
+
+Total vidéos analysées
+
+Minimal. Aucun paragraphe.
+
+Section 2 — Quick Snapshot
+
+3 cartes :
+
+Hooks dominants
+
+Formats dominants
+
+Angles dominants
+
+Pas d’explication texte.
+
+Section 3
+
+Bouton :
+
+Voir les données détaillées
+
+Route :
+
+/niche-data
+4️⃣ DATA PAGE (SECONDARY ONLY)
+
+Accessible uniquement via bouton.
+
+Contient :
+
+Total vidéos
+
+Durée moyenne
+
+Durée médiane
+
+Calcul confidence détaillé
+
+Distribution hooks
+
+Distribution structures
+
+Distribution formats
+
+Distribution angles
+
+Jamais affichée sur Dashboard.
+
+5️⃣ INSIGHTS SIMPLIFICATION
+
+Structure :
+
+Header dynamique
+
+Confidence < 40
+"Your niche signal is still building."
+
+40–70
+"Emerging patterns detected."
+
+70+
+"Your niche signal is clear and actionable."
+
+Winning Patterns
+
+Cartes compactes :
+
+Meilleures accroches
+
+Formats gagnants
+
+Meilleurs angles
+
+Pas de paragraphes longs.
+
+3 recommandations max
+
+1 phrase chacune.
+
+Bouton
+
+Voir les données derrière ces insights
+
+Route → /niche-data
+
+6️⃣ ANALYTICS — LEARNING LOOP
+
+Page simplifiée.
+
+Afficher :
+
+Contenus créés
+
+Contenus suivis
+
+Force du signal
+
+Confidence
+
+Message simple :
+
+The engine strengthens as your niche dataset grows.
+
+Pas de pipeline décoratif inutile.
+
+7️⃣ STRIPE BILLING — IMPLEMENTATION COMPLÈTE
+
+⚠️ Ne rien coder à la main côté TVA.
+
+✅ Activer Stripe Tax
+
+Stripe Dashboard :
+
+Activer Stripe Tax
+
+Ajouter UAE
+
+TVA 5%
+
+Tax exclusive
+
+Stripe doit gérer :
+
+Calcul TVA
+
+Factures
+
+Export reports
+
+✅ Abonnement
+
+Créer :
+
+Stripe Customer à la création user
+
+Subscription attachée au customer
+
+Plans Stripe (Starter, Pro, etc.)
+
+✅ Gestion CB
+
+Implémenter :
+
+Ajout carte via Stripe Elements
+
+Modifier carte
+
+Supprimer carte
+
+Carte par défaut
+
+✅ Factures
+
+Page Plan & Facturation doit afficher :
+
+Liste factures Stripe
+
+Date
+
+Montant HT
+
+TVA
+
+Total
+
+Statut
+
+Bouton Download PDF (Stripe invoice link)
+
+✅ Statut abonnement
+
+Afficher :
+
+Trialing
+
+Active
+
+Past Due
+
+Canceled
+
+❌ Ne jamais :
+
+Calculer TVA dans le backend
+
+Générer facture custom
+
+Stocker taux TVA en dur
+
+Stripe = source officielle.
+
+8️⃣ EMPTY STATES PROPRES
+
+Si aucune vidéo :
+
+Dashboard :
+
+Start by adding videos to activate your niche intelligence.
+
+Insights :
+
+No insights available yet.
+
+Analytics :
+
+Signal faible + message éducatif.
+
+9️⃣ PRIORITÉ D’IMPLEMENTATION
+
+Niche isolation stricte
+
+Dropdown scalable
+
+Stripe Tax + Billing complet
+
+Factures téléchargeables
+
+Reset data cross-niche
+
+Header dynamique insights
+
+10️⃣ RÉSULTAT ATTENDU
+
+Craflect devient :
+
+Niche-aware strict
+
+Fiscalement compliant UAE
+
+SaaS billing standard US
+
+Scalable multi-niche
+
+Sans mélange de données
