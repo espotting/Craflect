@@ -25,6 +25,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useTheme } from "@/hooks/use-theme";
 import { useLanguage } from "@/hooks/use-language";
 import { LanguageSwitcher } from "@/components/language-switcher";
+import { SiTiktok, SiInstagram, SiYoutube } from "react-icons/si";
 import logoLight from "@/assets/logo-light.png";
 import logoTransparent from "@/assets/logo-transparent.png";
 
@@ -189,14 +190,24 @@ export default function Landing() {
               {t.landing.subtitle}
             </p>
 
-            <div className="flex items-center justify-center gap-2 mb-8" data-testid="platforms-bar">
-              <span className="text-xs text-muted-foreground font-medium mr-1">{t.landing.builtForCreators}</span>
-              {["TikTok", "Instagram Reels", "YouTube Shorts"].map((p, i) => (
-                <span key={p} className="flex items-center gap-0 text-xs font-medium text-foreground/75">
-                  {i > 0 && <span className="mx-1.5 text-foreground/40">·</span>}
-                  {p}
+            <div className="flex flex-col items-center gap-2 mb-8" data-testid="platforms-bar">
+              <span className="text-xs text-muted-foreground font-medium">{t.landing.builtForCreators}</span>
+              <div className="flex items-center gap-0">
+                <span className="flex items-center gap-1.5 text-sm font-medium text-foreground/75">
+                  <SiTiktok className="w-4 h-4" />
+                  TikTok
                 </span>
-              ))}
+                <span className="mx-3 text-lg text-foreground/50 font-bold select-none">·</span>
+                <span className="flex items-center gap-1.5 text-sm font-medium text-foreground/75">
+                  <SiInstagram className="w-4 h-4" />
+                  Instagram Reels
+                </span>
+                <span className="mx-3 text-lg text-foreground/50 font-bold select-none">·</span>
+                <span className="flex items-center gap-1.5 text-sm font-medium text-foreground/75">
+                  <SiYoutube className="w-4 h-4" />
+                  YouTube Shorts
+                </span>
+              </div>
             </div>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
