@@ -194,17 +194,17 @@ export default function Landing() {
               <span className="text-sm text-muted-foreground font-medium">{t.landing.builtForCreators}</span>
               <div className="flex items-center gap-0">
                 <span className="flex items-center gap-1.5 text-xs font-medium text-foreground/50">
-                  <SiTiktok className="w-3.5 h-3.5" />
+                  <SiTiktok className="w-3.5 h-3.5 opacity-60" style={{ color: "#000000" }} />
                   TikTok
                 </span>
                 <span className="mx-3 text-lg text-foreground/30 font-bold select-none">·</span>
                 <span className="flex items-center gap-1.5 text-xs font-medium text-foreground/50">
-                  <SiInstagram className="w-3.5 h-3.5" />
+                  <SiInstagram className="w-3.5 h-3.5 opacity-60" style={{ color: "#E4405F" }} />
                   Instagram Reels
                 </span>
                 <span className="mx-3 text-lg text-foreground/30 font-bold select-none">·</span>
                 <span className="flex items-center gap-1.5 text-xs font-medium text-foreground/50">
-                  <SiYoutube className="w-3.5 h-3.5" />
+                  <SiYoutube className="w-3.5 h-3.5 opacity-60" style={{ color: "#FF0000" }} />
                   YouTube Shorts
                 </span>
               </div>
