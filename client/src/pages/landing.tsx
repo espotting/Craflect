@@ -29,12 +29,6 @@ import { SiTiktok, SiInstagram, SiYoutube } from "react-icons/si";
 import logoLight from "@/assets/logo-light.png";
 import logoTransparent from "@/assets/logo-transparent.png";
 
-const WINNING_HOOKS = [
-  "\"You've been doing this wrong your whole life…\"",
-  "\"Nobody talks about this but…\"",
-  "\"I tested this for 30 days — here's what happened\"",
-];
-
 const MOCK_BRIEF = {
   hook: "\"I almost gave up on content creation until I discovered this one pattern...\"",
   flow: "Hook → Personal story → Pattern reveal → CTA",
@@ -52,18 +46,6 @@ function SectionReveal({ children, className = "", delay = 0 }: { children: Reac
     >
       {children}
     </motion.div>
-  );
-}
-
-function AnimatedBar({ width, delay = 0 }: { width: string; delay?: number }) {
-  return (
-    <motion.div
-      className="h-full bg-primary rounded-full"
-      initial={{ width: 0 }}
-      whileInView={{ width }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.8, delay, ease: "easeOut" }}
-    />
   );
 }
 
@@ -284,10 +266,6 @@ export default function Landing() {
           <div className="max-w-6xl mx-auto w-full relative z-10">
             <SectionReveal>
               <div className="text-center mb-12 sm:mb-16">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 dark:bg-primary/15 text-primary text-[10px] sm:text-xs font-bold uppercase tracking-widest mb-4">
-                  <BarChart3 className="w-3 h-3" />
-                  {t.landing.nicheInsights}
-                </span>
                 <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-bold text-foreground mb-3" data-testid="text-inside-title">
                   {t.landing.insideTitle}
                 </h2>
@@ -299,70 +277,65 @@ export default function Landing() {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 sm:gap-6">
 
-              {/* Niche Insights Card */}
+              {/* Card 1 — What's working (Dashboard mirror) */}
               <SectionReveal delay={0.1} className="lg:col-span-1">
                 <Card className="border-border/60 bg-card shadow-lg dark:shadow-primary/5 h-full hover:shadow-xl transition-shadow">
                   <CardContent className="p-5 sm:p-6 space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <BarChart3 className="w-4 h-4 text-primary" />
-                        <h3 className="text-xs font-bold uppercase tracking-widest text-primary">{t.landing.nicheInsights}</h3>
-                      </div>
+                    <div className="flex items-center gap-2">
+                      <BarChart3 className="w-4 h-4 text-primary" />
+                      <h3 className="text-xs font-bold uppercase tracking-widest text-primary">{t.landing.card1Title}</h3>
                     </div>
                     <div className="space-y-2">
                       {[
-                        { label: t.landing.insightFormat, value: t.landing.insightFormatValue, testid: "text-insight-format" },
-                        { label: t.landing.insightDuration, value: t.landing.insightDurationValue, testid: "text-insight-duration" },
-                        { label: t.landing.insightHook, value: t.landing.insightHookValue, testid: "text-insight-hook" },
+                        { label: t.landing.card1Confidence, value: "78%", highlight: true },
+                        { label: t.landing.card1Signal, value: "Strong" },
+                        { label: t.landing.card1Videos, value: "642" },
                       ].map((row) => (
                         <div key={row.label} className="flex items-center justify-between p-2.5 rounded-md bg-muted/40 dark:bg-muted/20">
                           <span className="text-[11px] text-muted-foreground">{row.label}</span>
-                          <span className="text-xs sm:text-sm font-semibold text-foreground" data-testid={row.testid}>{row.value}</span>
+                          <span className={`text-xs sm:text-sm font-semibold ${row.highlight ? "text-primary" : "text-foreground"}`}>{row.value}</span>
                         </div>
                       ))}
-                      <div className="flex items-center justify-between p-2.5 rounded-md bg-muted/40 dark:bg-muted/20">
-                        <span className="text-[11px] text-muted-foreground">{t.landing.insightConfidence}</span>
-                        <div className="flex items-center gap-2">
-                          <div className="w-14 h-1.5 rounded-full bg-muted overflow-hidden">
-                            <AnimatedBar width="78%" delay={0.3} />
-                          </div>
-                          <span className="text-xs sm:text-sm font-bold text-primary" data-testid="text-insight-confidence">78%</span>
-                        </div>
-                      </div>
                     </div>
-                    <div className="pt-2 flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                      <span className="text-xs font-semibold text-foreground" data-testid="badge-analyzed-videos">
-                        {t.landing.insightVideos}
-                      </span>
+                    <div className="border-t border-border/40 pt-3 space-y-1.5">
+                      {[
+                        { label: t.landing.card1TopHook, value: "Question (42%)" },
+                        { label: t.landing.card1TopFormat, value: "Talking Head (38%)" },
+                        { label: t.landing.card1TopAngle, value: "Tactical (31%)" },
+                      ].map((row) => (
+                        <div key={row.label} className="flex items-center justify-between px-1">
+                          <span className="text-[11px] text-muted-foreground">{row.label}</span>
+                          <span className="text-xs font-medium text-foreground">{row.value}</span>
+                        </div>
+                      ))}
                     </div>
                   </CardContent>
                 </Card>
               </SectionReveal>
 
-              {/* Winning Hooks Card */}
+              {/* Card 2 — What to focus on (Insights mirror) */}
               <SectionReveal delay={0.2} className="lg:col-span-1">
                 <Card className="border-border/60 bg-card shadow-lg dark:shadow-primary/5 h-full hover:shadow-xl transition-shadow">
                   <CardContent className="p-5 sm:p-6 space-y-4">
                     <div className="flex items-center gap-2">
-                      <Zap className="w-4 h-4 text-primary" />
-                      <h3 className="text-xs font-bold uppercase tracking-widest text-primary">{t.landing.winningHooks}</h3>
+                      <Target className="w-4 h-4 text-primary" />
+                      <h3 className="text-xs font-bold uppercase tracking-widest text-primary">{t.landing.card2Title}</h3>
                     </div>
                     <div className="space-y-2">
-                      {WINNING_HOOKS.map((hook, i) => (
+                      {[t.landing.card2Rec1, t.landing.card2Rec2, t.landing.card2Rec3].map((rec, i) => (
                         <motion.div
                           key={i}
                           initial={{ opacity: 0, x: -10 }}
                           whileInView={{ opacity: 1, x: 0 }}
                           viewport={{ once: true }}
                           transition={{ duration: 0.3, delay: 0.3 + i * 0.1 }}
-                          className="flex items-start gap-2.5 p-3 rounded-md bg-muted/40 dark:bg-muted/20 hover:bg-muted/60 dark:hover:bg-muted/30 transition-colors group"
-                          data-testid={`text-hook-${i}`}
+                          className="flex items-start gap-2.5 p-3 rounded-md bg-muted/40 dark:bg-muted/20"
+                          data-testid={`text-rec-${i}`}
                         >
-                          <span className="w-5 h-5 rounded-full bg-primary/10 group-hover:bg-primary/20 text-primary flex items-center justify-center text-[10px] font-bold flex-shrink-0 mt-0.5 transition-colors">
+                          <span className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold flex-shrink-0 mt-0.5">
                             {i + 1}
                           </span>
-                          <p className="text-xs sm:text-sm text-foreground leading-snug italic">{hook}</p>
+                          <p className="text-xs sm:text-sm text-foreground leading-snug">{rec}</p>
                         </motion.div>
                       ))}
                     </div>
@@ -370,34 +343,27 @@ export default function Landing() {
                 </Card>
               </SectionReveal>
 
-              {/* Execution Brief Card */}
+              {/* Card 3 — Your structured brief (Brief mirror) */}
               <SectionReveal delay={0.3} className="lg:col-span-1">
                 <Card className="border-primary/20 bg-card shadow-lg shadow-primary/5 dark:shadow-primary/10 h-full relative overflow-hidden hover:shadow-xl hover:shadow-primary/10 transition-shadow">
                   <div className="absolute top-0 right-0 w-40 h-40 bg-primary/5 dark:bg-primary/10 rounded-full blur-[60px] -translate-y-1/2 translate-x-1/2 pointer-events-none" />
                   <CardContent className="p-5 sm:p-6 space-y-4 relative z-10">
                     <div className="flex items-center gap-2">
                       <FileText className="w-4 h-4 text-primary" />
-                      <h3 className="text-xs font-bold uppercase tracking-widest text-primary">{t.landing.generatedBrief}</h3>
+                      <h3 className="text-xs font-bold uppercase tracking-widest text-primary">{t.landing.card3Title}</h3>
                     </div>
                     <div className="space-y-3">
                       <div>
-                        <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{t.landing.briefTitle}</span>
+                        <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{t.landing.card3Hook}</span>
                         <p className="text-sm text-foreground/80 italic mt-0.5" data-testid="text-brief-hook">{MOCK_BRIEF.hook}</p>
                       </div>
                       <div>
-                        <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{t.landing.briefHook}</span>
+                        <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{t.landing.card3Flow}</span>
                         <p className="text-sm text-foreground/80 mt-0.5" data-testid="text-brief-flow">{MOCK_BRIEF.flow}</p>
                       </div>
                       <div>
-                        <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{t.landing.briefCta}</span>
+                        <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{t.landing.card3Cta}</span>
                         <p className="text-sm text-foreground/80 italic mt-0.5" data-testid="text-brief-cta">{MOCK_BRIEF.cta}</p>
-                      </div>
-                      <div className="flex items-center gap-2 pt-1">
-                        {["TikTok", "Reels", "Shorts"].map((p) => (
-                          <Badge key={p} variant="secondary" className="text-[10px] px-2 py-0.5" data-testid={`badge-platform-${p.toLowerCase()}`}>
-                            {p}
-                          </Badge>
-                        ))}
                       </div>
                     </div>
                   </CardContent>
