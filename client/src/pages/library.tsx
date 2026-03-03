@@ -4,7 +4,7 @@ import { useWorkspaces } from "@/hooks/use-workspaces";
 import { useSources, useIngestUrls, useAnalyzeSource } from "@/hooks/use-sources";
 import { useLanguage } from "@/hooks/use-language";
 import { Button } from "@/components/ui/button";
-import { Plus, Video, FileText, Link2, Loader2, Upload, Search, Eye, Heart, MessageCircle, BarChart3, Tag, Filter, ArrowUpDown, Globe, Zap, ScanSearch } from "lucide-react";
+import { Plus, Video, FileText, Link2, Loader2, Upload, Search, Eye, Heart, MessageCircle, BarChart3, Tag, Filter, ArrowUpDown, Globe, Zap, ScanSearch, Check, ChevronsUpDown } from "lucide-react";
 import { SiTiktok, SiInstagram, SiYoutube } from "react-icons/si";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -13,7 +13,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
+import { cn } from "@/lib/utils";
 import type { ContentSource } from "@shared/schema";
 
 function PlatformIcon({ platform, className }: { platform: string | null; className?: string }) {
@@ -330,9 +334,16 @@ export default function Library() {
   const [platformFilter, setPlatformFilter] = useState<string>("all");
   const [hookFilter, setHookFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("recent");
+  const [selectedNicheId, setSelectedNicheId] = useState<string | null>(null);
+  const [nicheOpen, setNicheOpen] = useState(false);
   const { data: workspaces, isLoading: workspacesLoading } = useWorkspaces();
-  const selectedWorkspace = workspaces?.[0];
-  const { data: sources, isLoading: sourcesLoading } = useSources(selectedWorkspace?.id);
+  const { data: availableNiches } = useQuery<any[]>({ queryKey: ["/api/niches/available"] });
+
+  const activeNicheId = selectedNicheId || workspaces?.[0]?.nicheId || availableNiches?.[0]?.id;
+  const selectedWorkspace = workspaces?.find((w: any) => w.nicheId === activeNicheId) || workspaces?.[0];
+  const selectedNiche = availableNiches?.find((n: any) => n.id === activeNicheId);
+
+  const { data: sources, isLoading: sourcesLoading } = useSources(selectedWorkspace?.id, activeNicheId);
   const analyzeMutation = useAnalyzeSource(selectedWorkspace?.id);
   const { toast } = useToast();
   const { t } = useLanguage();
@@ -434,6 +445,59 @@ export default function Library() {
           </Button>
         </div>
 
+        {availableNiches && availableNiches.length > 0 && (
+          <div className="flex items-center gap-3 flex-wrap">
+            <span className="text-sm font-semibold text-primary">{t.dashboard.selectNiche}:</span>
+            <Popover open={nicheOpen} onOpenChange={setNicheOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={nicheOpen}
+                  className="min-w-[280px] justify-between border-primary/30 hover:border-primary hover:bg-primary/5 transition-colors"
+                  data-testid="combobox-library-niche-trigger"
+                >
+                  <span className="truncate">
+                    {selectedNiche
+                      ? selectedNiche.name.replace(/_/g, " ")
+                      : t.dashboard.selectNiche}
+                  </span>
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[280px] p-0">
+                <Command>
+                  <CommandInput placeholder={t.dashboard.searchNiche} data-testid="input-library-niche-search" />
+                  <CommandList>
+                    <CommandEmpty>{t.dashboard.noNicheFound}</CommandEmpty>
+                    <CommandGroup>
+                      {availableNiches.map((n: any) => (
+                        <CommandItem
+                          key={n.id}
+                          value={n.name}
+                          onSelect={() => {
+                            setSelectedNicheId(n.id);
+                            setNicheOpen(false);
+                          }}
+                          data-testid={`combobox-library-niche-item-${n.id}`}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              n.id === activeNicheId ? "opacity-100 text-primary" : "opacity-0"
+                            )}
+                          />
+                          {n.name.replace(/_/g, " ")}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+          </div>
+        )}
+
         {totalCount > 0 && (
           <div className="flex items-center flex-wrap gap-3" data-testid="filters-bar">
             <div className="flex items-center gap-2">
@@ -510,7 +574,7 @@ export default function Library() {
               <ScanSearch className="w-10 h-10 text-primary" />
             </div>
             <h3 className="font-display text-2xl font-bold text-foreground mb-2">{t.library.noContentTitle}</h3>
-            <p className="text-muted-foreground max-w-md mb-8">{t.library.noContentDesc}</p>
+            <p className="text-muted-foreground max-w-md mb-8">{t.library.noContentNicheDesc || t.library.noContentDesc}</p>
             <Button onClick={() => setIngestOpen(true)} data-testid="button-add-urls-empty">
               <Plus className="w-5 h-5 mr-2" />
               {t.library.addFirstUrls}

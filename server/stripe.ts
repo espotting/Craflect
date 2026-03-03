@@ -152,7 +152,7 @@ export async function getCustomerInvoices(customerId: string): Promise<any[]> {
     id: inv.id,
     date: inv.created,
     amount_excluding_tax: inv.subtotal,
-    tax: inv.tax ?? 0,
+    tax: (inv as any).tax ?? 0,
     total: inv.total,
     currency: inv.currency,
     status: inv.status,

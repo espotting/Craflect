@@ -25,7 +25,7 @@ export interface IStorage {
   createWorkspace(ownerId: string, workspace: InsertWorkspace): Promise<Workspace>;
   getWorkspaceById(id: string): Promise<Workspace | undefined>;
   
-  getContentSources(workspaceId: string): Promise<ContentSource[]>;
+  getContentSources(workspaceId: string, nicheId?: string): Promise<ContentSource[]>;
   createContentSource(source: InsertContentSource): Promise<ContentSource>;
   updateContentSourceStatus(id: string, status: string): Promise<ContentSource>;
   updateContentSource(id: string, data: Partial<ContentSource>): Promise<ContentSource>;
@@ -114,7 +114,12 @@ export class DatabaseStorage implements IStorage {
     return ws;
   }
 
-  async getContentSources(workspaceId: string): Promise<ContentSource[]> {
+  async getContentSources(workspaceId: string, nicheId?: string): Promise<ContentSource[]> {
+    if (nicheId) {
+      return await db.select().from(contentSources).where(
+        and(eq(contentSources.workspaceId, workspaceId), eq(contentSources.nicheId, nicheId))
+      ).orderBy(desc(contentSources.createdAt));
+    }
     return await db.select().from(contentSources).where(eq(contentSources.workspaceId, workspaceId)).orderBy(desc(contentSources.createdAt));
   }
 

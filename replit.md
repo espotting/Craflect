@@ -24,24 +24,28 @@ The application is built with a React, TypeScript, Tailwind CSS, shadcn/ui, and 
 
 **Technical Implementations:**
 - **Authentication:** Google OAuth, Email/Password with OTP verification, bcryptjs for password hashing, and PostgreSQL for session storage.
-- **Data Model:** Drizzle ORM manages a PostgreSQL database with schemas for workspaces, content sources, generated content, briefs, performance, events, niches, creators, video primitives, niche patterns, niche statistics, and niche profiles.
+- **Data Model:** Drizzle ORM manages a PostgreSQL database with schemas for workspaces, content sources, generated content, briefs, performance, events, niches, creators, video primitives, niche patterns, niche statistics, and niche profiles. DB indexes on video_primitives (niche_id, hook_type, format_type, angle_category), content_sources (workspace_id, niche_id, created_at), workspace_intelligence (workspace_id, niche_id).
 - **Intelligence Layer:**
     - **Ingestion Pipeline:** Processes URLs, scrapes public metadata, and uses an LLM for video primitive classification (hookType, narrativeStructure, contentAngle, contentFormat, performanceScore). Metrics are scraped only, never simulated by AI.
-    - **Pattern Aggregator:** Calculates distribution, stability, and confidence scores for niche patterns.
+    - **Pattern Aggregator:** Calculates distribution, stability, and confidence scores for niche patterns. Includes `recomputeNicheIntelligence(nicheId)` batch function, `sampleSize` tracked in niche_statistics.
     - **Scoring Engine:** Computes "Confidence" (based on volume, consistency, stability) and "Signal Strength," and determines "Intelligence Status" (Building, Active, Mature).
     - **Profile Generator:** LLM-generates niche intelligence summaries and strategic recommendations.
-- **Content Source Processing:** AI extracts pattern features using closed taxonomies (e.g., HOOK_TYPES, STRUCTURE_MODELS), ensuring consistent categorization.
+- **Content Source Processing:** AI extracts pattern features using closed taxonomies (e.g., HOOK_TYPES, STRUCTURE_MODELS), ensuring consistent categorization. Content sources now have a `nicheId` column for strict niche isolation.
 - **Hybrid Intelligence:** Supports both 'Global Intelligence' (admin-ingested niche data, sourceType='admin') and 'Workspace Intelligence' (user's personal dataset, sourceType='user'). All data flows through the unified `video_primitives` table. Content sources are automatically converted to video primitives upon analysis. The `workspace_intelligence` table caches per-workspace scoring.
-    - **Data State:** Single niche "Influencer / Creator Economy" (public, id=504c98ef), 10 admin primitives (Global Signal), 6 user primitives across workspaces. Workspace "KT" (fed26535) has 5 user primitives.
-- **Stripe Billing:** Integrated for subscription management, product/price creation, and webhook handling for subscription status updates.
+    - **Data State:** Single niche "Influencer / Creator Economy" (public, id=504c98ef), 5 user primitives in workspace KT (fed26535).
+- **Stripe Billing:** Integrated for subscription management, product/price creation, webhook handling, and in-app payment method management (add/remove/set default via Stripe Elements, no redirect). Stripe Tax enabled (`automatic_tax: { enabled: true }`), no hardcoded tax. Frontend packages: `@stripe/react-stripe-js`, `@stripe/stripe-js`.
+    - **Payment Methods API:** GET /api/billing/payment-methods, POST /api/billing/setup-intent, DELETE /api/billing/payment-methods/:id, POST /api/billing/payment-methods/:id/default. Protection: cannot remove last card with active subscription.
 - **Scraping:** Lightweight public metadata scraping (title, description, views, likes, etc.) is non-blocking and continues analysis even if full metadata is unavailable. SSRF protection is implemented.
+- **Niche Isolation:** Analyzed Content is strictly filtered by niche_id. No cross-niche content displayed. Library page includes niche selector.
+- **Insights Engine:** LLM prompt enforces data-driven recommendations: numeric differences, dominant vs secondary comparisons, max 3 recommendations, 2 sentences each, no generic advice.
 
 **Key Features:**
 - **Dashboard:** Displays Niche Intelligence Status, Quick Snapshot of dominant patterns, and a CTA for Data Breakdown.
-- **Analyzed Content (Library):** Manages ingested URLs, displays source cards with metrics and AI tags, with filtering and sorting options.
-- **Insights (Briefs):** Provides Niche Intelligence Profiles, Winning Patterns, and actionable recommendations.
+- **Analyzed Content (Library):** Manages ingested URLs, displays source cards with metrics and AI tags, with filtering, sorting, and niche-level filtering via global niche selector.
+- **Insights (Briefs):** Provides Niche Intelligence Profiles, Winning Patterns, and actionable data-driven recommendations.
 - **Analytics (Learning Loop):** Tracks content creation, signal strength, and confidence over time.
 - **Niche Data:** Presents detailed distribution tables for patterns and confidence computation.
+- **Plan & Billing:** Subscription plans, usage tracking, in-app payment method management (Stripe Elements), invoice history.
 - **Admin Panel:** Offers KPI cards, user management, and an event feed.
 - **Event Tracking:** Instruments user actions like content uploads, brief generation, and analytics viewing.
 
@@ -49,7 +53,8 @@ The application is built with a React, TypeScript, Tailwind CSS, shadcn/ui, and 
 - **OpenAI:** Used for AI integrations (gpt-4.1-mini) for content classification and generation.
 - **PostgreSQL:** Primary database for all application data.
 - **Google OAuth:** For user authentication.
-- **Stripe:** For managing subscriptions, payments, and customer portals.
+- **Stripe:** For managing subscriptions, payments, payment methods, and customer portals.
+- **@stripe/react-stripe-js & @stripe/stripe-js:** Frontend Stripe Elements integration.
 - **bcryptjs:** For hashing user passwords.
 - **connect-pg-simple:** For storing session data in PostgreSQL.
 - **wouter:** Frontend routing.

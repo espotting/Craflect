@@ -2,12 +2,13 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import type { ContentSource, GeneratedContent } from "@shared/schema";
 
-export function useSources(workspaceId: string | undefined) {
+export function useSources(workspaceId: string | undefined, nicheId?: string | null) {
   return useQuery<ContentSource[]>({
-    queryKey: ["/api/workspaces", workspaceId, "sources"],
+    queryKey: ["/api/workspaces", workspaceId, "sources", nicheId],
     queryFn: async () => {
       if (!workspaceId) return [];
-      const res = await fetch(`/api/workspaces/${workspaceId}/sources`, { credentials: "include" });
+      const params = nicheId ? `?nicheId=${encodeURIComponent(nicheId)}` : "";
+      const res = await fetch(`/api/workspaces/${workspaceId}/sources${params}`, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch sources");
       return res.json();
     },

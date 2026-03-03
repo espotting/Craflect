@@ -1,0 +1,154 @@
+✅ BRIEF COMPLET POUR REPLIT
+(Moteur Insights + Stripe + Index DB + Isolation Niche + Correction Analyzed Content)
+________________________________________
+🎯 OBJECTIF GLOBAL
+1.	Finaliser Stripe (gestion CB)
+2.	Rendre les Insights plus data-driven et premium
+3.	Ajouter les indexes DB pour scale
+4.	Garantir isolation stricte multi-niche
+5.	Corriger MAJEUR : Analyzed Content doit être filtré par niche sélectionnée
+Aucune autre modification non demandée.
+________________________________________
+🛑 PARTIE 1 — CORRECTION CRITIQUE
+Analyzed Content doit être 100% lié à la niche active
+🔴 Problème actuel
+Peu importe la niche sélectionnée,
+la page “Analyzed Content” affiche :
+→ les 5 vidéos Kamel Tatouage
+→ sans filtrage par niche_id
+C’est incohérent.
+________________________________________
+✅ Règle stricte à implémenter
+La page /analyzed-content doit :
+1.	Récupérer la niche actuellement sélectionnée (global niche selector)
+2.	Filtrer toutes les requêtes par :
+WHERE niche_id = selectedNicheId
+3.	Ne jamais afficher du contenu cross-niche
+________________________________________
+🔧 Backend à modifier
+Dans la route :
+GET /api/content-sources
+Ajouter filtre obligatoire :
+•	workspace_id
+•	niche_id
+Requête attendue :
+SELECT * FROM content_sources
+WHERE workspace_id = ?
+AND niche_id = ?
+ORDER BY created_at DESC
+________________________________________
+🧠 Important
+Si aucune donnée pour la niche :
+Afficher un Empty State :
+“ No content analyzed yet for this niche.
+Add your first URLs to start building your signal.”
+Ne jamais afficher des données d’une autre niche.
+________________________________________
+🧠 PARTIE 2 — INSIGHTS PLUS PREMIUM
+🎯 Nouvelle règle Insights
+Chaque recommandation doit :
+1.	Mentionner une différence numérique
+2.	Comparer dominant vs secondaire
+3.	Donner action concrète
+________________________________________
+🛠 Modifier prompt LLM
+Inclure :
+- Always reference numeric differences when available.
+- Compare dominant vs secondary patterns.
+- Provide concrete execution guidance.
+- Maximum 2 sentences.
+- Avoid generic advice.
+________________________________________
+🎯 UI Constraints
+•	Max 3 recommandations
+•	2 phrases max chacune
+•	Ton direct, stratégique
+•	Pas de paragraphes
+________________________________________
+💳 PARTIE 3 — STRIPE GESTION CARTES
+Oui, continuer l’implémentation.
+________________________________________
+Backend
+Ajouter routes :
+GET /api/billing/payment-methods
+POST /api/billing/setup-intent
+DELETE /api/billing/payment-methods/:id
+POST /api/billing/payment-methods/:id/default
+Auth obligatoire.
+________________________________________
+Frontend
+Installer :
+•	@stripe/react-stripe-js
+•	@stripe/stripe-js
+Créer composant :
+PaymentMethodsSection
+Afficher :
+•	Carte (•••• 4242)
+•	Expiration
+•	Badge Default
+•	Boutons :
+o	Set default
+o	Remove (modal confirmation)
+o	Add card (Stripe Elements modal)
+Ne pas toucher aux subscriptions existantes.
+________________________________________
+🧾 PARTIE 4 — TVA
+Confirmer :
+•	Stripe Tax activé
+•	Aucune TVA codée en dur
+•	Calcul dynamique basé pays client
+________________________________________
+🗄 PARTIE 5 — INDEX DATABASE (CRITIQUE POUR SCALE)
+Ajouter indexes :
+video_primitives
+•	index(niche_id)
+•	index(hook_type)
+•	index(format_type)
+•	index(angle_type)
+content_sources
+•	index(workspace_id)
+•	index(niche_id)
+•	index(created_at)
+workspace_intelligence
+•	index(workspace_id)
+•	index(niche_id)
+________________________________________
+🧩 PARTIE 6 — ISOLATION MULTI-NICHE GLOBALE
+Règles absolues :
+Global Intelligence :
+→ Basé uniquement sur video_primitives
+→ Filtré par niche_id
+Workspace Intelligence :
+→ Basé sur content_sources
+→ Filtré par workspace_id + niche_id
+Analyzed Content :
+→ Filtré par workspace_id + niche_id
+Insights :
+→ Générés uniquement sur niche active
+Aucun mélange cross-niche autorisé.
+________________________________________
+🧠 PARTIE 7 — PRÉPARATION INGESTION MASSIVE
+Ajouter dans niche_statistics :
+•	sample_size
+•	last_updated
+Créer fonction :
+recomputeNicheIntelligence(nicheId)
+Recalcul batch possible.
+________________________________________
+📌 PRIORITÉ D’EXÉCUTION
+1.	Correction Analyzed Content (critique)
+2.	Stripe CB
+3.	Index DB
+4.	Update moteur Insights
+5.	Tests multi-niche
+________________________________________
+📩 MESSAGE À REPLIT
+________________________________________
+Correction prioritaire :
+La page Analyzed Content doit être strictement filtrée par niche_id sélectionné.
+Aucune donnée cross-niche ne doit apparaître.
+Ensuite :
+Continuer l’implémentation Stripe (gestion cartes).
+Ajouter indexes DB.
+Mettre à jour moteur Insights selon règles data-driven.
+Ne modifier rien d’autre sans validation.

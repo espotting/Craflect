@@ -12,7 +12,7 @@ import { updateNichePatterns, updateNicheStatistics } from "./intelligence/patte
 import { generateNicheProfile } from "./intelligence/profile-generator";
 import { computeNicheScoring } from "./intelligence/scoring";
 import { computeWorkspaceIntelligence, updateWorkspaceIntelligence } from "./intelligence/workspace-scoring";
-import { stripe, getOrCreateStripeCustomer, createCheckoutSession, createBillingPortalSession, getCustomerInvoices, ensureStripePrices, PLANS } from "./stripe";
+import { stripe, getOrCreateStripeCustomer, createCheckoutSession, createBillingPortalSession, getCustomerInvoices, ensureStripePrices, PLANS, listPaymentMethods, createSetupIntent, detachPaymentMethod, setDefaultPaymentMethod } from "./stripe";
 import { HOOK_TYPES, STRUCTURE_MODELS, ANGLE_CATEGORIES, FORMAT_TYPES } from "@shared/schema";
 
 const openai = new OpenAI({
@@ -66,7 +66,10 @@ export async function registerRoutes(
 
   // ─── Content Sources ───
   app.get("/api/workspaces/:workspaceId/sources", isAuthenticated, verifyWorkspaceOwnership, async (req: any, res) => {
-    const items = await storage.getContentSources(req.params.workspaceId);
+    const nicheId = req.query.nicheId as string | undefined;
+    const ws = await storage.getWorkspaceById(req.params.workspaceId);
+    const effectiveNicheId = nicheId || ws?.nicheId || undefined;
+    const items = await storage.getContentSources(req.params.workspaceId, effectiveNicheId);
     res.json(items);
   });
 
@@ -83,9 +86,11 @@ export async function registerRoutes(
       const platform = input.url ? detectPlatform(input.url) : undefined;
       const creatorHandle = input.url ? extractCreatorHandle(input.url) : undefined;
 
+      const ws = await storage.getWorkspaceById(req.params.workspaceId);
       const source = await storage.createContentSource({
         ...input,
         workspaceId: req.params.workspaceId,
+        nicheId: ws?.nicheId || null,
         status: "pending",
         platform: platform || null,
         creatorHandle: creatorHandle || null,
@@ -106,12 +111,14 @@ export async function registerRoutes(
         urls: z.array(z.string().url()).min(1, "At least one URL is required"),
       }).parse(req.body);
 
+      const ws = await storage.getWorkspaceById(req.params.workspaceId);
       const created = [];
       for (const url of input.urls) {
         const platform = detectPlatform(url);
         const creatorHandle = extractCreatorHandle(url);
         const source = await storage.createContentSource({
           workspaceId: req.params.workspaceId,
+          nicheId: ws?.nicheId || null,
           type: "url",
           title: `${platform} content from ${creatorHandle || "unknown"}`,
           url,
@@ -219,6 +226,7 @@ Be analytical. Score based on content structure quality, not estimated popularit
         performanceScore: parsed.performanceScore || null,
         description: scrapedMeta.description || parsed.description || null,
         hashtags: parsed.hashtags || null,
+        nicheId: ws?.nicheId || source.nicheId || null,
         ingestionStatus: "analyzed",
         status: "analyzed",
       });
@@ -395,6 +403,14 @@ The content should reproduce the winning patterns (hook type, structure, angle) 
             role: "system",
             content: `You are a content performance intelligence analyst. Analyze the user's content library to identify winning patterns and generate actionable insights.
 
+RULES FOR RECOMMENDATIONS:
+- Always reference numeric differences when available.
+- Compare dominant vs secondary patterns.
+- Provide concrete execution guidance.
+- Maximum 2 sentences per recommendation.
+- Avoid generic advice.
+- Maximum 3 recommendations total.
+
 Return a JSON object with:
 - "topic": a compelling title for this insight report (string)
 - "hook": the key finding / headline insight (string, 1-2 sentences)
@@ -405,7 +421,7 @@ Return a JSON object with:
   - "winningFormats": array of {format, percentage, description}
   - "contentAngles": array of {angle, performance, description}
   - "nichePatterns": array of {pattern, frequency, impact}
-- "recommendations": a JSON string containing an array of {action, reason, priority} objects
+- "recommendations": a JSON string containing an array of max 3 {action, reason, priority} objects. Each action must be 2 sentences max with a numeric comparison.
 
 If no analyzed sources exist, provide general niche recommendations based on any available context. Be specific and data-driven.`
           },
@@ -874,6 +890,85 @@ The content should directly apply the recommendations from the insight report. W
       res.json(invoices);
     } catch (err: any) {
       console.error("Invoice listing error:", err);
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/billing/config", (req: any, res) => {
+    res.json({ publishableKey: process.env.STRIPE_PUBLISHABLE_KEY || "" });
+  });
+
+  app.get("/api/billing/payment-methods", isAuthenticated, async (req: any, res) => {
+    try {
+      const sub = await storage.getOrCreateSubscription(req.user.id);
+      if (!sub.stripeCustomerId) {
+        return res.json([]);
+      }
+      const methods = await listPaymentMethods(sub.stripeCustomerId);
+      res.json(methods);
+    } catch (err: any) {
+      console.error("List payment methods error:", err);
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/billing/setup-intent", isAuthenticated, async (req: any, res) => {
+    try {
+      const sub = await storage.getOrCreateSubscription(req.user.id);
+      const customerId = await getOrCreateStripeCustomer(
+        req.user.email,
+        `${req.user.firstName || ""} ${req.user.lastName || ""}`.trim() || req.user.email,
+        sub.stripeCustomerId
+      );
+      if (!sub.stripeCustomerId) {
+        await storage.updateSubscription(req.user.id, { stripeCustomerId: customerId });
+      }
+      const intent = await createSetupIntent(customerId);
+      res.json(intent);
+    } catch (err: any) {
+      console.error("Setup intent error:", err);
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.delete("/api/billing/payment-methods/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const sub = await storage.getOrCreateSubscription(req.user.id);
+      if (!sub.stripeCustomerId) {
+        return res.status(400).json({ message: "No billing account found." });
+      }
+      const pm = await stripe.paymentMethods.retrieve(req.params.id);
+      if (pm.customer !== sub.stripeCustomerId) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+      if (sub.stripeSubscriptionId && sub.billingStatus === "active") {
+        const methods = await listPaymentMethods(sub.stripeCustomerId);
+        if (methods.length <= 1) {
+          return res.status(400).json({ message: "Cannot remove the last payment method while you have an active subscription." });
+        }
+      }
+      await detachPaymentMethod(req.params.id);
+      res.json({ success: true });
+    } catch (err: any) {
+      console.error("Detach payment method error:", err);
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/billing/payment-methods/:id/default", isAuthenticated, async (req: any, res) => {
+    try {
+      const sub = await storage.getOrCreateSubscription(req.user.id);
+      if (!sub.stripeCustomerId) {
+        return res.status(400).json({ message: "No billing account found." });
+      }
+      const pm = await stripe.paymentMethods.retrieve(req.params.id);
+      if (pm.customer !== sub.stripeCustomerId) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+      await setDefaultPaymentMethod(sub.stripeCustomerId, req.params.id);
+      res.json({ success: true });
+    } catch (err: any) {
+      console.error("Set default payment method error:", err);
       res.status(500).json({ message: err.message });
     }
   });

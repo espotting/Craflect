@@ -1,4 +1,4 @@
-import { pgTable, text, varchar, timestamp, integer, doublePrecision, jsonb, boolean, real } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, integer, doublePrecision, jsonb, boolean, real, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { sql } from "drizzle-orm";
@@ -38,6 +38,7 @@ export const workspaces = pgTable("workspaces", {
 export const contentSources = pgTable("content_sources", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   workspaceId: varchar("workspace_id").notNull(),
+  nicheId: varchar("niche_id"),
   type: text("type").notNull(),
   title: text("title").notNull(),
   fileUrl: text("file_url"),
@@ -64,7 +65,11 @@ export const contentSources = pgTable("content_sources", {
   ingestionStatus: text("ingestion_status").default("pending"),
   ingestionError: text("ingestion_error"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("idx_content_sources_workspace_id").on(table.workspaceId),
+  index("idx_content_sources_niche_id").on(table.nicheId),
+  index("idx_content_sources_created_at").on(table.createdAt),
+]);
 
 export const generatedContent = pgTable("generated_content", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -197,7 +202,12 @@ export const videoPrimitives = pgTable("video_primitives", {
   authorityScore: real("authority_score"),
   emotionalIntensityScore: real("emotional_intensity_score"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("idx_video_primitives_niche_id").on(table.nicheId),
+  index("idx_video_primitives_hook_type").on(table.hookType),
+  index("idx_video_primitives_format_type").on(table.formatType),
+  index("idx_video_primitives_angle_category").on(table.angleCategory),
+]);
 
 export const nichePatterns = pgTable("niche_patterns", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -216,6 +226,7 @@ export const nicheStatistics = pgTable("niche_statistics", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   nicheId: varchar("niche_id").notNull(),
   totalVideos: integer("total_videos").default(0).notNull(),
+  sampleSize: integer("sample_size").default(0).notNull(),
   dominantHook: text("dominant_hook"),
   dominantStructure: text("dominant_structure"),
   dominantAngle: text("dominant_angle"),
@@ -253,7 +264,10 @@ export const workspaceIntelligence = pgTable("workspace_intelligence", {
   confidenceScore: real("confidence_score"),
   signalStrength: real("signal_strength"),
   lastUpdated: timestamp("last_updated").defaultNow().notNull(),
-});
+}, (table) => [
+  index("idx_workspace_intelligence_workspace_id").on(table.workspaceId),
+  index("idx_workspace_intelligence_niche_id").on(table.nicheId),
+]);
 
 export const insertNicheSchema = createInsertSchema(niches).omit({ id: true, createdAt: true });
 export const insertCreatorSchema = createInsertSchema(creators).omit({ id: true, createdAt: true });

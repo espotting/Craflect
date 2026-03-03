@@ -89,6 +89,11 @@ export async function updateNichePatterns(nicheId: string) {
   });
 }
 
+export async function recomputeNicheIntelligence(nicheId: string) {
+  await updateNichePatterns(nicheId);
+  await updateNicheStatistics(nicheId);
+}
+
 export async function updateNicheStatistics(nicheId: string) {
   const primitives = await db
     .select()
@@ -111,6 +116,7 @@ export async function updateNicheStatistics(nicheId: string) {
 
   await storage.upsertNicheStatistics(nicheId, {
     totalVideos,
+    sampleSize: totalVideos,
     dominantHook: dominant(hookDist),
     dominantStructure: dominant(structDist),
     dominantAngle: dominant(angleDist),
