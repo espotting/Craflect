@@ -107,9 +107,8 @@ export default function Dashboard() {
   const [nicheOpen, setNicheOpen] = useState(false);
   const [intelligenceMode, setIntelligenceMode] = useState<"global" | "workspace">("global");
 
-  const selectedWorkspace = workspaces?.[0];
-  const workspaceNicheId = selectedWorkspace?.nicheId;
-  const activeNicheId = workspaceNicheId || selectedNicheId || availableNiches?.[0]?.id;
+  const activeNicheId = selectedNicheId || workspaces?.[0]?.nicheId || availableNiches?.[0]?.id;
+  const selectedWorkspace = workspaces?.find((w: any) => w.nicheId === activeNicheId) || workspaces?.[0];
 
   const { data: snapshotData, isLoading: isSnapshotLoading } = useQuery<any>({
     queryKey: ["/api/niches", activeNicheId, "snapshot"],
@@ -210,7 +209,7 @@ export default function Dashboard() {
     <DashboardLayout>
       <div className="space-y-6 max-w-4xl">
 
-        {availableNiches && availableNiches.length > 0 && !workspaceNicheId && (
+        {availableNiches && availableNiches.length > 0 && (
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs text-muted-foreground font-medium">{t.dashboard.selectNiche}:</span>
             <Popover open={nicheOpen} onOpenChange={setNicheOpen}>
