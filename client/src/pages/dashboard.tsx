@@ -105,6 +105,7 @@ export default function Dashboard() {
 
   const [selectedNicheId, setSelectedNicheId] = useState<string | null>(null);
   const [nicheOpen, setNicheOpen] = useState(false);
+  const [intelligenceMode, setIntelligenceMode] = useState<"global" | "workspace">("global");
 
   const selectedWorkspace = workspaces?.[0];
   const workspaceNicheId = selectedWorkspace?.nicheId;
@@ -112,10 +113,16 @@ export default function Dashboard() {
 
   const { data: snapshotData, isLoading: isSnapshotLoading } = useQuery<any>({
     queryKey: ["/api/niches", activeNicheId, "snapshot"],
-    enabled: !!activeNicheId,
+    enabled: !!activeNicheId && intelligenceMode === "global",
   });
 
-  const scoring = snapshotData?.scoring;
+  const { data: workspaceIntel, isLoading: isWorkspaceIntelLoading } = useQuery<any>({
+    queryKey: ["/api/workspaces", selectedWorkspace?.id, "intelligence"],
+    enabled: !!selectedWorkspace?.id && intelligenceMode === "workspace",
+  });
+
+  const activeData = intelligenceMode === "global" ? snapshotData : workspaceIntel;
+  const scoring = activeData?.scoring;
   const selectedNiche = availableNiches?.find((n: any) => n.id === activeNicheId);
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -254,7 +261,47 @@ export default function Dashboard() {
           </div>
         )}
 
-        {snapshotData?.notReady || (scoring && scoring.totalVideos < 3) ? (
+        {selectedWorkspace && (
+          <div className="flex items-center gap-1 bg-muted rounded-lg p-1 w-fit" data-testid="toggle-intelligence-mode">
+            <button
+              onClick={() => setIntelligenceMode("global")}
+              className={cn(
+                "px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
+                intelligenceMode === "global"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+              data-testid="button-global-signal"
+            >
+              {t.dashboard.globalSignal}
+            </button>
+            <button
+              onClick={() => setIntelligenceMode("workspace")}
+              className={cn(
+                "px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
+                intelligenceMode === "workspace"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+              data-testid="button-your-dataset"
+            >
+              {t.dashboard.yourDataset}
+            </button>
+          </div>
+        )}
+
+        {intelligenceMode === "workspace" && scoring && scoring.totalVideos === 0 ? (
+          <Card data-testid="card-workspace-empty">
+            <CardContent className="p-8 flex flex-col items-center text-center">
+              <Brain className="w-10 h-10 text-muted-foreground/20 mb-4" />
+              <h3 className="text-lg font-bold text-foreground mb-1" data-testid="text-workspace-empty-title">{t.dashboard.workspaceEmpty}</h3>
+              <div className="grid grid-cols-2 gap-4 mt-4">
+                <StatItem label={t.dashboard.confidence} value="0%" />
+                <StatItem label={t.dashboard.signalStrength} value="0%" />
+              </div>
+            </CardContent>
+          </Card>
+        ) : activeData?.notReady || (scoring && scoring.totalVideos < 3) ? (
           <Card data-testid="card-empty-state">
             <CardContent className="p-8 flex flex-col items-center text-center">
               <Brain className="w-10 h-10 text-muted-foreground/20 mb-4" />

@@ -186,6 +186,9 @@ const fr: Translations = {
     createWorkspace: "Créer un espace",
     workspaceDesc: "Un espace organise vos sources de contenu et vos briefs pour une marque.",
     workspaceName: "Nom de l'espace",
+    globalSignal: "Signal Global",
+    yourDataset: "Vos Données",
+    workspaceEmpty: "Vous n'avez pas encore ajouté de vidéos spécifiques à votre niche.",
   },
 
   library: {
@@ -270,6 +273,8 @@ const fr: Translations = {
     clearPatterns: "Patterns dominants clairs",
     goToLibrary: "Aller à la bibliothèque",
     addContent: "Ajouter du contenu",
+    globalMode: "Basé sur l'intelligence de niche agrégée.",
+    workspaceMode: "Basé sur votre dataset personnel.",
   },
 
   settings: {

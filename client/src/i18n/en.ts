@@ -184,6 +184,9 @@ const en = {
     createWorkspace: "Create Workspace",
     workspaceDesc: "A workspace organizes your content sources and generated briefs for a specific brand.",
     workspaceName: "Workspace Name",
+    globalSignal: "Global Signal",
+    yourDataset: "Your Dataset",
+    workspaceEmpty: "You have not added niche-specific videos yet.",
   },
 
   library: {
@@ -268,6 +271,8 @@ const en = {
     clearPatterns: "Clear dominant patterns",
     goToLibrary: "Go to Library",
     addContent: "Add Content",
+    globalMode: "Based on aggregated niche intelligence.",
+    workspaceMode: "Based on your uploaded dataset.",
   },
 
   settings: {

@@ -9,6 +9,8 @@ import { useLanguage } from "@/hooks/use-language";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useState } from "react";
+import { cn } from "@/lib/utils";
 
 export default function Analytics() {
   const { data: workspaces } = useWorkspaces();
@@ -16,6 +18,7 @@ export default function Analytics() {
   const { data: analytics, isLoading: analyticsLoading } = useWorkspaceAnalytics(selectedWorkspace?.id);
   const { t } = useLanguage();
   const [, setLocation] = useLocation();
+  const [intelligenceMode, setIntelligenceMode] = useState<"global" | "workspace">("global");
 
   const nicheId = selectedWorkspace?.nicheId;
 
@@ -34,16 +37,22 @@ export default function Analytics() {
     distributions: any;
   }>({
     queryKey: ["/api/niches", nicheId, "snapshot"],
-    enabled: !!nicheId,
+    enabled: !!nicheId && intelligenceMode === "global",
   });
 
-  const isLoading = analyticsLoading || snapshotLoading;
+  const { data: workspaceIntel, isLoading: wsIntelLoading } = useQuery<any>({
+    queryKey: ["/api/workspaces", selectedWorkspace?.id, "intelligence"],
+    enabled: !!selectedWorkspace?.id && intelligenceMode === "workspace",
+  });
+
+  const activeIntel = intelligenceMode === "global" ? snapshot : workspaceIntel;
+  const isLoading = analyticsLoading || snapshotLoading || wsIntelLoading;
 
   const contentCreated = analytics?.generatedCount ?? 0;
   const contentTracked = analytics?.performanceData?.length ?? 0;
-  const signalStrengthPct = snapshot?.scoring?.signalStrengthPercent ?? 0;
-  const confidencePct = snapshot?.scoring?.confidencePercent ?? 0;
-  const hasNoData = !snapshot || snapshot.notReady || (snapshot.scoring?.totalVideos ?? 0) < 3;
+  const signalStrengthPct = activeIntel?.scoring?.signalStrengthPercent ?? 0;
+  const confidencePct = activeIntel?.scoring?.confidencePercent ?? 0;
+  const hasNoData = !activeIntel || activeIntel.notReady || (activeIntel.scoring?.totalVideos ?? 0) < 3;
 
   function getSignalInterpretation(pct: number): string {
     if (pct < 40) return t.analytics.signalWeak;
@@ -87,10 +96,38 @@ export default function Analytics() {
   return (
     <DashboardLayout>
       <div className="space-y-8">
-        <div>
+        <div className="flex items-center justify-between flex-wrap gap-4">
           <h1 className="font-display text-3xl font-bold text-foreground" data-testid="text-analytics-title">
             {t.analytics.title}
           </h1>
+          {selectedWorkspace && (
+            <div className="flex items-center gap-1 bg-muted rounded-lg p-1" data-testid="toggle-analytics-mode">
+              <button
+                onClick={() => setIntelligenceMode("global")}
+                className={cn(
+                  "px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
+                  intelligenceMode === "global"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+                data-testid="button-analytics-global"
+              >
+                {t.dashboard.globalSignal}
+              </button>
+              <button
+                onClick={() => setIntelligenceMode("workspace")}
+                className={cn(
+                  "px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
+                  intelligenceMode === "workspace"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+                data-testid="button-analytics-workspace"
+              >
+                {t.dashboard.yourDataset}
+              </button>
+            </div>
+          )}
         </div>
 
         {hasNoData && !isLoading ? (
@@ -148,7 +185,7 @@ export default function Analytics() {
               <CardContent className="pt-6 flex items-center gap-3">
                 <div className="w-2 h-2 rounded-full bg-primary animate-pulse shrink-0" />
                 <p className="text-sm text-muted-foreground" data-testid="text-analytics-subtitle">
-                  {t.analytics.subtitle}
+                  {intelligenceMode === "global" ? t.analytics.globalMode : t.analytics.workspaceMode}
                 </p>
               </CardContent>
             </Card>

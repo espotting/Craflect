@@ -11,7 +11,9 @@ import { ingestVideoForNiche } from "./intelligence/ingestion-pipeline";
 import { updateNichePatterns, updateNicheStatistics } from "./intelligence/pattern-aggregator";
 import { generateNicheProfile } from "./intelligence/profile-generator";
 import { computeNicheScoring } from "./intelligence/scoring";
+import { computeWorkspaceIntelligence, updateWorkspaceIntelligence } from "./intelligence/workspace-scoring";
 import { stripe, getOrCreateStripeCustomer, createCheckoutSession, createBillingPortalSession, getCustomerInvoices, ensureStripePrices, PLANS } from "./stripe";
+import { HOOK_TYPES, STRUCTURE_MODELS, ANGLE_CATEGORIES, FORMAT_TYPES } from "@shared/schema";
 
 const openai = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
@@ -220,6 +222,61 @@ Be analytical. Score based on content structure quality, not estimated popularit
         ingestionStatus: "analyzed",
         status: "analyzed",
       });
+
+      if (ws.nicheId && (parsed.hookType || parsed.narrativeStructure || parsed.contentAngle || parsed.contentFormat)) {
+        try {
+          const mapHook = (v: string): string => {
+            const map: Record<string, string> = { question: "Question", statement: "Direct_Statement", shock: "Shock", story: "Story_Start", statistic: "Statistic", challenge: "Bold_Claim", tutorial: "Tutorial_Intro", behind_the_scenes: "Relatable", controversy: "Controversial", listicle: "Direct_Statement" };
+            return map[v?.toLowerCase()] || "Direct_Statement";
+          };
+          const mapStructure = (v: string): string => {
+            const map: Record<string, string> = { storytelling: "Story_Lesson", list: "List_Format", tutorial: "Tutorial_Step", vlog: "Hook_Value_CTA", review: "Authority_Breakdown", comparison: "Before_After_Transformation", transformation: "Before_After_Transformation", day_in_life: "Emotional_Arc", tips: "Quick_Tip", reaction: "Hook_Value_CTA" };
+            return map[v?.toLowerCase()] || "Quick_Tip";
+          };
+          const mapAngle = (v: string): string => {
+            const map: Record<string, string> = { educational: "Educational", entertainment: "Relatable", inspirational: "Inspirational", controversial: "Controversial", personal: "Emotional", news: "Analytical", how_to: "Tactical", motivational: "Aspirational" };
+            return map[v?.toLowerCase()] || "Educational";
+          };
+          const mapFormat = (v: string): string => {
+            const map: Record<string, string> = { face_cam: "Talking_Head", b_roll: "B_Roll_Voiceover", text_overlay: "Text_Overlay", screencast: "Text_Overlay", animation: "Montage", mixed: "Mixed_Format", voiceover: "B_Roll_Voiceover", interview: "Interview", montage: "Montage" };
+            return map[v?.toLowerCase()] || "Mixed_Format";
+          };
+
+          const creatorHandle = source.creatorHandle || scrapedMeta.creatorHandle || "unknown";
+          const platform = source.platform || detectPlatform(source.url || "") || "unknown";
+
+          let creator = await storage.getCreatorByUsername(platform, creatorHandle);
+          if (!creator) {
+            creator = await storage.createCreator({ nicheId: ws.nicheId, platform, username: creatorHandle });
+          }
+
+          await storage.createVideoPrimitive({
+            nicheId: ws.nicheId,
+            creatorId: creator.id,
+            workspaceId: ws.id,
+            sourceType: "user",
+            platform,
+            publishDate: scrapedMeta.publishedAt ? new Date(scrapedMeta.publishedAt) : null,
+            durationSeconds: scrapedMeta.duration || source.duration || null,
+            engagementRatio: null,
+            hookText: null,
+            hookType: mapHook(parsed.hookType),
+            hookLengthSeconds: null,
+            structureModel: mapStructure(parsed.narrativeStructure),
+            formatType: mapFormat(parsed.contentFormat),
+            angleCategory: mapAngle(parsed.contentAngle),
+            topicCluster: parsed.nicheCategory || null,
+            ctaPresent: false,
+            pacingScore: null,
+            authorityScore: null,
+            emotionalIntensityScore: null,
+          });
+
+          updateWorkspaceIntelligence(ws.id).catch(err => console.error("Workspace intelligence update error:", err));
+        } catch (convErr: any) {
+          console.error("Content source → video_primitive conversion error:", convErr.message);
+        }
+      }
 
       await storage.createEvent({ userId: req.user.id, eventName: "content_analyzed", metadata: { sourceId: source.id, performanceScore: parsed.performanceScore, metricsAvailable: Object.keys(metadataUpdate).length > 0 } });
       res.json(updated);
@@ -511,6 +568,17 @@ The content should directly apply the recommendations from the insight report. W
         performanceData: perfs,
       });
     } catch (err) {
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
+  app.get("/api/workspaces/:workspaceId/intelligence", isAuthenticated, verifyWorkspaceOwnership, async (req: any, res) => {
+    try {
+      const scoring = await computeWorkspaceIntelligence(req.params.workspaceId);
+      const notReady = scoring.totalVideos < 3;
+      res.json({ scoring, notReady });
+    } catch (err) {
+      console.error("Workspace intelligence error:", err);
       res.status(500).json({ message: "Internal Error" });
     }
   });

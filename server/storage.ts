@@ -1,7 +1,7 @@
 import { db } from "./db";
 import { 
   workspaces, contentSources, briefs, generatedContent, performance, events, subscriptions,
-  niches, creators, videoPrimitives, nichePatterns, nicheStatistics, nicheProfiles,
+  niches, creators, videoPrimitives, nichePatterns, nicheStatistics, nicheProfiles, workspaceIntelligence,
   type Workspace, type InsertWorkspace,
   type ContentSource, type InsertContentSource,
   type Brief, type InsertBrief,
@@ -14,10 +14,11 @@ import {
   type VideoPrimitive, type InsertVideoPrimitive,
   type NichePattern,
   type NicheStatistic,
-  type NicheProfile
+  type NicheProfile,
+  type WorkspaceIntelligence
 } from "@shared/schema";
 import { users, type User } from "@shared/models/auth";
-import { eq, desc, sql, count, and } from "drizzle-orm";
+import { eq, desc, sql, count, and, or, isNull } from "drizzle-orm";
 
 export interface IStorage {
   getWorkspacesByOwner(ownerId: string): Promise<Workspace[]>;
@@ -90,6 +91,12 @@ export interface IStorage {
 
   upsertNicheProfile(nicheId: string, data: Partial<NicheProfile>): Promise<NicheProfile>;
   getNicheProfile(nicheId: string): Promise<NicheProfile | undefined>;
+
+  getVideoPrimitivesByWorkspace(workspaceId: string): Promise<VideoPrimitive[]>;
+  getVideoPrimitiveCountByWorkspace(workspaceId: string): Promise<number>;
+
+  getWorkspaceIntelligence(workspaceId: string): Promise<WorkspaceIntelligence | undefined>;
+  upsertWorkspaceIntelligence(workspaceId: string, data: Partial<WorkspaceIntelligence>): Promise<WorkspaceIntelligence>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -317,7 +324,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getVideoPrimitiveCount(nicheId: string): Promise<number> {
-    const [result] = await db.select({ count: count() }).from(videoPrimitives).where(eq(videoPrimitives.nicheId, nicheId));
+    const [result] = await db.select({ count: count() }).from(videoPrimitives).where(
+      and(
+        eq(videoPrimitives.nicheId, nicheId),
+        or(eq(videoPrimitives.sourceType, "admin"), isNull(videoPrimitives.sourceType))
+      )
+    );
     return result.count;
   }
 
@@ -364,6 +376,30 @@ export class DatabaseStorage implements IStorage {
   async getNicheProfile(nicheId: string): Promise<NicheProfile | undefined> {
     const [profile] = await db.select().from(nicheProfiles).where(eq(nicheProfiles.nicheId, nicheId));
     return profile;
+  }
+
+  async getVideoPrimitivesByWorkspace(workspaceId: string): Promise<VideoPrimitive[]> {
+    return await db.select().from(videoPrimitives).where(eq(videoPrimitives.workspaceId, workspaceId)).orderBy(desc(videoPrimitives.createdAt));
+  }
+
+  async getVideoPrimitiveCountByWorkspace(workspaceId: string): Promise<number> {
+    const [result] = await db.select({ count: count() }).from(videoPrimitives).where(eq(videoPrimitives.workspaceId, workspaceId));
+    return result.count;
+  }
+
+  async getWorkspaceIntelligence(workspaceId: string): Promise<WorkspaceIntelligence | undefined> {
+    const [intel] = await db.select().from(workspaceIntelligence).where(eq(workspaceIntelligence.workspaceId, workspaceId));
+    return intel;
+  }
+
+  async upsertWorkspaceIntelligence(workspaceId: string, data: Partial<WorkspaceIntelligence>): Promise<WorkspaceIntelligence> {
+    const existing = await this.getWorkspaceIntelligence(workspaceId);
+    if (existing) {
+      const [updated] = await db.update(workspaceIntelligence).set({ ...data, lastUpdated: new Date() }).where(eq(workspaceIntelligence.workspaceId, workspaceId)).returning();
+      return updated;
+    }
+    const [created] = await db.insert(workspaceIntelligence).values({ workspaceId, ...data } as any).returning();
+    return created;
   }
 }
 

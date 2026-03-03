@@ -179,6 +179,8 @@ export const videoPrimitives = pgTable("video_primitives", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   nicheId: varchar("niche_id").notNull(),
   creatorId: varchar("creator_id").notNull(),
+  workspaceId: varchar("workspace_id"),
+  sourceType: text("source_type").default("admin").notNull(),
   platform: text("platform").notNull(),
   publishDate: timestamp("publish_date"),
   durationSeconds: integer("duration_seconds"),
@@ -235,12 +237,31 @@ export const nicheProfiles = pgTable("niche_profiles", {
   lastUpdated: timestamp("last_updated").defaultNow().notNull(),
 });
 
+export const workspaceIntelligence = pgTable("workspace_intelligence", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  workspaceId: varchar("workspace_id").notNull(),
+  nicheId: varchar("niche_id").notNull(),
+  totalVideos: integer("total_videos").default(0).notNull(),
+  dominantHook: text("dominant_hook"),
+  dominantStructure: text("dominant_structure"),
+  dominantFormat: text("dominant_format"),
+  dominantAngle: text("dominant_angle"),
+  hookDistribution: jsonb("hook_distribution"),
+  structureDistribution: jsonb("structure_distribution"),
+  formatDistribution: jsonb("format_distribution"),
+  angleDistribution: jsonb("angle_distribution"),
+  confidenceScore: real("confidence_score"),
+  signalStrength: real("signal_strength"),
+  lastUpdated: timestamp("last_updated").defaultNow().notNull(),
+});
+
 export const insertNicheSchema = createInsertSchema(niches).omit({ id: true, createdAt: true });
 export const insertCreatorSchema = createInsertSchema(creators).omit({ id: true, createdAt: true });
 export const insertVideoPrimitiveSchema = createInsertSchema(videoPrimitives).omit({ id: true, createdAt: true });
 export const insertNichePatternsSchema = createInsertSchema(nichePatterns).omit({ id: true, updatedAt: true });
 export const insertNicheStatisticsSchema = createInsertSchema(nicheStatistics).omit({ id: true, updatedAt: true });
 export const insertNicheProfileSchema = createInsertSchema(nicheProfiles).omit({ id: true, lastUpdated: true });
+export const insertWorkspaceIntelligenceSchema = createInsertSchema(workspaceIntelligence).omit({ id: true, lastUpdated: true });
 
 export type Niche = typeof niches.$inferSelect;
 export type InsertNiche = z.infer<typeof insertNicheSchema>;
@@ -251,3 +272,5 @@ export type InsertVideoPrimitive = z.infer<typeof insertVideoPrimitiveSchema>;
 export type NichePattern = typeof nichePatterns.$inferSelect;
 export type NicheStatistic = typeof nicheStatistics.$inferSelect;
 export type NicheProfile = typeof nicheProfiles.$inferSelect;
+export type WorkspaceIntelligence = typeof workspaceIntelligence.$inferSelect;
+export type InsertWorkspaceIntelligence = z.infer<typeof insertWorkspaceIntelligenceSchema>;

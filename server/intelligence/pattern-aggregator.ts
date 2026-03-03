@@ -4,7 +4,7 @@ import {
   videoPrimitives,
   HOOK_TYPES, STRUCTURE_MODELS, ANGLE_CATEGORIES, FORMAT_TYPES,
 } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { eq, and, or, isNull } from "drizzle-orm";
 
 function calcDistribution(values: string[], taxonomy: readonly string[]): Record<string, number> {
   const counts: Record<string, number> = {};
@@ -58,7 +58,10 @@ export async function updateNichePatterns(nicheId: string) {
   const primitives = await db
     .select()
     .from(videoPrimitives)
-    .where(eq(videoPrimitives.nicheId, nicheId));
+    .where(and(
+      eq(videoPrimitives.nicheId, nicheId),
+      or(eq(videoPrimitives.sourceType, "admin"), isNull(videoPrimitives.sourceType))
+    ));
 
   if (primitives.length === 0) return;
 
@@ -93,7 +96,10 @@ export async function updateNicheStatistics(nicheId: string) {
   const primitives = await db
     .select()
     .from(videoPrimitives)
-    .where(eq(videoPrimitives.nicheId, nicheId));
+    .where(and(
+      eq(videoPrimitives.nicheId, nicheId),
+      or(eq(videoPrimitives.sourceType, "admin"), isNull(videoPrimitives.sourceType))
+    ));
 
   const totalVideos = primitives.length;
   if (totalVideos === 0) return;
