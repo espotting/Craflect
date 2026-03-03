@@ -83,7 +83,7 @@ const en = {
     card3Hook: "Hook",
     card3Flow: "Flow",
     card3Cta: "CTA",
-    generateBrief: "Get your first insight",
+    generateBrief: "Generate your first brief",
     notAnotherTitle: "Not another AI content generator.",
     notAnotherSubtitle: "Craflect doesn't invent random ideas. It shows you what's already working — and helps you build on it.",
     pillar1: "Built on real performance",

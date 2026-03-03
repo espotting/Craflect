@@ -85,7 +85,7 @@ const fr: Translations = {
     card3Hook: "Accroche",
     card3Flow: "Déroulé",
     card3Cta: "CTA",
-    generateBrief: "Obtenez votre premier insight",
+    generateBrief: "Générez votre premier brief",
     notAnotherTitle: "Pas un autre générateur de contenu IA.",
     notAnotherSubtitle: "Craflect n'invente pas des idées au hasard. Il vous montre ce qui marche déjà — et vous aide à construire dessus.",
     pillar1: "Basé sur de vraies performances",
