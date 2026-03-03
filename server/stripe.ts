@@ -101,6 +101,47 @@ export async function createBillingPortalSession(customerId: string, returnUrl: 
   return session.url;
 }
 
+export async function listPaymentMethods(customerId: string) {
+  const methods = await stripe.paymentMethods.list({
+    customer: customerId,
+    type: "card",
+  });
+
+  const customer = await stripe.customers.retrieve(customerId) as Stripe.Customer;
+  const defaultPaymentMethodId = typeof customer.invoice_settings?.default_payment_method === "string"
+    ? customer.invoice_settings.default_payment_method
+    : customer.invoice_settings?.default_payment_method?.id || null;
+
+  return methods.data.map(pm => ({
+    id: pm.id,
+    brand: pm.card?.brand || "unknown",
+    last4: pm.card?.last4 || "****",
+    expMonth: pm.card?.exp_month || 0,
+    expYear: pm.card?.exp_year || 0,
+    isDefault: pm.id === defaultPaymentMethodId,
+  }));
+}
+
+export async function createSetupIntent(customerId: string) {
+  const setupIntent = await stripe.setupIntents.create({
+    customer: customerId,
+    payment_method_types: ["card"],
+  });
+  return {
+    clientSecret: setupIntent.client_secret,
+  };
+}
+
+export async function detachPaymentMethod(paymentMethodId: string) {
+  await stripe.paymentMethods.detach(paymentMethodId);
+}
+
+export async function setDefaultPaymentMethod(customerId: string, paymentMethodId: string) {
+  await stripe.customers.update(customerId, {
+    invoice_settings: { default_payment_method: paymentMethodId },
+  });
+}
+
 export async function getCustomerInvoices(customerId: string): Promise<any[]> {
   const invoices = await stripe.invoices.list({
     customer: customerId,
