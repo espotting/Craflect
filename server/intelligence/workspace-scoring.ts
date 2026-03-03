@@ -1,5 +1,6 @@
 import { storage } from "../storage";
 import { HOOK_TYPES, STRUCTURE_MODELS, ANGLE_CATEGORIES, FORMAT_TYPES } from "@shared/schema";
+import { computeIntelligenceStatus } from "./scoring";
 
 function calcDistribution(values: string[], taxonomy: readonly string[]): Record<string, number> {
   const counts: Record<string, number> = {};
@@ -19,21 +20,18 @@ function calcDistribution(values: string[], taxonomy: readonly string[]): Record
   return dist;
 }
 
-function dominant(dist: Record<string, number>): string | null {
-  let max = 0;
-  let key: string | null = null;
-  for (const [k, v] of Object.entries(dist)) {
-    if (v > max) { max = v; key = k; }
-  }
-  return key;
+function getDominantPercentage(dist: Record<string, number>): number {
+  const values = Object.values(dist);
+  if (values.length === 0) return 0;
+  return Math.max(...values);
 }
 
-function topEntries(dist: Record<string, number>, n: number = 3): Array<{ name: string; percent: number }> {
+function getTopN(dist: Record<string, number>, n: number) {
   return Object.entries(dist)
     .sort((a, b) => b[1] - a[1])
-    .slice(0, n)
     .filter(([, v]) => v > 0)
-    .map(([name, percent]) => ({ name, percent }));
+    .slice(0, n)
+    .map(([name, pct]) => ({ name, pct }));
 }
 
 export async function computeWorkspaceIntelligence(workspaceId: string) {
@@ -47,7 +45,7 @@ export async function computeWorkspaceIntelligence(workspaceId: string) {
       confidencePercent: 0,
       signalStrength: 0,
       signalStrengthPercent: 0,
-      intelligenceStatus: "building" as const,
+      intelligenceStatus: "Building" as const,
       topHooks: [],
       topFormats: [],
       topAngles: [],
@@ -67,38 +65,47 @@ export async function computeWorkspaceIntelligence(workspaceId: string) {
   const angleDist = calcDistribution(primitives.map(p => p.angleCategory), ANGLE_CATEGORIES);
   const formatDist = calcDistribution(primitives.map(p => p.formatType), FORMAT_TYPES);
 
+  const dominantHookPct = getDominantPercentage(hookDist);
+  const dominantStructPct = getDominantPercentage(structDist);
+  const dominantFormatPct = getDominantPercentage(formatDist);
+
   const volumeScore = Math.min(totalVideos / 500, 1);
+  const consistencyScore = (dominantHookPct + dominantStructPct + dominantFormatPct) / 3 / 100;
 
-  const domHookPct = Math.max(...Object.values(hookDist)) / 100;
-  const domStructPct = Math.max(...Object.values(structDist)) / 100;
-  const domFormatPct = Math.max(...Object.values(formatDist)) / 100;
-  const consistencyScore = (domHookPct + domStructPct + domFormatPct) / 3;
+  const topValues = [dominantHookPct, dominantStructPct, dominantFormatPct].sort((a, b) => b - a);
+  const mean = topValues.reduce((a, b) => a + b, 0) / topValues.length;
+  const variance = topValues.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / topValues.length;
+  const maxVariance = 10000;
+  const normalizedVariance = Math.min(variance / maxVariance, 1);
+  const stabilityScore = totalVideos > 0 ? 1 - normalizedVariance : 0;
 
-  const mean = (domHookPct + domStructPct + domFormatPct) / 3;
-  const variance = ((domHookPct - mean) ** 2 + (domStructPct - mean) ** 2 + (domFormatPct - mean) ** 2) / 3;
-  const stabilityScore = Math.max(0, 1 - Math.sqrt(variance));
+  const confidenceRaw = (0.4 * volumeScore) + (0.4 * consistencyScore) + (0.2 * stabilityScore);
+  const confidence = Math.round(confidenceRaw * 100) / 100;
 
-  const confidence = 0.4 * volumeScore + 0.4 * consistencyScore + 0.2 * stabilityScore;
-  const signalStrength = (domHookPct + domStructPct + domFormatPct) / 3;
+  const signalStrengthRaw = (dominantHookPct + dominantStructPct + dominantFormatPct) / 3;
+  const signalStrength = Math.round(signalStrengthRaw * 100) / 100;
 
-  let intelligenceStatus: "building" | "active" | "mature" = "building";
-  if (totalVideos >= 500 && confidence >= 0.7) intelligenceStatus = "mature";
-  else if (totalVideos >= 100 && confidence >= 0.5) intelligenceStatus = "active";
+  const intelligenceStatus = computeIntelligenceStatus(totalVideos, confidence);
+
+  const dominantHook = Object.entries(hookDist).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+  const dominantStructure = Object.entries(structDist).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+  const dominantFormat = Object.entries(formatDist).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+  const dominantAngle = Object.entries(angleDist).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
 
   return {
     totalVideos,
-    confidence: Math.round(confidence * 1000) / 1000,
+    confidence,
     confidencePercent: Math.round(confidence * 100),
-    signalStrength: Math.round(signalStrength * 1000) / 1000,
-    signalStrengthPercent: Math.round(signalStrength * 100),
+    signalStrength,
+    signalStrengthPercent: Math.round(signalStrength),
     intelligenceStatus,
-    topHooks: topEntries(hookDist),
-    topFormats: topEntries(formatDist),
-    topAngles: topEntries(angleDist),
-    dominantHook: dominant(hookDist),
-    dominantStructure: dominant(structDist),
-    dominantFormat: dominant(formatDist),
-    dominantAngle: dominant(angleDist),
+    topHooks: getTopN(hookDist, 3),
+    topFormats: getTopN(formatDist, 3),
+    topAngles: getTopN(angleDist, 3),
+    dominantHook,
+    dominantStructure,
+    dominantFormat,
+    dominantAngle,
     hookDistribution: hookDist,
     structureDistribution: structDist,
     formatDistribution: formatDist,
