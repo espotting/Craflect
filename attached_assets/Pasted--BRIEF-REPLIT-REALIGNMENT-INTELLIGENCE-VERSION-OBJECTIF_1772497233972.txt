@@ -1,0 +1,240 @@
+📌 BRIEF REPLIT — REALIGNMENT INTELLIGENCE VERSION
+🎯 OBJECTIF
+
+Recentrer Craflect comme :
+
+A Vertical Intelligence Platform
+Simple UX — Deep Intelligence underneath
+
+🟣 1️⃣ NAVIGATION STRUCTURE UPDATE
+🔄 Déplacer le Plan hors du Dashboard
+❌ Supprimer du Dashboard :
+
+Bloc Plan & Utilisation
+
+Limites visibles dans la page principale
+
+✅ Ajouter nouvel onglet dans sidebar :
+Plateforme
+- Tableau de bord
+- Contenu analysé
+- Insights
+- Analytique
+- Plan & Facturation   ← NOUVEAU
+🟣 2️⃣ DASHBOARD — SIMPLIFICATION
+🎯 Objectif :
+
+Dashboard = Vue stratégique, pas administrative.
+
+🔄 Remplacer le haut du Dashboard par :
+🧠 Bloc : Niche Intelligence Status
+
+Afficher :
+
+Niche active
+
+Intelligence Status (Building / Active / Mature)
+
+Confidence Level %
+
+Data Volume (ex: 642 videos analyzed)
+
+📊 Bloc 2 : Quick Snapshot
+
+3 cartes simples :
+
+Hooks dominants
+
+Formats dominants
+
+Angles dominants
+
+Pas de texte long.
+Pas d’explication.
+Juste signal.
+
+❌ Supprimer :
+
+Messages décoratifs
+
+Phrase "Votre IA apprend..."
+
+Trop de micro-indicateurs
+
+🟣 3️⃣ INSIGHTS — RÉDUCTION DRASTIQUE DU TEXTE
+
+Oui, tu as raison.
+
+C’est beaucoup trop long.
+
+Actuellement ça ressemble à un rapport ChatGPT.
+
+Ça tue la perception premium.
+
+🔄 Nouvelle structure Insights
+🔹 Header
+
+Titre dynamique court :
+
+"Your niche signal is clear."
+
+ou
+
+"Here’s what consistently wins."
+
+🔹 Section 1 — Winning Patterns (ultra condensé)
+
+Format carte :
+
+🔥 Top Hooks
+
+Story — 85
+
+Tutorial — 85
+
+Shock — 85
+
+🎥 Winning Formats
+
+Face Cam — 60%
+
+Mixed — 40%
+
+🎯 Top Angles
+
+Entertainment — 85
+
+How-To — 85
+
+Personal — 72
+
+Pas de paragraphes.
+
+🔹 Section 2 — What To Do Next
+
+3 recommandations maximum :
+
+Focus on storytelling or list formats
+
+Use emotionally strong openings
+
+Prioritize entertainment or how-to angles
+
+Une phrase par reco.
+
+Pas de justification longue.
+
+🔹 Section 3 — Toggle “See the Data”
+
+Bouton :
+
+"View data breakdown"
+
+Quand activé :
+
+% exacts
+
+Volume counts
+
+Score distribution
+
+Sample size
+
+Confidence computation
+
+🟣 4️⃣ AJOUT — NICHE INTELLIGENCE PROFILE (CRITIQUE)
+
+Ajouter en haut de Insights une carte synthèse :
+
+🧠 Niche Intelligence Profile
+
+Sample size: 642 videos
+
+Dominant hook: Story
+
+Dominant structure: Storytelling
+
+Dominant format: Face Cam
+
+Confidence level: 78%
+
+Intelligence maturity: Growing / Mature
+
+Ça matérialise le MOAT.
+
+🟣 5️⃣ ANALYTICS — REPOSITIONNEMENT
+
+Actuellement : vide.
+
+Transformer en :
+
+🎯 Learning Loop
+
+Afficher :
+
+Content created
+
+Content tracked
+
+Performance feedback
+
+Signal evolution
+
+Et surtout :
+
+Ajouter phrase :
+
+"The more content you analyze, the clearer your niche signal becomes."
+
+Pas pipeline décoratif.
+
+🟣 6️⃣ ONBOARDING FUNNEL (À RÉINTÉGRER)
+
+Très important.
+
+Première connexion :
+Step 1 — Choose your niche
+
+Boutons verticales disponibles
+
+Step 2 — Build your niche intelligence
+
+Message :
+
+"We need at least 3 public videos to activate your first insights."
+
+Step 3 — Add URLs
+
+Input simple
+
+Step 4 — Intelligence processing animation
+
+Message :
+
+"Analyzing patterns in your niche..."
+
+Ensuite accès Dashboard.
+
+🟣 7️⃣ DESIGN DIRECTIVE
+
+Ne pas :
+
+Ajouter plus de widgets
+
+Ajouter plus de texte
+
+Ajouter plus de métriques décoratives
+
+Toujours :
+
+Signal > Explication
+
+🟣 8️⃣ OBJECTIF FINAL
+
+Quand un user arrive sur Insights, il doit penser :
+
+"This is clear. This makes sense. I know what to post."
+
+Pas :
+
+"Je lis un rapport."
