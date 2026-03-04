@@ -1,0 +1,183 @@
+Suite aux échanges avec l’outil externe de classification (Twin), nous ne souhaitons pas donner un accès direct à la base PostgreSQL pour des raisons de sécurité.
+
+La bonne architecture consiste à créer deux endpoints API dans le backend Replit qui serviront d’interface entre l’agent de classification et la base de données.
+
+L’agent externe utilisera ces endpoints pour :
+
+récupérer des vidéos à classifier
+
+renvoyer les résultats de classification
+
+Amélioration importante — éviter la double classification
+
+Pour éviter que plusieurs agents ou requêtes classifient la même vidéo en parallèle, il faut introduire un mécanisme simple de verrouillage.
+
+Ajouter deux champs dans la table videos :
+
+classification_status
+classification_started_at
+
+Valeurs possibles pour classification_status :
+
+pending
+processing
+completed
+failed
+
+Flux attendu :
+
+les vidéos à classifier sont marquées pending
+
+lorsqu’un batch est récupéré via l’API → elles passent à processing
+
+après classification → elles passent à completed
+
+Cela garantit qu’une vidéo ne peut être classifiée qu’une seule fois.
+
+Endpoint 1 — récupérer les vidéos à classifier
+
+Créer un endpoint :
+
+GET /api/videos/unclassified
+
+Fonction :
+
+Retourner un batch de vidéos qui doivent être classifiées.
+
+Par exemple :
+
+SELECT *
+FROM videos
+WHERE classification_status = 'pending'
+LIMIT 20;
+
+Lors de la récupération, les vidéos doivent immédiatement être mises à jour :
+
+UPDATE videos
+SET classification_status = 'processing',
+classification_started_at = NOW()
+WHERE id IN (...);
+
+Cela permet de verrouiller les vidéos pour le batch courant.
+
+Données retournées
+
+Le endpoint doit retourner au minimum :
+
+id
+
+caption
+
+transcript (si disponible)
+
+hashtags
+
+duration_seconds
+
+platform
+
+views
+
+likes
+
+comments
+
+shares
+
+creator_name
+
+creator_niche
+
+Ces informations seront utilisées par l’agent de classification.
+
+Endpoint 2 — enregistrer la classification
+
+Créer un endpoint :
+
+POST /api/videos/classification
+
+Ce endpoint doit recevoir :
+
+l’id de la vidéo
+
+l’objet JSON de classification
+
+Exemple :
+
+{
+  "video_id": "123",
+  "classification": {
+    "hook_mechanism": ["contrarian"],
+    "hook_format": "bold_statement",
+    "hook_text": "Everything you've heard about AI productivity is wrong",
+    "emotional_trigger": ["curiosity"],
+    "content_structure": ["hook","explanation","example","cta"],
+    "content_format": "talking_head",
+    "visual_style": ["face_to_camera","fast_cuts"],
+    "storytelling_presence": "none",
+    "content_pace": "fast",
+    "creator_archetype": "educator",
+    "topic_category": "ai",
+    "call_to_action": "follow",
+    "controversy_level": "medium",
+    "information_density": "high",
+    "platform": "tiktok",
+    "duration_bucket": "20-30s",
+    "pattern_notes": "Contrarian AI hook with fast explanation structure"
+  }
+}
+
+Le backend doit :
+
+mettre à jour les champs correspondants dans la table videos
+
+passer classification_status à :
+
+completed
+
+Si une erreur survient :
+
+failed
+Sécurité
+
+Ces endpoints doivent être protégés avec une clé API.
+
+Exemple :
+
+Header HTTP :
+
+x-api-key: <SECRET_KEY>
+
+Seuls les services autorisés pourront appeler ces endpoints.
+
+Flux complet attendu
+Twin classifier
+↓
+GET /api/videos/unclassified
+↓
+LLM classification
+↓
+POST /api/videos/classification
+↓
+Replit backend
+↓
+UPDATE videos
+↓
+classification_status = completed
+Objectif
+
+Permettre au classifier externe de :
+
+récupérer les vidéos à analyser
+
+effectuer la classification LLM
+
+enregistrer les résultats dans la table videos
+
+tout en garantissant :
+
+sécurité
+
+cohérence des données
+
+absence de double traitement.
