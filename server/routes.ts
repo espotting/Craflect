@@ -1099,6 +1099,62 @@ The content should directly apply the recommendations from the insight report. W
     return result.length > 0 ? result : null;
   }
 
+  app.post("/api/videos/ingest", verifyClassifierApiKey, async (req: any, res) => {
+    try {
+      const input = z.object({
+        videos: z.array(z.object({
+          platform: z.string().optional(),
+          video_url: z.string().optional(),
+          caption: z.string().optional(),
+          transcript: z.string().optional(),
+          hashtags: z.array(z.string()).optional(),
+          duration_seconds: z.number().optional(),
+          views: z.number().optional(),
+          likes: z.number().optional(),
+          comments: z.number().optional(),
+          shares: z.number().optional(),
+          creator_name: z.string().optional(),
+          creator_niche: z.string().optional(),
+        })).min(1).max(100),
+      }).parse(req.body);
+
+      const created = [];
+      for (const v of input.videos) {
+        const video = await storage.createVideo({
+          platform: v.platform || null,
+          videoUrl: v.video_url || null,
+          caption: v.caption || null,
+          transcript: v.transcript || null,
+          hashtags: v.hashtags || null,
+          durationSeconds: v.duration_seconds || null,
+          durationBucket: v.duration_seconds
+            ? v.duration_seconds <= 15 ? "0-15s"
+            : v.duration_seconds <= 30 ? "15-30s"
+            : v.duration_seconds <= 60 ? "30-60s"
+            : v.duration_seconds <= 90 ? "60-90s"
+            : v.duration_seconds <= 180 ? "90-180s"
+            : "180s+"
+            : null,
+          views: v.views ?? null,
+          likes: v.likes ?? null,
+          comments: v.comments ?? null,
+          shares: v.shares ?? null,
+          creatorName: v.creator_name || null,
+          creatorNiche: v.creator_niche || null,
+        } as any);
+        created.push({ id: video.id, status: video.classificationStatus });
+      }
+
+      res.json({ success: true, ingested: created.length, videos: created });
+    } catch (err: any) {
+      if (err.name === "ZodError") {
+        return res.status(400).json({ message: "Invalid request body", errors: err.errors });
+      }
+      console.error("Video ingestion error:", err);
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
   app.get("/api/videos/unclassified", verifyClassifierApiKey, async (req: any, res) => {
     try {
       const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 20, 1), 100);
