@@ -45,3 +45,6 @@ integrations = ["javascript_log_in_with_replit:2.0.0", "javascript_database:1.0.
 
 [userenv.shared]
 CLASSIFIER_API_KEY = "59eb0851eae53856826788b6691cfc08e6ee34d6d464b85eabd42d25e879d367"
+PATTERN_DOMINANT_THRESHOLD = "0.08"
+PATTERN_EMERGING_THRESHOLD = "1.8"
+TREND_RATIO_THRESHOLD = "1.3"

@@ -12,13 +12,14 @@ import { updateNichePatterns, updateNicheStatistics } from "./intelligence/patte
 import { generateNicheProfile } from "./intelligence/profile-generator";
 import { computeNicheScoring } from "./intelligence/scoring";
 import { computeWorkspaceIntelligence, updateWorkspaceIntelligence } from "./intelligence/workspace-scoring";
+import { computePatterns, isPatternEngineReady, computeAndStorePatterns } from "./intelligence/pattern-engine";
 import { stripe, getOrCreateStripeCustomer, createCheckoutSession, createBillingPortalSession, getCustomerInvoices, ensureStripePrices, PLANS, listPaymentMethods, createSetupIntent, detachPaymentMethod, setDefaultPaymentMethod } from "./stripe";
 import {
   HOOK_TYPES, STRUCTURE_MODELS, ANGLE_CATEGORIES, FORMAT_TYPES,
   HOOK_MECHANISMS, HOOK_FORMATS, EMOTIONAL_TRIGGERS, CONTENT_STRUCTURES,
   CONTENT_FORMATS, VISUAL_STYLES, STORYTELLING_PRESENCES, CONTENT_PACES,
   CREATOR_ARCHETYPES, TOPIC_CATEGORIES, CTA_TYPES, CONTROVERSY_LEVELS,
-  INFORMATION_DENSITIES, DURATION_BUCKETS,
+  INFORMATION_DENSITIES, DURATION_BUCKETS, HOOK_TOPICS, CONTENT_GOALS,
 } from "@shared/schema";
 
 const openai = new OpenAI({
@@ -1188,9 +1189,11 @@ The content should directly apply the recommendations from the insight report. W
           hook_mechanism: z.array(z.string()).optional(),
           hook_format: z.string().optional(),
           hook_text: z.string().nullable().optional(),
+          hook_topic: z.string().optional(),
           emotional_trigger: z.array(z.string()).optional(),
           content_structure: z.array(z.string()).optional(),
           content_format: z.string().optional(),
+          content_goal: z.string().optional(),
           visual_style: z.array(z.string()).optional(),
           storytelling_presence: z.string().optional(),
           content_pace: z.string().optional(),
@@ -1226,6 +1229,10 @@ The content should directly apply the recommendations from the insight report. W
         if (val) updateData.hookFormat = val;
       }
       if (c.hook_text !== undefined) updateData.hookText = c.hook_text;
+      if (c.hook_topic) {
+        const val = validateEnum(c.hook_topic, HOOK_TOPICS);
+        if (val) updateData.hookTopic = val;
+      }
       if (c.emotional_trigger) {
         const val = validateEnumArray(c.emotional_trigger, EMOTIONAL_TRIGGERS);
         if (val) updateData.emotionalTrigger = val;
@@ -1237,6 +1244,10 @@ The content should directly apply the recommendations from the insight report. W
       if (c.content_format) {
         const val = validateEnum(c.content_format, CONTENT_FORMATS);
         if (val) updateData.contentFormat = val;
+      }
+      if (c.content_goal) {
+        const val = validateEnum(c.content_goal, CONTENT_GOALS);
+        if (val) updateData.contentGoal = val;
       }
       if (c.visual_style) {
         const val = validateEnumArray(c.visual_style, VISUAL_STYLES);
@@ -1291,6 +1302,36 @@ The content should directly apply the recommendations from the insight report. W
         } catch (_) {}
       }
       console.error("Classification error:", err);
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
+  app.get("/api/patterns/status", verifyClassifierApiKey, async (req: any, res) => {
+    try {
+      const status = await isPatternEngineReady();
+      res.json(status);
+    } catch (err: any) {
+      console.error("Pattern status error:", err);
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
+  app.post("/api/patterns/compute", verifyClassifierApiKey, async (req: any, res) => {
+    try {
+      const result = await computeAndStorePatterns();
+      res.json(result);
+    } catch (err: any) {
+      console.error("Pattern compute error:", err);
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
+  app.get("/api/patterns", verifyClassifierApiKey, async (req: any, res) => {
+    try {
+      const result = await computePatterns();
+      res.json(result);
+    } catch (err: any) {
+      console.error("Pattern fetch error:", err);
       res.status(500).json({ message: "Internal Error" });
     }
   });

@@ -349,6 +349,15 @@ export const DURATION_BUCKETS = [
   "0-15s", "15-30s", "30-60s", "60-90s", "90-180s", "180s+",
 ] as const;
 
+export const HOOK_TOPICS = [
+  "mistake", "secret", "myth", "strategy", "tools", "comparison", "trend",
+] as const;
+
+export const CONTENT_GOALS = [
+  "education", "lead_generation", "brand_awareness", "storytelling",
+  "engagement", "product_promotion",
+] as const;
+
 export const videos = pgTable("videos", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   platform: text("platform"),
@@ -379,6 +388,8 @@ export const videos = pgTable("videos", {
   callToAction: text("call_to_action"),
   controversyLevel: text("controversy_level"),
   informationDensity: text("information_density"),
+  hookTopic: text("hook_topic"),
+  contentGoal: text("content_goal"),
   patternNotes: text("pattern_notes"),
   classifiedAt: timestamp("classified_at"),
   classifiedBy: text("classified_by"),
@@ -398,17 +409,25 @@ export const viralPatterns = pgTable("viral_patterns", {
   patternId: varchar("pattern_id").primaryKey().default(sql`gen_random_uuid()`),
   hookMechanism: text("hook_mechanism").array(),
   hookFormat: text("hook_format"),
+  hookTopic: text("hook_topic"),
   contentFormat: text("content_format"),
   contentPace: text("content_pace"),
   contentStructure: text("content_structure").array(),
+  contentGoal: text("content_goal"),
   topicCategory: text("topic_category"),
+  platform: text("platform"),
   averagePerformance: doublePrecision("average_performance"),
+  performanceRatio: doublePrecision("performance_ratio"),
+  frequency: doublePrecision("frequency"),
+  trendRatio: doublePrecision("trend_ratio"),
+  patternType: text("pattern_type"),
   videoCount: integer("video_count"),
   lastUpdated: timestamp("last_updated").defaultNow().notNull(),
 }, (table) => [
   index("idx_viral_patterns_hook_format").on(table.hookFormat),
   index("idx_viral_patterns_content_format").on(table.contentFormat),
   index("idx_viral_patterns_topic_category").on(table.topicCategory),
+  index("idx_viral_patterns_pattern_type").on(table.patternType),
 ]);
 
 export const insertVideoSchema = createInsertSchema(videos).omit({ id: true, collectedAt: true });

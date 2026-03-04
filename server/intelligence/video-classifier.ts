@@ -3,7 +3,7 @@ import {
   HOOK_MECHANISMS, HOOK_FORMATS, EMOTIONAL_TRIGGERS, CONTENT_STRUCTURES,
   CONTENT_FORMATS, VISUAL_STYLES, STORYTELLING_PRESENCES, CONTENT_PACES,
   CREATOR_ARCHETYPES, TOPIC_CATEGORIES, CTA_TYPES, CONTROVERSY_LEVELS,
-  INFORMATION_DENSITIES, DURATION_BUCKETS,
+  INFORMATION_DENSITIES, DURATION_BUCKETS, HOOK_TOPICS, CONTENT_GOALS,
   type InsertVideo,
 } from "@shared/schema";
 import OpenAI from "openai";
@@ -41,7 +41,7 @@ function getDurationBucket(seconds: number | null): typeof DURATION_BUCKETS[numb
 }
 
 const CLASSIFICATION_PROMPT = `You are a short-form video content analyst using the Craflect taxonomy.
-Analyze the provided video data and classify it across ALL 17 dimensions.
+Analyze the provided video data and classify it across ALL dimensions.
 
 IMPORTANT:
 - Use ONLY the provided data. Do NOT invent information.
@@ -54,9 +54,11 @@ Respond with this exact JSON structure:
   "hook_mechanism": ["array of 1-3 values from: ${HOOK_MECHANISMS.join(", ")}"],
   "hook_format": "one of: ${HOOK_FORMATS.join(", ")}",
   "hook_text": "the inferred opening hook (first 1-2 sentences, or null if unclear)",
+  "hook_topic": "one of: ${HOOK_TOPICS.join(", ")}",
   "emotional_trigger": ["array of 1-3 values from: ${EMOTIONAL_TRIGGERS.join(", ")}"],
   "content_structure": ["array of 1-2 values from: ${CONTENT_STRUCTURES.join(", ")}"],
   "content_format": "one of: ${CONTENT_FORMATS.join(", ")}",
+  "content_goal": "one of: ${CONTENT_GOALS.join(", ")}",
   "visual_style": ["array of 1-2 values from: ${VISUAL_STYLES.join(", ")}"],
   "storytelling_presence": "one of: ${STORYTELLING_PRESENCES.join(", ")}",
   "content_pace": "one of: ${CONTENT_PACES.join(", ")}",
@@ -131,9 +133,11 @@ export function normalizeClassification(raw: Record<string, unknown>, input: Vid
     hookMechanism: validateEnumArray(raw.hook_mechanism, HOOK_MECHANISMS, "direct_statement"),
     hookFormat: validateEnum(raw.hook_format, HOOK_FORMATS, "bold_statement"),
     hookText: typeof raw.hook_text === "string" ? raw.hook_text : null,
+    hookTopic: validateEnum(raw.hook_topic, HOOK_TOPICS, "strategy"),
     emotionalTrigger: validateEnumArray(raw.emotional_trigger, EMOTIONAL_TRIGGERS, "curiosity"),
     contentStructure: validateEnumArray(raw.content_structure, CONTENT_STRUCTURES, "hook_value_cta"),
     contentFormat: validateEnum(raw.content_format, CONTENT_FORMATS, "talking_head"),
+    contentGoal: validateEnum(raw.content_goal, CONTENT_GOALS, "education"),
     visualStyle: validateEnumArray(raw.visual_style, VISUAL_STYLES, "raw_authentic"),
     storytellingPresence: validateEnum(raw.storytelling_presence, STORYTELLING_PRESENCES, "moderate"),
     contentPace: validateEnum(raw.content_pace, CONTENT_PACES, "moderate"),
