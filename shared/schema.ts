@@ -277,6 +277,140 @@ export const insertNicheStatisticsSchema = createInsertSchema(nicheStatistics).o
 export const insertNicheProfileSchema = createInsertSchema(nicheProfiles).omit({ id: true, lastUpdated: true });
 export const insertWorkspaceIntelligenceSchema = createInsertSchema(workspaceIntelligence).omit({ id: true, lastUpdated: true });
 
+// ═══════════════════════════════════════════════════════════
+// Craflect V1 — Taxonomie 17 dimensions
+// ═══════════════════════════════════════════════════════════
+
+export const HOOK_MECHANISMS = [
+  "contrarian", "question", "bold_claim", "statistic", "story_start",
+  "shock", "promise", "problem", "curiosity_gap", "authority_intro",
+  "relatable", "tutorial_intro", "before_after", "myth_busting", "direct_statement",
+] as const;
+
+export const HOOK_FORMATS = [
+  "bold_statement", "question", "statistic", "story_opener", "challenge",
+  "confession", "prediction", "comparison", "warning", "revelation",
+] as const;
+
+export const EMOTIONAL_TRIGGERS = [
+  "curiosity", "fear", "excitement", "anger", "surprise",
+  "empathy", "aspiration", "nostalgia", "urgency", "relief",
+] as const;
+
+export const CONTENT_STRUCTURES = [
+  "hook_value_cta", "problem_solution", "story_lesson", "list_format",
+  "tutorial_step", "before_after", "myth_truth", "emotional_arc",
+  "authority_breakdown", "quick_tip",
+] as const;
+
+export const CONTENT_FORMATS = [
+  "talking_head", "b_roll_voiceover", "text_overlay", "interview",
+  "montage", "mixed_format", "screen_recording", "vlog", "skit",
+] as const;
+
+export const VISUAL_STYLES = [
+  "cinematic", "raw_authentic", "polished", "lo_fi", "aesthetic",
+  "documentary", "minimalist", "high_energy",
+] as const;
+
+export const STORYTELLING_PRESENCES = [
+  "strong", "moderate", "minimal", "none",
+] as const;
+
+export const CONTENT_PACES = [
+  "fast", "moderate", "slow", "variable",
+] as const;
+
+export const CREATOR_ARCHETYPES = [
+  "educator", "entertainer", "motivator", "storyteller",
+  "expert", "curator", "provocateur", "lifestyle",
+] as const;
+
+export const TOPIC_CATEGORIES = [
+  "business", "finance", "health", "fitness", "tech",
+  "lifestyle", "beauty", "food", "travel", "education",
+  "entertainment", "motivation", "relationships", "productivity", "marketing",
+] as const;
+
+export const CTA_TYPES = [
+  "follow", "comment", "share", "link_bio", "save",
+  "dm", "subscribe", "none",
+] as const;
+
+export const CONTROVERSY_LEVELS = [
+  "none", "low", "moderate", "high",
+] as const;
+
+export const INFORMATION_DENSITIES = [
+  "low", "moderate", "high", "very_high",
+] as const;
+
+export const DURATION_BUCKETS = [
+  "0-15s", "15-30s", "30-60s", "60-90s", "90-180s", "180s+",
+] as const;
+
+export const videos = pgTable("videos", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  platform: text("platform"),
+  videoUrl: text("video_url"),
+  caption: text("caption"),
+  transcript: text("transcript"),
+  hashtags: text("hashtags").array(),
+  durationSeconds: integer("duration_seconds"),
+  durationBucket: text("duration_bucket"),
+  views: integer("views"),
+  likes: integer("likes"),
+  comments: integer("comments"),
+  shares: integer("shares"),
+  creatorName: text("creator_name"),
+  creatorNiche: text("creator_niche"),
+  collectedAt: timestamp("collected_at").defaultNow().notNull(),
+  hookMechanism: text("hook_mechanism").array(),
+  hookFormat: text("hook_format"),
+  hookText: text("hook_text"),
+  emotionalTrigger: text("emotional_trigger").array(),
+  contentStructure: text("content_structure").array(),
+  contentFormat: text("content_format"),
+  visualStyle: text("visual_style").array(),
+  storytellingPresence: text("storytelling_presence"),
+  contentPace: text("content_pace"),
+  creatorArchetype: text("creator_archetype"),
+  topicCategory: text("topic_category"),
+  callToAction: text("call_to_action"),
+  controversyLevel: text("controversy_level"),
+  informationDensity: text("information_density"),
+  patternNotes: text("pattern_notes"),
+  classifiedAt: timestamp("classified_at"),
+  classifiedBy: text("classified_by"),
+}, (table) => [
+  index("idx_videos_platform").on(table.platform),
+  index("idx_videos_hook_format").on(table.hookFormat),
+  index("idx_videos_content_format").on(table.contentFormat),
+  index("idx_videos_topic_category").on(table.topicCategory),
+  index("idx_videos_creator_niche").on(table.creatorNiche),
+  index("idx_videos_collected_at").on(table.collectedAt),
+]);
+
+export const viralPatterns = pgTable("viral_patterns", {
+  patternId: varchar("pattern_id").primaryKey().default(sql`gen_random_uuid()`),
+  hookMechanism: text("hook_mechanism").array(),
+  hookFormat: text("hook_format"),
+  contentFormat: text("content_format"),
+  contentPace: text("content_pace"),
+  contentStructure: text("content_structure").array(),
+  topicCategory: text("topic_category"),
+  averagePerformance: doublePrecision("average_performance"),
+  videoCount: integer("video_count"),
+  lastUpdated: timestamp("last_updated").defaultNow().notNull(),
+}, (table) => [
+  index("idx_viral_patterns_hook_format").on(table.hookFormat),
+  index("idx_viral_patterns_content_format").on(table.contentFormat),
+  index("idx_viral_patterns_topic_category").on(table.topicCategory),
+]);
+
+export const insertVideoSchema = createInsertSchema(videos).omit({ id: true, collectedAt: true });
+export const insertViralPatternSchema = createInsertSchema(viralPatterns).omit({ patternId: true, lastUpdated: true });
+
 export type Niche = typeof niches.$inferSelect;
 export type InsertNiche = z.infer<typeof insertNicheSchema>;
 export type Creator = typeof creators.$inferSelect;
@@ -288,3 +422,7 @@ export type NicheStatistic = typeof nicheStatistics.$inferSelect;
 export type NicheProfile = typeof nicheProfiles.$inferSelect;
 export type WorkspaceIntelligence = typeof workspaceIntelligence.$inferSelect;
 export type InsertWorkspaceIntelligence = z.infer<typeof insertWorkspaceIntelligenceSchema>;
+export type Video = typeof videos.$inferSelect;
+export type InsertVideo = z.infer<typeof insertVideoSchema>;
+export type ViralPattern = typeof viralPatterns.$inferSelect;
+export type InsertViralPattern = z.infer<typeof insertViralPatternSchema>;

@@ -2,6 +2,7 @@ import { db } from "./db";
 import { 
   workspaces, contentSources, briefs, generatedContent, performance, events, subscriptions,
   niches, creators, videoPrimitives, nichePatterns, nicheStatistics, nicheProfiles, workspaceIntelligence,
+  videos, viralPatterns,
   type Workspace, type InsertWorkspace,
   type ContentSource, type InsertContentSource,
   type Brief, type InsertBrief,
@@ -15,7 +16,9 @@ import {
   type NichePattern,
   type NicheStatistic,
   type NicheProfile,
-  type WorkspaceIntelligence
+  type WorkspaceIntelligence,
+  type Video, type InsertVideo,
+  type ViralPattern, type InsertViralPattern,
 } from "@shared/schema";
 import { users, type User } from "@shared/models/auth";
 import { eq, desc, sql, count, and, or, isNull } from "drizzle-orm";
@@ -97,6 +100,19 @@ export interface IStorage {
 
   getWorkspaceIntelligence(workspaceId: string): Promise<WorkspaceIntelligence | undefined>;
   upsertWorkspaceIntelligence(workspaceId: string, data: Partial<WorkspaceIntelligence>): Promise<WorkspaceIntelligence>;
+
+  createVideo(video: InsertVideo): Promise<Video>;
+  getVideoById(id: string): Promise<Video | undefined>;
+  getVideosByPlatform(platform: string): Promise<Video[]>;
+  getVideosByTopicCategory(topicCategory: string): Promise<Video[]>;
+  getVideosByCreatorNiche(creatorNiche: string): Promise<Video[]>;
+  getVideosCount(): Promise<number>;
+  getAllVideos(limit?: number, offset?: number): Promise<Video[]>;
+
+  createViralPattern(pattern: InsertViralPattern): Promise<ViralPattern>;
+  getViralPatterns(): Promise<ViralPattern[]>;
+  getViralPatternById(id: string): Promise<ViralPattern | undefined>;
+  upsertViralPattern(patternId: string, data: Partial<ViralPattern>): Promise<ViralPattern>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -401,6 +417,61 @@ export class DatabaseStorage implements IStorage {
       return updated;
     }
     const [created] = await db.insert(workspaceIntelligence).values({ workspaceId, ...data } as any).returning();
+    return created;
+  }
+
+  async createVideo(video: InsertVideo): Promise<Video> {
+    const [created] = await db.insert(videos).values(video).returning();
+    return created;
+  }
+
+  async getVideoById(id: string): Promise<Video | undefined> {
+    const [video] = await db.select().from(videos).where(eq(videos.id, id));
+    return video;
+  }
+
+  async getVideosByPlatform(platform: string): Promise<Video[]> {
+    return await db.select().from(videos).where(eq(videos.platform, platform)).orderBy(desc(videos.collectedAt));
+  }
+
+  async getVideosByTopicCategory(topicCategory: string): Promise<Video[]> {
+    return await db.select().from(videos).where(eq(videos.topicCategory, topicCategory)).orderBy(desc(videos.collectedAt));
+  }
+
+  async getVideosByCreatorNiche(creatorNiche: string): Promise<Video[]> {
+    return await db.select().from(videos).where(eq(videos.creatorNiche, creatorNiche)).orderBy(desc(videos.collectedAt));
+  }
+
+  async getVideosCount(): Promise<number> {
+    const [result] = await db.select({ count: count() }).from(videos);
+    return result.count;
+  }
+
+  async getAllVideos(limit = 100, offset = 0): Promise<Video[]> {
+    return await db.select().from(videos).orderBy(desc(videos.collectedAt)).limit(limit).offset(offset);
+  }
+
+  async createViralPattern(pattern: InsertViralPattern): Promise<ViralPattern> {
+    const [created] = await db.insert(viralPatterns).values(pattern).returning();
+    return created;
+  }
+
+  async getViralPatterns(): Promise<ViralPattern[]> {
+    return await db.select().from(viralPatterns).orderBy(desc(viralPatterns.lastUpdated));
+  }
+
+  async getViralPatternById(id: string): Promise<ViralPattern | undefined> {
+    const [pattern] = await db.select().from(viralPatterns).where(eq(viralPatterns.patternId, id));
+    return pattern;
+  }
+
+  async upsertViralPattern(patternId: string, data: Partial<ViralPattern>): Promise<ViralPattern> {
+    const existing = await this.getViralPatternById(patternId);
+    if (existing) {
+      const [updated] = await db.update(viralPatterns).set({ ...data, lastUpdated: new Date() }).where(eq(viralPatterns.patternId, patternId)).returning();
+      return updated;
+    }
+    const [created] = await db.insert(viralPatterns).values({ patternId, ...data } as any).returning();
     return created;
   }
 }
