@@ -1,0 +1,368 @@
+Craflect — Technical & Product Brief (V1)
+AI Content Intelligence & Creation Platform
+1. Contexte du projet
+
+Craflect est une plateforme d’intelligence et de création de contenu basée sur l’analyse de vidéos courtes provenant de :
+
+TikTok
+
+Instagram Reels
+
+YouTube Shorts
+
+L’objectif est de transformer un dataset de vidéos en dataset structuré d’intelligence créative permettant de :
+
+détecter les patterns viraux
+
+analyser les hooks performants
+
+identifier les formats gagnants
+
+générer des templates de contenu
+
+aider les créateurs et marques à produire du contenu performant
+
+2. Vision produit
+
+Craflect ne doit pas être simplement un outil d’analytics.
+
+La vision produit est de construire un :
+
+AI Content Operating System
+
+Une plateforme où les utilisateurs peuvent :
+
+1️⃣ découvrir les patterns viraux
+2️⃣ générer des hooks performants
+3️⃣ générer des scripts vidéo
+4️⃣ créer du contenu prêt à publier
+
+3. Utilisateurs cibles
+
+Craflect cible deux segments principaux :
+
+Créateurs individuels
+
+Objectif :
+
+trouver des idées de contenu
+
+créer des hooks viraux
+
+générer des scripts
+
+améliorer les performances
+
+Agences / marques
+
+Objectif :
+
+analyser les formats performants
+
+générer des concepts vidéo
+
+planifier une stratégie de contenu
+
+produire du contenu à grande échelle
+
+4. Architecture générale du système
+
+Pipeline principal :
+
+Video Scraper
+↓
+Dataset vidéos brut
+↓
+Classification LLM
+↓
+Dataset structuré (taxonomie Craflect)
+↓
+Pattern Engine
+↓
+Insights + Hook Library
+↓
+Content Generator
+↓
+Creator Workspace
+5. Collecte des données
+
+Le système collecte des vidéos depuis :
+
+TikTok
+
+Instagram
+
+YouTube Shorts
+
+Données collectées :
+
+caption
+
+transcript
+
+hashtags
+
+duration
+
+views
+
+likes
+
+comments
+
+shares
+
+creator name
+
+creator niche
+
+Ces données sont stockées dans la base.
+
+6. Taxonomie Craflect (Version stabilisée)
+
+Chaque vidéo est analysée selon 17 dimensions.
+
+Narrative Layer
+
+hook_mechanism
+hook_format
+hook_text
+emotional_trigger
+content_structure
+
+Creative Layer
+
+content_format
+visual_style
+storytelling_presence
+content_pace
+
+Strategic Layer
+
+creator_archetype
+topic_category
+call_to_action
+controversy_level
+information_density
+
+Distribution Layer
+
+platform
+duration_bucket
+
+Analysis Layer
+
+pattern_notes
+
+7. Structure de la base de données
+
+Table principale :
+
+videos
+
+Chaque ligne représente une vidéo analysée.
+
+SQL schema
+CREATE TABLE videos (
+
+id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+platform TEXT,
+video_url TEXT,
+
+caption TEXT,
+transcript TEXT,
+hashtags TEXT[],
+
+duration_seconds INT,
+duration_bucket TEXT,
+
+views INT,
+likes INT,
+comments INT,
+shares INT,
+
+creator_name TEXT,
+creator_niche TEXT,
+
+collected_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+hook_mechanism TEXT[],
+hook_format TEXT,
+hook_text TEXT,
+
+emotional_trigger TEXT[],
+
+content_structure TEXT[],
+
+content_format TEXT,
+visual_style TEXT[],
+storytelling_presence TEXT,
+content_pace TEXT,
+
+creator_archetype TEXT,
+topic_category TEXT,
+call_to_action TEXT,
+controversy_level TEXT,
+information_density TEXT,
+
+pattern_notes TEXT
+
+);
+8. Classification LLM
+
+Chaque vidéo est analysée par un agent LLM qui applique la taxonomie Craflect.
+
+Le LLM doit :
+
+utiliser uniquement les données fournies
+
+ne pas inventer d’informations
+
+retourner uniquement un JSON structuré
+
+9. Pattern Engine
+
+Le moteur de patterns analyse les combinaisons de dimensions pour détecter les structures virales.
+
+Exemples de dimensions utilisées :
+
+hook_mechanism
+
+hook_format
+
+content_format
+
+content_pace
+
+content_structure
+
+topic_category
+
+Exemple de pattern
+
+hook_mechanism: contrarian
+hook_format: bold_statement
+content_format: talking_head
+content_pace: fast
+
+Performance moyenne : 3.2x
+
+10. Table des patterns
+
+Une table dédiée stockera les patterns détectés.
+
+Structure :
+
+CREATE TABLE viral_patterns (
+
+pattern_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+hook_mechanism TEXT[],
+hook_format TEXT,
+content_format TEXT,
+content_pace TEXT,
+content_structure TEXT[],
+topic_category TEXT,
+
+average_performance FLOAT,
+video_count INT,
+
+last_updated TIMESTAMP
+);
+11. Hook Library
+
+Le système construit automatiquement une bibliothèque de hooks performants.
+
+Chaque hook est associé à :
+
+sa structure
+
+son format
+
+sa performance
+
+sa niche
+
+Cette bibliothèque permet aux utilisateurs de trouver rapidement des hooks performants pour leur niche.
+
+12. Content Generator
+
+À partir des patterns détectés, le système peut générer :
+
+hooks
+
+concepts vidéo
+
+scripts courts
+
+Exemple :
+
+Hook :
+
+“Everything you've heard about AI productivity is wrong.”
+
+Structure :
+
+Hook
+Explanation
+Example
+CTA
+
+13. Creator Workspace (vision)
+
+À terme, Craflect intégrera un espace de création où l’utilisateur pourra :
+
+générer des hooks
+
+générer des scripts
+
+éditer le contenu
+
+préparer ses vidéos
+
+Le système proposera des idées basées sur :
+
+les patterns détectés
+
+la niche de l’utilisateur
+
+ses performances passées
+
+14. Priorités de développement (V1)
+
+Phase 1
+
+mise à jour base de données
+
+implémentation taxonomie
+
+classification LLM
+
+enrichissement dataset
+
+Phase 2
+
+pattern engine
+
+table des patterns
+
+analyses statistiques
+
+Phase 3
+
+hook library
+
+interface insights
+
+Phase 4
+
+content generator
+
+creator workspace
+
+15. Principe important
+
+La taxonomie actuelle constitue la version V1 stabilisée.
+
+Elle ne doit pas être modifiée sans migration explicite de la base.
