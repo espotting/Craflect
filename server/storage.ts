@@ -430,6 +430,11 @@ export class DatabaseStorage implements IStorage {
     return video;
   }
 
+  async getVideoByPlatformVideoId(platformVideoId: string): Promise<Video | undefined> {
+    const [video] = await db.select().from(videos).where(eq(videos.platformVideoId, platformVideoId));
+    return video;
+  }
+
   async getVideosByPlatform(platform: string): Promise<Video[]> {
     return await db.select().from(videos).where(eq(videos.platform, platform)).orderBy(desc(videos.collectedAt));
   }

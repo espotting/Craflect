@@ -1105,6 +1105,7 @@ The content should directly apply the recommendations from the insight report. W
       const input = z.object({
         videos: z.array(z.object({
           platform: z.string().optional(),
+          platform_video_id: z.string().optional(),
           video_url: z.string().optional(),
           caption: z.string().optional(),
           transcript: z.string().optional(),
@@ -1115,14 +1116,28 @@ The content should directly apply the recommendations from the insight report. W
           comments: z.number().optional(),
           shares: z.number().optional(),
           creator_name: z.string().optional(),
+          creator_id: z.string().optional(),
           creator_niche: z.string().optional(),
+          published_at: z.string().optional(),
         })).min(1).max(100),
       }).parse(req.body);
 
       const created = [];
+      const skipped = [];
       for (const v of input.videos) {
+        const pvId = v.platform_video_id || (v.platform && v.video_url ? `${v.platform}_${v.video_url}` : null);
+
+        if (pvId) {
+          const existing = await storage.getVideoByPlatformVideoId(pvId);
+          if (existing) {
+            skipped.push({ platform_video_id: pvId, reason: "duplicate" });
+            continue;
+          }
+        }
+
         const video = await storage.createVideo({
           platform: v.platform || null,
+          platformVideoId: pvId,
           videoUrl: v.video_url || null,
           caption: v.caption || null,
           transcript: v.transcript || null,
@@ -1141,12 +1156,14 @@ The content should directly apply the recommendations from the insight report. W
           comments: v.comments ?? null,
           shares: v.shares ?? null,
           creatorName: v.creator_name || null,
+          creatorId: v.creator_id || null,
           creatorNiche: v.creator_niche || null,
+          publishedAt: v.published_at ? new Date(v.published_at) : null,
         } as any);
-        created.push({ id: video.id, status: video.classificationStatus });
+        created.push({ id: video.id, platform_video_id: pvId, status: video.classificationStatus });
       }
 
-      res.json({ success: true, ingested: created.length, videos: created });
+      res.json({ success: true, ingested: created.length, skipped: skipped.length, videos: created, skipped_details: skipped });
     } catch (err: any) {
       if (err.name === "ZodError") {
         return res.status(400).json({ message: "Invalid request body", errors: err.errors });
