@@ -1,0 +1,173 @@
+1 — Migration ou remplacement ?
+
+Nous allons procéder par coexistence pendant la transition.
+
+Les tables actuelles :
+
+video_primitives
+
+niche_patterns
+
+ne doivent pas être supprimées immédiatement, car plusieurs pages du frontend (Dashboard, Insights, Analytics) en dépendent.
+
+La stratégie est donc :
+
+créer les nouvelles tables :
+
+videos
+
+viral_patterns
+
+commencer à alimenter ces nouvelles tables avec les données du pipeline Craflect V1
+
+une fois le nouveau pipeline stabilisé, nous migrerons progressivement les pages frontend vers ces nouvelles tables
+
+Donc pour l’instant :
+
+les deux schémas doivent coexister.
+
+Aucune suppression de table existante dans cette phase.
+
+2 — Phases et scope immédiat
+
+Commencer par Phase 1 uniquement.
+
+Scope immédiat :
+
+Phase 1 :
+
+mise à jour base de données
+
+implémentation de la taxonomie Craflect (17 dimensions)
+
+structure pour classification LLM
+
+préparation de l’enrichissement dataset
+
+Important :
+
+La classification LLM peut être implémentée structurellement, mais nous n’avons pas encore besoin d’un pipeline complet automatisé.
+
+L’objectif est d’avoir :
+
+le schéma prêt
+
+la structure prête pour l’insertion des données enrichies
+
+Les phases suivantes (Pattern Engine, Hook Library, etc.) viendront après stabilisation du dataset.
+
+3 — Scraping
+
+Pour la V1, nous n’avons pas besoin d’un scraping complet.
+
+La collecte actuelle peut rester limitée à :
+
+caption / title
+
+views
+
+likes
+
+duration
+
+platform
+
+Les champs suivants peuvent être facultatifs pour l’instant :
+
+transcript
+
+hashtags
+
+creator_niche
+
+shares
+
+Ces champs peuvent être :
+
+null
+
+enrichis plus tard
+
+Le LLM pourra fonctionner même avec un dataset partiel.
+
+Donc :
+
+pas besoin d’implémenter un système lourd d’extraction de transcripts dans cette phase.
+
+4 — Hook Library
+
+La Hook Library est prévue pour Phase 3.
+
+Pour l’instant, aucune interface frontend dédiée n’est nécessaire.
+
+Ce qui est important dans cette phase :
+
+stocker hook_text
+
+stocker hook_mechanism
+
+stocker hook_format
+
+Cela permettra plus tard de construire la Hook Library à partir de la base existante.
+
+Donc pour l’instant :
+
+Hook Library = futur module, pas encore une page.
+
+5 — Rétrocompatibilité frontend
+
+Nous ne modifions pas le frontend dans cette phase.
+
+La priorité est :
+
+stabiliser le backend et le dataset.
+
+Les pages existantes :
+
+Dashboard
+
+Insights
+
+Analytics
+
+peuvent continuer à utiliser les tables existantes.
+
+Une fois le dataset enrichi et les patterns opérationnels, nous ferons une refonte frontend basée sur les nouvelles données.
+
+Donc :
+
+Frontend actuel = inchangé pour l’instant.
+
+Résumé pour cette phase
+
+Phase actuelle :
+
+Backend uniquement
+
+Objectif :
+
+nouvelles tables videos et viral_patterns
+
+taxonomie Craflect implémentée
+
+base prête pour classification LLM
+
+aucune modification frontend
+
+Pourquoi cette approche est la bonne
+
+Cela évite :
+
+casser l’app existante
+
+ralentir le développement
+
+bloquer l’expérimentation produit
+
+Et permet de :
+
+construire le dataset
+
+tester le moteur de patterns
+
+préparer la prochaine version produit.
