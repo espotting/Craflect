@@ -13,7 +13,13 @@ import { generateNicheProfile } from "./intelligence/profile-generator";
 import { computeNicheScoring } from "./intelligence/scoring";
 import { computeWorkspaceIntelligence, updateWorkspaceIntelligence } from "./intelligence/workspace-scoring";
 import { stripe, getOrCreateStripeCustomer, createCheckoutSession, createBillingPortalSession, getCustomerInvoices, ensureStripePrices, PLANS, listPaymentMethods, createSetupIntent, detachPaymentMethod, setDefaultPaymentMethod } from "./stripe";
-import { HOOK_TYPES, STRUCTURE_MODELS, ANGLE_CATEGORIES, FORMAT_TYPES } from "@shared/schema";
+import {
+  HOOK_TYPES, STRUCTURE_MODELS, ANGLE_CATEGORIES, FORMAT_TYPES,
+  HOOK_MECHANISMS, HOOK_FORMATS, EMOTIONAL_TRIGGERS, CONTENT_STRUCTURES,
+  CONTENT_FORMATS, VISUAL_STYLES, STORYTELLING_PRESENCES, CONTENT_PACES,
+  CREATOR_ARCHETYPES, TOPIC_CATEGORIES, CTA_TYPES, CONTROVERSY_LEVELS,
+  INFORMATION_DENSITIES, DURATION_BUCKETS,
+} from "@shared/schema";
 
 const openai = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
@@ -1061,6 +1067,175 @@ The content should directly apply the recommendations from the insight report. W
     } catch (err: any) {
       console.error("Webhook processing error:", err);
       res.status(500).json({ message: err.message });
+    }
+  });
+
+  // ─── Classifier API (external agent) ───
+  function verifyClassifierApiKey(req: any, res: any, next: any) {
+    const apiKey = req.headers["x-api-key"];
+    const expectedKey = process.env.CLASSIFIER_API_KEY;
+    if (!expectedKey || apiKey !== expectedKey) {
+      return res.status(401).json({ message: "Invalid or missing API key" });
+    }
+    next();
+  }
+
+  function validateEnum<T extends string>(value: unknown, allowed: readonly T[]): T | null {
+    if (!value || typeof value !== "string") return null;
+    const lower = value.toLowerCase().replace(/[\s-]+/g, "_");
+    for (const item of allowed) {
+      if (item === value || item === lower || item.toLowerCase() === lower) return item as T;
+    }
+    return null;
+  }
+
+  function validateEnumArray<T extends string>(values: unknown, allowed: readonly T[]): T[] | null {
+    if (!Array.isArray(values)) return null;
+    const result: T[] = [];
+    for (const v of values) {
+      const valid = validateEnum(v, allowed);
+      if (valid) result.push(valid);
+    }
+    return result.length > 0 ? result : null;
+  }
+
+  app.get("/api/videos/unclassified", verifyClassifierApiKey, async (req: any, res) => {
+    try {
+      const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 20, 1), 100);
+      const batch = await storage.getUnclassifiedVideos(limit);
+      const result = batch.map(v => ({
+        id: v.id,
+        caption: v.caption,
+        transcript: v.transcript,
+        hashtags: v.hashtags,
+        duration_seconds: v.durationSeconds,
+        platform: v.platform,
+        views: v.views,
+        likes: v.likes,
+        comments: v.comments,
+        shares: v.shares,
+        creator_name: v.creatorName,
+        creator_niche: v.creatorNiche,
+      }));
+      res.json({ videos: result, count: result.length });
+    } catch (err: any) {
+      console.error("Unclassified videos error:", err);
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
+  app.post("/api/videos/classification", verifyClassifierApiKey, async (req: any, res) => {
+    try {
+      const input = z.object({
+        video_id: z.string().min(1),
+        classification: z.object({
+          hook_mechanism: z.array(z.string()).optional(),
+          hook_format: z.string().optional(),
+          hook_text: z.string().nullable().optional(),
+          emotional_trigger: z.array(z.string()).optional(),
+          content_structure: z.array(z.string()).optional(),
+          content_format: z.string().optional(),
+          visual_style: z.array(z.string()).optional(),
+          storytelling_presence: z.string().optional(),
+          content_pace: z.string().optional(),
+          creator_archetype: z.string().optional(),
+          topic_category: z.string().optional(),
+          call_to_action: z.string().optional(),
+          controversy_level: z.string().optional(),
+          information_density: z.string().optional(),
+          platform: z.string().optional(),
+          duration_bucket: z.string().optional(),
+          pattern_notes: z.string().nullable().optional(),
+        }),
+      }).parse(req.body);
+
+      const video = await storage.getVideoById(input.video_id);
+      if (!video) {
+        return res.status(404).json({ message: "Video not found" });
+      }
+
+      if (video.classificationStatus === "completed") {
+        return res.status(409).json({ message: "Video already classified" });
+      }
+
+      const c = input.classification;
+      const updateData: Record<string, unknown> = {};
+
+      if (c.hook_mechanism) {
+        const val = validateEnumArray(c.hook_mechanism, HOOK_MECHANISMS);
+        if (val) updateData.hookMechanism = val;
+      }
+      if (c.hook_format) {
+        const val = validateEnum(c.hook_format, HOOK_FORMATS);
+        if (val) updateData.hookFormat = val;
+      }
+      if (c.hook_text !== undefined) updateData.hookText = c.hook_text;
+      if (c.emotional_trigger) {
+        const val = validateEnumArray(c.emotional_trigger, EMOTIONAL_TRIGGERS);
+        if (val) updateData.emotionalTrigger = val;
+      }
+      if (c.content_structure) {
+        const val = validateEnumArray(c.content_structure, CONTENT_STRUCTURES);
+        if (val) updateData.contentStructure = val;
+      }
+      if (c.content_format) {
+        const val = validateEnum(c.content_format, CONTENT_FORMATS);
+        if (val) updateData.contentFormat = val;
+      }
+      if (c.visual_style) {
+        const val = validateEnumArray(c.visual_style, VISUAL_STYLES);
+        if (val) updateData.visualStyle = val;
+      }
+      if (c.storytelling_presence) {
+        const val = validateEnum(c.storytelling_presence, STORYTELLING_PRESENCES);
+        if (val) updateData.storytellingPresence = val;
+      }
+      if (c.content_pace) {
+        const val = validateEnum(c.content_pace, CONTENT_PACES);
+        if (val) updateData.contentPace = val;
+      }
+      if (c.creator_archetype) {
+        const val = validateEnum(c.creator_archetype, CREATOR_ARCHETYPES);
+        if (val) updateData.creatorArchetype = val;
+      }
+      if (c.topic_category) {
+        const val = validateEnum(c.topic_category, TOPIC_CATEGORIES);
+        if (val) updateData.topicCategory = val;
+      }
+      if (c.call_to_action) {
+        const val = validateEnum(c.call_to_action, CTA_TYPES);
+        if (val) updateData.callToAction = val;
+      }
+      if (c.controversy_level) {
+        const val = validateEnum(c.controversy_level, CONTROVERSY_LEVELS);
+        if (val) updateData.controversyLevel = val;
+      }
+      if (c.information_density) {
+        const val = validateEnum(c.information_density, INFORMATION_DENSITIES);
+        if (val) updateData.informationDensity = val;
+      }
+      if (c.platform) updateData.platform = c.platform;
+      if (c.duration_bucket) {
+        const val = validateEnum(c.duration_bucket, DURATION_BUCKETS);
+        if (val) updateData.durationBucket = val;
+      }
+      if (c.pattern_notes !== undefined) updateData.patternNotes = c.pattern_notes;
+
+      updateData.classifiedBy = "twin-classifier";
+
+      const updated = await storage.updateVideoClassification(input.video_id, updateData as any);
+      res.json({ success: true, video_id: updated.id, status: updated.classificationStatus });
+    } catch (err: any) {
+      if (err.name === "ZodError") {
+        return res.status(400).json({ message: "Invalid request body", errors: err.errors });
+      }
+      if (req.body?.video_id) {
+        try {
+          await storage.markVideoClassificationFailed(req.body.video_id);
+        } catch (_) {}
+      }
+      console.error("Classification error:", err);
+      res.status(500).json({ message: "Internal Error" });
     }
   });
 

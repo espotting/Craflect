@@ -382,6 +382,8 @@ export const videos = pgTable("videos", {
   patternNotes: text("pattern_notes"),
   classifiedAt: timestamp("classified_at"),
   classifiedBy: text("classified_by"),
+  classificationStatus: text("classification_status").notNull().default("pending"),
+  classificationStartedAt: timestamp("classification_started_at"),
 }, (table) => [
   index("idx_videos_platform").on(table.platform),
   index("idx_videos_hook_format").on(table.hookFormat),
@@ -389,6 +391,7 @@ export const videos = pgTable("videos", {
   index("idx_videos_topic_category").on(table.topicCategory),
   index("idx_videos_creator_niche").on(table.creatorNiche),
   index("idx_videos_collected_at").on(table.collectedAt),
+  index("idx_videos_classification_status").on(table.classificationStatus),
 ]);
 
 export const viralPatterns = pgTable("viral_patterns", {

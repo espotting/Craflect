@@ -21,7 +21,7 @@ import {
   type ViralPattern, type InsertViralPattern,
 } from "@shared/schema";
 import { users, type User } from "@shared/models/auth";
-import { eq, desc, sql, count, and, or, isNull } from "drizzle-orm";
+import { eq, desc, sql, count, and, or, isNull, inArray, lt } from "drizzle-orm";
 
 export interface IStorage {
   getWorkspacesByOwner(ownerId: string): Promise<Workspace[]>;
@@ -473,6 +473,54 @@ export class DatabaseStorage implements IStorage {
     }
     const [created] = await db.insert(viralPatterns).values({ patternId, ...data } as any).returning();
     return created;
+  }
+
+  async getUnclassifiedVideos(batchLimit: number): Promise<Video[]> {
+    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+    await db.update(videos)
+      .set({ classificationStatus: "pending", classificationStartedAt: null })
+      .where(
+        and(
+          eq(videos.classificationStatus, "processing"),
+          lt(videos.classificationStartedAt!, tenMinutesAgo)
+        )
+      );
+
+    const batch = await db.select().from(videos)
+      .where(eq(videos.classificationStatus, "pending"))
+      .orderBy(videos.collectedAt)
+      .limit(batchLimit);
+
+    if (batch.length > 0) {
+      const ids = batch.map(v => v.id);
+      await db.update(videos)
+        .set({ classificationStatus: "processing", classificationStartedAt: new Date() })
+        .where(inArray(videos.id, ids));
+    }
+
+    return batch;
+  }
+
+  async updateVideoClassification(videoId: string, classification: Partial<Video>): Promise<Video> {
+    const [updated] = await db.update(videos)
+      .set({
+        ...classification,
+        classificationStatus: "completed",
+        classifiedAt: new Date(),
+      })
+      .where(eq(videos.id, videoId))
+      .returning();
+    if (!updated) throw new Error(`Video ${videoId} not found`);
+    return updated;
+  }
+
+  async markVideoClassificationFailed(videoId: string): Promise<Video> {
+    const [updated] = await db.update(videos)
+      .set({ classificationStatus: "failed" })
+      .where(eq(videos.id, videoId))
+      .returning();
+    if (!updated) throw new Error(`Video ${videoId} not found`);
+    return updated;
   }
 }
 

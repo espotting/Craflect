@@ -38,8 +38,14 @@ React + TypeScript + Tailwind CSS + shadcn/ui + Framer Motion frontend, Express/
 - Admin Panel
 - 4-step onboarding funnel
 
+**Classifier API (external agent — Twin):**
+- `GET /api/videos/unclassified` — batch de vidéos `pending`, auto-lock `processing`, timeout 10min auto-reset. Param `?limit=` (default 20, max 100)
+- `POST /api/videos/classification` — reçoit `video_id` + `classification` JSON (17 dimensions validées), update → `completed`. Vidéos déjà classifiées → 409.
+- Sécurité : header `x-api-key` vérifié contre `CLASSIFIER_API_KEY` (env secret). 401 si absent/invalide.
+- Colonnes ajoutées : `classification_status` (pending/processing/completed/failed), `classification_started_at`. Index sur `classification_status`.
+
 **Development Phases (V1):**
-- Phase 1 (current): DB schema (videos + viral_patterns), taxonomy 17 dimensions, LLM classification structure — backend only, no frontend changes
+- Phase 1 (done): DB schema (videos + viral_patterns), taxonomy 17 dimensions, LLM classification structure, Classifier API endpoints
 - Phase 2: Pattern Engine, viral_patterns table population, statistical analysis
 - Phase 3: Hook Library, insights interface
 - Phase 4: Content Generator, Creator Workspace
