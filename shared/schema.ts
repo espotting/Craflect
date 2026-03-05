@@ -278,7 +278,7 @@ export const insertNicheProfileSchema = createInsertSchema(nicheProfiles).omit({
 export const insertWorkspaceIntelligenceSchema = createInsertSchema(workspaceIntelligence).omit({ id: true, lastUpdated: true });
 
 // ═══════════════════════════════════════════════════════════
-// Craflect V1 — Taxonomie 17 dimensions
+// Craflect V1 — Taxonomie (deprecated, kept for transition)
 // ═══════════════════════════════════════════════════════════
 
 export const HOOK_MECHANISMS = [
@@ -358,6 +358,30 @@ export const CONTENT_GOALS = [
   "engagement", "product_promotion",
 ] as const;
 
+// ═══════════════════════════════════════════════════════════
+// Craflect V2 — Taxonomie en couches (Pattern Engine)
+// ═══════════════════════════════════════════════════════════
+
+export const HOOK_TYPES_V2 = [
+  "contrarian", "question", "shock_statement", "statistic",
+  "curiosity_gap", "warning", "story", "before_after",
+] as const;
+
+export const STRUCTURE_TYPES = [
+  "hook_value_cta", "problem_solution", "story_lesson", "list_format",
+  "tutorial_step", "before_after", "myth_truth", "emotional_arc",
+  "authority_breakdown", "quick_tip", "demo_walkthrough", "challenge_result",
+] as const;
+
+export const CTA_TYPES_V2 = [
+  "follow", "comment", "share", "link_bio", "save",
+  "dm", "subscribe", "buy", "visit_link", "none",
+] as const;
+
+export const EMOTION_VALUES = [
+  "curiosity", "fear", "status", "opportunity", "urgency", "novelty",
+] as const;
+
 export const videos = pgTable("videos", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   platform: text("platform"),
@@ -395,6 +419,47 @@ export const videos = pgTable("videos", {
   hookTopic: text("hook_topic"),
   contentGoal: text("content_goal"),
   patternNotes: text("pattern_notes"),
+
+  // ── V2 Couche 1 — Hook Intelligence ──
+  hookTypeV2: text("hook_type_v2"),
+  hookPattern: text("hook_pattern"),
+  hookDuration: real("hook_duration"),
+  hookPosition: text("hook_position"),
+
+  // ── V2 Couche 2 — Structure Narrative ──
+  structureType: text("structure_type"),
+  beatsCount: integer("beats_count"),
+  revealTime: real("reveal_time"),
+  demoPresence: boolean("demo_presence"),
+  proofPresence: boolean("proof_presence"),
+  ctaTypeV2: text("cta_type_v2"),
+
+  // ── V2 Couche 3 — Langage Visuel ──
+  facecam: boolean("facecam"),
+  screenRecording: boolean("screen_recording"),
+  brollUsage: boolean("broll_usage"),
+  textOverlayDensity: text("text_overlay_density"),
+  cutFrequency: text("cut_frequency"),
+  visualSwitchRate: text("visual_switch_rate"),
+
+  // ── V2 Couche Émotion ──
+  emotionPrimary: text("emotion_primary"),
+  emotionSecondary: text("emotion_secondary"),
+
+  // ── V2 Couche Topic ──
+  topicCluster: text("topic_cluster"),
+  topicSubcluster: text("topic_subcluster"),
+
+  // ── V2 Métriques dérivées (stockées, recalculées périodiquement) ──
+  engagementRate: doublePrecision("engagement_rate"),
+  viewVelocity: doublePrecision("view_velocity"),
+  viralityScore: doublePrecision("virality_score"),
+  patternId: text("pattern_id_ref"),
+
+  // ── V2 Enrichissement ──
+  v2ClassifiedAt: timestamp("v2_classified_at"),
+  v2ClassifiedBy: text("v2_classified_by"),
+
   classifiedAt: timestamp("classified_at"),
   classifiedBy: text("classified_by"),
   classificationStatus: text("classification_status").notNull().default("pending"),
@@ -407,6 +472,11 @@ export const videos = pgTable("videos", {
   index("idx_videos_creator_niche").on(table.creatorNiche),
   index("idx_videos_collected_at").on(table.collectedAt),
   index("idx_videos_classification_status").on(table.classificationStatus),
+  index("idx_videos_hook_type_v2").on(table.hookTypeV2),
+  index("idx_videos_structure_type").on(table.structureType),
+  index("idx_videos_emotion_primary").on(table.emotionPrimary),
+  index("idx_videos_topic_cluster").on(table.topicCluster),
+  index("idx_videos_virality_score").on(table.viralityScore),
 ]);
 
 export const viralPatterns = pgTable("viral_patterns", {
