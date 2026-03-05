@@ -500,8 +500,41 @@ export const viralPatterns = pgTable("viral_patterns", {
   index("idx_viral_patterns_pattern_type").on(table.patternType),
 ]);
 
+// ═══════════════════════════════════════════════════════════
+// Pattern Engine v1 — Combinatorial patterns
+// ═══════════════════════════════════════════════════════════
+
+export const patterns = pgTable("patterns", {
+  patternId: varchar("pattern_id").primaryKey().default(sql`gen_random_uuid()`),
+  dimensionKeys: text("dimension_keys").array().notNull(),
+  hookType: text("hook_type"),
+  structureType: text("structure_type"),
+  emotionPrimary: text("emotion_primary"),
+  topicCluster: text("topic_cluster"),
+  topicCategory: text("topic_category"),
+  facecam: boolean("facecam"),
+  cutFrequency: text("cut_frequency"),
+  textOverlayDensity: text("text_overlay_density"),
+  platform: text("platform"),
+  videoCount: integer("video_count").notNull(),
+  avgViralityScore: doublePrecision("avg_virality_score"),
+  medianViralityScore: doublePrecision("median_virality_score"),
+  avgEngagementRate: doublePrecision("avg_engagement_rate"),
+  performanceRank: integer("performance_rank"),
+  patternLabel: text("pattern_label"),
+  lastUpdated: timestamp("last_updated").defaultNow().notNull(),
+}, (table) => [
+  index("idx_patterns_hook_type").on(table.hookType),
+  index("idx_patterns_structure_type").on(table.structureType),
+  index("idx_patterns_topic_cluster").on(table.topicCluster),
+  index("idx_patterns_avg_virality").on(table.avgViralityScore),
+  index("idx_patterns_performance_rank").on(table.performanceRank),
+  index("idx_patterns_video_count").on(table.videoCount),
+]);
+
 export const insertVideoSchema = createInsertSchema(videos).omit({ id: true, collectedAt: true });
 export const insertViralPatternSchema = createInsertSchema(viralPatterns).omit({ patternId: true, lastUpdated: true });
+export const insertPatternSchema = createInsertSchema(patterns).omit({ patternId: true, lastUpdated: true });
 
 export type Niche = typeof niches.$inferSelect;
 export type InsertNiche = z.infer<typeof insertNicheSchema>;
@@ -518,3 +551,5 @@ export type Video = typeof videos.$inferSelect;
 export type InsertVideo = z.infer<typeof insertVideoSchema>;
 export type ViralPattern = typeof viralPatterns.$inferSelect;
 export type InsertViralPattern = z.infer<typeof insertViralPatternSchema>;
+export type Pattern = typeof patterns.$inferSelect;
+export type InsertPattern = z.infer<typeof insertPatternSchema>;

@@ -67,11 +67,19 @@ Structure organisée en blocs — champ `taxonomy_version` pour compatibilité f
 - `POST /api/videos/classification` — reçoit `video_id` + `classification` JSON, update → `completed`. Vidéos déjà classifiées → 409.
 - Sécurité : header `x-api-key` vérifié contre `CLASSIFIER_API_KEY` (env secret). 401 si absent/invalide.
 
-**Pattern Engine** (`server/intelligence/pattern-engine.ts`):
-- Seuils configurables (env vars) : `PATTERN_DOMINANT_THRESHOLD` (0.08), `PATTERN_EMERGING_THRESHOLD` (1.8), `TREND_RATIO_THRESHOLD` (1.3)
-- **Dominant** : freq ≥ 8%, performance_ratio ≥ 1.2 | **Émergent** : freq < 8%, perf_ratio ≥ 1.8 | **En croissance** : trend_ratio ≥ 1.3
-- Activation : ≥ 300 vidéos classifiées
+**Pattern Engine Legacy** (`server/intelligence/pattern-engine.ts`):
+- Analyse unidimensionnelle, seuils configurables, activation ≥ 300 vidéos
 - Endpoints : `GET /api/patterns/status`, `GET /api/patterns`, `POST /api/patterns/compute`
+
+**Pattern Engine v1** (`server/intelligence/pattern-engine-v1.ts`):
+- Analyse combinatoire multi-dimensions basée sur la Taxonomy v1
+- Combinaisons analysées : hook_type+topic_cluster, hook_type+structure_type, structure_type+emotion_primary, hook_type+emotion_primary, hook_type+platform, structure_type+topic_cluster, hook_type+cut_frequency, hook_type+structure_type+topic_cluster
+- Métriques par pattern : video_count, avg_virality_score, median_virality_score, avg_engagement_rate
+- Filtrage : minimum 10 vidéos par pattern (`PATTERN_MIN_VIDEOS`)
+- Ranking : avg_virality_score décroissant
+- Activation : ≥ 1000 vidéos classifiées (`PATTERN_ENGINE_MIN_DATASET`), idéal 3000
+- Table : `patterns` (dimension_keys, hook_type, structure_type, emotion_primary, topic_cluster, etc.)
+- Endpoints : `GET /api/patterns/v1/status`, `GET /api/patterns/v1`, `POST /api/patterns/v1/compute`
 
 **Development Phases:**
 - Phase 1 (done): DB schema, taxonomy, LLM classification, Classifier API

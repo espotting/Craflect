@@ -13,6 +13,7 @@ import { generateNicheProfile } from "./intelligence/profile-generator";
 import { computeNicheScoring } from "./intelligence/scoring";
 import { computeWorkspaceIntelligence, updateWorkspaceIntelligence } from "./intelligence/workspace-scoring";
 import { computePatterns, isPatternEngineReady, computeAndStorePatterns } from "./intelligence/pattern-engine";
+import { isPatternEngineV1Ready, computePatternsV1, computeAndStorePatternsV1 } from "./intelligence/pattern-engine-v1";
 import { stripe, getOrCreateStripeCustomer, createCheckoutSession, createBillingPortalSession, getCustomerInvoices, ensureStripePrices, PLANS, listPaymentMethods, createSetupIntent, detachPaymentMethod, setDefaultPaymentMethod } from "./stripe";
 import {
   VP_HOOK_TYPES, STRUCTURE_MODELS, ANGLE_CATEGORIES, FORMAT_TYPES,
@@ -1350,6 +1351,38 @@ The content should directly apply the recommendations from the insight report. W
       res.json(result);
     } catch (err: any) {
       console.error("Pattern fetch error:", err);
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
+  // ── Pattern Engine v1 (combinatorial, Taxonomy v1) ──
+
+  app.get("/api/patterns/v1/status", verifyClassifierApiKey, async (req: any, res) => {
+    try {
+      const status = await isPatternEngineV1Ready();
+      res.json(status);
+    } catch (err: any) {
+      console.error("Pattern Engine v1 status error:", err);
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
+  app.post("/api/patterns/v1/compute", verifyClassifierApiKey, async (req: any, res) => {
+    try {
+      const result = await computeAndStorePatternsV1();
+      res.json(result);
+    } catch (err: any) {
+      console.error("Pattern Engine v1 compute error:", err);
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
+  app.get("/api/patterns/v1", verifyClassifierApiKey, async (req: any, res) => {
+    try {
+      const result = await computePatternsV1();
+      res.json(result);
+    } catch (err: any) {
+      console.error("Pattern Engine v1 fetch error:", err);
       res.status(500).json({ message: "Internal Error" });
     }
   });
