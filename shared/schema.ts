@@ -6,26 +6,30 @@ import { sql } from "drizzle-orm";
 export * from "./models/auth";
 export * from "./models/chat";
 
-export const HOOK_TYPES = [
+export const VP_HOOK_TYPES = [
   "Question", "Bold_Claim", "Statistic", "Story_Start", "Shock",
   "Promise", "Problem", "Curiosity_Gap", "Authority_Intro", "Controversial",
   "Relatable", "Tutorial_Intro", "Before_After", "Myth_Busting", "Direct_Statement",
 ] as const;
 
-export const STRUCTURE_MODELS = [
+export const VP_STRUCTURE_MODELS = [
   "Problem_Solution", "Hook_Value_CTA", "Story_Lesson", "List_Format", "Tutorial_Step",
   "Authority_Breakdown", "Emotional_Arc", "Before_After_Transformation", "Myth_Truth", "Quick_Tip",
 ] as const;
 
-export const ANGLE_CATEGORIES = [
+export const VP_ANGLE_CATEGORIES = [
   "Educational", "Emotional", "Authority", "Inspirational", "Relatable",
   "Fear_Based", "Aspirational", "Tactical", "Analytical", "Storytelling",
   "Controversial", "Social_Proof",
 ] as const;
 
-export const FORMAT_TYPES = [
+export const VP_FORMAT_TYPES = [
   "Talking_Head", "B_Roll_Voiceover", "Text_Overlay", "Interview", "Montage", "Mixed_Format",
 ] as const;
+
+export const STRUCTURE_MODELS = VP_STRUCTURE_MODELS;
+export const ANGLE_CATEGORIES = VP_ANGLE_CATEGORIES;
+export const FORMAT_TYPES = VP_FORMAT_TYPES;
 
 export const workspaces = pgTable("workspaces", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -280,8 +284,46 @@ export const insertNicheProfileSchema = createInsertSchema(nicheProfiles).omit({
 export const insertWorkspaceIntelligenceSchema = createInsertSchema(workspaceIntelligence).omit({ id: true, lastUpdated: true });
 
 // ═══════════════════════════════════════════════════════════
-// Craflect V1 — Taxonomie (deprecated, kept for transition)
+// Craflect Taxonomy v1 — Stable Reference Values
 // ═══════════════════════════════════════════════════════════
+
+export const HOOK_TYPES = [
+  "contrarian", "question", "shock_statement", "statistic",
+  "curiosity_gap", "warning", "story", "before_after",
+] as const;
+
+export const STRUCTURE_TYPES = [
+  "hook_value_cta", "problem_solution", "story_lesson", "list_format",
+  "tutorial_step", "before_after", "myth_truth", "emotional_arc",
+  "authority_breakdown", "quick_tip", "demo_walkthrough", "challenge_result",
+] as const;
+
+export const CTA_TYPES = [
+  "follow", "comment", "share", "link_bio", "save",
+  "dm", "subscribe", "buy", "visit_link", "none",
+] as const;
+
+export const EMOTION_VALUES = [
+  "curiosity", "fear", "status", "opportunity", "urgency", "novelty",
+] as const;
+
+export const DURATION_BUCKETS = [
+  "0-15s", "15-30s", "30-60s", "60-90s", "90-180s", "180s+",
+] as const;
+
+export const TEXT_OVERLAY_DENSITIES = [
+  "none", "low", "medium", "high",
+] as const;
+
+export const CUT_FREQUENCIES = [
+  "static", "low", "medium", "high", "very_high",
+] as const;
+
+export const VISUAL_SWITCH_RATES = [
+  "static", "low", "medium", "high",
+] as const;
+
+// ── Legacy enums (deprecated, kept for backward compatibility) ──
 
 export const HOOK_MECHANISMS = [
   "contrarian", "question", "bold_claim", "statistic", "story_start",
@@ -315,76 +357,25 @@ export const VISUAL_STYLES = [
   "documentary", "minimalist", "high_energy",
 ] as const;
 
-export const STORYTELLING_PRESENCES = [
-  "strong", "moderate", "minimal", "none",
-] as const;
+export const STORYTELLING_PRESENCES = ["strong", "moderate", "minimal", "none"] as const;
+export const CONTENT_PACES = ["fast", "moderate", "slow", "variable"] as const;
+export const CREATOR_ARCHETYPES = ["educator", "entertainer", "motivator", "storyteller", "expert", "curator", "provocateur", "lifestyle"] as const;
+export const TOPIC_CATEGORIES = ["business", "finance", "health", "fitness", "tech", "lifestyle", "beauty", "food", "travel", "education", "entertainment", "motivation", "relationships", "productivity", "marketing"] as const;
+export const CONTROVERSY_LEVELS = ["none", "low", "moderate", "high"] as const;
+export const INFORMATION_DENSITIES = ["low", "moderate", "high", "very_high"] as const;
+export const HOOK_TOPICS = ["mistake", "secret", "myth", "strategy", "tools", "comparison", "trend"] as const;
+export const CONTENT_GOALS = ["education", "lead_generation", "brand_awareness", "storytelling", "engagement", "product_promotion"] as const;
 
-export const CONTENT_PACES = [
-  "fast", "moderate", "slow", "variable",
-] as const;
-
-export const CREATOR_ARCHETYPES = [
-  "educator", "entertainer", "motivator", "storyteller",
-  "expert", "curator", "provocateur", "lifestyle",
-] as const;
-
-export const TOPIC_CATEGORIES = [
-  "business", "finance", "health", "fitness", "tech",
-  "lifestyle", "beauty", "food", "travel", "education",
-  "entertainment", "motivation", "relationships", "productivity", "marketing",
-] as const;
-
-export const CTA_TYPES = [
-  "follow", "comment", "share", "link_bio", "save",
-  "dm", "subscribe", "none",
-] as const;
-
-export const CONTROVERSY_LEVELS = [
-  "none", "low", "moderate", "high",
-] as const;
-
-export const INFORMATION_DENSITIES = [
-  "low", "moderate", "high", "very_high",
-] as const;
-
-export const DURATION_BUCKETS = [
-  "0-15s", "15-30s", "30-60s", "60-90s", "90-180s", "180s+",
-] as const;
-
-export const HOOK_TOPICS = [
-  "mistake", "secret", "myth", "strategy", "tools", "comparison", "trend",
-] as const;
-
-export const CONTENT_GOALS = [
-  "education", "lead_generation", "brand_awareness", "storytelling",
-  "engagement", "product_promotion",
-] as const;
+// Aliases for backward compatibility
+export const HOOK_TYPES_V2 = HOOK_TYPES;
+export const CTA_TYPES_V2 = CTA_TYPES;
 
 // ═══════════════════════════════════════════════════════════
-// Craflect V2 — Taxonomie en couches (Pattern Engine)
+// Craflect Taxonomy v1 — videos table
 // ═══════════════════════════════════════════════════════════
-
-export const HOOK_TYPES_V2 = [
-  "contrarian", "question", "shock_statement", "statistic",
-  "curiosity_gap", "warning", "story", "before_after",
-] as const;
-
-export const STRUCTURE_TYPES = [
-  "hook_value_cta", "problem_solution", "story_lesson", "list_format",
-  "tutorial_step", "before_after", "myth_truth", "emotional_arc",
-  "authority_breakdown", "quick_tip", "demo_walkthrough", "challenge_result",
-] as const;
-
-export const CTA_TYPES_V2 = [
-  "follow", "comment", "share", "link_bio", "save",
-  "dm", "subscribe", "buy", "visit_link", "none",
-] as const;
-
-export const EMOTION_VALUES = [
-  "curiosity", "fear", "status", "opportunity", "urgency", "novelty",
-] as const;
 
 export const videos = pgTable("videos", {
+  // ── Video Metadata ──
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   platform: text("platform"),
   platformVideoId: text("platform_video_id").unique(),
@@ -394,49 +385,29 @@ export const videos = pgTable("videos", {
   hashtags: text("hashtags").array(),
   durationSeconds: integer("duration_seconds"),
   durationBucket: text("duration_bucket"),
-  views: integer("views"),
-  likes: integer("likes"),
-  comments: integer("comments"),
-  shares: integer("shares"),
   creatorName: text("creator_name"),
   creatorId: text("creator_id"),
   creatorNiche: text("creator_niche"),
   publishedAt: timestamp("published_at"),
   collectedAt: timestamp("collected_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-  hookMechanism: text("hook_mechanism").array(),
-  hookFormat: text("hook_format"),
-  hookText: text("hook_text"),
-  emotionalTrigger: text("emotional_trigger").array(),
-  contentStructure: text("content_structure").array(),
-  contentFormat: text("content_format"),
-  visualStyle: text("visual_style").array(),
-  storytellingPresence: text("storytelling_presence"),
-  contentPace: text("content_pace"),
-  creatorArchetype: text("creator_archetype"),
-  topicCategory: text("topic_category"),
-  callToAction: text("call_to_action"),
-  controversyLevel: text("controversy_level"),
-  informationDensity: text("information_density"),
-  hookTopic: text("hook_topic"),
-  contentGoal: text("content_goal"),
-  patternNotes: text("pattern_notes"),
 
-  // ── V2 Couche 1 — Hook Intelligence ──
-  hookTypeV2: text("hook_type_v2"),
+  // ── Hook Intelligence ──
+  hookType: text("hook_type_v2"),
   hookPattern: text("hook_pattern"),
+  hookText: text("hook_text"),
   hookDuration: real("hook_duration"),
   hookPosition: text("hook_position"),
 
-  // ── V2 Couche 2 — Structure Narrative ──
+  // ── Narrative Structure ──
   structureType: text("structure_type"),
   beatsCount: integer("beats_count"),
   revealTime: real("reveal_time"),
   demoPresence: boolean("demo_presence"),
   proofPresence: boolean("proof_presence"),
-  ctaTypeV2: text("cta_type_v2"),
+  ctaType: text("cta_type_v2"),
 
-  // ── V2 Couche 3 — Langage Visuel ──
+  // ── Visual Language ──
   facecam: boolean("facecam"),
   screenRecording: boolean("screen_recording"),
   brollUsage: boolean("broll_usage"),
@@ -444,41 +415,64 @@ export const videos = pgTable("videos", {
   cutFrequency: text("cut_frequency"),
   visualSwitchRate: text("visual_switch_rate"),
 
-  // ── V2 Couche Émotion ──
+  // ── Emotional Trigger ──
   emotionPrimary: text("emotion_primary"),
   emotionSecondary: text("emotion_secondary"),
 
-  // ── V2 Couche Topic ──
+  // ── Topic Classification (3 levels) ──
+  topicCategory: text("topic_category"),
   topicCluster: text("topic_cluster"),
   topicSubcluster: text("topic_subcluster"),
 
-  // ── V2 Métriques dérivées (stockées, recalculées périodiquement) ──
+  // ── Performance Metrics ──
+  views: integer("views"),
+  likes: integer("likes"),
+  comments: integer("comments"),
+  shares: integer("shares"),
+
+  // ── Derived Metrics (stored, recalculated periodically) ──
   engagementRate: doublePrecision("engagement_rate"),
   viewVelocity: doublePrecision("view_velocity"),
   viralityScore: doublePrecision("virality_score"),
-  patternId: text("pattern_id_ref"),
+  patternIdRef: text("pattern_id_ref"),
 
-  // ── V2 Enrichissement ──
-  v2ClassifiedAt: timestamp("v2_classified_at"),
-  v2ClassifiedBy: text("v2_classified_by"),
-
+  // ── Versioning & Pipeline ──
+  taxonomyVersion: text("taxonomy_version").default("1.0"),
   classifiedAt: timestamp("classified_at"),
   classifiedBy: text("classified_by"),
   classificationStatus: text("classification_status").notNull().default("pending"),
   classificationStartedAt: timestamp("classification_started_at"),
+  patternNotes: text("pattern_notes"),
+
+  // ── Legacy fields (deprecated, kept for transition) ──
+  hookMechanism: text("hook_mechanism").array(),
+  hookFormat: text("hook_format"),
+  emotionalTrigger: text("emotional_trigger").array(),
+  contentStructure: text("content_structure").array(),
+  contentFormat: text("content_format"),
+  visualStyle: text("visual_style").array(),
+  storytellingPresence: text("storytelling_presence"),
+  contentPace: text("content_pace"),
+  creatorArchetype: text("creator_archetype"),
+  callToAction: text("call_to_action"),
+  controversyLevel: text("controversy_level"),
+  informationDensity: text("information_density"),
+  hookTopic: text("hook_topic"),
+  contentGoal: text("content_goal"),
+  v2ClassifiedAt: timestamp("v2_classified_at"),
+  v2ClassifiedBy: text("v2_classified_by"),
 }, (table) => [
   index("idx_videos_platform").on(table.platform),
-  index("idx_videos_hook_format").on(table.hookFormat),
-  index("idx_videos_content_format").on(table.contentFormat),
-  index("idx_videos_topic_category").on(table.topicCategory),
-  index("idx_videos_creator_niche").on(table.creatorNiche),
-  index("idx_videos_collected_at").on(table.collectedAt),
   index("idx_videos_classification_status").on(table.classificationStatus),
-  index("idx_videos_hook_type_v2").on(table.hookTypeV2),
+  index("idx_videos_collected_at").on(table.collectedAt),
+  index("idx_videos_hook_type").on(table.hookType),
   index("idx_videos_structure_type").on(table.structureType),
   index("idx_videos_emotion_primary").on(table.emotionPrimary),
+  index("idx_videos_topic_category").on(table.topicCategory),
   index("idx_videos_topic_cluster").on(table.topicCluster),
   index("idx_videos_virality_score").on(table.viralityScore),
+  index("idx_videos_creator_niche").on(table.creatorNiche),
+  index("idx_videos_taxonomy_version").on(table.taxonomyVersion),
 ]);
 
 export const viralPatterns = pgTable("viral_patterns", {

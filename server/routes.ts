@@ -15,11 +15,12 @@ import { computeWorkspaceIntelligence, updateWorkspaceIntelligence } from "./int
 import { computePatterns, isPatternEngineReady, computeAndStorePatterns } from "./intelligence/pattern-engine";
 import { stripe, getOrCreateStripeCustomer, createCheckoutSession, createBillingPortalSession, getCustomerInvoices, ensureStripePrices, PLANS, listPaymentMethods, createSetupIntent, detachPaymentMethod, setDefaultPaymentMethod } from "./stripe";
 import {
-  HOOK_TYPES, STRUCTURE_MODELS, ANGLE_CATEGORIES, FORMAT_TYPES,
+  VP_HOOK_TYPES, STRUCTURE_MODELS, ANGLE_CATEGORIES, FORMAT_TYPES,
   HOOK_MECHANISMS, HOOK_FORMATS, EMOTIONAL_TRIGGERS, CONTENT_STRUCTURES,
   CONTENT_FORMATS, VISUAL_STYLES, STORYTELLING_PRESENCES, CONTENT_PACES,
   CREATOR_ARCHETYPES, TOPIC_CATEGORIES, CTA_TYPES, CONTROVERSY_LEVELS,
   INFORMATION_DENSITIES, DURATION_BUCKETS, HOOK_TOPICS, CONTENT_GOALS,
+  HOOK_TYPES, STRUCTURE_TYPES, EMOTION_VALUES,
 } from "@shared/schema";
 
 const openai = new OpenAI({

@@ -2,7 +2,7 @@ import { db } from "../db";
 import { storage } from "../storage";
 import {
   videoPrimitives,
-  HOOK_TYPES, STRUCTURE_MODELS, ANGLE_CATEGORIES, FORMAT_TYPES,
+  VP_HOOK_TYPES as HOOK_TYPES, STRUCTURE_MODELS, ANGLE_CATEGORIES, FORMAT_TYPES,
 } from "@shared/schema";
 import { eq, and, or, isNull } from "drizzle-orm";
 

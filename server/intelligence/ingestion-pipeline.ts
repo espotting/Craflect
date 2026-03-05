@@ -1,6 +1,6 @@
 import { storage } from "../storage";
 import { scrapePublicMetadata, detectPlatform, extractCreatorHandle } from "../utils/scraper";
-import { HOOK_TYPES, STRUCTURE_MODELS, ANGLE_CATEGORIES, FORMAT_TYPES } from "@shared/schema";
+import { VP_HOOK_TYPES as HOOK_TYPES, STRUCTURE_MODELS, ANGLE_CATEGORIES, FORMAT_TYPES } from "@shared/schema";
 import { updateNichePatterns, updateNicheStatistics } from "./pattern-aggregator";
 import OpenAI from "openai";
 

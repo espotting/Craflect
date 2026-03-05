@@ -1,5 +1,5 @@
 import { storage } from "../storage";
-import { HOOK_TYPES, STRUCTURE_MODELS, ANGLE_CATEGORIES, FORMAT_TYPES } from "@shared/schema";
+import { VP_HOOK_TYPES as HOOK_TYPES, STRUCTURE_MODELS, ANGLE_CATEGORIES, FORMAT_TYPES } from "@shared/schema";
 import { computeIntelligenceStatus } from "./scoring";
 
 function calcDistribution(values: string[], taxonomy: readonly string[]): Record<string, number> {
