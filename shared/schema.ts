@@ -433,7 +433,8 @@ export function normalizeTopicCluster(raw: string | null | undefined): string | 
   for (const cluster of TOPIC_CLUSTERS) {
     if (lower.includes(cluster) || cluster.includes(lower)) return cluster;
   }
-  return lower;
+  console.warn(`[normalizeTopicCluster] Rejected unknown value: "${raw}"`);
+  return null;
 }
 
 // ── Legacy enums (deprecated, kept for backward compatibility) ──
