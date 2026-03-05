@@ -22,6 +22,7 @@ import {
   CREATOR_ARCHETYPES, TOPIC_CATEGORIES, CTA_TYPES, CONTROVERSY_LEVELS,
   INFORMATION_DENSITIES, DURATION_BUCKETS, HOOK_TOPICS, CONTENT_GOALS,
   HOOK_TYPES, STRUCTURE_TYPES, EMOTION_VALUES,
+  normalizeTopicCluster,
 } from "@shared/schema";
 
 const openai = new OpenAI({
@@ -1218,6 +1219,8 @@ The content should directly apply the recommendations from the insight report. W
           content_pace: z.string().optional(),
           creator_archetype: z.string().optional(),
           topic_category: z.string().optional(),
+          topic_cluster: z.string().optional(),
+          topic_subcluster: z.string().optional(),
           call_to_action: z.string().optional(),
           controversy_level: z.string().optional(),
           information_density: z.string().optional(),
@@ -1287,6 +1290,13 @@ The content should directly apply the recommendations from the insight report. W
       if (c.topic_category) {
         const val = validateEnum(c.topic_category, TOPIC_CATEGORIES);
         if (val) updateData.topicCategory = val;
+      }
+      if (c.topic_cluster) {
+        const normalized = normalizeTopicCluster(c.topic_cluster);
+        if (normalized) updateData.topicCluster = normalized;
+      }
+      if (c.topic_subcluster) {
+        updateData.topicSubcluster = c.topic_subcluster;
       }
       if (c.call_to_action) {
         const val = validateEnum(c.call_to_action, CTA_TYPES);

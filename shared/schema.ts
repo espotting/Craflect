@@ -323,6 +323,119 @@ export const VISUAL_SWITCH_RATES = [
   "static", "low", "medium", "high",
 ] as const;
 
+export const TOPIC_CLUSTERS = [
+  "ai_tools", "ai_automation", "online_business", "entrepreneurship",
+  "digital_marketing", "ecommerce", "saas", "real_estate",
+  "finance", "crypto", "productivity", "education",
+  "tech", "personal_branding", "coaching", "motivation",
+  "lifestyle", "fitness", "health", "beauty",
+  "food", "travel", "relationships", "entertainment", "gaming",
+] as const;
+
+export const TOPIC_CLUSTER_LABELS: Record<string, string> = {
+  ai_tools: "AI tools",
+  ai_automation: "AI automation",
+  online_business: "Online business",
+  entrepreneurship: "Entrepreneurship",
+  digital_marketing: "Digital marketing",
+  ecommerce: "Ecommerce",
+  saas: "SaaS",
+  real_estate: "Real estate",
+  finance: "Finance",
+  crypto: "Crypto",
+  productivity: "Productivity",
+  education: "Education",
+  tech: "Tech",
+  personal_branding: "Personal branding",
+  coaching: "Coaching",
+  motivation: "Motivation",
+  lifestyle: "Lifestyle",
+  fitness: "Fitness",
+  health: "Health",
+  beauty: "Beauty",
+  food: "Food",
+  travel: "Travel",
+  relationships: "Relationships",
+  entertainment: "Entertainment",
+  gaming: "Gaming",
+};
+
+export function normalizeTopicCluster(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const lower = raw.toLowerCase().trim().replace(/[_\s-]+/g, "_");
+  if (TOPIC_CLUSTERS.includes(lower as any)) return lower;
+  const aliases: Record<string, string> = {
+    ai_tool: "ai_tools",
+    ai_software: "ai_tools",
+    artificial_intelligence: "ai_tools",
+    ai: "ai_tools",
+    automation: "ai_automation",
+    ai_agent: "ai_automation",
+    ai_agents: "ai_automation",
+    ai_workflow: "ai_automation",
+    ai_workflows: "ai_automation",
+    business: "online_business",
+    online_biz: "online_business",
+    startup: "entrepreneurship",
+    startups: "entrepreneurship",
+    marketing: "digital_marketing",
+    social_media_marketing: "digital_marketing",
+    content_marketing: "digital_marketing",
+    e_commerce: "ecommerce",
+    shopify: "ecommerce",
+    dropshipping: "ecommerce",
+    software: "saas",
+    real_estate_investing: "real_estate",
+    property: "real_estate",
+    investing: "finance",
+    money: "finance",
+    trading: "finance",
+    bitcoin: "crypto",
+    web3: "crypto",
+    blockchain: "crypto",
+    personal_development: "motivation",
+    self_improvement: "motivation",
+    mindset: "motivation",
+    personal_brand: "personal_branding",
+    branding: "personal_branding",
+    life_coaching: "coaching",
+    mentor: "coaching",
+    mentoring: "coaching",
+    gym: "fitness",
+    workout: "fitness",
+    exercise: "fitness",
+    wellness: "health",
+    mental_health: "health",
+    nutrition: "health",
+    skincare: "beauty",
+    makeup: "beauty",
+    cooking: "food",
+    recipe: "food",
+    recipes: "food",
+    gaming_tech: "gaming",
+    video_games: "gaming",
+    esports: "gaming",
+    fun: "entertainment",
+    comedy: "entertainment",
+    humor: "entertainment",
+    dating: "relationships",
+    love: "relationships",
+    technology: "tech",
+    gadgets: "tech",
+    learn: "education",
+    learning: "education",
+    tutorial: "education",
+    tutorials: "education",
+    digital_nomad: "lifestyle",
+    remote_work: "lifestyle",
+  };
+  if (aliases[lower]) return aliases[lower];
+  for (const cluster of TOPIC_CLUSTERS) {
+    if (lower.includes(cluster) || cluster.includes(lower)) return cluster;
+  }
+  return lower;
+}
+
 // ── Legacy enums (deprecated, kept for backward compatibility) ──
 
 export const HOOK_MECHANISMS = [
