@@ -39,6 +39,8 @@ const en = {
     analyzedContent: "Analyzed Content",
     insights: "Insights",
     analytics: "Analytics",
+    scriptGenerator: "Script Generator",
+    videoBuilder: "Video Builder",
     planBilling: "Plan & Billing",
     system: "System",
     settings: "Settings",
@@ -47,6 +49,7 @@ const en = {
     gettingStarted: "Getting Started",
     setupProgress: "Setup progress",
     completeOnboarding: "Complete onboarding to unlock all features",
+    comingSoon: "Coming soon",
   },
 
   landing: {
@@ -678,6 +681,19 @@ const en = {
     a6: "Yes.",
     q7: "Which platforms are supported?",
     a7: "Short-form video platforms including TikTok, Instagram Reels, and YouTube Shorts.",
+  },
+
+  videoBuilder: {
+    title: "Video Builder",
+    description: "Transform your scripts and ideas into structured video projects ready for production. This feature is currently under development.",
+    comingSoon: "Coming soon",
+  },
+
+  scriptGenerator: {
+    title: "Script Generator",
+    description: "Generate structured scripts from viral patterns and content ideas. Hook, scene breakdown, script, and call to action — all powered by Craflect intelligence.",
+    comingSoon: "Coming soon",
+    generateVideoStructure: "Generate video structure",
   },
 };
 

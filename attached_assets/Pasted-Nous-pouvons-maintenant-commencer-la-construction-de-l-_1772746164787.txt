@@ -1,0 +1,120 @@
+Nous pouvons maintenant commencer la construction de l’interface produit de Craflect.
+
+Objectif : créer un Viral Intelligence Dashboard qui transforme les données du Pattern Engine en insights et en contenu actionnable pour l’utilisateur.
+
+Architecture produit :
+
+User
+→ Workspace
+→ Niches
+→ Dashboards
+
+Chaque niche possède son propre dashboard et son propre dataset d’analyse.
+
+1. Gestion des niches
+
+Lors de l’onboarding, l’utilisateur sélectionne une niche principale.
+
+Exemples :
+AI tools
+AI automation
+Productivity
+Marketing
+Business
+
+Chaque niche crée un dashboard dédié.
+
+Le produit doit permettre :
+
+* d’ajouter une nouvelle niche via un bouton "+ Add niche"
+* de naviguer entre niches via un sélecteur en haut de l’interface.
+
+Exemple :
+
+AI Tools ▼
+
+Dropdown :
+
+AI Tools
+AI Automation
+Productivity
+
+* Add niche
+
+Chaque niche charge un dashboard spécifique.
+
+2. Layout général
+
+Top bar
+→ niche selector
+
+Sidebar :
+
+Dashboard
+Viral Patterns
+Content Ideas
+Script Generator
+Planner
+
+3. Dashboard principal
+
+Le dashboard doit mettre en avant les insights clés issus du Pattern Engine.
+
+Sections principales :
+
+Viral Insights
+
+Top hooks dans la niche
+Top content structures
+Top visual formats
+Top topics
+
+Viral Blueprints
+
+Patterns viraux complets détectés :
+
+hook type
+structure type
+visual format
+topic
+avg virality score
+
+Chaque blueprint doit proposer une action :
+
+Generate script
+
+Content Ideas
+
+Liste d’idées de contenu basées sur les patterns détectés.
+
+Exemples :
+
+5 AI tools that will save you hours
+Stop using ChatGPT like this
+3 AI workflows nobody talks about
+
+Bouton :
+
+Generate more ideas
+
+4. Script Generator
+
+Lorsqu’un utilisateur sélectionne une idée ou un blueprint, le système génère un script structuré :
+
+Hook
+Scene breakdown
+Script
+Call to action
+
+L’utilisateur peut ensuite :
+
+modifier le script
+générer captions et hashtags.
+
+5. Planner
+
+Ajouter un content planner simple permettant de planifier les idées générées dans un calendrier de publication.
+
+Objectif produit :
+
+Transformer les insights data du Pattern Engine en recommandations concrètes de contenu que l’utilisateur peut immédiatement produire et publier.

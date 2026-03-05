@@ -41,6 +41,8 @@ const fr: Translations = {
     analyzedContent: "Contenu analysé",
     insights: "Insights",
     analytics: "Analytique",
+    scriptGenerator: "Générateur de scripts",
+    videoBuilder: "Video Builder",
     planBilling: "Plan & Facturation",
     system: "Système",
     settings: "Paramètres",
@@ -48,6 +50,7 @@ const fr: Translations = {
     intelligence: "Intelligence",
     gettingStarted: "Démarrage",
     setupProgress: "Progression",
+    comingSoon: "Bientôt disponible",
     completeOnboarding: "Complétez l'onboarding pour débloquer toutes les fonctionnalités",
   },
 
@@ -680,6 +683,19 @@ const fr: Translations = {
     a6: "Oui.",
     q7: "Quelles plateformes sont supportées ?",
     a7: "Les plateformes de vidéo courte dont TikTok, Instagram Reels et YouTube Shorts.",
+  },
+
+  videoBuilder: {
+    title: "Video Builder",
+    description: "Transformez vos scripts et idées en projets vidéo structurés prêts pour la production. Cette fonctionnalité est en cours de développement.",
+    comingSoon: "Bientôt disponible",
+  },
+
+  scriptGenerator: {
+    title: "Générateur de scripts",
+    description: "Générez des scripts structurés à partir de patterns viraux et d'idées de contenu. Hook, découpage scènes, script et call to action — propulsé par l'intelligence Craflect.",
+    comingSoon: "Bientôt disponible",
+    generateVideoStructure: "Générer une structure vidéo",
   },
 };
 

@@ -22,6 +22,8 @@ import NicheData from "@/pages/niche-data";
 import PlanBilling from "@/pages/plan-billing";
 import { TermsPage, BillingPage, PrivacyPage, CookiesPage, DpaPage, SecurityPage } from "@/pages/legal";
 import FaqPage from "@/pages/faq";
+import VideoBuilder from "@/pages/video-builder";
+import ScriptGenerator from "@/pages/script-generator";
 
 function Router() {
   return (
@@ -39,6 +41,8 @@ function Router() {
       <Route path="/intelligence" component={Intelligence} />
       <Route path="/niche-data" component={NicheData} />
       <Route path="/plan-billing" component={PlanBilling} />
+      <Route path="/video-builder" component={VideoBuilder} />
+      <Route path="/script-generator" component={ScriptGenerator} />
       <Route path="/terms" component={TermsPage} />
       <Route path="/billing" component={BillingPage} />
       <Route path="/privacy" component={PrivacyPage} />

@@ -532,6 +532,28 @@ export const patterns = pgTable("patterns", {
   index("idx_patterns_video_count").on(table.videoCount),
 ]);
 
+// ═══════════════════════════════════════════════════════════
+// Content Projects — Video Builder (future)
+// ═══════════════════════════════════════════════════════════
+
+export const contentProjects = pgTable("content_projects", {
+  projectId: varchar("project_id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  nicheId: varchar("niche_id"),
+  ideaId: varchar("idea_id"),
+  scriptId: varchar("script_id"),
+  videoStructure: jsonb("video_structure"),
+  status: text("status").default("draft").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_content_projects_user_id").on(table.userId),
+  index("idx_content_projects_niche_id").on(table.nicheId),
+  index("idx_content_projects_status").on(table.status),
+]);
+
+export const insertContentProjectSchema = createInsertSchema(contentProjects).omit({ projectId: true, createdAt: true, updatedAt: true });
+
 export const insertVideoSchema = createInsertSchema(videos).omit({ id: true, collectedAt: true });
 export const insertViralPatternSchema = createInsertSchema(viralPatterns).omit({ patternId: true, lastUpdated: true });
 export const insertPatternSchema = createInsertSchema(patterns).omit({ patternId: true, lastUpdated: true });
@@ -553,3 +575,5 @@ export type ViralPattern = typeof viralPatterns.$inferSelect;
 export type InsertViralPattern = z.infer<typeof insertViralPatternSchema>;
 export type Pattern = typeof patterns.$inferSelect;
 export type InsertPattern = z.infer<typeof insertPatternSchema>;
+export type ContentProject = typeof contentProjects.$inferSelect;
+export type InsertContentProject = z.infer<typeof insertContentProjectSchema>;

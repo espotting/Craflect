@@ -9,7 +9,10 @@ import {
   Moon,
   Shield,
   Brain,
-  CreditCard
+  CreditCard,
+  FileText,
+  Video,
+  Lock,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import {
@@ -43,6 +46,8 @@ export function AppSidebar() {
     { title: t.sidebar.analyzedContent, url: "/library", icon: Library },
     { title: t.sidebar.insights, url: "/briefs", icon: Sparkles },
     { title: t.sidebar.analytics, url: "/analytics", icon: BarChart3 },
+    { title: t.sidebar.scriptGenerator, url: "/script-generator", icon: FileText, comingSoon: true },
+    { title: t.sidebar.videoBuilder, url: "/video-builder", icon: Video, comingSoon: true },
     { title: t.sidebar.planBilling, url: "/plan-billing", icon: CreditCard },
   ];
 
@@ -74,17 +79,19 @@ export function AppSidebar() {
             <SidebarMenu>
               {mainItems.map((item) => {
                 const isActive = location === item.url;
+                const isComingSoon = (item as any).comingSoon;
                 return (
                   <SidebarMenuItem key={item.url}>
                     <SidebarMenuButton 
                       asChild 
                       isActive={isActive}
-                      className={isActive ? "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary" : "text-muted-foreground hover:text-foreground hover:bg-accent"}
-                      onClick={() => setLocation(item.url)}
+                      className={isComingSoon ? "opacity-50 cursor-not-allowed text-muted-foreground" : isActive ? "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary" : "text-muted-foreground hover:text-foreground hover:bg-accent"}
+                      onClick={() => !isComingSoon && setLocation(item.url)}
                     >
-                      <button className="flex items-center gap-3 w-full" data-testid={`nav-${item.url.replace("/", "")}`}>
+                      <button className="flex items-center gap-3 w-full" data-testid={`nav-${item.url.replace("/", "")}`} disabled={isComingSoon}>
                         <item.icon className={`w-5 h-5 ${isActive ? 'text-primary' : ''}`} />
                         <span className="font-medium">{item.title}</span>
+                        {isComingSoon && <Lock className="w-3 h-3 ml-auto text-muted-foreground" />}
                       </button>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
