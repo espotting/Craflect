@@ -1319,6 +1319,29 @@ The content should directly apply the recommendations from the insight report. W
 
       updateData.classifiedBy = "twin-classifier";
 
+      const MAX_CLASSIFICATION_ATTEMPTS = 3;
+      const currentAttempts = (video.classificationAttempts || 0) + 1;
+
+      if (!updateData.topicCluster) {
+        if (currentAttempts >= MAX_CLASSIFICATION_ATTEMPTS) {
+          updateData.classificationStatus = "classification_failed";
+          updateData.classificationAttempts = currentAttempts;
+          updateData.patternNotes = `${updateData.patternNotes || ""} [topic_cluster missing after ${currentAttempts} attempts]`.trim();
+          console.warn(`[classify] Video ${input.video_id}: topic_cluster null after ${currentAttempts} attempts → classification_failed`);
+          const updated = await storage.updateVideoClassification(input.video_id, updateData as any);
+          return res.json({ success: true, video_id: updated.id, status: "classification_failed", reason: "topic_cluster_missing_after_retries" });
+        } else {
+          updateData.classificationStatus = "pending";
+          updateData.classificationAttempts = currentAttempts;
+          updateData.classifiedAt = null;
+          updateData.classifiedBy = null;
+          console.warn(`[classify] Video ${input.video_id}: topic_cluster null → retry ${currentAttempts}/${MAX_CLASSIFICATION_ATTEMPTS}`);
+          const updated = await storage.updateVideoClassification(input.video_id, updateData as any);
+          return res.json({ success: true, video_id: updated.id, status: "pending_retry", attempt: currentAttempts, max_attempts: MAX_CLASSIFICATION_ATTEMPTS });
+        }
+      }
+
+      updateData.classificationAttempts = currentAttempts;
       const updated = await storage.updateVideoClassification(input.video_id, updateData as any);
       res.json({ success: true, video_id: updated.id, status: updated.classificationStatus });
     } catch (err: any) {

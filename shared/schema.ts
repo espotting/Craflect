@@ -555,6 +555,7 @@ export const videos = pgTable("videos", {
   classifiedAt: timestamp("classified_at"),
   classifiedBy: text("classified_by"),
   classificationStatus: text("classification_status").notNull().default("pending"),
+  classificationAttempts: integer("classification_attempts").notNull().default(0),
   classificationStartedAt: timestamp("classification_started_at"),
   patternNotes: text("pattern_notes"),
 
