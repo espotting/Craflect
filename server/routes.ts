@@ -1420,5 +1420,76 @@ The content should directly apply the recommendations from the insight report. W
     }
   });
 
+  // ── Dataset Quality Monitoring ──
+
+  app.get("/api/dataset/quality", verifyClassifierApiKey, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+
+      const [statusCounts] = await Promise.all([
+        db.execute(sql`SELECT classification_status, COUNT(*) as count FROM videos GROUP BY classification_status ORDER BY count DESC`),
+      ]);
+
+      const clusterDist = await db.execute(sql`
+        SELECT topic_cluster, COUNT(*) as count,
+          ROUND(AVG(virality_score)::numeric, 2) as avg_virality,
+          ROUND(AVG(engagement_rate)::numeric, 4) as avg_engagement
+        FROM videos WHERE classification_status = 'completed' AND topic_cluster IS NOT NULL
+        GROUP BY topic_cluster ORDER BY count DESC
+      `);
+
+      const hookDist = await db.execute(sql`
+        SELECT hook_mechanism, COUNT(*) as count
+        FROM videos WHERE classification_status = 'completed' AND hook_mechanism IS NOT NULL
+        GROUP BY hook_mechanism ORDER BY count DESC
+      `);
+
+      const structureDist = await db.execute(sql`
+        SELECT structure_type, COUNT(*) as count
+        FROM videos WHERE classification_status = 'completed' AND structure_type IS NOT NULL
+        GROUP BY structure_type ORDER BY count DESC
+      `);
+
+      const emotionDist = await db.execute(sql`
+        SELECT emotion_primary, COUNT(*) as count
+        FROM videos WHERE classification_status = 'completed' AND emotion_primary IS NOT NULL
+        GROUP BY emotion_primary ORDER BY count DESC
+      `);
+
+      const [totalRow] = (await db.execute(sql`SELECT COUNT(*) as count FROM videos`)).rows;
+      const [completedRow] = (await db.execute(sql`SELECT COUNT(*) as count FROM videos WHERE classification_status = 'completed'`)).rows;
+      const [withClusterRow] = (await db.execute(sql`SELECT COUNT(*) as count FROM videos WHERE classification_status = 'completed' AND topic_cluster IS NOT NULL`)).rows;
+      const [failedRow] = (await db.execute(sql`SELECT COUNT(*) as count FROM videos WHERE classification_status = 'classification_failed'`)).rows;
+
+      const total = parseInt(totalRow.count as string);
+      const completed = parseInt(completedRow.count as string);
+      const withCluster = parseInt(withClusterRow.count as string);
+      const failed = parseInt(failedRow.count as string);
+
+      res.json({
+        summary: {
+          total_videos: total,
+          completed,
+          with_topic_cluster: withCluster,
+          without_topic_cluster: completed - withCluster,
+          classification_failed: failed,
+          completion_rate: total > 0 ? `${Math.round((completed / total) * 100)}%` : "0%",
+          cluster_coverage: completed > 0 ? `${Math.round((withCluster / completed) * 100)}%` : "0%",
+        },
+        classification_status: statusCounts.rows,
+        distributions: {
+          topic_cluster: clusterDist.rows,
+          hook_mechanism: hookDist.rows,
+          structure_type: structureDist.rows,
+          emotion_primary: emotionDist.rows,
+        },
+      });
+    } catch (err: any) {
+      console.error("Dataset quality error:", err);
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
   return httpServer;
 }
