@@ -61,10 +61,8 @@ function formatLabel(s: string | null): string {
 export default function Patterns() {
   const [selectedNiche, setSelectedNiche] = useState<string>("all");
 
-  const nicheParam = selectedNiche === "all" ? "" : selectedNiche;
-  const queryKey = nicheParam
-    ? ["/api/patterns/browse", `?niche=${nicheParam}`]
-    : ["/api/patterns/browse"];
+  const nicheParam = selectedNiche === "all" ? undefined : selectedNiche;
+  const queryKey = ["/api/patterns/browse" + (nicheParam ? `?niche=${nicheParam}` : "")];
 
   const { data, isLoading } = useQuery<PatternsResponse>({
     queryKey,

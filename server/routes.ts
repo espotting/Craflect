@@ -1978,9 +1978,12 @@ The content should directly apply the recommendations from the insight report. W
 
       let inserted = 0;
       for (const a of input.alerts) {
+        const videoIdsArray = a.video_ids && a.video_ids.length > 0
+          ? sql`ARRAY[${sql.join(a.video_ids.map(id => sql`${id}`), sql`, `)}]::text[]`
+          : sql`NULL`;
         await db.execute(sql`
           INSERT INTO trend_alerts (type, severity, title, description, niche, video_ids, metadata)
-          VALUES (${a.type}, ${a.severity}, ${a.title}, ${a.description}, ${a.niche ?? null}, ${a.video_ids ?? null}, ${a.metadata ? JSON.stringify(a.metadata) : null}::jsonb)
+          VALUES (${a.type}, ${a.severity}, ${a.title}, ${a.description}, ${a.niche ?? null}, ${videoIdsArray}, ${a.metadata ? JSON.stringify(a.metadata) : null}::jsonb)
         `);
         inserted++;
       }
@@ -2004,21 +2007,21 @@ The content should directly apply the recommendations from the insight report. W
       const input = z.object({
         patterns: z.array(z.object({
           dimension_keys: z.array(z.string()).min(1),
-          hook_type: z.string().optional(),
-          structure_type: z.string().optional(),
-          emotion_primary: z.string().optional(),
-          topic_cluster: z.string().optional(),
-          topic_category: z.string().optional(),
-          facecam: z.boolean().optional(),
-          cut_frequency: z.string().optional(),
-          text_overlay_density: z.string().optional(),
-          platform: z.string().optional(),
+          hook_type: z.string().nullish(),
+          structure_type: z.string().nullish(),
+          emotion_primary: z.string().nullish(),
+          topic_cluster: z.string().nullish(),
+          topic_category: z.string().nullish(),
+          facecam: z.boolean().nullish(),
+          cut_frequency: z.string().nullish(),
+          text_overlay_density: z.string().nullish(),
+          platform: z.string().nullish(),
           video_count: z.number().int().min(1),
-          avg_virality_score: z.number().optional(),
-          median_virality_score: z.number().optional(),
-          avg_engagement_rate: z.number().optional(),
-          performance_rank: z.number().int().optional(),
-          pattern_label: z.string().optional(),
+          avg_virality_score: z.number().nullish(),
+          median_virality_score: z.number().nullish(),
+          avg_engagement_rate: z.number().nullish(),
+          performance_rank: z.number().int().nullish(),
+          pattern_label: z.string().nullish(),
         })).min(1).max(500),
         replace_all: z.boolean().optional(),
       }).parse(req.body);
