@@ -1,0 +1,246 @@
+Nous devons faire évoluer Craflect d’un simple dashboard d’analyse vers une **plateforme complète d’intelligence et de création de contenu**.
+
+L’objectif est que Craflect devienne **le système d’exploitation du contenu viral**.
+
+L’utilisateur doit pouvoir :
+
+* découvrir les tendances
+* identifier les opportunités virales
+* générer des idées de contenu
+* créer un script
+* produire une vidéo
+* gérer ses projets de contenu
+
+Le produit doit être **simple, clair et addictif**, et non un simple explorateur de données.
+
+---
+
+NOUVELLE STRUCTURE DE NAVIGATION
+
+ANALYZE
+
+* Dashboard
+* Radar
+* Library
+
+CREATE
+
+* Ideas
+* Script Generator
+* Video Builder
+* Projects
+
+SYSTEM
+
+* Settings
+* Billing
+
+---
+
+PAGES À SUPPRIMER COMME PAGES INDÉPENDANTES
+
+Supprimer les pages suivantes du menu :
+
+* Niches
+* Patterns
+* Creators
+* Videos
+
+Ces données doivent être **regroupées dans la page Library avec des filtres**.
+
+---
+
+LIBRARY (nouvelle logique)
+
+Library devient l’explorateur de données principal.
+
+Filtres disponibles :
+
+* plateforme
+* topic_cluster (niche)
+* hook_type
+* structure_type
+* trend_score
+* velocity
+
+Les datasets explorables :
+
+* videos
+* creators
+* patterns
+
+Remplacer la pagination par **infinite scroll**.
+
+---
+
+DASHBOARD — REFONTE
+
+Le Dashboard doit montrer immédiatement :
+
+**les meilleures opportunités de contenu viral du moment.**
+
+Sections :
+
+1️⃣ Viral Opportunities Today (maximum 5)
+
+Structure d’une carte :
+
+Hook
+Format
+Topic
+Trend score
+Velocity
+Nombre de vidéos détectées
+
+Boutons :
+Create Script
+Create Video
+
+---
+
+2️⃣ Fastest Growing Trends
+
+Afficher 3 à 6 tendances maximum.
+
+Carte :
+
+Trend name
+Trend score
+Velocity
+Videos count
+
+---
+
+3️⃣ Top Viral Videos Today
+
+Afficher les 5 vidéos les plus performantes.
+
+Carte :
+
+thumbnail
+caption
+views
+engagement
+trend score
+
+Actions :
+
+Analyze
+Create Script
+Create Video
+
+---
+
+Remplacer les KPI actuels par :
+
+* Videos analyzed today
+* Emerging trends detected
+* High velocity videos
+* New viral patterns
+
+---
+
+RADAR — TREND DISCOVERY ENGINE
+
+Radar devient la page de découverte des tendances.
+
+Sections :
+
+1️⃣ Emerging Trends
+2️⃣ Trending Hooks
+3️⃣ Trending Formats
+
+Utiliser **des cartes visuelles**, pas des listes longues.
+
+Supprimer les sections :
+
+* Emerging creators
+* Daily viral opportunities
+
+---
+
+NOUVELLE PAGE : IDEAS
+
+Cette page affiche **les opportunités de contenu générées automatiquement par le moteur Craflect**.
+
+Structure d’une carte Idea :
+
+Hook
+Format
+Topic
+Trend score
+Velocity
+Videos detected
+
+Actions :
+
+Save Idea
+Create Script
+Create Video
+
+---
+
+NOUVELLE PAGE : PROJECTS
+
+Chaque contenu créé devient un projet.
+
+Structure d’un projet :
+
+Idea
+Script
+Scenes
+Assets
+Video
+
+Cela permet aux utilisateurs de gérer toute leur production de contenu dans Craflect.
+
+---
+
+SCRIPT GENERATOR
+
+Le Script Generator doit pouvoir générer un script à partir de :
+
+* une idée
+* une tendance
+* une vidéo analysée
+* un pattern
+
+Le script doit inclure :
+
+Hook
+Structure de la vidéo
+Script complet
+Call to action
+
+---
+
+VIDEO BUILDER
+
+Le Video Builder transforme un script en **plan de production vidéo**.
+
+Structure :
+
+Hook
+Scene 1
+Scene 2
+Scene 3
+CTA
+
+---
+
+OBJECTIF GLOBAL DU REDESIGN
+
+Craflect doit devenir :
+
+une **plateforme d’intelligence et de création de contenu viral**.
+
+Quand un utilisateur ouvre Craflect, il doit immédiatement comprendre :
+
+"Quel contenu dois-je créer aujourd’hui pour devenir viral ?"
+
+Le produit doit privilégier :
+
+* la clarté
+* les insights
+* la simplicité
+* l’action
