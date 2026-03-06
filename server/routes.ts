@@ -1701,6 +1701,10 @@ The content should directly apply the recommendations from the insight report. W
           storytelling_presence: z.string().optional(),
           content_pace: z.string().optional(),
           creator_archetype: z.string().optional(),
+          creator_name: z.string().nullable().optional(),
+          structure_type: z.string().nullable().optional(),
+          view_velocity: z.string().nullable().optional(),
+          engagement_rate: z.number().nullable().optional(),
           topic_category: z.string().optional(),
           topic_cluster: z.string().optional(),
           topic_subcluster: z.string().optional(),
@@ -1769,6 +1773,18 @@ The content should directly apply the recommendations from the insight report. W
       if (c.creator_archetype) {
         const val = validateEnum(c.creator_archetype, CREATOR_ARCHETYPES);
         if (val) updateData.creatorArchetype = val;
+      }
+      if (c.creator_name !== undefined && c.creator_name !== null) {
+        updateData.creatorName = c.creator_name;
+      }
+      if (c.structure_type !== undefined && c.structure_type !== null) {
+        updateData.structureType = c.structure_type;
+      }
+      if (c.view_velocity !== undefined && c.view_velocity !== null) {
+        updateData.viewVelocity = c.view_velocity;
+      }
+      if (c.engagement_rate !== undefined && c.engagement_rate !== null) {
+        updateData.engagementRate = c.engagement_rate;
       }
       if (c.topic_category) {
         const val = validateEnum(c.topic_category, TOPIC_CATEGORIES);
