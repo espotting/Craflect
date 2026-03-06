@@ -596,6 +596,7 @@ export const videos = pgTable("videos", {
   engagementRate: doublePrecision("engagement_rate"),
   viewVelocity: doublePrecision("view_velocity"),
   viralityScore: doublePrecision("virality_score"),
+  trendScoreProcessedAt: timestamp("trend_score_processed_at"),
   patternIdRef: text("pattern_id_ref"),
 
   // ── Versioning & Pipeline ──

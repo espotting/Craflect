@@ -1381,13 +1381,32 @@ The content should directly apply the recommendations from the insight report. W
   });
 
   // ─── Classifier API (external agent) ───
+
+  const rateLimitStore: Record<string, { count: number; resetAt: number }> = {};
+  function classifierRateLimit(req: any, res: any, next: any) {
+    const key = req.headers["x-api-key"] || req.ip;
+    const now = Date.now();
+    if (!rateLimitStore[key] || rateLimitStore[key].resetAt < now) {
+      rateLimitStore[key] = { count: 0, resetAt: now + 60000 };
+    }
+    rateLimitStore[key].count++;
+    const remaining = 100 - rateLimitStore[key].count;
+    res.setHeader("X-RateLimit-Limit", "100");
+    res.setHeader("X-RateLimit-Remaining", String(Math.max(0, remaining)));
+    res.setHeader("X-RateLimit-Reset", String(Math.ceil(rateLimitStore[key].resetAt / 1000)));
+    if (rateLimitStore[key].count > 100) {
+      return res.status(429).json({ message: "Rate limit exceeded. Max 100 requests per minute.", retry_after_seconds: Math.ceil((rateLimitStore[key].resetAt - now) / 1000) });
+    }
+    next();
+  }
+
   function verifyClassifierApiKey(req: any, res: any, next: any) {
     const apiKey = req.headers["x-api-key"];
     const expectedKey = process.env.CLASSIFIER_API_KEY;
     if (!expectedKey || apiKey !== expectedKey) {
       return res.status(401).json({ message: "Invalid or missing API key" });
     }
-    next();
+    classifierRateLimit(req, res, next);
   }
 
   function validateEnum<T extends string>(value: unknown, allowed: readonly T[]): T | null {
@@ -1725,6 +1744,7 @@ The content should directly apply the recommendations from the insight report. W
         const result = await db.execute(sql`
           UPDATE videos SET
             virality_score = ${s.trend_score},
+            trend_score_processed_at = NOW(),
             updated_at = NOW()
           WHERE id = ${s.video_id} AND classification_status = 'completed'
         `);
@@ -1879,8 +1899,8 @@ The content should directly apply the recommendations from the insight report. W
             ELSE 0 END as view_velocity
         FROM videos
         WHERE classification_status = 'completed'
-          AND (virality_score IS NULL OR virality_score = 0)
-        ORDER BY classified_at DESC
+          AND trend_score_processed_at IS NULL
+        ORDER BY COALESCE(published_at, classified_at) DESC
         LIMIT ${limit}
       `);
 
