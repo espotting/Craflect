@@ -1614,6 +1614,29 @@ The content should directly apply the recommendations from the insight report. W
     }
   });
 
+  app.post("/api/videos/reset-incomplete", verifyClassifierApiKey, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const result = await db.execute(sql`
+        UPDATE videos
+        SET classification_status = 'pending'
+        WHERE classification_status = 'completed'
+          AND (
+            topic_cluster IS NULL OR topic_cluster = ''
+            OR hook_mechanism_primary IS NULL OR hook_mechanism_primary = ''
+            OR structure_type IS NULL OR structure_type = ''
+            OR creator_name IS NULL OR creator_name = ''
+          )
+        RETURNING id
+      `);
+      res.json({ reset: result.rows.length, message: `${result.rows.length} incomplete videos reset to pending` });
+    } catch (err: any) {
+      console.error("Reset incomplete error:", err);
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
   app.get("/api/videos/classified", verifyClassifierApiKey, async (req: any, res) => {
     try {
       const { db } = await import("./db");
