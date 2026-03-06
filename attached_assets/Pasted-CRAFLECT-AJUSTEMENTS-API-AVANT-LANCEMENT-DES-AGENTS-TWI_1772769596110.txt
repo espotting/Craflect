@@ -1,0 +1,100 @@
+CRAFLECT — AJUSTEMENTS API AVANT LANCEMENT DES AGENTS TWIN
+
+Les endpoints actuels sont très bons et peuvent être validés.  
+Avant d’activer Twin en production, merci d’ajouter deux endpoints complémentaires pour supporter le dashboard Craflect et éviter que le frontend fasse des calculs.
+
+═══════════════════════════════════════
+1 — ENDPOINT CREATORS
+═══════════════════════════════════════
+
+Ajouter un endpoint pour alimenter la page "Creators" du dashboard.
+
+GET /api/creators/top?limit=50
+
+Retour attendu :
+
+[
+  {
+    "creator_name": "string",
+    "platform": "tiktok | instagram | youtube",
+    "followers": 120000,
+    "views_growth": 0.42,
+    "viral_videos": 5,
+    "niche": "ai_tools",
+    "momentum_score": 87
+  }
+]
+
+Objectif :
+permettre d’afficher les créateurs en forte croissance dans la page Creator Discovery.
+
+═══════════════════════════════════════
+2 — ENDPOINT OPPORTUNITIES
+═══════════════════════════════════════
+
+Ajouter un endpoint pour la section "Daily Viral Opportunities".
+
+GET /api/opportunities?limit=5
+
+Retour attendu :
+
+[
+  {
+    "niche": "ai_tools",
+    "hook": "3 AI tools nobody is using yet",
+    "format": "screen_recording",
+    "recommended_duration": 25,
+    "trend_score": 92,
+    "pattern_id": "uuid",
+    "example_video_id": "uuid"
+  }
+]
+
+Objectif :
+alimenter la section "Viral Opportunities Today" dans Trend Radar.
+
+═══════════════════════════════════════
+3 — CONFIRMATION TRANSCRIPTS
+═══════════════════════════════════════
+
+Merci de confirmer que le champ suivant existe bien dans la table videos :
+
+transcript
+
+Structure attendue :
+
+video_id
+platform
+creator_name
+caption
+hashtags
+transcript
+views
+likes
+comments
+shares
+engagement_rate
+published_at
+topic_cluster
+structure_type
+hook_text
+duration_seconds
+age_hours
+view_velocity
+
+Les transcripts sont importants pour améliorer la détection de hooks et de patterns.
+
+═══════════════════════════════════════
+4 — CONFIRMATION FINALE
+═══════════════════════════════════════
+
+Une fois ces deux endpoints ajoutés :
+
+GET /api/creators/top
+GET /api/opportunities
+
+et le champ transcript confirmé, l’API peut être considérée prête pour lancer les agents Twin :
+
+Trend Scorer
+Pattern Detector
+Alerts Engine

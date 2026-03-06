@@ -1744,6 +1744,121 @@ The content should directly apply the recommendations from the insight report. W
     }
   });
 
+  // ── GET /api/creators/top — top creators by momentum ──
+
+  app.get("/api/creators/top", verifyClassifierApiKey, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 50));
+
+      const creators = await db.execute(sql`
+        SELECT
+          creator_name,
+          platform,
+          COUNT(*) as video_count,
+          SUM(views) as views_total,
+          ROUND(AVG(views)::numeric, 0) as avg_views,
+          ROUND(AVG(engagement_rate)::numeric, 4) as avg_engagement,
+          ROUND(AVG(virality_score)::numeric, 2) as avg_virality,
+          SUM(CASE WHEN virality_score > 50 THEN 1 ELSE 0 END) as viral_videos,
+          MAX(topic_cluster) as niche,
+          ROUND(
+            (0.4 * COALESCE(AVG(virality_score), 0) +
+             0.3 * LEAST(100, COALESCE(SUM(views), 0) / GREATEST(COUNT(*), 1) / 1000) +
+             0.2 * COALESCE(AVG(engagement_rate), 0) * 1000 +
+             0.1 * COUNT(*) * 5)::numeric
+          , 2) as momentum_score
+        FROM videos
+        WHERE classification_status = 'completed'
+          AND creator_name IS NOT NULL
+        GROUP BY creator_name, platform
+        HAVING COUNT(*) >= 2
+        ORDER BY momentum_score DESC NULLS LAST
+        LIMIT ${limit}
+      `);
+
+      res.json(creators.rows.map((c: any) => ({
+        creator_name: c.creator_name,
+        platform: c.platform,
+        followers: null,
+        views_total: parseInt(c.views_total) || 0,
+        views_growth: null,
+        avg_views: parseInt(c.avg_views) || 0,
+        avg_engagement: parseFloat(c.avg_engagement) || 0,
+        viral_videos: parseInt(c.viral_videos) || 0,
+        niche: c.niche,
+        momentum_score: parseFloat(c.momentum_score) || 0,
+        video_count: parseInt(c.video_count) || 0,
+      })));
+    } catch (err: any) {
+      console.error("Creators top error:", err);
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
+  // ── GET /api/opportunities — daily viral opportunities for dashboard ──
+
+  app.get("/api/opportunities", verifyClassifierApiKey, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const limit = Math.min(20, Math.max(1, parseInt(req.query.limit as string) || 5));
+
+      const opportunities = await db.execute(sql`
+        WITH ranked_patterns AS (
+          SELECT
+            v.topic_cluster as niche,
+            v.hook_text as hook,
+            v.structure_type as format,
+            v.duration_seconds,
+            ROUND(AVG(v.virality_score)::numeric, 2) as trend_score,
+            COUNT(*) as video_count,
+            (array_agg(v.id ORDER BY v.virality_score DESC NULLS LAST))[1] as example_video_id,
+            ROW_NUMBER() OVER (PARTITION BY v.topic_cluster ORDER BY AVG(v.virality_score) DESC NULLS LAST) as rn
+          FROM videos v
+          WHERE v.classification_status = 'completed'
+            AND v.topic_cluster IS NOT NULL
+            AND v.hook_text IS NOT NULL
+            AND v.structure_type IS NOT NULL
+            AND v.virality_score IS NOT NULL
+          GROUP BY v.topic_cluster, v.hook_text, v.structure_type, v.duration_seconds
+          HAVING COUNT(*) >= 2
+        )
+        SELECT niche, hook, format,
+          COALESCE(duration_seconds, 30) as recommended_duration,
+          trend_score, video_count, example_video_id
+        FROM ranked_patterns
+        WHERE rn <= 2
+        ORDER BY trend_score DESC NULLS LAST
+        LIMIT ${limit}
+      `);
+
+      const patternsForIds = await db.execute(sql`
+        SELECT pattern_id, hook_type, structure_type, topic_cluster
+        FROM patterns
+        ORDER BY avg_virality_score DESC NULLS LAST
+        LIMIT ${limit}
+      `);
+
+      const result = opportunities.rows.map((o: any, i: number) => ({
+        niche: o.niche,
+        hook: o.hook,
+        format: o.format,
+        recommended_duration: parseInt(o.recommended_duration) || 30,
+        trend_score: parseFloat(o.trend_score) || 0,
+        pattern_id: patternsForIds.rows[i] ? (patternsForIds.rows[i] as any).pattern_id : null,
+        example_video_id: o.example_video_id,
+        video_count: parseInt(o.video_count) || 0,
+      }));
+
+      res.json(result);
+    } catch (err: any) {
+      console.error("Opportunities error:", err);
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
   // ── GET /api/videos/unscored — videos without trend_score for Twin to process ──
 
   app.get("/api/videos/unscored", verifyClassifierApiKey, async (req: any, res) => {
