@@ -23,6 +23,7 @@ import {
   ArrowUpRight,
   Layers,
   BarChart3,
+  Clock,
 } from "lucide-react";
 
 interface Opportunity {
@@ -413,6 +414,36 @@ function EmptySection({
   );
 }
 
+function FreshnessIndicator({ trends, t }: { trends: EmergingTrend[]; t: any }) {
+  const latestTimestamp = trends.reduce((latest, trend) => {
+    const ts = trend.latest_at ? new Date(trend.latest_at).getTime() : 0;
+    return ts > latest ? ts : latest;
+  }, 0);
+
+  if (!latestTimestamp) return null;
+
+  const now = Date.now();
+  const diffMs = now - latestTimestamp;
+  const diffMinutes = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+
+  let timeText: string;
+  if (diffMinutes < 1) {
+    timeText = t.dashboard.justNow;
+  } else if (diffMinutes < 60) {
+    timeText = `${t.dashboard.updatedAgo} ${diffMinutes} ${t.dashboard.minutesAgo}`;
+  } else {
+    timeText = `${t.dashboard.updatedAgo} ${diffHours} ${t.dashboard.hoursAgo}`;
+  }
+
+  return (
+    <div className="flex items-center gap-1.5 text-xs text-muted-foreground" data-testid="text-freshness-indicator">
+      <Clock className="w-3 h-3" />
+      <span>{timeText}</span>
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const { t } = useLanguage();
   const { user } = useAuth();
@@ -511,11 +542,16 @@ export default function Dashboard() {
         </div>
 
         <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <Zap className="w-4 h-4 text-primary" />
-            <h2 className="text-sm font-bold uppercase tracking-widest text-primary" data-testid="text-section-opportunities">
-              {t.dashboard.viralOpportunities}
+          <div className="space-y-2">
+            <h2 className="text-lg font-bold text-foreground" data-testid="text-section-playbook">
+              {t.dashboard.viralPlaybook}
             </h2>
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-bold uppercase tracking-widest text-primary" data-testid="text-section-opportunities">
+                {t.dashboard.viralOpportunities}
+              </span>
+              <FreshnessIndicator trends={trends} t={t} />
+            </div>
           </div>
           {opportunities.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
