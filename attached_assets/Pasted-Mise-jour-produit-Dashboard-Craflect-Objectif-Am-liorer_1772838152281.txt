@@ -1,0 +1,145 @@
+Mise à jour produit – Dashboard Craflect
+
+Objectif
+
+Améliorer le Dashboard afin qu’il devienne le centre de décision quotidien des créateurs.
+
+Le Dashboard doit être :
+
+simple
+visuel
+compréhensible en quelques secondes
+orienté action
+
+Les utilisateurs doivent immédiatement comprendre quel contenu créer aujourd’hui.
+
+---
+
+1. STRUCTURE DU DASHBOARD
+
+Le Dashboard doit contenir trois sections principales.
+
+SECTION 1 – DAILY VIRAL PLAYBOOK
+
+C’est la section la plus importante.
+
+Afficher seulement 3 à 5 opportunités maximum.
+
+Chaque carte contient :
+
+Hook
+Format
+Topic
+Opportunity Score
+Velocity
+Videos detected
+
+Actions :
+
+Create Script
+Create Video
+Save Idea
+
+Ajouter un indicateur :
+
+Updated X minutes ago
+
+Couleurs du Opportunity Score :
+
+80–100 → violet / rouge (High Opportunity)
+60–80 → orange (Medium Opportunity)
+<60 → jaune (Low Opportunity)
+
+Objectif : permettre à l’utilisateur de comprendre immédiatement les meilleures opportunités.
+
+---
+
+SECTION 2 – FASTEST GROWING TRENDS
+
+Afficher 3 à 5 tendances maximum.
+
+Chaque carte inclut :
+
+Trend name
+Trend score
+Velocity
+Videos detected
+
+Velocity indicator :
+
+Rising → vert
+Stable → gris
+Declining → rouge
+
+---
+
+SECTION 3 – TOP VIRAL VIDEOS TODAY
+
+Afficher les 5 vidéos les plus virales.
+
+Chaque carte inclut :
+
+thumbnail
+caption
+views
+trend score
+
+Actions :
+
+Analyze
+Create Script
+Create Video
+
+---
+
+4. INTELLIGENCE FEED (NOUVELLE FEATURE)
+
+Ajouter un flux d’activité IA sur le Dashboard.
+
+Nom :
+
+Craflect Intelligence Feed
+
+Ce flux montre les événements détectés par le moteur d’intelligence.
+
+Types d’événements :
+
+New trend detected
+Pattern detected
+Opportunity score updated
+Viral video detected
+New creator detected
+Videos analyzed
+
+Exemple :
+
+🧠 Pattern detected
+AI tools + curiosity hook + screen recording
+
+🔥 New opportunity
+AI tool comparison video
+
+📈 Trend accelerating
+AI automation tools
+
+🎬 Viral video detected
+@creator – 420k views in 3 hours
+
+Objectif :
+
+Montrer que le système analyse les tendances en permanence et rendre le produit plus vivant.
+
+---
+
+PRINCIPES DESIGN
+
+Le Dashboard doit :
+
+réduire la charge cognitive
+mettre en avant les opportunités
+être visuellement clair
+donner envie de revenir chaque jour.
+
+Éviter les dashboards analytiques complexes.
+
+Priorité à la décision et à l’action.
