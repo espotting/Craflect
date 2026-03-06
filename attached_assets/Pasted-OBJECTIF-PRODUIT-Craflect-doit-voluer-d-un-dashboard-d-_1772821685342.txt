@@ -1,0 +1,231 @@
+OBJECTIF PRODUIT
+
+Craflect doit évoluer d’un dashboard d’analyse vers une plateforme complète d’intelligence et de création de contenu.
+
+La plateforme doit aider les créateurs et agences à répondre à une seule question :
+
+"What video should I create today to generate views?"
+
+Le produit doit transformer les données en décisions simples et en contenu prêt à produire.
+
+---
+
+ARCHITECTURE PRODUIT
+
+ANALYZE
+
+Dashboard
+Radar
+Library
+
+CREATE
+
+Ideas
+Script Generator
+Video Builder
+Projects
+
+SYSTEM
+
+Settings
+Billing
+
+---
+
+PAGES À SUPPRIMER
+
+Supprimer les pages indépendantes suivantes :
+
+Niches
+Patterns
+Creators
+Videos
+
+Ces données doivent être accessibles dans Library via des filtres.
+
+---
+
+LIBRARY
+
+Library devient l’explorateur principal.
+
+Filtres :
+
+platform
+topic_cluster
+hook_type
+structure_type
+trend_score
+velocity
+
+Datasets :
+
+videos
+patterns
+creators
+
+Pagination remplacée par infinite scroll.
+
+---
+
+DASHBOARD
+
+Le Dashboard doit immédiatement montrer quoi créer.
+
+Première section obligatoire :
+
+🔥 Viral Opportunities Today
+
+Afficher maximum 5 opportunités.
+
+Structure carte :
+
+Hook
+Format
+Topic
+Opportunity Score
+Velocity
+Videos detected
+
+Actions :
+
+Create Script
+Create Video
+Save Idea
+
+Opportunity Score = score entre 0 et 100 indiquant le potentiel viral.
+
+Couleurs :
+
+80–100 → High Opportunity
+60–80 → Medium Opportunity
+<60 → Low Opportunity
+
+---
+
+AUTRES SECTIONS DASHBOARD
+
+Fastest Growing Trends
+3–6 trends max.
+
+Top Viral Videos Today
+5 vidéos max.
+
+---
+
+RADAR
+
+Radar devient un moteur de découverte des tendances.
+
+Sections :
+
+Emerging Trends
+Trending Hooks
+Trending Formats
+
+Utiliser un layout en cards visuelles.
+
+---
+
+OPPORTUNITY SCORE
+
+Opportunity Score calculé à partir de :
+
+trend_score
+view_velocity
+pattern repetition
+engagement signals
+cross-platform signals
+
+Score entre 0 et 100.
+
+---
+
+IDEAS
+
+Nouvelle page listant les opportunités détectées.
+
+Structure carte :
+
+Hook
+Format
+Topic
+Opportunity Score
+Velocity
+
+Actions :
+
+Save Idea
+Create Script
+Create Video
+
+---
+
+VIDEO CREATION — VIDEO BLUEPRINT
+
+Lorsqu’un utilisateur clique sur Create Video, Craflect doit générer automatiquement un **Video Blueprint**.
+
+Structure :
+
+Hook
+Scene 1
+Scene 2
+Scene 3
+Scene 4
+CTA
+
+Chaque scène inclut :
+
+description
+visual suggestion
+script lines
+
+Objectif :
+
+permettre à l’utilisateur de produire une vidéo immédiatement.
+
+---
+
+SCRIPT GENERATOR
+
+Le Script Generator doit pouvoir générer un script à partir de :
+
+trend
+pattern
+video
+idea
+
+Le script inclut :
+
+Hook
+Structure
+Script complet
+CTA
+
+---
+
+PROJECTS
+
+Chaque contenu devient un projet.
+
+Structure projet :
+
+Idea
+Script
+Scenes
+Assets
+Video
+
+---
+
+OBJECTIF UX FINAL
+
+Quand un utilisateur ouvre Craflect, il doit immédiatement voir :
+
+"What content should I create today?"
+
+Craflect doit être :
+
+Content Intelligence Platform
++
+Content Creation Engine.
