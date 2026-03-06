@@ -10,6 +10,11 @@ import { LanguageProvider } from "@/hooks/use-language";
 import Landing from "@/pages/landing";
 import Auth from "@/pages/auth";
 import Dashboard from "@/pages/dashboard";
+import TrendRadar from "@/pages/trend-radar";
+import Niches from "@/pages/niches";
+import Patterns from "@/pages/patterns";
+import Creators from "@/pages/creators";
+import Videos from "@/pages/videos";
 import Library from "@/pages/library";
 import Briefs from "@/pages/briefs";
 import Analytics from "@/pages/analytics";
@@ -33,6 +38,11 @@ function Router() {
       <Route path="/pricing" component={Pricing} />
       <Route path="/welcome" component={Welcome} />
       <Route path="/dashboard" component={Dashboard} />
+      <Route path="/trend-radar" component={TrendRadar} />
+      <Route path="/niches" component={Niches} />
+      <Route path="/patterns" component={Patterns} />
+      <Route path="/creators" component={Creators} />
+      <Route path="/videos" component={Videos} />
       <Route path="/library" component={Library} />
       <Route path="/briefs" component={Briefs} />
       <Route path="/analytics" component={Analytics} />

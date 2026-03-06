@@ -1074,6 +1074,312 @@ The content should directly apply the recommendations from the insight report. W
     }
   });
 
+  // ─── Dashboard V2 — Trend Radar ───
+
+  app.get("/api/trends/radar", isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const niche = req.query.niche as string | undefined;
+
+      let nicheFilter = sql``;
+      if (niche) nicheFilter = sql` AND topic_cluster = ${niche}`;
+
+      const [totalVideos] = (await db.execute(sql`SELECT COUNT(*) as count FROM videos WHERE classification_status = 'completed'${nicheFilter}`)).rows;
+      const [todayVideos] = (await db.execute(sql`SELECT COUNT(*) as count FROM videos WHERE classification_status = 'completed' AND classified_at >= NOW() - INTERVAL '24 hours'${nicheFilter}`)).rows;
+      const activeNiches = await db.execute(sql`SELECT DISTINCT topic_cluster FROM videos WHERE classification_status = 'completed' AND topic_cluster IS NOT NULL`);
+      const creatorsDetected = await db.execute(sql`SELECT COUNT(DISTINCT creator_name) as count FROM videos WHERE classification_status = 'completed' AND creator_name IS NOT NULL${nicheFilter}`);
+
+      const trendingHooks = await db.execute(sql`
+        SELECT hook_text, hook_mechanism_primary, COUNT(*) as count, ROUND(AVG(virality_score)::numeric, 2) as avg_virality
+        FROM videos WHERE classification_status = 'completed' AND hook_text IS NOT NULL${nicheFilter}
+        GROUP BY hook_text, hook_mechanism_primary ORDER BY count DESC, avg_virality DESC NULLS LAST LIMIT 10
+      `);
+
+      const trendingFormats = await db.execute(sql`
+        SELECT structure_type, COUNT(*) as count, ROUND(AVG(virality_score)::numeric, 2) as avg_virality
+        FROM videos WHERE classification_status = 'completed' AND structure_type IS NOT NULL${nicheFilter}
+        GROUP BY structure_type ORDER BY count DESC LIMIT 10
+      `);
+
+      const topVideos = await db.execute(sql`
+        SELECT id, caption, platform, creator_name, views, likes, comments, engagement_rate, virality_score, topic_cluster, structure_type, hook_mechanism_primary, classified_at
+        FROM videos WHERE classification_status = 'completed'${nicheFilter}
+        ORDER BY virality_score DESC NULLS LAST LIMIT 10
+      `);
+
+      const emergingCreators = await db.execute(sql`
+        SELECT creator_name, platform, COUNT(*) as video_count, SUM(views) as total_views,
+          ROUND(AVG(virality_score)::numeric, 2) as avg_virality, MAX(topic_cluster) as niche
+        FROM videos WHERE classification_status = 'completed' AND creator_name IS NOT NULL${nicheFilter}
+        GROUP BY creator_name, platform ORDER BY avg_virality DESC NULLS LAST LIMIT 10
+      `);
+
+      res.json({
+        metrics: {
+          total_videos: parseInt(totalVideos.count as string),
+          videos_today: parseInt(todayVideos.count as string),
+          active_niches: activeNiches.rows.length,
+          creators_detected: parseInt((creatorsDetected.rows[0] as any).count),
+        },
+        trending_hooks: trendingHooks.rows,
+        trending_formats: trendingFormats.rows,
+        top_videos: topVideos.rows,
+        emerging_creators: emergingCreators.rows,
+      });
+    } catch (err: any) {
+      console.error("Trend radar error:", err);
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
+  // ─── Dashboard V2 — Daily Viral Opportunities ───
+
+  app.get("/api/trends/opportunities", isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const userNiches = req.user.selectedNiches as string[] | null;
+
+      let nicheFilter = sql``;
+      if (userNiches && userNiches.length > 0) {
+        nicheFilter = sql` AND topic_cluster = ANY(${userNiches})`;
+      }
+
+      const topPatterns = await db.execute(sql`
+        SELECT topic_cluster, hook_text, hook_mechanism_primary, structure_type, duration_bucket,
+          ROUND(AVG(virality_score)::numeric, 2) as trend_score, COUNT(*) as video_count
+        FROM videos
+        WHERE classification_status = 'completed'
+          AND topic_cluster IS NOT NULL
+          AND hook_text IS NOT NULL
+          AND structure_type IS NOT NULL
+          ${nicheFilter}
+        GROUP BY topic_cluster, hook_text, hook_mechanism_primary, structure_type, duration_bucket
+        HAVING COUNT(*) >= 2
+        ORDER BY trend_score DESC NULLS LAST
+        LIMIT 5
+      `);
+
+      const opportunities = topPatterns.rows.map((p: any) => ({
+        niche: p.topic_cluster,
+        hook: p.hook_text,
+        hook_mechanism: p.hook_mechanism_primary,
+        format: p.structure_type,
+        recommended_duration: p.duration_bucket || "30-60s",
+        trend_score: parseFloat(p.trend_score) || 0,
+        video_count: parseInt(p.video_count),
+      }));
+
+      res.json({ opportunities });
+    } catch (err: any) {
+      console.error("Opportunities error:", err);
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
+  // ─── Dashboard V2 — Creators ───
+
+  app.get("/api/creators", isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const niche = req.query.niche as string | undefined;
+
+      let nicheFilter = sql``;
+      if (niche) nicheFilter = sql` AND topic_cluster = ${niche}`;
+
+      const creators = await db.execute(sql`
+        SELECT creator_name, platform,
+          COUNT(*) as video_count,
+          SUM(views) as views_total,
+          ROUND(AVG(views)::numeric, 0) as avg_views,
+          ROUND(AVG(virality_score)::numeric, 2) as avg_virality,
+          ROUND(AVG(engagement_rate)::numeric, 4) as avg_engagement,
+          MAX(topic_cluster) as niche,
+          SUM(CASE WHEN virality_score > 50 THEN 1 ELSE 0 END) as viral_videos
+        FROM videos
+        WHERE classification_status = 'completed' AND creator_name IS NOT NULL${nicheFilter}
+        GROUP BY creator_name, platform
+        ORDER BY avg_virality DESC NULLS LAST
+        LIMIT 50
+      `);
+
+      res.json({ creators: creators.rows });
+    } catch (err: any) {
+      console.error("Creators error:", err);
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
+  // ─── Dashboard V2 — Videos Browse ───
+
+  app.get("/api/videos/browse", isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const niche = req.query.niche as string | undefined;
+      const platform = req.query.platform as string | undefined;
+      const page = Math.max(1, parseInt(req.query.page as string) || 1);
+      const limit = Math.min(50, Math.max(1, parseInt(req.query.limit as string) || 20));
+      const offset = (page - 1) * limit;
+
+      let filters = sql`WHERE classification_status = 'completed'`;
+      if (niche) filters = sql`${filters} AND topic_cluster = ${niche}`;
+      if (platform) filters = sql`${filters} AND platform = ${platform}`;
+
+      const [countRow] = (await db.execute(sql`SELECT COUNT(*) as count FROM videos ${filters}`)).rows;
+      const videos = await db.execute(sql`
+        SELECT id, caption, platform, creator_name, views, likes, comments, shares,
+          engagement_rate, virality_score, topic_cluster, structure_type,
+          hook_mechanism_primary, hook_text, duration_bucket, classified_at
+        FROM videos ${filters}
+        ORDER BY virality_score DESC NULLS LAST
+        LIMIT ${limit} OFFSET ${offset}
+      `);
+
+      res.json({
+        videos: videos.rows,
+        total: parseInt(countRow.count as string),
+        page,
+        pages: Math.ceil(parseInt(countRow.count as string) / limit),
+      });
+    } catch (err: any) {
+      console.error("Videos browse error:", err);
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
+  // ─── Dashboard V2 — Patterns Browse ───
+
+  app.get("/api/patterns/browse", isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const niche = req.query.niche as string | undefined;
+
+      let nicheFilter = sql``;
+      if (niche) nicheFilter = sql` AND v.topic_cluster = ${niche}`;
+
+      const patterns = await db.execute(sql`
+        SELECT v.hook_mechanism_primary as pattern_hook, v.structure_type as content_format,
+          v.topic_cluster as niche, v.platform,
+          COUNT(*) as video_count,
+          ROUND(AVG(v.virality_score)::numeric, 2) as growth_score,
+          ROUND(AVG(v.engagement_rate)::numeric, 4) as avg_engagement,
+          json_agg(json_build_object('id', v.id, 'caption', LEFT(v.caption, 100), 'views', v.views, 'virality_score', v.virality_score) ORDER BY v.virality_score DESC NULLS LAST) FILTER (WHERE v.virality_score IS NOT NULL) as example_videos
+        FROM videos v
+        WHERE v.classification_status = 'completed'
+          AND v.hook_mechanism_primary IS NOT NULL
+          AND v.structure_type IS NOT NULL
+          ${nicheFilter}
+        GROUP BY v.hook_mechanism_primary, v.structure_type, v.topic_cluster, v.platform
+        HAVING COUNT(*) >= 2
+        ORDER BY growth_score DESC NULLS LAST
+        LIMIT 30
+      `);
+
+      const result = patterns.rows.map((p: any) => ({
+        ...p,
+        example_videos: (p.example_videos || []).slice(0, 3),
+      }));
+
+      res.json({ patterns: result });
+    } catch (err: any) {
+      console.error("Patterns browse error:", err);
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
+  // ─── Dashboard V2 — User Preferences ───
+
+  app.patch("/api/user/preferences", isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const input = z.object({
+        selectedNiches: z.array(z.string()).max(10).optional(),
+        userGoal: z.enum(["content_creator", "marketer", "business", "trend_explorer"]).optional(),
+        onboardingCompleted: z.boolean().optional(),
+      }).parse(req.body);
+
+      const updates: string[] = [];
+      if (input.selectedNiches !== undefined) {
+        await db.execute(sql`UPDATE users SET selected_niches = ${input.selectedNiches} WHERE id = ${req.user.id}`);
+      }
+      if (input.userGoal !== undefined) {
+        await db.execute(sql`UPDATE users SET user_goal = ${input.userGoal} WHERE id = ${req.user.id}`);
+      }
+      if (input.onboardingCompleted !== undefined) {
+        await db.execute(sql`UPDATE users SET onboarding_completed = ${input.onboardingCompleted} WHERE id = ${req.user.id}`);
+      }
+
+      res.json({ success: true });
+    } catch (err: any) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
+      console.error("Preferences error:", err);
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
+  // ─── Dashboard V2 — Niches Overview ───
+
+  app.get("/api/niches/overview", isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+
+      const niches = await db.execute(sql`
+        SELECT topic_cluster,
+          COUNT(*) as video_count,
+          ROUND(AVG(virality_score)::numeric, 2) as avg_virality,
+          ROUND(AVG(engagement_rate)::numeric, 4) as avg_engagement
+        FROM videos
+        WHERE classification_status = 'completed' AND topic_cluster IS NOT NULL
+        GROUP BY topic_cluster
+        ORDER BY video_count DESC
+      `);
+
+      const nicheDetails = [];
+      for (const n of niches.rows) {
+        const niche = n.topic_cluster as string;
+
+        const topHooks = await db.execute(sql`
+          SELECT hook_mechanism_primary, COUNT(*) as count
+          FROM videos WHERE classification_status = 'completed' AND topic_cluster = ${niche} AND hook_mechanism_primary IS NOT NULL
+          GROUP BY hook_mechanism_primary ORDER BY count DESC LIMIT 5
+        `);
+
+        const topFormats = await db.execute(sql`
+          SELECT structure_type, COUNT(*) as count
+          FROM videos WHERE classification_status = 'completed' AND topic_cluster = ${niche} AND structure_type IS NOT NULL
+          GROUP BY structure_type ORDER BY count DESC LIMIT 5
+        `);
+
+        const topCreators = await db.execute(sql`
+          SELECT creator_name, COUNT(*) as video_count, ROUND(AVG(virality_score)::numeric, 2) as avg_virality
+          FROM videos WHERE classification_status = 'completed' AND topic_cluster = ${niche} AND creator_name IS NOT NULL
+          GROUP BY creator_name ORDER BY avg_virality DESC NULLS LAST LIMIT 5
+        `);
+
+        nicheDetails.push({
+          niche,
+          video_count: parseInt(n.count as string),
+          avg_virality: parseFloat(n.avg_virality as string) || 0,
+          avg_engagement: parseFloat(n.avg_engagement as string) || 0,
+          top_hooks: topHooks.rows,
+          top_formats: topFormats.rows,
+          top_creators: topCreators.rows,
+        });
+      }
+
+      res.json({ niches: nicheDetails });
+    } catch (err: any) {
+      console.error("Niches overview error:", err);
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
   // ─── Classifier API (external agent) ───
   function verifyClassifierApiKey(req: any, res: any, next: any) {
     const apiKey = req.headers["x-api-key"];

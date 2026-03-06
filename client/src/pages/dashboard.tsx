@@ -1,206 +1,225 @@
 import { DashboardLayout } from "@/components/layout";
-import { useWorkspaces, useCreateWorkspace } from "@/hooks/use-workspaces";
 import { useLanguage } from "@/hooks/use-language";
-import { useSelectedNiche } from "@/hooks/use-selected-niche";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Plus, Loader2, Brain, Info, BarChart3, Zap, Target, ArrowRight, Activity, Check, ChevronsUpDown } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { useAuth } from "@/hooks/use-auth";
+import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
+import { TOPIC_CLUSTER_LABELS } from "@shared/schema";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
-import { useLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
-import { FolderKanban } from "lucide-react";
-import { cn } from "@/lib/utils";
+import {
+  Video,
+  Users,
+  Layers,
+  Grid3X3,
+  Zap,
+  BarChart3,
+  Plus,
+  Activity,
+  Sparkles,
+} from "lucide-react";
 
-function StatusBadge({ status }: { status: string }) {
-  const colorMap: Record<string, string> = {
-    Building: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/20",
-    Active: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
-    Mature: "bg-primary/15 text-primary border-primary/20",
+interface RadarData {
+  metrics: {
+    total_videos: number;
+    videos_today: number;
+    active_niches: number;
+    creators_detected: number;
   };
-  const cls = colorMap[status] || colorMap.Building;
-  return (
-    <Badge variant="outline" className={`text-[11px] rounded-full ${cls}`} data-testid="badge-intelligence-status">
-      {status}
-    </Badge>
-  );
+  trending_hooks: Array<{
+    hook_text: string;
+    hook_mechanism_primary: string | null;
+    count: string;
+    avg_virality: string | null;
+  }>;
+  trending_formats: Array<{
+    structure_type: string;
+    count: string;
+    avg_virality: string | null;
+  }>;
 }
 
-function InfoTooltip({ text }: { text: string }) {
+function MetricCard({
+  label,
+  value,
+  subtitle,
+  icon: Icon,
+  testId,
+}: {
+  label: string;
+  value: number | string;
+  subtitle?: string;
+  icon: React.ElementType;
+  testId: string;
+}) {
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Info className="w-3.5 h-3.5 text-muted-foreground/50 cursor-help" />
-      </TooltipTrigger>
-      <TooltipContent side="top" className="max-w-[220px] text-xs">
-        {text}
-      </TooltipContent>
-    </Tooltip>
-  );
-}
-
-function StatItem({ label, value, tooltip }: { label: string; value: string | number; tooltip?: string }) {
-  return (
-    <div className="flex flex-col gap-0.5">
-      <div className="flex items-center gap-1">
-        <span className="text-[11px] text-muted-foreground">{label}</span>
-        {tooltip && <InfoTooltip text={tooltip} />}
-      </div>
-      <span className="text-sm font-bold text-foreground" data-testid={`stat-${label.toLowerCase().replace(/\s+/g, "-")}`}>
-        {value}
-      </span>
-    </div>
-  );
-}
-
-function SnapshotCard({ title, items, icon: Icon }: { title: string; items: { name: string; pct: number }[]; icon: React.ElementType }) {
-  return (
-    <Card data-testid={`card-snapshot-${title.toLowerCase().replace(/\s+/g, "-")}`}>
-      <CardContent className="p-4 space-y-3">
-        <div className="flex items-center gap-2">
-          <Icon className="w-4 h-4 text-primary" />
-          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{title}</span>
-        </div>
-        <div className="space-y-2">
-          {items.slice(0, 3).map((item) => (
-            <div key={item.name} className="flex items-center justify-between gap-2">
-              <span className="text-sm text-foreground truncate">{item.name.replace(/_/g, " ")}</span>
-              <span className="text-xs font-mono text-muted-foreground flex-shrink-0">{item.pct}%</span>
-            </div>
-          ))}
-          {items.length === 0 && (
-            <span className="text-xs text-muted-foreground">—</span>
-          )}
+    <Card data-testid={testId}>
+      <CardContent className="p-5">
+        <div className="flex items-start justify-between gap-2">
+          <div className="space-y-1">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              {label}
+            </p>
+            <p className="text-2xl font-bold text-foreground" data-testid={`${testId}-value`}>
+              {value}
+            </p>
+            {subtitle && (
+              <p className="text-xs text-muted-foreground">{subtitle}</p>
+            )}
+          </div>
+          <div className="flex-shrink-0 w-9 h-9 rounded-md bg-primary/10 flex items-center justify-center">
+            <Icon className="w-4 h-4 text-primary" />
+          </div>
         </div>
       </CardContent>
     </Card>
   );
 }
 
-export default function Dashboard() {
-  const { data: workspaces, isLoading } = useWorkspaces();
-  const createMutation = useCreateWorkspace();
-  const [isOpen, setIsOpen] = useState(false);
-  const [name, setName] = useState("");
-  const { toast } = useToast();
-  const [, setLocation] = useLocation();
-  const { t } = useLanguage();
+function HooksTable({
+  hooks,
+  t,
+}: {
+  hooks: RadarData["trending_hooks"];
+  t: any;
+}) {
+  if (!hooks || hooks.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-8">
+        <Zap className="w-8 h-8 text-muted-foreground/20 mb-2" />
+        <p className="text-sm text-muted-foreground">{t.dashboard.noDataDesc}</p>
+      </div>
+    );
+  }
 
-  const { data: availableNiches } = useQuery<any[]>({
-    queryKey: ["/api/niches/available"],
-  });
-
-  const { selectedNicheId, setSelectedNicheId } = useSelectedNiche();
-  const [nicheOpen, setNicheOpen] = useState(false);
-  const [intelligenceMode, setIntelligenceMode] = useState<"global" | "workspace">("global");
-
-  const activeNicheId = selectedNicheId || workspaces?.[0]?.nicheId || availableNiches?.[0]?.id;
-  const selectedWorkspace = workspaces?.find((w: any) => w.nicheId === activeNicheId) || workspaces?.[0];
-
-  const { data: snapshotData, isLoading: isSnapshotLoading } = useQuery<any>({
-    queryKey: ["/api/niches", activeNicheId, "snapshot"],
-    enabled: !!activeNicheId && intelligenceMode === "global",
-  });
-
-  const { data: workspaceIntel, isLoading: isWorkspaceIntelLoading } = useQuery<any>({
-    queryKey: ["/api/workspaces", selectedWorkspace?.id, "intelligence"],
-    enabled: !!selectedWorkspace?.id && intelligenceMode === "workspace",
-  });
-
-  const activeData = intelligenceMode === "global" ? snapshotData : workspaceIntel;
-  const scoring = activeData?.scoring;
-  const selectedNiche = availableNiches?.find((n: any) => n.id === activeNicheId);
-
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim()) return;
-    try {
-      await createMutation.mutateAsync({ name });
-      setIsOpen(false);
-      setName("");
-      toast({ title: t.dashboard.createWorkspace, description: t.dashboard.workspaceDesc });
-    } catch (err: any) {
-      toast({ title: t.common.error, description: err.message, variant: "destructive" });
-    }
-  };
-
-  const createDialog = (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button data-testid="button-new-workspace">
-          <Plus className="w-4 h-4 mr-2" />
-          {t.dashboard.newWorkspace}
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{t.dashboard.createWorkspace}</DialogTitle>
-          <DialogDescription>{t.dashboard.workspaceDesc}</DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleCreate} className="space-y-4 pt-2">
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-muted-foreground">{t.dashboard.workspaceName}</label>
-            <Input
-              placeholder="e.g. Acme Corp Marketing"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              autoFocus
-              data-testid="input-workspace-name"
-            />
+  return (
+    <div className="space-y-2">
+      {hooks.slice(0, 5).map((hook, i) => (
+        <div
+          key={i}
+          className="flex items-center justify-between gap-3 py-2 border-b border-border/50 last:border-0"
+          data-testid={`row-hook-${i}`}
+        >
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <span className="text-xs font-mono text-muted-foreground w-5 flex-shrink-0">
+              {i + 1}.
+            </span>
+            <span className="text-sm text-foreground truncate">
+              {hook.hook_text || hook.hook_mechanism_primary?.replace(/_/g, " ") || "—"}
+            </span>
           </div>
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={createMutation.isPending || !name.trim()}
-            data-testid="button-create-workspace"
-          >
-            {createMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : t.dashboard.createWorkspace}
-          </Button>
-        </form>
-      </DialogContent>
-    </Dialog>
+          <div className="flex items-center gap-3 flex-shrink-0">
+            {hook.hook_mechanism_primary && (
+              <Badge variant="outline" className="text-[10px]">
+                {hook.hook_mechanism_primary.replace(/_/g, " ")}
+              </Badge>
+            )}
+            <span className="text-xs font-mono text-muted-foreground w-8 text-right">
+              {hook.count}
+            </span>
+          </div>
+        </div>
+      ))}
+    </div>
   );
+}
+
+function FormatsTable({
+  formats,
+  t,
+}: {
+  formats: RadarData["trending_formats"];
+  t: any;
+}) {
+  if (!formats || formats.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-8">
+        <BarChart3 className="w-8 h-8 text-muted-foreground/20 mb-2" />
+        <p className="text-sm text-muted-foreground">{t.dashboard.noDataDesc}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      {formats.slice(0, 5).map((format, i) => (
+        <div
+          key={i}
+          className="flex items-center justify-between gap-3 py-2 border-b border-border/50 last:border-0"
+          data-testid={`row-format-${i}`}
+        >
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <span className="text-xs font-mono text-muted-foreground w-5 flex-shrink-0">
+              {i + 1}.
+            </span>
+            <span className="text-sm text-foreground">
+              {format.structure_type?.replace(/_/g, " ") || "—"}
+            </span>
+          </div>
+          <div className="flex items-center gap-3 flex-shrink-0">
+            {format.avg_virality && (
+              <Badge variant="outline" className="text-[10px]">
+                {format.avg_virality}
+              </Badge>
+            )}
+            <span className="text-xs font-mono text-muted-foreground w-8 text-right">
+              {format.count}
+            </span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export default function Dashboard() {
+  const { t } = useLanguage();
+  const { user } = useAuth();
+  const [, setLocation] = useLocation();
+
+  const userNiches = user?.selectedNiches || [];
+  const [activeNiche, setActiveNiche] = useState<string | null>(null);
+
+  const nicheQueryParam = activeNiche ? `?niche=${activeNiche}` : "";
+
+  const { data: radarData, isLoading } = useQuery<RadarData>({
+    queryKey: ["/api/trends/radar" + nicheQueryParam],
+  });
+
+  const metrics = radarData?.metrics;
+  const patternsCount =
+    (radarData?.trending_hooks?.length || 0) +
+    (radarData?.trending_formats?.length || 0);
+
+  function getNicheLabel(niche: string): string {
+    return TOPIC_CLUSTER_LABELS[niche] || niche.replace(/_/g, " ");
+  }
 
   if (isLoading) {
     return (
       <DashboardLayout>
         <div className="space-y-6">
-          <Skeleton className="h-10 rounded-md" />
-          <Skeleton className="h-40 rounded-md" />
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-48 rounded-md" />
+            <Skeleton className="h-4 w-72 rounded-md" />
+          </div>
+          <div className="flex gap-2">
+            <Skeleton className="h-9 w-24 rounded-md" />
+            <Skeleton className="h-9 w-24 rounded-md" />
+            <Skeleton className="h-9 w-24 rounded-md" />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Skeleton className="h-28 rounded-md" />
             <Skeleton className="h-28 rounded-md" />
             <Skeleton className="h-28 rounded-md" />
             <Skeleton className="h-28 rounded-md" />
           </div>
-        </div>
-      </DashboardLayout>
-    );
-  }
-
-  if (workspaces?.length === 0) {
-    return (
-      <DashboardLayout>
-        <div className="flex flex-col items-center justify-center p-16 border-dashed border-2 border-border rounded-md text-center">
-          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-            <FolderKanban className="w-8 h-8 text-primary" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Skeleton className="h-64 rounded-md" />
+            <Skeleton className="h-64 rounded-md" />
           </div>
-          <h3 className="text-xl font-bold text-foreground mb-2" data-testid="text-no-workspaces-title">{t.dashboard.noWorkspacesTitle}</h3>
-          <p className="text-sm text-muted-foreground max-w-md mb-6" data-testid="text-no-workspaces-desc">{t.dashboard.noWorkspacesDesc}</p>
-          {createDialog}
         </div>
       </DashboardLayout>
     );
@@ -208,198 +227,124 @@ export default function Dashboard() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 max-w-4xl">
-
-        {availableNiches && availableNiches.length > 0 && (
-          <div className="flex items-center gap-3 flex-wrap">
-            <span className="text-sm font-semibold text-primary">{t.dashboard.selectNiche}:</span>
-            <Popover open={nicheOpen} onOpenChange={setNicheOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={nicheOpen}
-                  className="min-w-[280px] justify-between border-primary/30 hover:border-primary hover:bg-primary/5 transition-colors"
-                  data-testid="combobox-niche-trigger"
-                >
-                  <span className="truncate">
-                    {selectedNiche
-                      ? selectedNiche.name.replace(/_/g, " ")
-                      : t.dashboard.selectNiche}
-                  </span>
-                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[280px] p-0">
-                <Command>
-                  <CommandInput placeholder={t.dashboard.searchNiche} data-testid="input-niche-search" />
-                  <CommandList>
-                    <CommandEmpty data-testid="text-no-niche-found">{t.dashboard.noNicheFound}</CommandEmpty>
-                    <CommandGroup>
-                      {availableNiches.map((n: any) => (
-                        <CommandItem
-                          key={n.id}
-                          value={n.name}
-                          onSelect={() => {
-                            setSelectedNicheId(n.id);
-                            setNicheOpen(false);
-                          }}
-                          data-testid={`combobox-niche-item-${n.id}`}
-                        >
-                          <Check
-                            className={cn(
-                              "mr-2 h-4 w-4",
-                              n.id === activeNicheId ? "opacity-100 text-primary" : "opacity-0"
-                            )}
-                          />
-                          {n.name.replace(/_/g, " ")}
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
+      <div className="space-y-6">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-primary" />
+            <h1 className="text-xl font-bold text-foreground" data-testid="text-dashboard-title">
+              {t.dashboard.title}
+            </h1>
           </div>
-        )}
+          <p className="text-sm text-muted-foreground" data-testid="text-dashboard-subtitle">
+            {t.dashboard.subtitle}
+          </p>
+        </div>
 
-        {selectedWorkspace && (
-          <div className="flex items-center gap-1 bg-muted rounded-lg p-1 w-fit" data-testid="toggle-intelligence-mode">
-            <button
-              onClick={() => setIntelligenceMode("global")}
-              className={cn(
-                "px-3 py-1.5 text-xs font-medium rounded-md transition-all",
-                intelligenceMode === "global"
-                  ? "bg-primary text-white shadow-sm"
-                  : "text-muted-foreground hover:text-primary hover:bg-primary/10"
-              )}
-              data-testid="button-global-signal"
-            >
-              {t.dashboard.globalSignal}
-            </button>
-            <button
-              onClick={() => setIntelligenceMode("workspace")}
-              className={cn(
-                "px-3 py-1.5 text-xs font-medium rounded-md transition-all",
-                intelligenceMode === "workspace"
-                  ? "bg-primary text-white shadow-sm"
-                  : "text-muted-foreground hover:text-primary hover:bg-primary/10"
-              )}
-              data-testid="button-your-dataset"
-            >
-              {t.dashboard.yourDataset}
-            </button>
-          </div>
-        )}
+        <div className="flex items-center gap-2 flex-wrap" data-testid="tabs-niche">
+          <Button
+            variant={activeNiche === null ? "default" : "outline"}
+            size="sm"
+            onClick={() => setActiveNiche(null)}
+            data-testid="tab-niche-all"
+          >
+            <Grid3X3 className="w-3.5 h-3.5 mr-1.5" />
+            {t.dashboard.allNiches}
+          </Button>
 
-        {intelligenceMode === "workspace" && scoring && scoring.totalVideos === 0 ? (
-          <Card data-testid="card-workspace-empty">
-            <CardContent className="p-8 flex flex-col items-center text-center">
-              <Brain className="w-10 h-10 text-muted-foreground/20 mb-4" />
-              <h3 className="text-lg font-bold text-foreground mb-1" data-testid="text-workspace-empty-title">{t.dashboard.workspaceEmpty}</h3>
-              <div className="grid grid-cols-2 gap-4 mt-4">
-                <StatItem label={t.dashboard.confidence} value="0%" />
-                <StatItem label={t.dashboard.signalStrength} value="0%" />
-              </div>
-            </CardContent>
-          </Card>
-        ) : activeData?.notReady || (scoring && scoring.totalVideos < 3) ? (
-          <Card data-testid="card-empty-state">
-            <CardContent className="p-8 flex flex-col items-center text-center">
-              <Brain className="w-10 h-10 text-muted-foreground/20 mb-4" />
-              <h3 className="text-lg font-bold text-foreground mb-1" data-testid="text-empty-state-title">{t.dashboard.emptyStateTitle}</h3>
-              <p className="text-sm text-muted-foreground" data-testid="text-empty-state-desc">{t.dashboard.emptyStateDesc}</p>
-            </CardContent>
-          </Card>
-        ) : scoring ? (
+          {userNiches.map((niche) => (
+            <Button
+              key={niche}
+              variant={activeNiche === niche ? "default" : "outline"}
+              size="sm"
+              onClick={() => setActiveNiche(niche)}
+              data-testid={`tab-niche-${niche}`}
+            >
+              {getNicheLabel(niche)}
+            </Button>
+          ))}
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setLocation("/settings")}
+            data-testid="button-add-niche"
+          >
+            <Plus className="w-3.5 h-3.5 mr-1" />
+            {t.dashboard.addNiche}
+          </Button>
+        </div>
+
+        {metrics ? (
           <>
-            <Card data-testid="card-niche-intelligence">
-              <CardContent className="p-5 space-y-4">
-                <div className="flex items-center justify-between gap-2 flex-wrap">
-                  <div className="flex items-center gap-2">
-                    <Brain className="w-4 h-4 text-primary" />
-                    <span className="text-xs font-bold uppercase tracking-widest text-primary">{t.dashboard.nicheIntelligence}</span>
-                  </div>
-                  {selectedNiche && (
-                    <span className="text-sm font-semibold text-foreground" data-testid="text-niche-name">
-                      {selectedNiche.name.replace(/_/g, " ")}
-                    </span>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-3 flex-wrap">
-                  <StatusBadge status={scoring.intelligenceStatus || "Building"} />
-                </div>
-
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  <StatItem
-                    label={t.dashboard.confidence}
-                    value={`${scoring.confidencePercent ?? 0}%`}
-                    tooltip={t.dashboard.confidenceTooltip}
-                  />
-                  <StatItem
-                    label={t.dashboard.signalStrength}
-                    value={`${scoring.signalStrengthPercent ?? 0}%`}
-                    tooltip={t.dashboard.signalStrengthTooltip}
-                  />
-                  <StatItem
-                    label={t.dashboard.videosAnalyzed}
-                    value={scoring.totalVideos ?? 0}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Activity className="w-4 h-4 text-primary" />
-                <span className="text-xs font-bold uppercase tracking-widest text-primary">{t.dashboard.quickSnapshot}</span>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <SnapshotCard
-                  title={t.dashboard.dominantHooks}
-                  items={scoring.topHooks || []}
-                  icon={Zap}
-                />
-                <SnapshotCard
-                  title={t.dashboard.dominantFormats}
-                  items={scoring.topFormats || []}
-                  icon={BarChart3}
-                />
-                <SnapshotCard
-                  title={t.dashboard.dominantAngles}
-                  items={scoring.topAngles || []}
-                  icon={Target}
-                />
-              </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <MetricCard
+                label={t.dashboard.videosAnalyzed}
+                value={metrics.total_videos}
+                subtitle={`+${metrics.videos_today} ${t.dashboard.videosToday.toLowerCase()}`}
+                icon={Video}
+                testId="card-metric-videos"
+              />
+              <MetricCard
+                label={t.dashboard.creatorsDetected}
+                value={metrics.creators_detected}
+                icon={Users}
+                testId="card-metric-creators"
+              />
+              <MetricCard
+                label={t.dashboard.patternsDetected}
+                value={patternsCount}
+                icon={Layers}
+                testId="card-metric-patterns"
+              />
+              <MetricCard
+                label={t.dashboard.activeNiches}
+                value={metrics.active_niches}
+                icon={Activity}
+                testId="card-metric-niches"
+              />
             </div>
 
-            <Button
-              className="w-full"
-              onClick={() => setLocation("/niche-data")}
-              data-testid="button-view-data-breakdown"
-            >
-              <BarChart3 className="w-4 h-4 mr-2" />
-              {t.dashboard.viewDataBreakdown}
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Card data-testid="card-top-hooks">
+                <CardContent className="p-5 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Zap className="w-4 h-4 text-primary" />
+                    <span className="text-xs font-bold uppercase tracking-widest text-primary">
+                      {t.dashboard.topHooks}
+                    </span>
+                  </div>
+                  <HooksTable hooks={radarData?.trending_hooks || []} t={t} />
+                </CardContent>
+              </Card>
+
+              <Card data-testid="card-top-formats">
+                <CardContent className="p-5 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <BarChart3 className="w-4 h-4 text-primary" />
+                    <span className="text-xs font-bold uppercase tracking-widest text-primary">
+                      {t.dashboard.topFormats}
+                    </span>
+                  </div>
+                  <FormatsTable formats={radarData?.trending_formats || []} t={t} />
+                </CardContent>
+              </Card>
+            </div>
           </>
-        ) : selectedNiche && !selectedNiche.isReady ? (
-          <Card data-testid="card-niche-not-ready">
-            <CardContent className="p-8 flex flex-col items-center text-center">
-              <Brain className="w-10 h-10 text-muted-foreground/20 mb-4" />
-              <p className="text-sm text-muted-foreground" data-testid="text-niche-not-ready">{t.dashboard.nicheNotReady}</p>
-            </CardContent>
-          </Card>
         ) : (
-          <Card data-testid="card-no-niche">
-            <CardContent className="p-8 flex flex-col items-center text-center">
-              <Brain className="w-10 h-10 text-muted-foreground/20 mb-4" />
-              <h3 className="text-lg font-bold text-foreground mb-1" data-testid="text-no-niche">{t.dashboard.noNicheSelected}</h3>
+          <Card data-testid="card-no-data">
+            <CardContent className="p-12 flex flex-col items-center text-center">
+              <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                <Activity className="w-7 h-7 text-primary/40" />
+              </div>
+              <h3 className="text-lg font-bold text-foreground mb-1" data-testid="text-no-data-title">
+                {t.dashboard.noDataTitle}
+              </h3>
+              <p className="text-sm text-muted-foreground max-w-md" data-testid="text-no-data-desc">
+                {t.dashboard.noDataDesc}
+              </p>
             </CardContent>
           </Card>
         )}
-
       </div>
     </DashboardLayout>
   );

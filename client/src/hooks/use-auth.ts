@@ -8,6 +8,8 @@ interface User {
   profileImageUrl: string | null;
   isAdmin: boolean;
   onboardingCompleted: boolean;
+  selectedNiches: string[] | null;
+  userGoal: string | null;
   createdAt: string | null;
   updatedAt: string | null;
 }

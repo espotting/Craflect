@@ -181,8 +181,17 @@ export const creators = pgTable("creators", {
   nicheId: varchar("niche_id").notNull(),
   platform: text("platform").notNull(),
   username: text("username").notNull(),
+  followers: integer("followers"),
+  viewsTotal: integer("views_total"),
+  viewsGrowth: doublePrecision("views_growth"),
+  viralVideos: integer("viral_videos"),
+  niche: text("niche"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_creators_niche").on(table.niche),
+  index("idx_creators_platform").on(table.platform),
+]);
 
 export const videoPrimitives = pgTable("video_primitives", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
