@@ -1699,6 +1699,132 @@ The content should directly apply the recommendations from the insight report. W
     }
   });
 
+  // ── POST /api/trends/scores — Twin agent pushes trend scores ──
+
+  app.post("/api/trends/scores", verifyClassifierApiKey, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+
+      const input = z.object({
+        scores: z.array(z.object({
+          video_id: z.string().uuid(),
+          trend_score: z.number().min(0).max(100),
+          trend_reasons: z.array(z.string()).optional(),
+          trend_velocity: z.enum(["rising", "stable", "declining"]).optional(),
+        })).min(1).max(200),
+      }).parse(req.body);
+
+      let updated = 0;
+      let notFound = 0;
+      for (const s of input.scores) {
+        const result = await db.execute(sql`
+          UPDATE videos SET
+            virality_score = ${s.trend_score},
+            updated_at = NOW()
+          WHERE id = ${s.video_id} AND classification_status = 'completed'
+        `);
+        if ((result as any).rowCount > 0) {
+          updated++;
+        } else {
+          notFound++;
+        }
+      }
+
+      console.log(`[trends/scores] Updated ${updated} videos, ${notFound} not found`);
+      res.json({ success: true, updated, not_found: notFound, total: input.scores.length });
+    } catch (err: any) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message, errors: err.errors });
+      console.error("Trends scores error:", err);
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
+  // ── POST /api/patterns — Twin agent pushes detected patterns ──
+
+  app.post("/api/patterns", verifyClassifierApiKey, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+
+      const input = z.object({
+        patterns: z.array(z.object({
+          dimension_keys: z.array(z.string()).min(1),
+          hook_type: z.string().optional(),
+          structure_type: z.string().optional(),
+          emotion_primary: z.string().optional(),
+          topic_cluster: z.string().optional(),
+          topic_category: z.string().optional(),
+          facecam: z.boolean().optional(),
+          cut_frequency: z.string().optional(),
+          text_overlay_density: z.string().optional(),
+          platform: z.string().optional(),
+          video_count: z.number().int().min(1),
+          avg_virality_score: z.number().optional(),
+          median_virality_score: z.number().optional(),
+          avg_engagement_rate: z.number().optional(),
+          performance_rank: z.number().int().optional(),
+          pattern_label: z.string().optional(),
+        })).min(1).max(500),
+        replace_all: z.boolean().optional(),
+      }).parse(req.body);
+
+      if (input.replace_all) {
+        await db.execute(sql`DELETE FROM patterns`);
+        console.log("[patterns] Cleared existing patterns (replace_all=true)");
+      }
+
+      let inserted = 0;
+      let updated = 0;
+      for (const p of input.patterns) {
+        const dimKeysArray = sql`ARRAY[${sql.join(p.dimension_keys.map(k => sql`${k}`), sql`, `)}]::text[]`;
+        const existingCheck = await db.execute(sql`
+          SELECT pattern_id FROM patterns
+          WHERE dimension_keys = ${dimKeysArray}
+            AND COALESCE(hook_type, '') = COALESCE(${p.hook_type ?? null}, '')
+            AND COALESCE(structure_type, '') = COALESCE(${p.structure_type ?? null}, '')
+            AND COALESCE(topic_cluster, '') = COALESCE(${p.topic_cluster ?? null}, '')
+            AND COALESCE(platform, '') = COALESCE(${p.platform ?? null}, '')
+          LIMIT 1
+        `);
+
+        if (existingCheck.rows.length > 0) {
+          const patternId = (existingCheck.rows[0] as any).pattern_id;
+          await db.execute(sql`
+            UPDATE patterns SET
+              video_count = ${p.video_count},
+              avg_virality_score = ${p.avg_virality_score ?? null},
+              median_virality_score = ${p.median_virality_score ?? null},
+              avg_engagement_rate = ${p.avg_engagement_rate ?? null},
+              performance_rank = ${p.performance_rank ?? null},
+              pattern_label = ${p.pattern_label ?? null},
+              emotion_primary = ${p.emotion_primary ?? null},
+              topic_category = ${p.topic_category ?? null},
+              facecam = ${p.facecam ?? null},
+              cut_frequency = ${p.cut_frequency ?? null},
+              text_overlay_density = ${p.text_overlay_density ?? null},
+              last_updated = NOW()
+            WHERE pattern_id = ${patternId}
+          `);
+          updated++;
+        } else {
+          await db.execute(sql`
+            INSERT INTO patterns (dimension_keys, hook_type, structure_type, emotion_primary, topic_cluster, topic_category, facecam, cut_frequency, text_overlay_density, platform, video_count, avg_virality_score, median_virality_score, avg_engagement_rate, performance_rank, pattern_label)
+            VALUES (${dimKeysArray}, ${p.hook_type ?? null}, ${p.structure_type ?? null}, ${p.emotion_primary ?? null}, ${p.topic_cluster ?? null}, ${p.topic_category ?? null}, ${p.facecam ?? null}, ${p.cut_frequency ?? null}, ${p.text_overlay_density ?? null}, ${p.platform ?? null}, ${p.video_count}, ${p.avg_virality_score ?? null}, ${p.median_virality_score ?? null}, ${p.avg_engagement_rate ?? null}, ${p.performance_rank ?? null}, ${p.pattern_label ?? null})
+          `);
+          inserted++;
+        }
+      }
+
+      console.log(`[patterns] Inserted ${inserted}, updated ${updated}`);
+      res.json({ success: true, inserted, updated, total: input.patterns.length });
+    } catch (err: any) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message, errors: err.errors });
+      console.error("Patterns POST error:", err);
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
   // ── Hook Intelligence ──
 
   app.get("/api/insights/hooks", verifyClassifierApiKey, async (req: any, res) => {
