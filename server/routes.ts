@@ -1597,6 +1597,23 @@ The content should directly apply the recommendations from the insight report. W
     }
   });
 
+  app.post("/api/videos/reset-processing", verifyClassifierApiKey, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const result = await db.execute(sql`
+        UPDATE videos
+        SET classification_status = 'pending', classification_started_at = NULL
+        WHERE classification_status = 'processing'
+        RETURNING id
+      `);
+      res.json({ reset: result.rows.length, message: `${result.rows.length} videos reset from processing to pending` });
+    } catch (err: any) {
+      console.error("Reset processing error:", err);
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
   app.get("/api/videos/classified", verifyClassifierApiKey, async (req: any, res) => {
     try {
       const { db } = await import("./db");
