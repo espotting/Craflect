@@ -1,0 +1,114 @@
+Réponses aux questions Dashboard V2
+
+1 — Sidebar actuelle
+
+On ne garde pas l’ancienne structure.
+
+Le dashboard doit être simplifié pour correspondre à la nouvelle architecture produit.
+
+Anciennes pages à supprimer :
+Analytics
+Intelligence
+Library
+Briefs
+
+Ces pages sont remplacées par la nouvelle structure.
+
+Nouvelle sidebar :
+
+Dashboard
+Trend Radar
+Niches
+Patterns
+Creators
+Videos
+
+Pages à conserver mais déplacer en bas de la sidebar ou dans un menu secondaire :
+
+Settings
+Plan & Billing
+Admin
+
+Script Generator et Video Builder ne sont pas supprimés mais déplacés dans une section "Tools" qui pourra être ajoutée plus tard.
+
+Objectif :
+un dashboard analytics très simple.
+
+------------------------------------------------
+
+2 — Creators
+
+Oui, il faut créer une table dédiée.
+
+Table : creators
+
+Pourquoi :
+le Creator Discovery dashboard doit pouvoir calculer le momentum des créateurs.
+
+Structure minimale :
+
+creator_id
+creator_name
+platform
+followers
+views_total
+views_growth
+viral_videos
+niche
+
+Twin devra alimenter cette table à partir des vidéos ingérées.
+
+En attendant, les données peuvent être dérivées depuis la table videos (agrégation par creator_name).
+
+------------------------------------------------
+
+3 — Page Videos
+
+Oui.
+
+La page "Videos" correspond à l’actuelle Library.
+
+Elle devient simplement la liste des vidéos analysées par Craflect.
+
+Elle doit afficher :
+
+thumbnail
+platform
+creator
+views
+velocity
+engagement_rate
+trend_score
+niche
+pattern
+
+------------------------------------------------
+
+4 — Onboarding
+
+Oui.
+
+Le nouvel onboarding remplace le welcome screen actuel.
+
+Steps :
+
+1 Welcome
+2 Select niches
+3 User goal
+4 Redirect to dashboard
+
+La sélection de niches doit se faire depuis les niches définies dans le système.
+
+Les TOPIC_CLUSTERS peuvent être utilisés en backend mais l’UI doit afficher uniquement les 10 niches principales validées.
+
+------------------------------------------------
+
+5 — Pages système
+
+Settings
+Plan & Billing
+Admin
+
+restent accessibles dans un menu secondaire (footer ou dropdown profil).
+
+Ces pages ne font pas partie du dashboard analytics principal.
