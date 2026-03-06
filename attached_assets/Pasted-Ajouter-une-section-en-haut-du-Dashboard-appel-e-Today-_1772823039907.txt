@@ -1,0 +1,120 @@
+Ajouter une section en haut du Dashboard appelée :
+
+🔥 Today's Viral Playbook
+
+Cette section doit être la **première chose visible sur le Dashboard**.
+
+---
+
+OBJECTIF
+
+Donner immédiatement à l’utilisateur les meilleures idées de vidéos à produire aujourd’hui.
+
+L’utilisateur doit comprendre en quelques secondes :
+
+"What video should I create today to generate views?"
+
+---
+
+HEADER VISUEL
+
+Au-dessus de la section afficher un titre clair :
+
+🔥 5 Viral Opportunities Today
+
+Ce titre doit créer un impact visuel immédiat et indiquer clairement que la plateforme fournit des opportunités concrètes.
+
+Sous ce titre, afficher un indicateur de fraîcheur des données :
+
+Example :
+
+Updated 18 minutes ago
+
+Cet indicateur doit refléter la dernière mise à jour du moteur de détection des tendances.
+
+Objectif :
+renforcer l’impression que le moteur d’intelligence de Craflect fonctionne en continu et détecte les tendances en temps quasi réel.
+
+---
+
+AFFICHAGE
+
+Afficher **3 à 5 opportunités maximum** pour éviter la surcharge d'information.
+
+Chaque opportunité est affichée sous forme de **card**.
+
+Structure d’une carte :
+
+Hook
+Format
+Topic
+Opportunity Score
+Velocity
+Videos detected
+
+---
+
+OPPORTUNITY SCORE
+
+Opportunity Score est un score entre **0 et 100** indiquant le potentiel viral de l’idée.
+
+Couleurs recommandées :
+
+80–100 → High Opportunity
+60–80 → Medium Opportunity
+<60 → Low Opportunity
+
+Ce score doit être **visuellement mis en avant dans la carte**.
+
+---
+
+ACTIONS DISPONIBLES SUR CHAQUE CARTE
+
+Create Script
+Create Video
+Save Idea
+
+Create Script ouvre le **Script Generator** avec génération automatique via IA.
+
+Create Video ouvre le **Video Builder** avec génération automatique d’un **Video Blueprint**.
+
+---
+
+VIDEO BLUEPRINT
+
+Le Video Blueprint doit inclure :
+
+Hook
+Scene 1
+Scene 2
+Scene 3
+Scene 4
+CTA
+
+Chaque scène doit inclure :
+
+* description
+* suggestion visuelle
+* lignes de script
+
+Le contenu est généré automatiquement via l’IA mais doit rester **éditable par l’utilisateur**.
+
+---
+
+OBJECTIF UX
+
+Cette section doit créer un **effet immédiat de valeur**.
+
+Quand l’utilisateur ouvre Craflect, il doit immédiatement voir **quoi créer aujourd’hui**.
+
+La plateforme doit apparaître comme :
+
+Content Intelligence Platform
++
+Content Creation Engine
+
+et non comme un simple dashboard d’analytics.
+
+L’expérience produit doit guider naturellement l’utilisateur vers :
+
+Trend → Opportunity → Script → Video → Publish
