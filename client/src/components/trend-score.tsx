@@ -8,19 +8,17 @@ interface TrendScoreProps {
 }
 
 function getScoreColor(score: number): { bg: string; text: string; ring: string } {
-  if (score >= 80) return { bg: "bg-emerald-500/15", text: "text-emerald-500", ring: "ring-emerald-500/30" };
-  if (score >= 60) return { bg: "bg-blue-500/15", text: "text-blue-500", ring: "ring-blue-500/30" };
-  if (score >= 40) return { bg: "bg-amber-500/15", text: "text-amber-500", ring: "ring-amber-500/30" };
-  if (score >= 20) return { bg: "bg-orange-500/15", text: "text-orange-500", ring: "ring-orange-500/30" };
-  return { bg: "bg-red-500/15", text: "text-red-500", ring: "ring-red-500/30" };
+  if (score >= 75) return { bg: "bg-emerald-500/15", text: "text-emerald-500", ring: "ring-emerald-500/30" };
+  if (score >= 50) return { bg: "bg-yellow-500/15", text: "text-yellow-500", ring: "ring-yellow-500/30" };
+  if (score >= 25) return { bg: "bg-orange-500/15", text: "text-orange-500", ring: "ring-orange-500/30" };
+  return { bg: "bg-zinc-500/15", text: "text-zinc-400", ring: "ring-zinc-500/30" };
 }
 
 function getScoreLabel(score: number): string {
-  if (score >= 80) return "Hot";
-  if (score >= 60) return "Rising";
-  if (score >= 40) return "Moderate";
-  if (score >= 20) return "Low";
-  return "Cold";
+  if (score >= 75) return "Emerging";
+  if (score >= 50) return "Growing";
+  if (score >= 25) return "Peak";
+  return "Saturated";
 }
 
 const sizeClasses = {
