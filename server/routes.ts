@@ -1597,6 +1597,53 @@ The content should directly apply the recommendations from the insight report. W
     }
   });
 
+  app.get("/api/videos/classified", verifyClassifierApiKey, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 50, 1), 200);
+      const missingFields = req.query.missing_fields === "true";
+
+      let query;
+      if (missingFields) {
+        query = sql`
+          SELECT id, caption, transcript, hashtags, duration_seconds, platform,
+            views, likes, comments, shares, creator_name, creator_niche,
+            topic_cluster, structure_type, hook_mechanism_primary, hook_text,
+            virality_score, view_velocity, emotion_primary, engagement_rate
+          FROM videos
+          WHERE classification_status = 'completed'
+            AND (
+              topic_cluster IS NULL
+              OR structure_type IS NULL
+              OR creator_name IS NULL
+              OR view_velocity IS NULL
+              OR hook_mechanism_primary IS NULL
+            )
+          ORDER BY classified_at DESC NULLS LAST
+          LIMIT ${limit}
+        `;
+      } else {
+        query = sql`
+          SELECT id, caption, transcript, hashtags, duration_seconds, platform,
+            views, likes, comments, shares, creator_name, creator_niche,
+            topic_cluster, structure_type, hook_mechanism_primary, hook_text,
+            virality_score, view_velocity, emotion_primary, engagement_rate
+          FROM videos
+          WHERE classification_status = 'completed'
+          ORDER BY classified_at DESC NULLS LAST
+          LIMIT ${limit}
+        `;
+      }
+
+      const result = await db.execute(query);
+      res.json({ videos: result.rows, count: result.rows.length });
+    } catch (err: any) {
+      console.error("Classified videos error:", err);
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
   app.post("/api/videos/classify", verifyClassifierApiKey, async (req: any, res) => {
     try {
       const input = z.object({
