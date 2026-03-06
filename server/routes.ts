@@ -1700,6 +1700,9 @@ The content should directly apply the recommendations from the insight report. W
   });
 
   // ── POST /api/trends/scores — Twin agent pushes trend scores ──
+  // Formula: view_velocity (40%) + engagement_rate (25%) + views_vs_niche (20%) + freshness (10%) + format_diversity (5%)
+  // view_velocity = views / age_hours — detects EMERGING trends, not just high-view videos
+  // trend_velocity derived from data: rising (velocity > 1.5x niche avg), declining (< 0.5x), stable (between)
 
   app.post("/api/trends/scores", verifyClassifierApiKey, async (req: any, res) => {
     try {
@@ -1710,6 +1713,7 @@ The content should directly apply the recommendations from the insight report. W
         scores: z.array(z.object({
           video_id: z.string().uuid(),
           trend_score: z.number().min(0).max(100),
+          view_velocity: z.number().optional(),
           trend_reasons: z.array(z.string()).optional(),
           trend_velocity: z.enum(["rising", "stable", "declining"]).optional(),
         })).min(1).max(200),
@@ -1736,6 +1740,121 @@ The content should directly apply the recommendations from the insight report. W
     } catch (err: any) {
       if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message, errors: err.errors });
       console.error("Trends scores error:", err);
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
+  // ── GET /api/videos/unscored — videos without trend_score for Twin to process ──
+
+  app.get("/api/videos/unscored", verifyClassifierApiKey, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const limit = Math.min(200, Math.max(1, parseInt(req.query.limit as string) || 50));
+
+      const videos = await db.execute(sql`
+        SELECT id, platform, creator_name, caption, hashtags, transcript,
+          views, likes, comments, shares, engagement_rate,
+          published_at, classified_at,
+          topic_cluster, structure_type, hook_mechanism_primary, hook_text,
+          duration_seconds, duration_bucket,
+          EXTRACT(EPOCH FROM (NOW() - COALESCE(published_at, classified_at))) / 3600 as age_hours,
+          CASE WHEN EXTRACT(EPOCH FROM (NOW() - COALESCE(published_at, classified_at))) > 0
+            THEN ROUND((COALESCE(views, 0) / (EXTRACT(EPOCH FROM (NOW() - COALESCE(published_at, classified_at))) / 3600))::numeric, 2)
+            ELSE 0 END as view_velocity
+        FROM videos
+        WHERE classification_status = 'completed'
+          AND (virality_score IS NULL OR virality_score = 0)
+        ORDER BY classified_at DESC
+        LIMIT ${limit}
+      `);
+
+      const nicheAvgs = await db.execute(sql`
+        SELECT topic_cluster,
+          ROUND(AVG(views)::numeric, 0) as avg_views,
+          ROUND(AVG(engagement_rate)::numeric, 4) as avg_engagement,
+          ROUND(AVG(CASE WHEN EXTRACT(EPOCH FROM (NOW() - COALESCE(published_at, classified_at))) > 0
+            THEN COALESCE(views, 0) / (EXTRACT(EPOCH FROM (NOW() - COALESCE(published_at, classified_at))) / 3600)
+            ELSE 0 END)::numeric, 2) as avg_view_velocity,
+          COUNT(*) as video_count
+        FROM videos
+        WHERE classification_status = 'completed' AND topic_cluster IS NOT NULL
+        GROUP BY topic_cluster
+      `);
+
+      res.json({
+        videos: videos.rows,
+        niche_averages: nicheAvgs.rows,
+        total_unscored: videos.rows.length,
+        scoring_formula: {
+          view_velocity: 0.40,
+          engagement_rate: 0.25,
+          views_vs_niche_avg: 0.20,
+          freshness: 0.10,
+          format_diversity: 0.05,
+        },
+      });
+    } catch (err: any) {
+      console.error("Videos unscored error:", err);
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
+  // ── POST /api/trends/alerts — Twin agent pushes trend alerts ──
+
+  app.post("/api/trends/alerts", verifyClassifierApiKey, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+
+      const input = z.object({
+        alerts: z.array(z.object({
+          type: z.enum(["spike", "emerging_pattern", "new_creator", "niche_shift"]),
+          severity: z.enum(["info", "warning", "critical"]).default("info"),
+          title: z.string(),
+          description: z.string(),
+          niche: z.string().optional(),
+          video_ids: z.array(z.string()).optional(),
+          metadata: z.record(z.any()).optional(),
+        })).min(1).max(50),
+      }).parse(req.body);
+
+      const tableExists = await db.execute(sql`
+        SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'trend_alerts') as exists
+      `);
+
+      if (!(tableExists.rows[0] as any).exists) {
+        await db.execute(sql`
+          CREATE TABLE trend_alerts (
+            id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+            type TEXT NOT NULL,
+            severity TEXT NOT NULL DEFAULT 'info',
+            title TEXT NOT NULL,
+            description TEXT NOT NULL,
+            niche TEXT,
+            video_ids TEXT[],
+            metadata JSONB,
+            created_at TIMESTAMP DEFAULT NOW(),
+            read BOOLEAN DEFAULT FALSE
+          )
+        `);
+        console.log("[alerts] Created trend_alerts table");
+      }
+
+      let inserted = 0;
+      for (const a of input.alerts) {
+        await db.execute(sql`
+          INSERT INTO trend_alerts (type, severity, title, description, niche, video_ids, metadata)
+          VALUES (${a.type}, ${a.severity}, ${a.title}, ${a.description}, ${a.niche ?? null}, ${a.video_ids ?? null}, ${a.metadata ? JSON.stringify(a.metadata) : null}::jsonb)
+        `);
+        inserted++;
+      }
+
+      console.log(`[alerts] Inserted ${inserted} alerts`);
+      res.json({ success: true, inserted });
+    } catch (err: any) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message, errors: err.errors });
+      console.error("Alerts error:", err);
       res.status(500).json({ message: "Internal Error" });
     }
   });
@@ -1770,8 +1889,16 @@ The content should directly apply the recommendations from the insight report. W
       }).parse(req.body);
 
       if (input.replace_all) {
+        const countBefore = await db.execute(sql`SELECT COUNT(*) as count FROM patterns`);
+        const before = parseInt((countBefore.rows[0] as any).count);
+        if (input.patterns.length < before * 0.5 && before > 10) {
+          console.warn(`[patterns] replace_all blocked: incoming ${input.patterns.length} vs existing ${before} (safety: must send >=50% of existing count)`);
+          return res.status(400).json({
+            message: `Safety check: you are sending ${input.patterns.length} patterns but ${before} exist. Send at least ${Math.ceil(before * 0.5)} patterns with replace_all:true, or use upsert mode (replace_all:false).`,
+          });
+        }
         await db.execute(sql`DELETE FROM patterns`);
-        console.log("[patterns] Cleared existing patterns (replace_all=true)");
+        console.log(`[patterns] Cleared ${before} existing patterns (replace_all=true, replacing with ${input.patterns.length})`);
       }
 
       let inserted = 0;

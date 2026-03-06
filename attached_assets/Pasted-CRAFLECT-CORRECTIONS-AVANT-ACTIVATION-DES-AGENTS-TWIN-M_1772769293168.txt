@@ -1,0 +1,99 @@
+CRAFLECT — CORRECTIONS AVANT ACTIVATION DES AGENTS TWIN
+
+Merci pour les endpoints. L’architecture est globalement correcte, mais quelques ajustements sont nécessaires avant de lancer Twin.
+
+1 — TREND SCORE FORMULA
+
+La métrique principale doit être la VIEW VELOCITY.
+
+Aujourd’hui la formule utilise surtout “views vs moyenne de la niche”.  
+Pour détecter des tendances émergentes, la métrique clé est :
+
+view_velocity = views / age_hours
+
+Nouvelle pondération recommandée :
+
+View velocity : 40%
+Engagement rate : 25%
+Views vs niche average : 20%
+Freshness : 10%
+Format diversity : 5%
+
+Cela permet de détecter les vidéos qui deviennent virales, pas seulement celles qui ont déjà beaucoup de vues.
+
+------------------------------------------------
+
+2 — TREND VELOCITY
+
+Le champ trend_velocity peut rester mais doit être dérivé des données.
+
+Il doit être calculé à partir de la variation de view_velocity dans le temps (rising / stable / declining), pas via une estimation heuristique simple.
+
+------------------------------------------------
+
+3 — PATTERN ENGINE — replace_all
+
+Le paramètre replace_all: true est dangereux si un run échoue.
+
+Merci d’ajouter une logique :
+
+Par défaut → upsert patterns
+replace_all: true uniquement lors d’un recalcul complet manuel.
+
+Cela évite d’effacer tous les patterns en cas d’erreur.
+
+------------------------------------------------
+
+4 — ENDPOINT POUR LES VIDÉOS NON SCORÉES
+
+Ajouter un endpoint :
+
+GET /api/videos/unscored
+
+Cet endpoint doit retourner les vidéos qui n’ont pas encore de trend_score.
+
+Cela permet à Twin de traiter uniquement les nouvelles vidéos sans rescanner tout le dataset.
+
+------------------------------------------------
+
+5 — TRANSCRIPTS DES VIDÉOS
+
+Merci de confirmer si les transcripts des vidéos sont stockés.
+
+Si non, prévoir un champ transcript dans la table videos.
+
+Structure minimale recommandée :
+
+video_id
+platform
+creator
+caption
+hashtags
+transcript
+views
+likes
+comments
+shares
+publish_time
+
+Les transcripts permettront d’améliorer fortement la détection de hooks et de patterns.
+
+------------------------------------------------
+
+6 — CONFIRMATION ENDPOINTS
+
+Les endpoints actuels restent corrects :
+
+POST /api/trends/scores
+POST /api/trends/alerts
+POST /api/patterns
+
+Les endpoints insights sont également corrects :
+
+GET /api/dataset/quality
+GET /api/insights/hooks
+GET /api/insights/formats
+
+Merci simplement d’ajouter :
+
+GET /api/videos/unscored
