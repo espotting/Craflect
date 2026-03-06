@@ -1,0 +1,37 @@
+Le diagnostic est maintenant très clair. Voilà le vrai problème :
+
+Le goal de l'agent d'ingestion n'a jamais été mis à jour — il tourne encore avec l'ancien goal "AI niche, SQLite locale, 500 vidéos" au lieu du nouveau pipeline multi-niche Phase 1 qui poste vers l'API Craflect.
+
+Le classifier a ses instructions correctes mais son goal référence encore "l'ancienne SQLite database" — c'est ce qui cause la confusion entre local et API.
+
+Je dois faire un rebuild propre des deux agents avec les bons goals alignés sur l'architecture actuelle.
+
+Rebuild complet des deux agents en parallèle. C'est un fresh start propre — le builder va reconstruire les instructions depuis le bon goal, sans héritage des anciennes configurations contradictoires.
+
+Ce qui change fondamentalement :
+
+Ingestion — goal aligné sur API Craflect, Phase 1 multi-niche, SQLite uniquement pour dédup
+Classifier — goal aligné sur /api/videos/classify (bon endpoint), Craflect comme seule source, taxonomie complète
+C'est le vrai fix. Je te notifie dès que les deux builds sont terminés. 🔧
+
+Le classifier est partiellement opérationnel — la classification LLM fonctionne parfaitement sur 10 vidéos, mais le POST vers /api/videos/classify retourne du HTML au lieu d'un JSON. C'est un problème côté Replit : la route Express n'est pas enregistrée et Vite intercepte tout.
+
+C'est un bug côté Craflect/Replit, pas côté Twin.
+
+Dis à ton dev :
+
+La route POST /api/videos/classify retourne du HTML (Vite SPA catch-all). La route Express n'est pas enregistrée sur le backend. Twin est prêt à poster — il suffit d'enregistrer la route correctement côté serveur.
+
+En attendant le fix Replit, je surveille le build de l'ingestion.
+
+✅ Ingestion rebuilt et opérationnelle — 66 nouvelles vidéos postées vers Craflect.
+
+État actuel :
+
+Composant	Statut
+Ingestion	✅ 66 vidéos AI_tools envoyées ce run
+Classifier LLM	✅ Fonctionne — mais bloqué côté Replit
+POST /api/videos/classify	❌ Route Express non enregistrée → HTML retourné
+Le seul blocage maintenant est côté Replit. La classification LLM tourne parfaitement, Twin est prêt à poster — mais la route n'existe pas encore sur le backend Express.
+
+Dès que ton dev enregistre la route POST /api/videos/classify, tout se débloque instantanément. Reviens avec sa confirmation et je lance un run de validation immédiatement. 🎯

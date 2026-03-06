@@ -1201,7 +1201,7 @@ The content should directly apply the recommendations from the insight report. W
     }
   });
 
-  app.post("/api/videos/classification", verifyClassifierApiKey, async (req: any, res) => {
+  app.post("/api/videos/classify", verifyClassifierApiKey, async (req: any, res) => {
     try {
       const input = z.object({
         video_id: z.string().min(1),
