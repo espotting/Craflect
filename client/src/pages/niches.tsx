@@ -4,9 +4,27 @@ import { TOPIC_CLUSTER_LABELS } from "@shared/schema";
 import { TrendScore } from "@/components/trend-score";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useLocation } from "wouter";
-import { Video, Zap, Users } from "lucide-react";
+import { Video, Zap, Users, TrendingUp, Sparkles, FileText } from "lucide-react";
+
+interface FastestGrowingVideo {
+  id: string;
+  caption: string | null;
+  creator_name: string | null;
+  views: number | null;
+  view_velocity: number | null;
+  virality_score: number | null;
+  platform: string | null;
+}
+
+interface EmergingPattern {
+  hook_mechanism_primary: string;
+  structure_type: string | null;
+  count: string;
+  avg_virality: string;
+}
 
 interface NicheOverviewItem {
   niche: string;
@@ -16,6 +34,15 @@ interface NicheOverviewItem {
   top_hooks: { hook_mechanism_primary: string; count: string }[];
   top_formats: { structure_type: string; count: string }[];
   top_creators: { creator_name: string; video_count: string; avg_virality: string }[];
+  fastest_growing_videos: FastestGrowingVideo[];
+  emerging_patterns: EmergingPattern[];
+}
+
+function formatNumber(n: number | null | undefined): string {
+  if (n == null) return "—";
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  return n.toString();
 }
 
 export default function Niches() {
@@ -52,6 +79,8 @@ export default function Niches() {
               const hooks = niche.top_hooks.slice(0, 3);
               const formats = niche.top_formats.slice(0, 3);
               const creators = niche.top_creators.slice(0, 3);
+              const fastestVideos = niche.fastest_growing_videos?.slice(0, 3) || [];
+              const emergingPats = niche.emerging_patterns?.slice(0, 3) || [];
 
               return (
                 <Card
@@ -134,6 +163,60 @@ export default function Niches() {
                       </ul>
                     </div>
                   )}
+
+                  {fastestVideos.length > 0 && (
+                    <div className="space-y-1.5">
+                      <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium flex items-center gap-1">
+                        <TrendingUp className="w-3 h-3" />
+                        Fastest Growing
+                      </span>
+                      <ul className="space-y-1">
+                        {fastestVideos.map((v) => (
+                          <li
+                            key={v.id}
+                            className="text-xs flex items-center justify-between gap-2"
+                            data-testid={`text-fastest-${niche.niche}-${v.id}`}
+                          >
+                            <span className="truncate text-foreground/80">{v.creator_name || "Unknown"}</span>
+                            <span className="text-emerald-400 shrink-0">{formatNumber(v.view_velocity)}/h</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {emergingPats.length > 0 && (
+                    <div className="space-y-1.5">
+                      <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium flex items-center gap-1">
+                        <Sparkles className="w-3 h-3" />
+                        Emerging Patterns
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {emergingPats.map((p, pi) => (
+                          <Badge
+                            key={pi}
+                            variant="outline"
+                            className="text-[11px]"
+                            data-testid={`badge-emerging-${niche.niche}-${pi}`}
+                          >
+                            {p.hook_mechanism_primary.replace(/_/g, " ")}
+                            {p.structure_type ? ` · ${p.structure_type.replace(/_/g, " ")}` : ""}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-2 pt-2 border-t border-border/50" onClick={(e) => e.stopPropagation()}>
+                    <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => setLocation("/script-generator")} data-testid={`button-niche-script-${niche.niche}`}>
+                      <FileText className="w-3 h-3 mr-1" />
+                      Create Script
+                    </Button>
+                    <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => setLocation("/video-builder")} data-testid={`button-niche-video-${niche.niche}`}>
+                      <Video className="w-3 h-3 mr-1" />
+                      Create Video
+                    </Button>
+                  </div>
                 </Card>
               );
             })}

@@ -24,6 +24,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Filter,
+  TrendingUp,
 } from "lucide-react";
 
 interface BrowseVideo {
@@ -43,6 +44,8 @@ interface BrowseVideo {
   hook_text: string | null;
   duration_bucket: string | null;
   classified_at: string | null;
+  view_velocity: number | null;
+  thumbnail_url: string | null;
 }
 
 interface BrowseResponse {
@@ -190,6 +193,11 @@ export default function Videos() {
                 className="p-4 space-y-3"
                 data-testid={`card-video-${video.id}`}
               >
+                {video.thumbnail_url && (
+                  <div className="w-full aspect-video rounded-md overflow-hidden bg-muted" data-testid={`thumbnail-${video.id}`}>
+                    <img src={video.thumbnail_url} alt="" className="w-full h-full object-cover" loading="lazy" />
+                  </div>
+                )}
                 <div className="flex flex-wrap items-center gap-2">
                   {video.platform && (
                     <Badge
@@ -247,6 +255,12 @@ export default function Videos() {
                       ? `${(video.engagement_rate * 100).toFixed(2)}%`
                       : "—"}
                   </span>
+                  {video.view_velocity != null && (
+                    <span className="flex items-center gap-1 text-emerald-400" data-testid={`stat-velocity-${video.id}`}>
+                      <TrendingUp className="w-3.5 h-3.5" />
+                      {formatNumber(video.view_velocity)}/h
+                    </span>
+                  )}
                   {video.virality_score != null && (
                     <TrendScore
                       score={video.virality_score}

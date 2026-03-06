@@ -1115,6 +1115,21 @@ The content should directly apply the recommendations from the insight report. W
         GROUP BY creator_name, platform ORDER BY avg_virality DESC NULLS LAST LIMIT 10
       `);
 
+      const emergingTrends = await db.execute(sql`
+        SELECT topic_cluster, hook_mechanism_primary, structure_type,
+          COUNT(*) as video_count,
+          ROUND(AVG(virality_score)::numeric, 2) as avg_virality,
+          MAX(classified_at) as latest_at
+        FROM videos
+        WHERE classification_status = 'completed'
+          AND classified_at >= NOW() - INTERVAL '7 days'
+          AND topic_cluster IS NOT NULL${nicheFilter}
+        GROUP BY topic_cluster, hook_mechanism_primary, structure_type
+        HAVING COUNT(*) >= 2
+        ORDER BY avg_virality DESC NULLS LAST, video_count DESC
+        LIMIT 10
+      `);
+
       res.json({
         metrics: {
           total_videos: parseInt(totalVideos.count as string),
@@ -1126,6 +1141,7 @@ The content should directly apply the recommendations from the insight report. W
         trending_formats: trendingFormats.rows,
         top_videos: topVideos.rows,
         emerging_creators: emergingCreators.rows,
+        emerging_trends: emergingTrends.rows,
       });
     } catch (err: any) {
       console.error("Trend radar error:", err);
@@ -1232,7 +1248,8 @@ The content should directly apply the recommendations from the insight report. W
       const videos = await db.execute(sql`
         SELECT id, caption, platform, creator_name, views, likes, comments, shares,
           engagement_rate, virality_score, topic_cluster, structure_type,
-          hook_mechanism_primary, hook_text, duration_bucket, classified_at
+          hook_mechanism_primary, hook_text, duration_bucket, classified_at,
+          view_velocity
         FROM videos ${filters}
         ORDER BY virality_score DESC NULLS LAST
         LIMIT ${limit} OFFSET ${offset}
@@ -1362,6 +1379,24 @@ The content should directly apply the recommendations from the insight report. W
           GROUP BY creator_name ORDER BY avg_virality DESC NULLS LAST LIMIT 5
         `);
 
+        const fastestGrowingVideos = await db.execute(sql`
+          SELECT id, caption, creator_name, views, view_velocity, virality_score, platform
+          FROM videos WHERE classification_status = 'completed' AND topic_cluster = ${niche}
+            AND view_velocity IS NOT NULL AND view_velocity > 0
+          ORDER BY view_velocity DESC LIMIT 3
+        `);
+
+        const emergingPatterns = await db.execute(sql`
+          SELECT hook_mechanism_primary, structure_type, COUNT(*) as count,
+            ROUND(AVG(virality_score)::numeric, 2) as avg_virality
+          FROM videos WHERE classification_status = 'completed' AND topic_cluster = ${niche}
+            AND classified_at >= NOW() - INTERVAL '7 days'
+            AND hook_mechanism_primary IS NOT NULL
+          GROUP BY hook_mechanism_primary, structure_type
+          HAVING COUNT(*) >= 2
+          ORDER BY avg_virality DESC NULLS LAST LIMIT 3
+        `);
+
         nicheDetails.push({
           niche,
           video_count: parseInt(n.count as string),
@@ -1370,6 +1405,8 @@ The content should directly apply the recommendations from the insight report. W
           top_hooks: topHooks.rows,
           top_formats: topFormats.rows,
           top_creators: topCreators.rows,
+          fastest_growing_videos: fastestGrowingVideos.rows,
+          emerging_patterns: emergingPatterns.rows,
         });
       }
 

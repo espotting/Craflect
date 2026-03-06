@@ -15,9 +15,6 @@ import Niches from "@/pages/niches";
 import Patterns from "@/pages/patterns";
 import Creators from "@/pages/creators";
 import Videos from "@/pages/videos";
-import Library from "@/pages/library";
-import Briefs from "@/pages/briefs";
-import Analytics from "@/pages/analytics";
 import Settings from "@/pages/settings";
 import Welcome from "@/pages/welcome";
 import Admin from "@/pages/admin";
@@ -43,9 +40,6 @@ function Router() {
       <Route path="/patterns" component={Patterns} />
       <Route path="/creators" component={Creators} />
       <Route path="/videos" component={Videos} />
-      <Route path="/library" component={Library} />
-      <Route path="/briefs" component={Briefs} />
-      <Route path="/analytics" component={Analytics} />
       <Route path="/settings" component={Settings} />
       <Route path="/admin" component={Admin} />
       <Route path="/intelligence" component={Intelligence} />

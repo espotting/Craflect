@@ -61,6 +61,15 @@ interface EmergingCreator {
   niche: string;
 }
 
+interface EmergingTrend {
+  topic_cluster: string;
+  hook_mechanism_primary: string;
+  structure_type: string;
+  video_count: number;
+  avg_virality: number;
+  latest_at: string;
+}
+
 interface RadarData {
   metrics: {
     total_videos: number;
@@ -72,6 +81,7 @@ interface RadarData {
   trending_formats: TrendingFormat[];
   top_videos: TopVideo[];
   emerging_creators: EmergingCreator[];
+  emerging_trends: EmergingTrend[];
 }
 
 const nicheColors: Record<string, string> = {
@@ -106,7 +116,7 @@ export default function TrendRadar() {
   const [, setLocation] = useLocation();
   const [nicheFilter, setNicheFilter] = useState<string>("");
 
-  const nicheParam = nicheFilter || undefined;
+  const nicheParam = (nicheFilter && nicheFilter !== "all") ? nicheFilter : undefined;
 
   const { data: opportunitiesData, isLoading: oppLoading } = useQuery<{ opportunities: Opportunity[] }>({
     queryKey: ["/api/trends/opportunities"],
@@ -121,6 +131,7 @@ export default function TrendRadar() {
   const formats = radarData?.trending_formats || [];
   const topVideos = radarData?.top_videos || [];
   const creators = radarData?.emerging_creators || [];
+  const emergingTrends = radarData?.emerging_trends || [];
   const maxFormatCount = Math.max(...formats.map((f) => Number(f.count) || 0), 1);
 
   return (
@@ -366,6 +377,66 @@ export default function TrendRadar() {
                         Format: {vid.structure_type}
                       </div>
                     )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section data-testid="section-emerging-trends">
+          <div className="flex items-center gap-2 mb-4">
+            <Sparkles className="w-5 h-5 text-primary" />
+            <h2 className="text-lg font-semibold">Emerging Trends</h2>
+          </div>
+          {radarLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Skeleton key={i} className="h-32 rounded-md" />
+              ))}
+            </div>
+          ) : emergingTrends.length === 0 ? (
+            <Card>
+              <CardContent className="py-8 text-center text-muted-foreground">
+                No emerging trends detected yet. Check back as more data is analyzed.
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {emergingTrends.map((trend, i) => (
+                <Card key={i} data-testid={`card-trend-${i}`}>
+                  <CardContent className="p-4 space-y-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <Badge variant="outline" className={getNicheColor(trend.topic_cluster)} data-testid={`badge-trend-niche-${i}`}>
+                        {trend.topic_cluster}
+                      </Badge>
+                      <TrendScore score={Number(trend.avg_virality) || 0} size="sm" showLabel />
+                    </div>
+                    <div className="space-y-1">
+                      {trend.hook_mechanism_primary && (
+                        <p className="text-sm font-medium" data-testid={`text-trend-hook-${i}`}>
+                          {trend.hook_mechanism_primary.replace(/_/g, " ")}
+                        </p>
+                      )}
+                      {trend.structure_type && (
+                        <p className="text-xs text-muted-foreground" data-testid={`text-trend-format-${i}`}>
+                          {trend.structure_type.replace(/_/g, " ")}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                      <span>{trend.video_count} videos</span>
+                    </div>
+                    <div className="flex items-center gap-2 pt-1">
+                      <Button size="sm" variant="outline" className="flex-1 text-xs" onClick={() => setLocation("/script-generator")} data-testid={`button-trend-script-${i}`}>
+                        <FileText className="w-3 h-3 mr-1" />
+                        Create Script
+                      </Button>
+                      <Button size="sm" variant="outline" className="flex-1 text-xs" onClick={() => setLocation("/video-builder")} data-testid={`button-trend-video-${i}`}>
+                        <Video className="w-3 h-3 mr-1" />
+                        Create Video
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               ))}

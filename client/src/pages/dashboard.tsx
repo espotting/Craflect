@@ -19,6 +19,7 @@ import {
   Plus,
   Activity,
   Sparkles,
+  FileText,
 } from "lucide-react";
 
 interface RadarData {
@@ -110,7 +111,7 @@ function HooksTable({
               {hook.hook_text || hook.hook_mechanism_primary?.replace(/_/g, " ") || "—"}
             </span>
           </div>
-          <div className="flex items-center gap-3 flex-shrink-0">
+          <div className="flex items-center gap-2 flex-shrink-0">
             {hook.hook_mechanism_primary && (
               <Badge variant="outline" className="text-[10px]">
                 {hook.hook_mechanism_primary.replace(/_/g, " ")}
@@ -122,6 +123,22 @@ function HooksTable({
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+function HooksActions() {
+  const [, setLocation] = useLocation();
+  return (
+    <div className="flex items-center gap-2 pt-2 border-t border-border/50">
+      <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => setLocation("/script-generator")} data-testid="button-hooks-create-script">
+        <FileText className="w-3 h-3 mr-1" />
+        Create Script
+      </Button>
+      <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => setLocation("/video-builder")} data-testid="button-hooks-create-video">
+        <Video className="w-3 h-3 mr-1" />
+        Create Video
+      </Button>
     </div>
   );
 }
@@ -158,7 +175,7 @@ function FormatsTable({
               {format.structure_type?.replace(/_/g, " ") || "—"}
             </span>
           </div>
-          <div className="flex items-center gap-3 flex-shrink-0">
+          <div className="flex items-center gap-2 flex-shrink-0">
             {format.avg_virality && (
               <Badge variant="outline" className="text-[10px]">
                 {format.avg_virality}
@@ -170,6 +187,22 @@ function FormatsTable({
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+function FormatsActions() {
+  const [, setLocation] = useLocation();
+  return (
+    <div className="flex items-center gap-2 pt-2 border-t border-border/50">
+      <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => setLocation("/script-generator")} data-testid="button-formats-create-script">
+        <FileText className="w-3 h-3 mr-1" />
+        Create Script
+      </Button>
+      <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => setLocation("/video-builder")} data-testid="button-formats-create-video">
+        <Video className="w-3 h-3 mr-1" />
+        Create Video
+      </Button>
     </div>
   );
 }
@@ -314,6 +347,7 @@ export default function Dashboard() {
                     </span>
                   </div>
                   <HooksTable hooks={radarData?.trending_hooks || []} t={t} />
+                  <HooksActions />
                 </CardContent>
               </Card>
 
@@ -326,6 +360,7 @@ export default function Dashboard() {
                     </span>
                   </div>
                   <FormatsTable formats={radarData?.trending_formats || []} t={t} />
+                  <FormatsActions />
                 </CardContent>
               </Card>
             </div>

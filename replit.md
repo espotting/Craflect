@@ -25,11 +25,11 @@ React + TypeScript + Tailwind CSS + shadcn/ui + Framer Motion frontend, Express/
 
 **Pages :**
 - `/dashboard` — Hub principal, onglets multi-niches, métriques globales, top hooks/formats
-- `/trend-radar` — Daily Viral Opportunities (3-5 cards), trending hooks, formats, top videos, emerging creators
-- `/niches` — Grille de cartes par niche, stats, top hooks/formats/créateurs par niche
+- `/trend-radar` — Daily Viral Opportunities, trending hooks, formats, top videos, **Emerging Trends**, emerging creators. Boutons Create Script/Video sur opportunities et trends.
+- `/niches` — Grille de cartes par niche, top hooks/formats/créateurs, **fastest growing videos**, **emerging patterns**. Boutons Create Script/Video sur chaque carte.
 - `/patterns` — Patterns viraux détectés, filtrable par niche, boutons Create Script/Video
 - `/creators` — Table de découverte de créateurs, triable, filtrable par niche
-- `/videos` — Browse vidéos classifiées, filtres niche/platform, pagination
+- `/videos` — Browse vidéos classifiées, filtres niche/platform, pagination, **velocity** (view_velocity/h), thumbnail (quand dispo). Boutons Create Script/Video.
 
 **Sidebar (app-sidebar.tsx) :**
 - Analyze : Dashboard, Trend Radar, Niches, Patterns, Creators, Videos
@@ -37,7 +37,7 @@ React + TypeScript + Tailwind CSS + shadcn/ui + Framer Motion frontend, Express/
 - System : Settings, Plan & Billing, Admin (admin-only), Intelligence (admin-only)
 
 **Composants clés :**
-- `TrendScore` — composant 0-100 avec couleurs (emerald 80+, blue 60+, amber 40+, orange 20+, red)
+- `TrendScore` — composant 0-100 avec couleurs conformes au brief : vert (emerald 75+) = Emerging, jaune (yellow 50+) = Growing, orange (25+) = Peak, gris (zinc <25) = Saturated
 - `DashboardLayout` — wrapper avec auth guard, sidebar, onboarding redirect
 
 **Onboarding (welcome.tsx) :** 4 étapes — Welcome → Select niches (max 3) → User goal → Redirect /dashboard
