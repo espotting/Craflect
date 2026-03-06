@@ -181,4 +181,35 @@ export function registerAuthRoutes(app: Express): void {
       res.status(500).json({ message: "Failed to resend code" });
     }
   });
+
+  app.post("/api/auth/change-password", isAuthenticated, async (req: any, res) => {
+    try {
+      const input = z.object({
+        currentPassword: z.string().min(1),
+        newPassword: z.string()
+          .min(8, "Password must be at least 8 characters")
+          .regex(/[A-Z]/, "Must contain uppercase letter")
+          .regex(/[0-9]/, "Must contain a number"),
+      }).parse(req.body);
+
+      const user = await authStorage.getUserById(req.user.id);
+      if (!user || !user.password) {
+        return res.status(400).json({ message: "Cannot change password for this account" });
+      }
+
+      const valid = await bcrypt.compare(input.currentPassword, user.password);
+      if (!valid) {
+        return res.status(400).json({ message: "Current password is incorrect" });
+      }
+
+      const hashed = await bcrypt.hash(input.newPassword, 12);
+      await authStorage.updateUserPassword(req.user.id, hashed);
+      res.json({ message: "Password changed successfully" });
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      res.status(500).json({ message: "Failed to change password" });
+    }
+  });
 }

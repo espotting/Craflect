@@ -4,14 +4,21 @@ import { eq, and, gt } from "drizzle-orm";
 
 export interface IAuthStorage {
   getUser(id: string): Promise<User | undefined>;
+  getUserById(id: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
   createVerificationCode(email: string): Promise<string>;
   verifyCode(email: string, code: string): Promise<boolean>;
+  updateUserPassword(id: string, hashedPassword: string): Promise<void>;
 }
 
 class AuthStorage implements IAuthStorage {
   async getUser(id: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
+  async getUserById(id: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
   }
@@ -71,6 +78,9 @@ class AuthStorage implements IAuthStorage {
       .where(eq(verificationCodes.id, record.id));
 
     return true;
+  }
+  async updateUserPassword(id: string, hashedPassword: string): Promise<void> {
+    await db.update(users).set({ password: hashedPassword }).where(eq(users.id, id));
   }
 }
 
