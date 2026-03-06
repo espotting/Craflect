@@ -1,0 +1,181 @@
+CRAFLECT — DASHBOARD ANALYTICS
+
+Objectif
+
+Créer un dashboard simple et très intuitif permettant d’identifier les tendances du contenu viral en quelques secondes.
+
+Craflect doit être perçu comme une plateforme d’intelligence des tendances.
+
+Le design doit rester minimaliste et orienté data.
+
+------------------------------------------------
+
+STRUCTURE
+
+Sidebar navigation
+
+Dashboard
+Trend Radar
+Niches
+Patterns
+Creators
+Videos
+
+------------------------------------------------
+
+PAGE 1 — TREND RADAR
+
+Vue globale des tendances.
+
+Sections
+
+Global metrics
+Trending hooks
+Trending formats
+Top videos today
+Emerging creators
+Emerging trends
+
+------------------------------------------------
+
+GLOBAL METRICS
+
+Afficher :
+
+videos analyzed today
+new creators detected
+new patterns detected
+active niches
+
+------------------------------------------------
+
+TRENDING HOOKS
+
+Liste des hooks les plus utilisés dans les vidéos virales.
+
+Exemple
+
+"This AI replaces a job"
+"3 tools nobody talks about"
+"Stop using ChatGPT like this"
+
+------------------------------------------------
+
+TRENDING FORMATS
+
+Distribution des formats :
+
+talking head
+screen recording
+tutorial demo
+podcast clip
+reaction
+
+Graph simple.
+
+------------------------------------------------
+
+TOP VIDEOS TODAY
+
+Cartes vidéos affichant :
+
+thumbnail
+platform
+creator
+views
+velocity
+engagement rate
+trend score
+niche
+pattern
+
+------------------------------------------------
+
+PAGE 2 — NICHES
+
+Sélection d’une niche.
+
+AI
+Make Money
+Productivity
+SaaS
+Marketing
+Ecommerce
+Personal Branding
+Crypto
+Startups
+Education
+
+Chaque niche affiche :
+
+top hooks
+top formats
+top creators
+fastest growing videos
+emerging patterns
+
+------------------------------------------------
+
+PAGE 3 — PATTERNS
+
+Afficher les structures virales détectées.
+
+Chaque pattern montre :
+
+pattern_id
+pattern_hook
+content_format
+platform_distribution
+growth_score
+example_videos
+
+------------------------------------------------
+
+PAGE 4 — CREATOR DISCOVERY
+
+Découverte des créateurs en forte croissance.
+
+Colonnes :
+
+creator
+platform
+followers
+views_growth
+niche
+viral_videos
+
+------------------------------------------------
+
+VISUALISATION DU TREND SCORE
+
+trend_score entre 0 et 100.
+
+Couleurs :
+
+vert
+emerging trend
+
+jaune
+growing
+
+orange
+peak
+
+gris
+saturated
+
+------------------------------------------------
+
+DESIGN
+
+Interface minimaliste
+mode sombre
+cartes simples
+chargement rapide
+
+Inspirations :
+
+Linear
+Stripe
+Vercel
+Notion

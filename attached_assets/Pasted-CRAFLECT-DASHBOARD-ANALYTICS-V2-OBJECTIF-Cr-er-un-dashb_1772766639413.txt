@@ -1,0 +1,223 @@
+CRAFLECT — DASHBOARD ANALYTICS V2
+
+OBJECTIF
+
+Créer un dashboard simple, rapide et extrêmement intuitif permettant de comprendre les tendances virales en moins de 30 secondes.
+
+Craflect doit apparaître comme une plateforme d’intelligence des tendances.
+
+UX simple.
+Data puissante.
+
+------------------------------------------------
+
+NAVIGATION LATÉRALE
+
+Sidebar :
+
+Dashboard
+Trend Radar
+Niches
+Patterns
+Creators
+Videos
+
+------------------------------------------------
+
+GESTION MULTI-NICHE
+
+L’utilisateur peut suivre plusieurs niches.
+
+Les niches sélectionnées apparaissent sous forme de tabs en haut du dashboard.
+
+Exemple :
+
+AI | Marketing | SaaS | + Add niche
+
+Fonctionnement :
+
+- clic sur une niche → dashboard filtré
+- switch instantané entre niches
+- bouton "+ Add niche" pour ajouter une niche
+- possibilité de retirer une niche
+
+IMPORTANT
+
+Il n’y a qu’un seul dashboard.
+
+Les données sont filtrées dynamiquement par niche.
+
+Exemple :
+
+dashboard?filter=niche:AI
+
+------------------------------------------------
+
+PAGE 1 — TREND RADAR
+
+Vue globale des tendances.
+
+Sections :
+
+Global metrics
+Trending hooks
+Trending formats
+Top videos today
+Emerging creators
+Emerging trends
+
+------------------------------------------------
+
+GLOBAL METRICS
+
+Afficher :
+
+videos analyzed today
+new creators detected
+new patterns detected
+active niches
+
+------------------------------------------------
+
+TRENDING HOOKS
+
+Liste des hooks les plus utilisés.
+
+Exemple :
+
+"This AI replaces a job"
+"3 tools nobody talks about"
+"Stop using ChatGPT like this"
+
+------------------------------------------------
+
+TRENDING FORMATS
+
+Distribution :
+
+talking_head
+screen_recording
+tutorial_demo
+reaction
+podcast_clip
+
+Graph simple.
+
+------------------------------------------------
+
+TOP VIDEOS TODAY
+
+Carte vidéo affichant :
+
+thumbnail
+platform
+creator
+views
+velocity
+engagement_rate
+trend_score
+niche
+pattern
+
+------------------------------------------------
+
+PAGE 2 — NICHES
+
+Chaque niche affiche :
+
+top hooks
+top formats
+top creators
+fastest growing videos
+emerging patterns
+
+------------------------------------------------
+
+PAGE 3 — PATTERNS
+
+Afficher les structures virales détectées.
+
+Chaque pattern montre :
+
+pattern_id
+pattern_hook
+content_format
+platform_distribution
+growth_score
+example_videos
+
+------------------------------------------------
+
+PAGE 4 — CREATOR DISCOVERY
+
+Colonnes :
+
+creator
+platform
+followers
+views_growth
+niche
+viral_videos
+
+------------------------------------------------
+
+TREND SCORE VISUALISATION
+
+Score entre 0 et 100.
+
+Couleurs :
+
+vert → emerging
+jaune → growing
+orange → peak
+gris → saturated
+
+------------------------------------------------
+
+ONBOARDING FUNNEL
+
+Créer un onboarding simple.
+
+Step 1
+
+Welcome screen
+
+"Discover viral trends before they explode."
+
+Step 2
+
+Select niches
+
+User selects up to 3 niches.
+
+Step 3
+
+User goal
+
+content creator
+marketer
+business
+trend explorer
+
+Step 4
+
+Redirect to dashboard.
+
+Trend Radar est automatiquement filtré par les niches choisies.
+
+------------------------------------------------
+
+DESIGN
+
+Interface minimaliste
+mode sombre
+cartes simples
+chargement rapide
+optimisé pour gros volume de données
+
+Inspirations UI :
+
+Linear
+Stripe
+Vercel
+Notion
