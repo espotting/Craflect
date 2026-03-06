@@ -1,0 +1,243 @@
+Mise à jour Produit – Craflect
+
+Objectif
+
+Faire évoluer Craflect d’un simple dashboard d’analyse vers une plateforme complète d’intelligence et de création de contenu.
+
+Le produit doit aider les créateurs à répondre à une seule question :
+
+"What video should I create today to generate views?"
+
+L’interface doit être :
+
+simple
+compréhensible en 3 secondes
+visuelle
+orientée action
+
+Le produit doit donner envie aux utilisateurs de revenir tous les jours.
+
+---
+
+1. REFONTE DU DASHBOARD (PRINCIPE WOW)
+
+Le Dashboard doit immédiatement montrer quoi créer aujourd’hui.
+
+Structure du dashboard :
+
+SECTION 1 – DAILY VIRAL PLAYBOOK
+
+Cette section doit être la première visible.
+
+Afficher uniquement 3 à 5 opportunités maximum.
+
+Chaque carte doit contenir :
+
+Hook
+Format
+Topic
+Opportunity Score
+Velocity
+Videos detected
+
+Actions :
+
+Create Script
+Create Video
+Save Idea
+
+Ajouter un indicateur :
+
+Updated X minutes ago
+
+Couleurs du Opportunity Score :
+
+80–100 → violet / rouge (High Opportunity)
+60–80 → orange (Medium Opportunity)
+<60 → jaune (Low Opportunity)
+
+Objectif : rendre les opportunités immédiatement visibles.
+
+---
+
+SECTION 2 – FASTEST GROWING TRENDS
+
+Afficher 3 à 5 tendances maximum.
+
+Carte :
+
+Trend name
+Trend score
+Velocity
+Videos detected
+
+Velocity :
+
+Rising → vert
+Stable → gris
+Declining → rouge
+
+---
+
+SECTION 3 – TOP VIRAL VIDEOS TODAY
+
+Afficher 5 vidéos maximum.
+
+Carte :
+
+thumbnail
+caption
+views
+trend score
+
+Actions :
+
+Analyze
+Create Script
+Create Video
+
+---
+
+2. PAGE IDEAS
+
+La page Ideas doit afficher les opportunités générées automatiquement.
+
+Structure carte :
+
+Hook
+Format
+Topic
+Opportunity Score
+Velocity
+
+Actions :
+
+Save Idea
+Create Script
+Create Video
+
+---
+
+3. SCRIPT GENERATOR
+
+Le Script Generator doit générer :
+
+Hook
+Structure de la vidéo
+Script complet
+Call to action
+
+Ajouter :
+
+Hook Variations
+
+Exemple :
+
+Hook A
+Hook B
+Hook C
+
+---
+
+4. VIDEO BUILDER
+
+Le Video Builder doit générer un Video Blueprint.
+
+Structure :
+
+Hook
+Scene 1
+Scene 2
+Scene 3
+Scene 4
+CTA
+
+Chaque scène doit inclure :
+
+description
+suggestion visuelle
+lignes de script
+
+Le résultat doit être éditable par l’utilisateur.
+
+---
+
+5. VIRAL TEMPLATES (NOUVELLE FEATURE)
+
+Créer une bibliothèque de templates vidéo inspirés des patterns viraux.
+
+Chaque template contient :
+
+Hook type
+Structure narrative
+Structure des scènes
+
+Les utilisateurs peuvent créer une vidéo directement depuis un template.
+
+Objectif : inspirer la création comme dans Canva.
+
+---
+
+6. CONTENT REMIX ENGINE (NOUVELLE FEATURE)
+
+Permettre aux utilisateurs d’importer leur contenu existant :
+
+image
+script
+caption
+vidéo
+
+Le système analyse le contenu et propose une version optimisée basée sur les patterns viraux.
+
+Sorties :
+
+Hook amélioré
+Script optimisé
+Nouveau blueprint vidéo
+
+---
+
+7. PREDICTED VIEWS (NOUVELLE FEATURE)
+
+Dans le Script Generator afficher :
+
+Viral Probability
+Predicted Views
+
+Exemple :
+
+Predicted Views
+40k – 120k
+
+Ajouter un bouton :
+
+Improve Score
+
+Le système propose :
+
+hook plus performant
+format plus efficace
+CTA optimisé
+
+---
+
+PRINCIPES DESIGN
+
+Le dashboard doit être :
+
+simple
+visuel
+coloré
+clair en 3 secondes
+
+Éviter les dashboards analytiques complexes.
+
+Priorité aux opportunités et à l’action.
+
+---
+
+OBJECTIF FINAL
+
+Craflect doit devenir :
+
+The Operating System for Viral Content Creation
