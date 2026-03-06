@@ -22,7 +22,7 @@ import {
   CREATOR_ARCHETYPES, TOPIC_CATEGORIES, CTA_TYPES, CONTROVERSY_LEVELS,
   INFORMATION_DENSITIES, DURATION_BUCKETS, HOOK_TOPICS, CONTENT_GOALS,
   HOOK_TYPES, STRUCTURE_TYPES, EMOTION_VALUES,
-  normalizeTopicCluster,
+  normalizeTopicCluster, deriveHookMechanismPrimary,
 } from "@shared/schema";
 
 const openai = new OpenAI({
@@ -1319,6 +1319,11 @@ The content should directly apply the recommendations from the insight report. W
 
       updateData.classifiedBy = "twin-classifier";
 
+      const hookMechanismArr = (updateData.hookMechanism as string[] | undefined) || video.hookMechanism;
+      const hookPatternVal = (c as any).hook_pattern || video.hookPattern;
+      const derivedPrimary = deriveHookMechanismPrimary(hookMechanismArr, hookPatternVal);
+      if (derivedPrimary) updateData.hookMechanismPrimary = derivedPrimary;
+
       const MAX_CLASSIFICATION_ATTEMPTS = 3;
       const currentAttempts = (video.classificationAttempts || 0) + 1;
 
@@ -1384,6 +1389,136 @@ The content should directly apply the recommendations from the insight report. W
       res.json(result);
     } catch (err: any) {
       console.error("Pattern fetch error:", err);
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
+  // ── Hook Intelligence ──
+
+  app.get("/api/insights/hooks", verifyClassifierApiKey, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+
+      const topicCluster = req.query.topic_cluster as string | undefined;
+      const timeWindow = req.query.time_window as string || "all";
+
+      let timeFilter = sql``;
+      if (timeWindow === "7d") timeFilter = sql` AND v.classified_at >= NOW() - INTERVAL '7 days'`;
+      else if (timeWindow === "30d") timeFilter = sql` AND v.classified_at >= NOW() - INTERVAL '30 days'`;
+
+      let clusterFilter = sql``;
+      if (topicCluster) clusterFilter = sql` AND v.topic_cluster = ${topicCluster}`;
+
+      const hookStats = await db.execute(sql`
+        SELECT 
+          v.hook_mechanism_primary,
+          COUNT(*) as video_count,
+          ROUND(AVG(v.virality_score)::numeric, 2) as avg_virality,
+          ROUND(AVG(v.engagement_rate)::numeric, 4) as avg_engagement
+        FROM videos v
+        WHERE v.classification_status = 'completed'
+          AND v.hook_mechanism_primary IS NOT NULL
+          ${clusterFilter}
+          ${timeFilter}
+        GROUP BY v.hook_mechanism_primary
+        ORDER BY avg_virality DESC NULLS LAST, video_count DESC
+      `);
+
+      const topExamples: Record<string, any[]> = {};
+      for (const stat of hookStats.rows) {
+        const mechanism = stat.hook_mechanism_primary as string;
+        const examples = await db.execute(sql`
+          SELECT v.id, v.caption, v.hook_text, v.views, v.likes, v.virality_score, v.topic_cluster
+          FROM videos v
+          WHERE v.classification_status = 'completed'
+            AND v.hook_mechanism_primary = ${mechanism}
+            ${clusterFilter}
+            ${timeFilter}
+          ORDER BY v.virality_score DESC NULLS LAST
+          LIMIT 3
+        `);
+        topExamples[mechanism] = examples.rows;
+      }
+
+      res.json({
+        topic_cluster: topicCluster || "all",
+        time_window: timeWindow,
+        hooks: hookStats.rows.map((h: any) => ({
+          hook_mechanism: h.hook_mechanism_primary,
+          video_count: parseInt(h.video_count),
+          avg_virality: parseFloat(h.avg_virality) || 0,
+          avg_engagement: parseFloat(h.avg_engagement) || 0,
+          top_examples: topExamples[h.hook_mechanism_primary] || [],
+        })),
+      });
+    } catch (err: any) {
+      console.error("Hook insights error:", err);
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
+  // ── Viral Format Detection ──
+
+  app.get("/api/insights/formats", verifyClassifierApiKey, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+
+      const topicCluster = req.query.topic_cluster as string | undefined;
+      const timeWindow = req.query.time_window as string || "all";
+
+      let timeFilter = sql``;
+      if (timeWindow === "7d") timeFilter = sql` AND v.classified_at >= NOW() - INTERVAL '7 days'`;
+      else if (timeWindow === "30d") timeFilter = sql` AND v.classified_at >= NOW() - INTERVAL '30 days'`;
+
+      let clusterFilter = sql``;
+      if (topicCluster) clusterFilter = sql` AND v.topic_cluster = ${topicCluster}`;
+
+      const formatStats = await db.execute(sql`
+        SELECT 
+          v.structure_type,
+          COUNT(*) as video_count,
+          ROUND(AVG(v.virality_score)::numeric, 2) as avg_virality,
+          ROUND(AVG(v.engagement_rate)::numeric, 4) as avg_engagement
+        FROM videos v
+        WHERE v.classification_status = 'completed'
+          AND v.structure_type IS NOT NULL
+          ${clusterFilter}
+          ${timeFilter}
+        GROUP BY v.structure_type
+        ORDER BY avg_virality DESC NULLS LAST, video_count DESC
+      `);
+
+      const topExamples: Record<string, any[]> = {};
+      for (const stat of formatStats.rows) {
+        const structType = stat.structure_type as string;
+        const examples = await db.execute(sql`
+          SELECT v.id, v.caption, v.structure_type, v.views, v.likes, v.virality_score, v.topic_cluster
+          FROM videos v
+          WHERE v.classification_status = 'completed'
+            AND v.structure_type = ${structType}
+            ${clusterFilter}
+            ${timeFilter}
+          ORDER BY v.virality_score DESC NULLS LAST
+          LIMIT 3
+        `);
+        topExamples[structType] = examples.rows;
+      }
+
+      res.json({
+        topic_cluster: topicCluster || "all",
+        time_window: timeWindow,
+        formats: formatStats.rows.map((f: any) => ({
+          structure_type: f.structure_type,
+          video_count: parseInt(f.video_count),
+          avg_virality: parseFloat(f.avg_virality) || 0,
+          avg_engagement: parseFloat(f.avg_engagement) || 0,
+          top_examples: topExamples[f.structure_type] || [],
+        })),
+      });
+    } catch (err: any) {
+      console.error("Format insights error:", err);
       res.status(500).json({ message: "Internal Error" });
     }
   });
@@ -1457,6 +1592,18 @@ The content should directly apply the recommendations from the insight report. W
         GROUP BY emotion_primary ORDER BY count DESC
       `);
 
+      const hookMechanismPrimaryDist = await db.execute(sql`
+        SELECT hook_mechanism_primary, COUNT(*) as count
+        FROM videos WHERE classification_status = 'completed' AND hook_mechanism_primary IS NOT NULL
+        GROUP BY hook_mechanism_primary ORDER BY count DESC
+      `);
+
+      const structureByCluster = await db.execute(sql`
+        SELECT topic_cluster, structure_type, COUNT(*) as count
+        FROM videos WHERE classification_status = 'completed' AND topic_cluster IS NOT NULL AND structure_type IS NOT NULL
+        GROUP BY topic_cluster, structure_type ORDER BY topic_cluster, count DESC
+      `);
+
       const [totalRow] = (await db.execute(sql`SELECT COUNT(*) as count FROM videos`)).rows;
       const [completedRow] = (await db.execute(sql`SELECT COUNT(*) as count FROM videos WHERE classification_status = 'completed'`)).rows;
       const [withClusterRow] = (await db.execute(sql`SELECT COUNT(*) as count FROM videos WHERE classification_status = 'completed' AND topic_cluster IS NOT NULL`)).rows;
@@ -1481,8 +1628,10 @@ The content should directly apply the recommendations from the insight report. W
         distributions: {
           topic_cluster: clusterDist.rows,
           hook_mechanism: hookDist.rows,
+          hook_mechanism_primary: hookMechanismPrimaryDist.rows,
           structure_type: structureDist.rows,
           emotion_primary: emotionDist.rows,
+          structure_by_cluster: structureByCluster.rows,
         },
       });
     } catch (err: any) {

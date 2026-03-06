@@ -437,6 +437,42 @@ export function normalizeTopicCluster(raw: string | null | undefined): string | 
   return null;
 }
 
+const HOOK_MECHANISM_MAP: Record<string, string> = {
+  curiosity_gap: "curiosity",
+  contrarian: "contrarian",
+  question: "question",
+  shock_statement: "shock",
+  statistic: "statistic",
+  warning: "warning",
+  story: "story",
+  before_after: "before_after",
+  story_opening: "story",
+  mistake: "mistake",
+  bold_claim: "contrarian",
+  list: "list",
+  how_to: "how_to",
+  challenge: "challenge",
+  reveal: "curiosity",
+  social_proof: "social_proof",
+  analogy: "analogy",
+  prediction: "prediction",
+  myth_busting: "contrarian",
+};
+
+export function deriveHookMechanismPrimary(hookMechanism: string[] | null | undefined, hookPattern?: string | null): string | null {
+  if (hookMechanism && hookMechanism.length > 0) {
+    const first = hookMechanism[0].toLowerCase().replace(/[\s-]+/g, "_");
+    if (HOOK_MECHANISM_MAP[first]) return HOOK_MECHANISM_MAP[first];
+    return first;
+  }
+  if (hookPattern) {
+    const lower = hookPattern.toLowerCase().replace(/[\s-]+/g, "_");
+    if (HOOK_MECHANISM_MAP[lower]) return HOOK_MECHANISM_MAP[lower];
+    return lower;
+  }
+  return null;
+}
+
 // ── Legacy enums (deprecated, kept for backward compatibility) ──
 
 export const HOOK_MECHANISMS = [
@@ -544,6 +580,9 @@ export const videos = pgTable("videos", {
   comments: integer("comments"),
   shares: integer("shares"),
 
+  // ── Derived Fields ──
+  hookMechanismPrimary: text("hook_mechanism_primary"),
+
   // ── Derived Metrics (stored, recalculated periodically) ──
   engagementRate: doublePrecision("engagement_rate"),
   viewVelocity: doublePrecision("view_velocity"),
@@ -586,6 +625,7 @@ export const videos = pgTable("videos", {
   index("idx_videos_topic_category").on(table.topicCategory),
   index("idx_videos_topic_cluster").on(table.topicCluster),
   index("idx_videos_virality_score").on(table.viralityScore),
+  index("idx_videos_hook_mechanism_primary").on(table.hookMechanismPrimary),
   index("idx_videos_creator_niche").on(table.creatorNiche),
   index("idx_videos_taxonomy_version").on(table.taxonomyVersion),
 ]);
