@@ -40,9 +40,9 @@ interface OpportunityEngineResponse {
 }
 
 function getScoreColor(score: number) {
-  if (score >= 80) return "text-green-600 dark:text-green-400";
-  if (score >= 60) return "text-yellow-600 dark:text-yellow-400";
-  return "text-muted-foreground";
+  if (score >= 80) return "text-violet-500 dark:text-violet-400";
+  if (score >= 60) return "text-orange-500 dark:text-orange-400";
+  return "text-yellow-500 dark:text-yellow-400";
 }
 
 function getScoreBadgeVariant(score: number): "default" | "secondary" | "outline" {

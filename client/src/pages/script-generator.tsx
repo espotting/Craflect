@@ -25,6 +25,7 @@ import {
 
 interface GeneratedScript {
   hook: string;
+  hook_variations?: string[];
   structure: string;
   script: string;
   cta: string;
@@ -95,7 +96,7 @@ export default function ScriptGenerator() {
       };
       const res = await apiRequest("POST", "/api/projects", {
         title: editHook.substring(0, 80) || hook.substring(0, 80) || "Untitled Script",
-        hook,
+        hook: editHook || hook,
         format: format || undefined,
         topic: topic || undefined,
         script: scriptData,
@@ -268,6 +269,28 @@ export default function ScriptGenerator() {
                     className="resize-none min-h-[60px]"
                   />
                 </div>
+
+                {generatedScript?.hook_variations && generatedScript.hook_variations.length > 0 && (
+                  <div className="flex flex-col gap-2">
+                    <Label>{t.scriptGenerator.hookVariations}</Label>
+                    <div className="space-y-2">
+                      {generatedScript.hook_variations.map((variation, i) => (
+                        <div
+                          key={i}
+                          className="flex items-start gap-2 p-2.5 rounded-md border border-border/50 bg-muted/30 cursor-pointer hover:bg-muted/60 transition-colors"
+                          onClick={() => setEditHook(variation)}
+                          data-testid={`hook-variation-${i}`}
+                        >
+                          <Badge variant="outline" className="text-[10px] mt-0.5 shrink-0">
+                            {String.fromCharCode(65 + i)}
+                          </Badge>
+                          <p className="text-sm text-foreground leading-snug">{variation}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">{t.scriptGenerator.clickToUse}</p>
+                  </div>
+                )}
 
                 <div className="flex flex-col gap-1.5">
                   <Label htmlFor="edit-structure">{t.scriptGenerator.generatedStructure}</Label>

@@ -2616,6 +2616,7 @@ The content should directly apply the recommendations from the insight report. W
       const systemPrompt = `You are a viral content scriptwriter. Generate a complete video script optimized for virality.
 Return a JSON object with exactly these fields:
 - hook: A powerful opening hook (1-2 sentences)
+- hook_variations: An array of exactly 3 alternative hooks, each a string (1-2 sentences). Different angles, tones, or approaches.
 - structure: The video structure breakdown (e.g., "Hook → Problem → Solution → CTA")
 - script: The full script text (200-400 words)
 - cta: A compelling call-to-action (1-2 sentences)`;
@@ -2783,5 +2784,277 @@ ${input.script ? `Script: ${input.script}` : ""}`;
     }
   });
 
+  // ─── Viral Templates ───
+
+  app.get("/api/templates", isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { viralTemplates } = await import("@shared/schema");
+      const { desc } = await import("drizzle-orm");
+      const templates = await db.select().from(viralTemplates).orderBy(desc(viralTemplates.usageCount));
+      res.json(templates);
+    } catch (err: any) {
+      console.error("Templates fetch error:", err);
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
+  app.post("/api/templates/generate", isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const { viralTemplates } = await import("@shared/schema");
+
+      const patterns = await db.execute(sql`
+        SELECT topic_cluster, hook_mechanism_primary, structure_type,
+          COUNT(*) as video_count, ROUND(AVG(virality_score)::numeric, 2) as avg_virality
+        FROM videos
+        WHERE classification_status = 'completed'
+          AND topic_cluster IS NOT NULL
+          AND hook_mechanism_primary IS NOT NULL
+          AND structure_type IS NOT NULL
+        GROUP BY topic_cluster, hook_mechanism_primary, structure_type
+        HAVING COUNT(*) >= 2
+        ORDER BY avg_virality DESC NULLS LAST
+        LIMIT 20
+      `);
+
+      let created = 0;
+      for (const p of patterns.rows as any[]) {
+        const existing = await db.execute(sql`
+          SELECT id FROM viral_templates 
+          WHERE topic_cluster = ${p.topic_cluster} 
+            AND hook_mechanism = ${p.hook_mechanism_primary} 
+            AND structure_type = ${p.structure_type}
+            AND source = 'auto'
+          LIMIT 1
+        `);
+        if (existing.rows.length > 0) continue;
+
+        const title = `${(p.hook_mechanism_primary || "").replace(/_/g, " ")} + ${(p.structure_type || "").replace(/_/g, " ")}`;
+        const description = `Viral pattern in ${(p.topic_cluster || "").replace(/_/g, " ")} — ${p.video_count} videos, avg virality ${p.avg_virality}`;
+
+        await db.insert(viralTemplates).values({
+          title: title.charAt(0).toUpperCase() + title.slice(1),
+          description,
+          topicCluster: p.topic_cluster,
+          hookMechanism: p.hook_mechanism_primary,
+          structureType: p.structure_type,
+          source: "auto",
+        });
+        created++;
+      }
+
+      res.json({ created, message: `${created} templates generated from patterns` });
+    } catch (err: any) {
+      console.error("Templates generate error:", err);
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
+  app.post("/api/templates", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { viralTemplates } = await import("@shared/schema");
+      const input = z.object({
+        title: z.string().min(1),
+        description: z.string().optional(),
+        topicCluster: z.string().optional(),
+        hookMechanism: z.string().optional(),
+        structureType: z.string().optional(),
+        hookTemplate: z.string().optional(),
+        sceneStructure: z.any().optional(),
+      }).parse(req.body);
+
+      const [template] = await db.insert(viralTemplates).values({
+        ...input,
+        source: "manual",
+      }).returning();
+
+      res.status(201).json(template);
+    } catch (err: any) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
+      console.error("Template create error:", err);
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
+  app.delete("/api/templates/:id", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { viralTemplates } = await import("@shared/schema");
+      const { eq } = await import("drizzle-orm");
+      await db.delete(viralTemplates).where(eq(viralTemplates.id, req.params.id));
+      res.json({ success: true });
+    } catch (err: any) {
+      console.error("Template delete error:", err);
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
+  app.post("/api/templates/:id/use", isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { viralTemplates } = await import("@shared/schema");
+      const { eq, sql } = await import("drizzle-orm");
+      await db.update(viralTemplates).set({ usageCount: sql`usage_count + 1` }).where(eq(viralTemplates.id, req.params.id));
+      res.json({ success: true });
+    } catch (err: any) {
+      console.error("Template use error:", err);
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
+  // ─── Content Remix Engine (MVP — text only) ───
+
+  app.post("/api/remix", isAuthenticated, async (req: any, res) => {
+    try {
+      const input = z.object({
+        content: z.string().min(1),
+        contentType: z.enum(["script", "caption", "hook", "post"]).optional(),
+      }).parse(req.body);
+
+      const systemPrompt = `You are a viral content optimization expert. Analyze the provided content and propose an optimized version based on viral patterns.
+Return a JSON object with exactly these fields:
+- analysis: Brief analysis of the original content (2-3 sentences)
+- improved_hook: An optimized, more viral hook (1-2 sentences)
+- optimized_script: A fully optimized script (200-400 words)
+- structure_suggestion: Recommended video structure (e.g., "Hook → Problem → Demo → Social Proof → CTA")
+- blueprint: Object with { hook: { text, visual_suggestion }, scenes: [4 objects with { title, description, visual_suggestion, script_lines }], cta: { text, visual_suggestion } }
+- improvements: Array of 3-5 specific improvements made, each a string`;
+
+      const userPrompt = `Optimize this ${input.contentType || "content"} for maximum virality:\n\n${input.content}`;
+
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4.1-mini",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.8,
+      });
+
+      const result = JSON.parse(completion.choices[0].message.content || "{}");
+      res.json(result);
+    } catch (err: any) {
+      console.error("Remix error:", err);
+      res.status(500).json({ message: "Failed to remix content" });
+    }
+  });
+
+  // ─── Predicted Views + Improve Score ───
+
+  app.post("/api/predict/views", isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const input = z.object({
+        hook: z.string().min(1),
+        format: z.string().optional(),
+        topic: z.string().optional(),
+        script: z.string().optional(),
+      }).parse(req.body);
+
+      let avgViews = 50000;
+      let matchCount = 0;
+
+      if (input.topic) {
+        const stats = await db.execute(sql`
+          SELECT AVG(views) as avg_views, COUNT(*) as count,
+            PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY views) as p25,
+            PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY views) as p75
+          FROM videos
+          WHERE classification_status = 'completed' AND topic_cluster = ${input.topic} AND views > 0
+        `);
+        if (stats.rows.length > 0 && parseInt((stats.rows[0] as any).count) > 0) {
+          avgViews = Math.round(parseFloat((stats.rows[0] as any).avg_views) || 50000);
+          matchCount = parseInt((stats.rows[0] as any).count);
+        }
+      }
+
+      const hookLength = (input.hook || "").length;
+      const hasQuestion = /\?/.test(input.hook);
+      const hasNumber = /\d/.test(input.hook);
+      const hasEmoji = /[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}]/u.test(input.hook);
+
+      let viralProbability = 40;
+      if (hookLength > 10 && hookLength < 80) viralProbability += 10;
+      if (hasQuestion) viralProbability += 8;
+      if (hasNumber) viralProbability += 7;
+      if (hasEmoji) viralProbability += 5;
+      if (input.format) viralProbability += 5;
+      if (input.script && input.script.length > 100) viralProbability += 10;
+      if (matchCount > 10) viralProbability += 5;
+      viralProbability = Math.min(viralProbability, 95);
+
+      const multiplierLow = 0.3 + (viralProbability / 100) * 0.7;
+      const multiplierHigh = 1 + (viralProbability / 100) * 3;
+      const predictedLow = Math.round(avgViews * multiplierLow);
+      const predictedHigh = Math.round(avgViews * multiplierHigh);
+
+      res.json({
+        viral_probability: viralProbability,
+        predicted_views: {
+          low: predictedLow,
+          high: predictedHigh,
+          formatted: `${formatViewCount(predictedLow)} – ${formatViewCount(predictedHigh)}`,
+        },
+        based_on: matchCount,
+      });
+    } catch (err: any) {
+      console.error("Predict views error:", err);
+      res.status(500).json({ message: "Failed to predict views" });
+    }
+  });
+
+  app.post("/api/predict/improve", isAuthenticated, async (req: any, res) => {
+    try {
+      const input = z.object({
+        hook: z.string().min(1),
+        format: z.string().optional(),
+        topic: z.string().optional(),
+        script: z.string().optional(),
+        cta: z.string().optional(),
+      }).parse(req.body);
+
+      const systemPrompt = `You are a viral content optimization AI. Suggest improvements to maximize viral potential.
+Return a JSON object with exactly these fields:
+- improved_hook: A more viral hook (1-2 sentences)
+- improved_format: A more effective format suggestion (1 sentence)
+- improved_cta: A more compelling CTA (1-2 sentences)
+- tips: Array of 3 specific actionable tips to improve virality`;
+
+      const userPrompt = `Improve this content for maximum virality:
+Hook: "${input.hook}"
+${input.format ? `Format: ${input.format}` : ""}
+${input.topic ? `Topic: ${input.topic}` : ""}
+${input.script ? `Script: ${input.script.substring(0, 500)}` : ""}
+${input.cta ? `CTA: ${input.cta}` : ""}`;
+
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4.1-mini",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.8,
+      });
+
+      const result = JSON.parse(completion.choices[0].message.content || "{}");
+      res.json(result);
+    } catch (err: any) {
+      console.error("Improve score error:", err);
+      res.status(500).json({ message: "Failed to improve score" });
+    }
+  });
+
   return httpServer;
+}
+
+function formatViewCount(num: number): string {
+  if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(0)}M`;
+  if (num >= 1_000) return `${(num / 1_000).toFixed(0)}k`;
+  return num.toString();
 }

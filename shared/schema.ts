@@ -742,6 +742,29 @@ export const contentProjects = pgTable("content_projects", {
 
 export const insertContentProjectSchema = createInsertSchema(contentProjects).omit({ projectId: true, createdAt: true, updatedAt: true });
 
+// ═══════════════════════════════════════════════════════════
+// Viral Templates — Inspired from detected patterns
+// ═══════════════════════════════════════════════════════════
+
+export const viralTemplates = pgTable("viral_templates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: text("title").notNull(),
+  description: text("description"),
+  topicCluster: text("topic_cluster"),
+  hookMechanism: text("hook_mechanism"),
+  structureType: text("structure_type"),
+  hookTemplate: text("hook_template"),
+  sceneStructure: jsonb("scene_structure"),
+  source: text("source").default("auto").notNull(),
+  usageCount: integer("usage_count").default(0).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_viral_templates_source").on(table.source),
+  index("idx_viral_templates_topic").on(table.topicCluster),
+]);
+
+export const insertViralTemplateSchema = createInsertSchema(viralTemplates).omit({ id: true, createdAt: true, usageCount: true });
+
 export const insertVideoSchema = createInsertSchema(videos).omit({ id: true, collectedAt: true });
 export const insertViralPatternSchema = createInsertSchema(viralPatterns).omit({ patternId: true, lastUpdated: true });
 export const insertPatternSchema = createInsertSchema(patterns).omit({ patternId: true, lastUpdated: true });
@@ -767,3 +790,5 @@ export type ContentProject = typeof contentProjects.$inferSelect;
 export type InsertContentProject = z.infer<typeof insertContentProjectSchema>;
 export type SavedIdea = typeof savedIdeas.$inferSelect;
 export type InsertSavedIdea = z.infer<typeof insertSavedIdeaSchema>;
+export type ViralTemplate = typeof viralTemplates.$inferSelect;
+export type InsertViralTemplate = z.infer<typeof insertViralTemplateSchema>;

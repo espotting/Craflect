@@ -82,9 +82,9 @@ interface RadarData {
 }
 
 function getOpportunityColor(score: number) {
-  if (score >= 80) return { bg: "bg-emerald-500/15", text: "text-emerald-500", border: "border-emerald-500/30" };
-  if (score >= 60) return { bg: "bg-yellow-500/15", text: "text-yellow-500", border: "border-yellow-500/30" };
-  return { bg: "bg-zinc-500/15", text: "text-zinc-400", border: "border-zinc-500/30" };
+  if (score >= 80) return { bg: "bg-violet-500/15", text: "text-violet-400", border: "border-violet-500/30" };
+  if (score >= 60) return { bg: "bg-orange-500/15", text: "text-orange-400", border: "border-orange-500/30" };
+  return { bg: "bg-yellow-500/15", text: "text-yellow-400", border: "border-yellow-500/30" };
 }
 
 function getOpportunityLabel(score: number, t: any) {
@@ -239,6 +239,12 @@ function OpportunityCard({
   );
 }
 
+function getVelocityIndicator(virality: number) {
+  if (virality >= 3) return { label: "Rising", color: "text-emerald-500", icon: "↑" };
+  if (virality >= 1.5) return { label: "Stable", color: "text-zinc-400", icon: "→" };
+  return { label: "Declining", color: "text-red-400", icon: "↓" };
+}
+
 function TrendCard({
   trend,
   index,
@@ -251,6 +257,7 @@ function TrendCard({
   const [, setLocation] = useLocation();
   const topicLabel = TOPIC_CLUSTER_LABELS[trend.topic_cluster] || trend.topic_cluster?.replace(/_/g, " ") || "—";
   const virality = parseFloat(trend.avg_virality) || 0;
+  const velocity = getVelocityIndicator(virality);
 
   return (
     <Card className="hover-elevate" data-testid={`card-trend-${index}`}>
@@ -273,10 +280,15 @@ function TrendCard({
               )}
             </div>
           </div>
-          <div className="flex-shrink-0 flex items-center gap-1">
-            <ArrowUpRight className="w-3.5 h-3.5 text-emerald-500" />
-            <span className="text-sm font-bold text-emerald-500" data-testid={`text-trend-virality-${index}`}>
-              {virality.toFixed(1)}
+          <div className="flex-shrink-0 flex flex-col items-end gap-1">
+            <div className="flex items-center gap-1">
+              <ArrowUpRight className="w-3.5 h-3.5 text-emerald-500" />
+              <span className="text-sm font-bold text-emerald-500" data-testid={`text-trend-virality-${index}`}>
+                {virality.toFixed(1)}
+              </span>
+            </div>
+            <span className={`text-[10px] font-medium ${velocity.color}`} data-testid={`text-trend-velocity-${index}`}>
+              {velocity.icon} {velocity.label}
             </span>
           </div>
         </div>

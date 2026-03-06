@@ -22,6 +22,9 @@ import Admin from "@/pages/admin";
 import Intelligence from "@/pages/intelligence";
 import Pricing from "@/pages/pricing";
 import PlanBilling from "@/pages/plan-billing";
+import ViralTemplatesPage from "@/pages/viral-templates";
+import RemixEnginePage from "@/pages/remix-engine";
+import PredictedViewsPage from "@/pages/predicted-views";
 import { TermsPage, BillingPage, PrivacyPage, CookiesPage, DpaPage, SecurityPage } from "@/pages/legal";
 import FaqPage from "@/pages/faq";
 
@@ -39,6 +42,9 @@ function Router() {
       <Route path="/script-generator" component={ScriptGenerator} />
       <Route path="/video-builder" component={VideoBuilder} />
       <Route path="/projects" component={Projects} />
+      <Route path="/viral-templates" component={ViralTemplatesPage} />
+      <Route path="/remix-engine" component={RemixEnginePage} />
+      <Route path="/predicted-views" component={PredictedViewsPage} />
       <Route path="/settings" component={Settings} />
       <Route path="/admin" component={Admin} />
       <Route path="/intelligence" component={Intelligence} />

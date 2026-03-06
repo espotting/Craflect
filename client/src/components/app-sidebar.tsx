@@ -13,6 +13,9 @@ import {
   FileText,
   Video,
   FolderKanban,
+  LayoutTemplate,
+  Repeat,
+  TrendingUp,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import {
@@ -52,6 +55,9 @@ export function AppSidebar() {
     { title: t.sidebar.scriptGenerator, url: "/script-generator", icon: FileText },
     { title: t.sidebar.videoBuilder, url: "/video-builder", icon: Video },
     { title: t.sidebar.projects, url: "/projects", icon: FolderKanban },
+    { title: t.sidebar.viralTemplates, url: "/viral-templates", icon: LayoutTemplate },
+    { title: t.sidebar.remixEngine, url: "/remix-engine", icon: Repeat },
+    { title: t.sidebar.predictedViews, url: "/predicted-views", icon: TrendingUp },
   ];
 
   const secondaryItems = [

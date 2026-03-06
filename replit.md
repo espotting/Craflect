@@ -23,7 +23,7 @@ React + TypeScript + Tailwind CSS + shadcn/ui + Framer Motion frontend, Express/
 
 **Navigation Sidebar :**
 - **Analyze** : Dashboard, Trend Radar, Library
-- **Create** : Ideas, Script Generator, Video Builder, Projects
+- **Create** : Ideas, Script Generator, Video Builder, Projects, Viral Templates, Content Remix, Predicted Views
 - **System** : Settings, Plan & Billing, Admin (admin-only), Intelligence (admin-only)
 
 **Pages :**
@@ -34,6 +34,9 @@ React + TypeScript + Tailwind CSS + shadcn/ui + Framer Motion frontend, Express/
 - `/script-generator` — Formulaire (hook, format, topic, contexte) → Génération IA (OpenAI gpt-4.1-mini) → Script éditable (Hook, Structure, Full Script, CTA). Regenerate, Save to Project, Create Video.
 - `/video-builder` — Formulaire (hook, format, topic, script) → Génération IA → Blueprint éditable (Hook, 4 Scènes, CTA). Regenerate, Save to Project.
 - `/projects` — Liste des projets utilisateur. Filtrage par statut (draft, in_progress, completed). Détail avec script + blueprint éditables.
+- `/viral-templates` — Templates auto-générés depuis patterns viraux (topic_cluster + hook_mechanism + structure_type). Bouton "Generate from Patterns". Admin peut créer manuellement. "Use Template" redirige vers Script Generator pré-rempli.
+- `/remix-engine` — Content Remix Engine MVP. Coller un contenu texte → IA retourne analyse, hook amélioré, script optimisé, structure suggérée, blueprint vidéo, liste d'améliorations.
+- `/predicted-views` — Prédiction de vues virales. Formulaire (hook, format, topic, script) → Probabilité virale (%) + fourchette de vues prédites. Bouton "Improve Score" → suggestions IA (hook/format/CTA améliorés + tips).
 
 **Composants clés :**
 - `TrendScore` — composant 0-100 avec couleurs conformes au brief : vert (emerald 75+) = Emerging, jaune (yellow 50+) = Growing, orange (25+) = Peak, gris (zinc <25) = Saturated
@@ -53,8 +56,22 @@ React + TypeScript + Tailwind CSS + shadcn/ui + Framer Motion frontend, Express/
 - `POST /api/ideas/dismiss` — Rejeter une idée
 
 **AI Generation :**
-- `POST /api/generate/script` — Génération de script IA (hook, structure, script, cta)
+- `POST /api/generate/script` — Génération de script IA (hook, hook_variations[3], structure, script, cta)
 - `POST /api/generate/blueprint` — Génération de blueprint vidéo IA (hook, 4 scenes, cta)
+
+**Viral Templates :**
+- `GET /api/templates` — Liste des templates
+- `POST /api/templates/generate` — Auto-génère templates depuis patterns vidéo
+- `POST /api/templates` — Créer un template (admin only)
+- `DELETE /api/templates/:id` — Supprimer un template (admin only)
+- `POST /api/templates/:id/use` — Incrémenter usage_count
+
+**Content Remix :**
+- `POST /api/remix` — Analyse + optimise contenu texte via IA (analysis, improved_hook, optimized_script, structure_suggestion, blueprint, improvements)
+
+**Predicted Views :**
+- `POST /api/predict/views` — Prédit probabilité virale + fourchette de vues (basé sur stats DB + heuristiques)
+- `POST /api/predict/improve` — Suggestions IA pour améliorer le score (improved_hook, improved_format, improved_cta, tips)
 
 **Projects CRUD :**
 - `GET /api/projects` — Liste des projets
@@ -67,6 +84,8 @@ React + TypeScript + Tailwind CSS + shadcn/ui + Framer Motion frontend, Express/
 **`saved_ideas`** : id, user_id, hook, format, topic, opportunity_score, velocity, videos_detected, status (saved/dismissed), created_at
 
 **`content_projects`** : project_id, user_id, title, hook, format, topic, script (JSONB), blueprint (JSONB), status (draft/in_progress/completed), created_at, updated_at
+
+**`viral_templates`** : id, title, description, topic_cluster, hook_mechanism, structure_type, hook_template, scene_structure (JSONB), source (auto/manual), usage_count, created_at
 
 ## Craflect Taxonomy v1 (Stable)
 
