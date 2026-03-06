@@ -1201,9 +1201,20 @@ The content should directly apply the recommendations from the insight report. W
       const { db } = await import("./db");
       const { sql } = await import("drizzle-orm");
       const niche = req.query.niche as string | undefined;
+      const platform = req.query.platform as string | undefined;
+      const page = Math.max(1, parseInt(req.query.page as string) || 1);
+      const limit = Math.min(50, Math.max(1, parseInt(req.query.limit as string) || 20));
+      const offset = (page - 1) * limit;
 
       let nicheFilter = sql``;
       if (niche) nicheFilter = sql` AND topic_cluster = ${niche}`;
+      if (platform) nicheFilter = sql`${nicheFilter} AND platform = ${platform}`;
+
+      const [countRow] = (await db.execute(sql`
+        SELECT COUNT(DISTINCT (creator_name, platform)) as count
+        FROM videos
+        WHERE classification_status = 'completed' AND creator_name IS NOT NULL${nicheFilter}
+      `)).rows;
 
       const creators = await db.execute(sql`
         SELECT creator_name, platform,
@@ -1213,15 +1224,21 @@ The content should directly apply the recommendations from the insight report. W
           ROUND(AVG(virality_score)::numeric, 2) as avg_virality,
           ROUND(AVG(engagement_rate)::numeric, 4) as avg_engagement,
           MAX(topic_cluster) as niche,
-          SUM(CASE WHEN virality_score > 50 THEN 1 ELSE 0 END) as viral_videos
+          SUM(CASE WHEN virality_score > 50 THEN 1 ELSE 0 END) as viral_videos,
+          ROUND(AVG(view_velocity)::numeric, 2) as avg_velocity
         FROM videos
         WHERE classification_status = 'completed' AND creator_name IS NOT NULL${nicheFilter}
         GROUP BY creator_name, platform
         ORDER BY avg_virality DESC NULLS LAST
-        LIMIT 50
+        LIMIT ${limit} OFFSET ${offset}
       `);
 
-      res.json({ creators: creators.rows });
+      res.json({
+        creators: creators.rows,
+        total: parseInt(countRow.count as string),
+        page,
+        pages: Math.ceil(parseInt(countRow.count as string) / limit),
+      });
     } catch (err: any) {
       console.error("Creators error:", err);
       res.status(500).json({ message: "Internal Error" });
@@ -1236,6 +1253,12 @@ The content should directly apply the recommendations from the insight report. W
       const { sql } = await import("drizzle-orm");
       const niche = req.query.niche as string | undefined;
       const platform = req.query.platform as string | undefined;
+      const hookType = req.query.hook_type as string | undefined;
+      const structureType = req.query.structure_type as string | undefined;
+      const minTrendScore = req.query.min_trend_score ? parseFloat(req.query.min_trend_score as string) : undefined;
+      const maxTrendScore = req.query.max_trend_score ? parseFloat(req.query.max_trend_score as string) : undefined;
+      const minVelocity = req.query.min_velocity ? parseFloat(req.query.min_velocity as string) : undefined;
+      const sortBy = req.query.sort as string || "virality";
       const page = Math.max(1, parseInt(req.query.page as string) || 1);
       const limit = Math.min(50, Math.max(1, parseInt(req.query.limit as string) || 20));
       const offset = (page - 1) * limit;
@@ -1243,6 +1266,17 @@ The content should directly apply the recommendations from the insight report. W
       let filters = sql`WHERE classification_status = 'completed'`;
       if (niche) filters = sql`${filters} AND topic_cluster = ${niche}`;
       if (platform) filters = sql`${filters} AND platform = ${platform}`;
+      if (hookType) filters = sql`${filters} AND hook_mechanism_primary = ${hookType}`;
+      if (structureType) filters = sql`${filters} AND structure_type = ${structureType}`;
+      if (minTrendScore !== undefined) filters = sql`${filters} AND virality_score >= ${minTrendScore}`;
+      if (maxTrendScore !== undefined) filters = sql`${filters} AND virality_score <= ${maxTrendScore}`;
+      if (minVelocity !== undefined) filters = sql`${filters} AND view_velocity >= ${minVelocity}`;
+
+      let orderBy = sql`ORDER BY virality_score DESC NULLS LAST`;
+      if (sortBy === "views") orderBy = sql`ORDER BY views DESC NULLS LAST`;
+      else if (sortBy === "velocity") orderBy = sql`ORDER BY view_velocity DESC NULLS LAST`;
+      else if (sortBy === "engagement") orderBy = sql`ORDER BY engagement_rate DESC NULLS LAST`;
+      else if (sortBy === "recent") orderBy = sql`ORDER BY classified_at DESC NULLS LAST`;
 
       const [countRow] = (await db.execute(sql`SELECT COUNT(*) as count FROM videos ${filters}`)).rows;
       const videos = await db.execute(sql`
@@ -1251,7 +1285,7 @@ The content should directly apply the recommendations from the insight report. W
           hook_mechanism_primary, hook_text, duration_bucket, classified_at,
           view_velocity
         FROM videos ${filters}
-        ORDER BY virality_score DESC NULLS LAST
+        ${orderBy}
         LIMIT ${limit} OFFSET ${offset}
       `);
 
@@ -2370,6 +2404,317 @@ The content should directly apply the recommendations from the insight report. W
       });
     } catch (err: any) {
       console.error("Dataset quality error:", err);
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
+  // ─── Viral Opportunity Engine (T002) ───
+
+  app.get("/api/opportunities/engine", isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+
+      const patterns = await db.execute(sql`
+        SELECT
+          topic_cluster,
+          hook_text,
+          hook_mechanism_primary,
+          structure_type,
+          COUNT(*) as video_count,
+          ROUND(AVG(virality_score)::numeric, 2) as avg_virality,
+          ROUND(AVG(engagement_rate)::numeric, 4) as avg_engagement,
+          ROUND(AVG(view_velocity)::numeric, 2) as avg_velocity,
+          SUM(views) as total_views,
+          COUNT(DISTINCT platform) as platform_count
+        FROM videos
+        WHERE classification_status = 'completed'
+          AND topic_cluster IS NOT NULL
+          AND hook_text IS NOT NULL
+          AND structure_type IS NOT NULL
+        GROUP BY topic_cluster, hook_text, hook_mechanism_primary, structure_type
+        HAVING COUNT(*) >= 2
+        ORDER BY avg_virality DESC NULLS LAST
+        LIMIT 20
+      `);
+
+      const opportunities = patterns.rows.map((p: any) => {
+        const viralityScore = parseFloat(p.avg_virality) || 0;
+        const engagement = parseFloat(p.avg_engagement) || 0;
+        const velocity = parseFloat(p.avg_velocity) || 0;
+        const videoCount = parseInt(p.video_count) || 0;
+        const platformCount = parseInt(p.platform_count) || 1;
+
+        const viralityComponent = Math.min(viralityScore * 10, 40);
+        const engagementComponent = Math.min(engagement * 500, 20);
+        const velocityComponent = Math.min(velocity / 100, 15);
+        const repetitionComponent = Math.min(videoCount * 3, 15);
+        const crossPlatformComponent = platformCount > 1 ? 10 : 0;
+
+        const opportunityScore = Math.round(
+          Math.min(viralityComponent + engagementComponent + velocityComponent + repetitionComponent + crossPlatformComponent, 100)
+        );
+
+        return {
+          hook: p.hook_text,
+          format: p.structure_type,
+          topic: p.topic_cluster,
+          hook_mechanism: p.hook_mechanism_primary,
+          opportunity_score: opportunityScore,
+          velocity: velocity,
+          videos_detected: videoCount,
+          avg_engagement: engagement,
+          total_views: parseInt(p.total_views) || 0,
+        };
+      });
+
+      opportunities.sort((a: any, b: any) => b.opportunity_score - a.opportunity_score);
+
+      res.json({ opportunities: opportunities.slice(0, 5) });
+    } catch (err: any) {
+      console.error("Opportunity engine error:", err);
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
+  // ─── Ideas API (T002) ───
+
+  app.get("/api/ideas", isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { savedIdeas } = await import("@shared/schema");
+      const { eq, desc } = await import("drizzle-orm");
+      const ideas = await db.select().from(savedIdeas).where(eq(savedIdeas.userId, req.user.id)).orderBy(desc(savedIdeas.createdAt));
+      res.json(ideas);
+    } catch (err: any) {
+      console.error("Ideas fetch error:", err);
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
+  app.post("/api/ideas/save", isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { savedIdeas } = await import("@shared/schema");
+      const input = z.object({
+        hook: z.string().min(1),
+        format: z.string().optional(),
+        topic: z.string().optional(),
+        opportunityScore: z.number().optional(),
+        velocity: z.number().optional(),
+        videosDetected: z.number().optional(),
+      }).parse(req.body);
+
+      const [idea] = await db.insert(savedIdeas).values({
+        userId: req.user.id,
+        hook: input.hook,
+        format: input.format || null,
+        topic: input.topic || null,
+        opportunityScore: input.opportunityScore || null,
+        velocity: input.velocity || null,
+        videosDetected: input.videosDetected || null,
+        status: "saved",
+      }).returning();
+
+      res.status(201).json(idea);
+    } catch (err: any) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
+      console.error("Ideas save error:", err);
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
+  app.post("/api/ideas/dismiss", isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { savedIdeas } = await import("@shared/schema");
+      const { eq, and } = await import("drizzle-orm");
+      const { id } = z.object({ id: z.string() }).parse(req.body);
+      await db.update(savedIdeas).set({ status: "dismissed" }).where(and(eq(savedIdeas.id, id), eq(savedIdeas.userId, req.user.id)));
+      res.json({ success: true });
+    } catch (err: any) {
+      console.error("Ideas dismiss error:", err);
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
+  // ─── Script Generator AI (T003) ───
+
+  app.post("/api/generate/script", isAuthenticated, async (req: any, res) => {
+    try {
+      const input = z.object({
+        hook: z.string().min(1),
+        format: z.string().optional(),
+        topic: z.string().optional(),
+        context: z.string().optional(),
+      }).parse(req.body);
+
+      const systemPrompt = `You are a viral content scriptwriter. Generate a complete video script optimized for virality.
+Return a JSON object with exactly these fields:
+- hook: A powerful opening hook (1-2 sentences)
+- structure: The video structure breakdown (e.g., "Hook → Problem → Solution → CTA")
+- script: The full script text (200-400 words)
+- cta: A compelling call-to-action (1-2 sentences)`;
+
+      const userPrompt = `Create a viral video script with:
+Hook: "${input.hook}"
+${input.format ? `Format: ${input.format}` : ""}
+${input.topic ? `Topic: ${input.topic}` : ""}
+${input.context ? `Additional context: ${input.context}` : ""}`;
+
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4.1-mini",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.8,
+      });
+
+      const result = JSON.parse(completion.choices[0].message.content || "{}");
+      res.json(result);
+    } catch (err: any) {
+      console.error("Script generation error:", err);
+      res.status(500).json({ message: "Failed to generate script" });
+    }
+  });
+
+  // ─── Video Blueprint AI (T003) ───
+
+  app.post("/api/generate/blueprint", isAuthenticated, async (req: any, res) => {
+    try {
+      const input = z.object({
+        hook: z.string().min(1),
+        format: z.string().optional(),
+        topic: z.string().optional(),
+        script: z.string().optional(),
+      }).parse(req.body);
+
+      const systemPrompt = `You are a viral video producer. Generate a detailed video blueprint with scenes.
+Return a JSON object with exactly these fields:
+- hook: Object with { text: string, visual_suggestion: string }
+- scenes: Array of exactly 4 objects, each with { title: string, description: string, visual_suggestion: string, script_lines: string }
+- cta: Object with { text: string, visual_suggestion: string }`;
+
+      const userPrompt = `Create a video blueprint for:
+Hook: "${input.hook}"
+${input.format ? `Format: ${input.format}` : ""}
+${input.topic ? `Topic: ${input.topic}` : ""}
+${input.script ? `Script: ${input.script}` : ""}`;
+
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4.1-mini",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.8,
+      });
+
+      const result = JSON.parse(completion.choices[0].message.content || "{}");
+      res.json(result);
+    } catch (err: any) {
+      console.error("Blueprint generation error:", err);
+      res.status(500).json({ message: "Failed to generate blueprint" });
+    }
+  });
+
+  // ─── Projects CRUD (T003) ───
+
+  app.get("/api/projects", isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { contentProjects } = await import("@shared/schema");
+      const { eq, desc } = await import("drizzle-orm");
+      const projects = await db.select().from(contentProjects).where(eq(contentProjects.userId, req.user.id)).orderBy(desc(contentProjects.createdAt));
+      res.json(projects);
+    } catch (err: any) {
+      console.error("Projects fetch error:", err);
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
+  app.post("/api/projects", isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { contentProjects } = await import("@shared/schema");
+      const input = z.object({
+        title: z.string().optional(),
+        hook: z.string().optional(),
+        format: z.string().optional(),
+        topic: z.string().optional(),
+        script: z.any().optional(),
+        blueprint: z.any().optional(),
+        status: z.string().optional(),
+      }).parse(req.body);
+
+      const [project] = await db.insert(contentProjects).values({
+        userId: req.user.id,
+        title: input.title || null,
+        hook: input.hook || null,
+        format: input.format || null,
+        topic: input.topic || null,
+        script: input.script || null,
+        blueprint: input.blueprint || null,
+        status: input.status || "draft",
+      }).returning();
+
+      res.status(201).json(project);
+    } catch (err: any) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
+      console.error("Project create error:", err);
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
+  app.patch("/api/projects/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { contentProjects } = await import("@shared/schema");
+      const { eq, and } = await import("drizzle-orm");
+      const input = z.object({
+        title: z.string().optional(),
+        hook: z.string().optional(),
+        format: z.string().optional(),
+        topic: z.string().optional(),
+        script: z.any().optional(),
+        blueprint: z.any().optional(),
+        status: z.string().optional(),
+      }).parse(req.body);
+
+      const updates: any = { updatedAt: new Date() };
+      if (input.title !== undefined) updates.title = input.title;
+      if (input.hook !== undefined) updates.hook = input.hook;
+      if (input.format !== undefined) updates.format = input.format;
+      if (input.topic !== undefined) updates.topic = input.topic;
+      if (input.script !== undefined) updates.script = input.script;
+      if (input.blueprint !== undefined) updates.blueprint = input.blueprint;
+      if (input.status !== undefined) updates.status = input.status;
+
+      const [project] = await db.update(contentProjects)
+        .set(updates)
+        .where(and(eq(contentProjects.projectId, req.params.id), eq(contentProjects.userId, req.user.id)))
+        .returning();
+
+      if (!project) return res.status(404).json({ message: "Project not found" });
+      res.json(project);
+    } catch (err: any) {
+      console.error("Project update error:", err);
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
+  app.delete("/api/projects/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { contentProjects } = await import("@shared/schema");
+      const { eq, and } = await import("drizzle-orm");
+      await db.delete(contentProjects).where(and(eq(contentProjects.projectId, req.params.id), eq(contentProjects.userId, req.user.id)));
+      res.json({ success: true });
+    } catch (err: any) {
+      console.error("Project delete error:", err);
       res.status(500).json({ message: "Internal Error" });
     }
   });

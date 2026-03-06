@@ -1,10 +1,8 @@
 import { 
   LayoutDashboard, 
   Radar, 
-  Grid3X3, 
-  Zap, 
-  Users, 
-  PlayCircle,
+  BookOpen,
+  Lightbulb,
   Settings, 
   LogOut,
   Sun,
@@ -14,6 +12,7 @@ import {
   CreditCard,
   FileText,
   Video,
+  FolderKanban,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import {
@@ -45,15 +44,14 @@ export function AppSidebar() {
   const analyzeItems = [
     { title: t.sidebar.dashboard, url: "/dashboard", icon: LayoutDashboard },
     { title: t.sidebar.trendRadar, url: "/trend-radar", icon: Radar },
-    { title: t.sidebar.niches, url: "/niches", icon: Grid3X3 },
-    { title: t.sidebar.patterns, url: "/patterns", icon: Zap },
-    { title: t.sidebar.creators, url: "/creators", icon: Users },
-    { title: t.sidebar.videos, url: "/videos", icon: PlayCircle },
+    { title: t.sidebar.library, url: "/library", icon: BookOpen },
   ];
 
   const createItems = [
+    { title: t.sidebar.ideas, url: "/ideas", icon: Lightbulb },
     { title: t.sidebar.scriptGenerator, url: "/script-generator", icon: FileText },
     { title: t.sidebar.videoBuilder, url: "/video-builder", icon: Video },
+    { title: t.sidebar.projects, url: "/projects", icon: FolderKanban },
   ];
 
   const secondaryItems = [

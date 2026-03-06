@@ -698,22 +698,45 @@ export const patterns = pgTable("patterns", {
 ]);
 
 // ═══════════════════════════════════════════════════════════
-// Content Projects — Video Builder (future)
+// Saved Ideas — User-curated opportunities
+// ═══════════════════════════════════════════════════════════
+
+export const savedIdeas = pgTable("saved_ideas", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  hook: text("hook").notNull(),
+  format: text("format"),
+  topic: text("topic"),
+  opportunityScore: integer("opportunity_score"),
+  velocity: real("velocity"),
+  videosDetected: integer("videos_detected"),
+  status: text("status").default("saved").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_saved_ideas_user_id").on(table.userId),
+  index("idx_saved_ideas_status").on(table.status),
+]);
+
+export const insertSavedIdeaSchema = createInsertSchema(savedIdeas).omit({ id: true, createdAt: true });
+
+// ═══════════════════════════════════════════════════════════
+// Content Projects — Full creation pipeline
 // ═══════════════════════════════════════════════════════════
 
 export const contentProjects = pgTable("content_projects", {
   projectId: varchar("project_id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull(),
-  nicheId: varchar("niche_id"),
-  ideaId: varchar("idea_id"),
-  scriptId: varchar("script_id"),
-  videoStructure: jsonb("video_structure"),
+  title: text("title"),
+  hook: text("hook"),
+  format: text("format"),
+  topic: text("topic"),
+  script: jsonb("script"),
+  blueprint: jsonb("blueprint"),
   status: text("status").default("draft").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
   index("idx_content_projects_user_id").on(table.userId),
-  index("idx_content_projects_niche_id").on(table.nicheId),
   index("idx_content_projects_status").on(table.status),
 ]);
 
@@ -742,3 +765,5 @@ export type Pattern = typeof patterns.$inferSelect;
 export type InsertPattern = z.infer<typeof insertPatternSchema>;
 export type ContentProject = typeof contentProjects.$inferSelect;
 export type InsertContentProject = z.infer<typeof insertContentProjectSchema>;
+export type SavedIdea = typeof savedIdeas.$inferSelect;
+export type InsertSavedIdea = z.infer<typeof insertSavedIdeaSchema>;

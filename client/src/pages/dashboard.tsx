@@ -1,26 +1,41 @@
 import { DashboardLayout } from "@/components/layout";
 import { useLanguage } from "@/hooks/use-language";
 import { useAuth } from "@/hooks/use-auth";
-import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { TOPIC_CLUSTER_LABELS } from "@shared/schema";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import {
   Video,
-  Users,
-  Layers,
-  Grid3X3,
   Zap,
-  BarChart3,
-  Plus,
+  TrendingUp,
   Activity,
   Sparkles,
   FileText,
+  Eye,
+  Bookmark,
+  Flame,
+  ArrowUpRight,
+  Layers,
+  BarChart3,
 } from "lucide-react";
+
+interface Opportunity {
+  hook: string;
+  format: string;
+  topic: string;
+  hook_mechanism: string | null;
+  opportunity_score: number;
+  velocity: number;
+  videos_detected: number;
+  avg_engagement: number;
+  total_views: number;
+}
 
 interface RadarData {
   metrics: {
@@ -40,18 +55,57 @@ interface RadarData {
     count: string;
     avg_virality: string | null;
   }>;
+  top_videos: Array<{
+    id: string;
+    caption: string;
+    platform: string;
+    creator_name: string;
+    views: number;
+    likes: number;
+    comments: number;
+    engagement_rate: number;
+    virality_score: number;
+    topic_cluster: string;
+    structure_type: string;
+    hook_mechanism_primary: string;
+    classified_at: string;
+  }>;
+  emerging_trends: Array<{
+    topic_cluster: string;
+    hook_mechanism_primary: string;
+    structure_type: string;
+    video_count: string;
+    avg_virality: string;
+    latest_at: string;
+  }>;
+}
+
+function getOpportunityColor(score: number) {
+  if (score >= 80) return { bg: "bg-emerald-500/15", text: "text-emerald-500", border: "border-emerald-500/30" };
+  if (score >= 60) return { bg: "bg-yellow-500/15", text: "text-yellow-500", border: "border-yellow-500/30" };
+  return { bg: "bg-zinc-500/15", text: "text-zinc-400", border: "border-zinc-500/30" };
+}
+
+function getOpportunityLabel(score: number, t: any) {
+  if (score >= 80) return t.dashboard.high;
+  if (score >= 60) return t.dashboard.medium;
+  return t.dashboard.low;
+}
+
+function formatNumber(num: number): string {
+  if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(1)}M`;
+  if (num >= 1_000) return `${(num / 1_000).toFixed(1)}K`;
+  return num.toString();
 }
 
 function MetricCard({
   label,
   value,
-  subtitle,
   icon: Icon,
   testId,
 }: {
   label: string;
   value: number | string;
-  subtitle?: string;
   icon: React.ElementType;
   testId: string;
 }) {
@@ -66,9 +120,6 @@ function MetricCard({
             <p className="text-2xl font-bold text-foreground" data-testid={`${testId}-value`}>
               {value}
             </p>
-            {subtitle && (
-              <p className="text-xs text-muted-foreground">{subtitle}</p>
-            )}
           </div>
           <div className="flex-shrink-0 w-9 h-9 rounded-md bg-primary/10 flex items-center justify-center">
             <Icon className="w-4 h-4 text-primary" />
@@ -79,130 +130,285 @@ function MetricCard({
   );
 }
 
-function HooksTable({
-  hooks,
+function OpportunityCard({
+  opportunity,
+  index,
   t,
 }: {
-  hooks: RadarData["trending_hooks"];
+  opportunity: Opportunity;
+  index: number;
   t: any;
 }) {
-  if (!hooks || hooks.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-8">
-        <Zap className="w-8 h-8 text-muted-foreground/20 mb-2" />
-        <p className="text-sm text-muted-foreground">{t.dashboard.noDataDesc}</p>
-      </div>
-    );
-  }
+  const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  const colors = getOpportunityColor(opportunity.opportunity_score);
+  const label = getOpportunityLabel(opportunity.opportunity_score, t);
+
+  const saveIdeaMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("POST", "/api/ideas/save", {
+        hook: opportunity.hook,
+        format: opportunity.format,
+        topic: opportunity.topic,
+        opportunityScore: opportunity.opportunity_score,
+        velocity: opportunity.velocity,
+        videosDetected: opportunity.videos_detected,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/ideas"] });
+      toast({ title: t.dashboard.savedIdea });
+    },
+  });
+
+  const topicLabel = TOPIC_CLUSTER_LABELS[opportunity.topic] || opportunity.topic?.replace(/_/g, " ") || "—";
 
   return (
-    <div className="space-y-2">
-      {hooks.slice(0, 5).map((hook, i) => (
-        <div
-          key={i}
-          className="flex items-center justify-between gap-3 py-2 border-b border-border/50 last:border-0"
-          data-testid={`row-hook-${i}`}
-        >
-          <div className="flex items-center gap-2 min-w-0 flex-1">
-            <span className="text-xs font-mono text-muted-foreground w-5 flex-shrink-0">
-              {i + 1}.
-            </span>
-            <span className="text-sm text-foreground truncate">
-              {hook.hook_text || hook.hook_mechanism_primary?.replace(/_/g, " ") || "—"}
-            </span>
-          </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            {hook.hook_mechanism_primary && (
-              <Badge variant="outline" className="text-[10px]">
-                {hook.hook_mechanism_primary.replace(/_/g, " ")}
+    <Card data-testid={`card-opportunity-${index}`}>
+      <CardContent className="p-5 space-y-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1 space-y-2">
+            <p className="text-sm font-medium text-foreground leading-snug line-clamp-2" data-testid={`text-opportunity-hook-${index}`}>
+              {opportunity.hook || "—"}
+            </p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Badge variant="outline" className="text-[10px]" data-testid={`badge-opportunity-format-${index}`}>
+                {opportunity.format?.replace(/_/g, " ") || "—"}
               </Badge>
-            )}
-            <span className="text-xs font-mono text-muted-foreground w-8 text-right">
-              {hook.count}
+              <Badge variant="secondary" className="text-[10px]" data-testid={`badge-opportunity-topic-${index}`}>
+                {topicLabel}
+              </Badge>
+            </div>
+          </div>
+          <div className="flex-shrink-0 flex flex-col items-center gap-1">
+            <div
+              className={`w-12 h-12 rounded-md flex items-center justify-center font-bold text-lg ring-1 ${colors.bg} ${colors.text} ${colors.border}`}
+              data-testid={`score-opportunity-${index}`}
+            >
+              {opportunity.opportunity_score}
+            </div>
+            <span className={`text-[10px] font-medium ${colors.text}`}>{label}</span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1">
+            <TrendingUp className="w-3 h-3" />
+            {opportunity.velocity?.toFixed(0) || 0} {t.dashboard.velocity.toLowerCase()}
+          </span>
+          <span className="flex items-center gap-1">
+            <Video className="w-3 h-3" />
+            {opportunity.videos_detected} {t.dashboard.videosDetected}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2 pt-1 border-t border-border/50">
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex-1 text-xs"
+            onClick={() => setLocation(`/script-generator?hook=${encodeURIComponent(opportunity.hook)}&format=${encodeURIComponent(opportunity.format)}&topic=${encodeURIComponent(opportunity.topic)}`)}
+            data-testid={`button-opportunity-script-${index}`}
+          >
+            <FileText className="w-3 h-3 mr-1" />
+            {t.dashboard.createScript}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex-1 text-xs"
+            onClick={() => setLocation(`/video-builder?hook=${encodeURIComponent(opportunity.hook)}&format=${encodeURIComponent(opportunity.format)}&topic=${encodeURIComponent(opportunity.topic)}`)}
+            data-testid={`button-opportunity-video-${index}`}
+          >
+            <Video className="w-3 h-3 mr-1" />
+            {t.dashboard.createVideo}
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => saveIdeaMutation.mutate()}
+            disabled={saveIdeaMutation.isPending}
+            data-testid={`button-opportunity-save-${index}`}
+          >
+            <Bookmark className="w-4 h-4" />
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function TrendCard({
+  trend,
+  index,
+  t,
+}: {
+  trend: RadarData["emerging_trends"][0];
+  index: number;
+  t: any;
+}) {
+  const [, setLocation] = useLocation();
+  const topicLabel = TOPIC_CLUSTER_LABELS[trend.topic_cluster] || trend.topic_cluster?.replace(/_/g, " ") || "—";
+  const virality = parseFloat(trend.avg_virality) || 0;
+
+  return (
+    <Card className="hover-elevate" data-testid={`card-trend-${index}`}>
+      <CardContent className="p-5 space-y-3">
+        <div className="flex items-start justify-between gap-2">
+          <div className="space-y-2 min-w-0 flex-1">
+            <Badge variant="secondary" className="text-[10px]" data-testid={`badge-trend-topic-${index}`}>
+              {topicLabel}
+            </Badge>
+            <div className="flex items-center gap-2 flex-wrap">
+              {trend.hook_mechanism_primary && (
+                <Badge variant="outline" className="text-[10px]">
+                  {trend.hook_mechanism_primary.replace(/_/g, " ")}
+                </Badge>
+              )}
+              {trend.structure_type && (
+                <Badge variant="outline" className="text-[10px]">
+                  {trend.structure_type.replace(/_/g, " ")}
+                </Badge>
+              )}
+            </div>
+          </div>
+          <div className="flex-shrink-0 flex items-center gap-1">
+            <ArrowUpRight className="w-3.5 h-3.5 text-emerald-500" />
+            <span className="text-sm font-bold text-emerald-500" data-testid={`text-trend-virality-${index}`}>
+              {virality.toFixed(1)}
             </span>
           </div>
         </div>
-      ))}
-    </div>
+        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1">
+            <Video className="w-3 h-3" />
+            {trend.video_count} videos
+          </span>
+        </div>
+        <div className="flex items-center gap-2 pt-1 border-t border-border/50">
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex-1 text-xs"
+            onClick={() => setLocation(`/script-generator?hook=${encodeURIComponent(trend.hook_mechanism_primary || "")}&format=${encodeURIComponent(trend.structure_type || "")}&topic=${encodeURIComponent(trend.topic_cluster || "")}`)}
+            data-testid={`button-trend-script-${index}`}
+          >
+            <FileText className="w-3 h-3 mr-1" />
+            {t.dashboard.createScript}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex-1 text-xs"
+            onClick={() => setLocation(`/video-builder?hook=${encodeURIComponent(trend.hook_mechanism_primary || "")}&format=${encodeURIComponent(trend.structure_type || "")}&topic=${encodeURIComponent(trend.topic_cluster || "")}`)}
+            data-testid={`button-trend-video-${index}`}
+          >
+            <Video className="w-3 h-3 mr-1" />
+            {t.dashboard.createVideo}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
-function HooksActions() {
-  const [, setLocation] = useLocation();
-  return (
-    <div className="flex items-center gap-2 pt-2 border-t border-border/50">
-      <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => setLocation("/script-generator")} data-testid="button-hooks-create-script">
-        <FileText className="w-3 h-3 mr-1" />
-        Create Script
-      </Button>
-      <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => setLocation("/video-builder")} data-testid="button-hooks-create-video">
-        <Video className="w-3 h-3 mr-1" />
-        Create Video
-      </Button>
-    </div>
-  );
-}
-
-function FormatsTable({
-  formats,
+function VideoCard({
+  video,
+  index,
   t,
 }: {
-  formats: RadarData["trending_formats"];
+  video: RadarData["top_videos"][0];
+  index: number;
   t: any;
 }) {
-  if (!formats || formats.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-8">
-        <BarChart3 className="w-8 h-8 text-muted-foreground/20 mb-2" />
-        <p className="text-sm text-muted-foreground">{t.dashboard.noDataDesc}</p>
-      </div>
-    );
-  }
+  const [, setLocation] = useLocation();
+  const engagement = (video.engagement_rate || 0) * 100;
+  const virality = video.virality_score || 0;
 
   return (
-    <div className="space-y-2">
-      {formats.slice(0, 5).map((format, i) => (
-        <div
-          key={i}
-          className="flex items-center justify-between gap-3 py-2 border-b border-border/50 last:border-0"
-          data-testid={`row-format-${i}`}
-        >
-          <div className="flex items-center gap-2 min-w-0 flex-1">
-            <span className="text-xs font-mono text-muted-foreground w-5 flex-shrink-0">
-              {i + 1}.
-            </span>
-            <span className="text-sm text-foreground">
-              {format.structure_type?.replace(/_/g, " ") || "—"}
-            </span>
-          </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            {format.avg_virality && (
-              <Badge variant="outline" className="text-[10px]">
-                {format.avg_virality}
-              </Badge>
-            )}
-            <span className="text-xs font-mono text-muted-foreground w-8 text-right">
-              {format.count}
-            </span>
-          </div>
+    <div
+      className="flex items-start gap-3 py-3 border-b border-border/50 last:border-0"
+      data-testid={`row-video-${index}`}
+    >
+      <div className="flex-shrink-0 w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center">
+        <span className="text-xs font-bold text-primary">{index + 1}</span>
+      </div>
+      <div className="min-w-0 flex-1 space-y-1.5">
+        <p className="text-sm text-foreground leading-snug line-clamp-2" data-testid={`text-video-caption-${index}`}>
+          {video.caption || "—"}
+        </p>
+        <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
+          {video.creator_name && (
+            <span data-testid={`text-video-creator-${index}`}>@{video.creator_name}</span>
+          )}
+          {video.platform && (
+            <Badge variant="outline" className="text-[10px]">{video.platform}</Badge>
+          )}
+          <span className="flex items-center gap-1" data-testid={`text-video-views-${index}`}>
+            <Eye className="w-3 h-3" />
+            {formatNumber(video.views || 0)} {t.dashboard.views}
+          </span>
+          <span data-testid={`text-video-engagement-${index}`}>
+            {engagement.toFixed(1)}% {t.dashboard.engagement}
+          </span>
         </div>
-      ))}
+        <div className="flex items-center gap-2 flex-wrap">
+          {video.topic_cluster && (
+            <Badge variant="secondary" className="text-[10px]">
+              {TOPIC_CLUSTER_LABELS[video.topic_cluster] || video.topic_cluster.replace(/_/g, " ")}
+            </Badge>
+          )}
+          {virality > 0 && (
+            <span className="text-xs font-mono text-emerald-500" data-testid={`text-video-virality-${index}`}>
+              {virality.toFixed(1)}
+            </span>
+          )}
+        </div>
+      </div>
+      <div className="flex-shrink-0 flex flex-col gap-1">
+        <Button
+          variant="outline"
+          size="sm"
+          className="text-xs"
+          onClick={() => setLocation(`/script-generator?hook=${encodeURIComponent(video.hook_mechanism_primary || "")}&format=${encodeURIComponent(video.structure_type || "")}&topic=${encodeURIComponent(video.topic_cluster || "")}`)}
+          data-testid={`button-video-script-${index}`}
+        >
+          <FileText className="w-3 h-3 mr-1" />
+          {t.dashboard.createScript}
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="text-xs"
+          onClick={() => setLocation(`/video-builder?hook=${encodeURIComponent(video.hook_mechanism_primary || "")}&format=${encodeURIComponent(video.structure_type || "")}&topic=${encodeURIComponent(video.topic_cluster || "")}`)}
+          data-testid={`button-video-create-${index}`}
+        >
+          <Video className="w-3 h-3 mr-1" />
+          {t.dashboard.createVideo}
+        </Button>
+      </div>
     </div>
   );
 }
 
-function FormatsActions() {
-  const [, setLocation] = useLocation();
+function EmptySection({
+  icon: Icon,
+  title,
+  description,
+  testId,
+}: {
+  icon: React.ElementType;
+  title: string;
+  description: string;
+  testId: string;
+}) {
   return (
-    <div className="flex items-center gap-2 pt-2 border-t border-border/50">
-      <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => setLocation("/script-generator")} data-testid="button-formats-create-script">
-        <FileText className="w-3 h-3 mr-1" />
-        Create Script
-      </Button>
-      <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => setLocation("/video-builder")} data-testid="button-formats-create-video">
-        <Video className="w-3 h-3 mr-1" />
-        Create Video
-      </Button>
+    <div className="flex flex-col items-center justify-center py-10" data-testid={testId}>
+      <div className="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center mb-3">
+        <Icon className="w-6 h-6 text-muted-foreground/40" />
+      </div>
+      <p className="text-sm font-medium text-muted-foreground mb-1">{title}</p>
+      <p className="text-xs text-muted-foreground/70 max-w-xs text-center">{description}</p>
     </div>
   );
 }
@@ -212,23 +418,24 @@ export default function Dashboard() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
 
-  const userNiches = user?.selectedNiches || [];
-  const [activeNiche, setActiveNiche] = useState<string | null>(null);
-
-  const nicheQueryParam = activeNiche ? `?niche=${activeNiche}` : "";
-
-  const { data: radarData, isLoading } = useQuery<RadarData>({
-    queryKey: ["/api/trends/radar" + nicheQueryParam],
+  const { data: radarData, isLoading: radarLoading } = useQuery<RadarData>({
+    queryKey: ["/api/trends/radar"],
   });
 
+  const { data: opportunityData, isLoading: oppLoading } = useQuery<{ opportunities: Opportunity[] }>({
+    queryKey: ["/api/opportunities/engine"],
+  });
+
+  const isLoading = radarLoading || oppLoading;
   const metrics = radarData?.metrics;
+  const opportunities = opportunityData?.opportunities || [];
+  const trends = radarData?.emerging_trends || [];
+  const topVideos = radarData?.top_videos || [];
+
+  const highVelocityCount = topVideos.filter((v) => (v.virality_score || 0) >= 3).length;
   const patternsCount =
     (radarData?.trending_hooks?.length || 0) +
     (radarData?.trending_formats?.length || 0);
-
-  function getNicheLabel(niche: string): string {
-    return TOPIC_CLUSTER_LABELS[niche] || niche.replace(/_/g, " ");
-  }
 
   if (isLoading) {
     return (
@@ -238,16 +445,19 @@ export default function Dashboard() {
             <Skeleton className="h-8 w-48 rounded-md" />
             <Skeleton className="h-4 w-72 rounded-md" />
           </div>
-          <div className="flex gap-2">
-            <Skeleton className="h-9 w-24 rounded-md" />
-            <Skeleton className="h-9 w-24 rounded-md" />
-            <Skeleton className="h-9 w-24 rounded-md" />
-          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <Skeleton className="h-28 rounded-md" />
             <Skeleton className="h-28 rounded-md" />
             <Skeleton className="h-28 rounded-md" />
             <Skeleton className="h-28 rounded-md" />
+          </div>
+          <div className="space-y-2">
+            <Skeleton className="h-6 w-56 rounded-md" />
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              <Skeleton className="h-48 rounded-md" />
+              <Skeleton className="h-48 rounded-md" />
+              <Skeleton className="h-48 rounded-md" />
+            </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Skeleton className="h-64 rounded-md" />
@@ -260,7 +470,7 @@ export default function Dashboard() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="space-y-8">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-primary" />
@@ -273,113 +483,115 @@ export default function Dashboard() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap" data-testid="tabs-niche">
-          <Button
-            variant={activeNiche === null ? "default" : "outline"}
-            size="sm"
-            onClick={() => setActiveNiche(null)}
-            data-testid="tab-niche-all"
-          >
-            <Grid3X3 className="w-3.5 h-3.5 mr-1.5" />
-            {t.dashboard.allNiches}
-          </Button>
-
-          {userNiches.map((niche) => (
-            <Button
-              key={niche}
-              variant={activeNiche === niche ? "default" : "outline"}
-              size="sm"
-              onClick={() => setActiveNiche(niche)}
-              data-testid={`tab-niche-${niche}`}
-            >
-              {getNicheLabel(niche)}
-            </Button>
-          ))}
-
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setLocation("/settings")}
-            data-testid="button-add-niche"
-          >
-            <Plus className="w-3.5 h-3.5 mr-1" />
-            {t.dashboard.addNiche}
-          </Button>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <MetricCard
+            label={t.dashboard.videosAnalyzedToday}
+            value={metrics?.videos_today || 0}
+            icon={Video}
+            testId="card-metric-videos-today"
+          />
+          <MetricCard
+            label={t.dashboard.emergingTrends}
+            value={trends.length}
+            icon={TrendingUp}
+            testId="card-metric-trends"
+          />
+          <MetricCard
+            label={t.dashboard.highVelocityVideos}
+            value={highVelocityCount}
+            icon={Flame}
+            testId="card-metric-velocity"
+          />
+          <MetricCard
+            label={t.dashboard.newViralPatterns}
+            value={patternsCount}
+            icon={Layers}
+            testId="card-metric-patterns"
+          />
         </div>
 
-        {metrics ? (
-          <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <MetricCard
-                label={t.dashboard.videosAnalyzed}
-                value={metrics.total_videos}
-                subtitle={`+${metrics.videos_today} ${t.dashboard.videosToday.toLowerCase()}`}
-                icon={Video}
-                testId="card-metric-videos"
-              />
-              <MetricCard
-                label={t.dashboard.creatorsDetected}
-                value={metrics.creators_detected}
-                icon={Users}
-                testId="card-metric-creators"
-              />
-              <MetricCard
-                label={t.dashboard.patternsDetected}
-                value={patternsCount}
-                icon={Layers}
-                testId="card-metric-patterns"
-              />
-              <MetricCard
-                label={t.dashboard.activeNiches}
-                value={metrics.active_niches}
-                icon={Activity}
-                testId="card-metric-niches"
-              />
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Zap className="w-4 h-4 text-primary" />
+            <h2 className="text-sm font-bold uppercase tracking-widest text-primary" data-testid="text-section-opportunities">
+              {t.dashboard.viralOpportunities}
+            </h2>
+          </div>
+          {opportunities.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {opportunities.slice(0, 5).map((opp, i) => (
+                <OpportunityCard key={i} opportunity={opp} index={i} t={t} />
+              ))}
             </div>
+          ) : (
+            <Card>
+              <CardContent className="p-0">
+                <EmptySection
+                  icon={Zap}
+                  title={t.dashboard.noOpportunities}
+                  description={t.dashboard.noOpportunitiesDesc}
+                  testId="empty-opportunities"
+                />
+              </CardContent>
+            </Card>
+          )}
+        </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Card data-testid="card-top-hooks">
-                <CardContent className="p-5 space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Zap className="w-4 h-4 text-primary" />
-                    <span className="text-xs font-bold uppercase tracking-widest text-primary">
-                      {t.dashboard.topHooks}
-                    </span>
-                  </div>
-                  <HooksTable hooks={radarData?.trending_hooks || []} t={t} />
-                  <HooksActions />
-                </CardContent>
-              </Card>
-
-              <Card data-testid="card-top-formats">
-                <CardContent className="p-5 space-y-3">
-                  <div className="flex items-center gap-2">
-                    <BarChart3 className="w-4 h-4 text-primary" />
-                    <span className="text-xs font-bold uppercase tracking-widest text-primary">
-                      {t.dashboard.topFormats}
-                    </span>
-                  </div>
-                  <FormatsTable formats={radarData?.trending_formats || []} t={t} />
-                  <FormatsActions />
-                </CardContent>
-              </Card>
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-primary" />
+            <h2 className="text-sm font-bold uppercase tracking-widest text-primary" data-testid="text-section-trends">
+              {t.dashboard.fastestGrowingTrends}
+            </h2>
+          </div>
+          {trends.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {trends.slice(0, 6).map((trend, i) => (
+                <TrendCard key={i} trend={trend} index={i} t={t} />
+              ))}
             </div>
-          </>
-        ) : (
-          <Card data-testid="card-no-data">
-            <CardContent className="p-12 flex flex-col items-center text-center">
-              <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                <Activity className="w-7 h-7 text-primary/40" />
-              </div>
-              <h3 className="text-lg font-bold text-foreground mb-1" data-testid="text-no-data-title">
-                {t.dashboard.noDataTitle}
-              </h3>
-              <p className="text-sm text-muted-foreground max-w-md" data-testid="text-no-data-desc">
-                {t.dashboard.noDataDesc}
-              </p>
-            </CardContent>
-          </Card>
-        )}
+          ) : (
+            <Card>
+              <CardContent className="p-0">
+                <EmptySection
+                  icon={TrendingUp}
+                  title={t.dashboard.noTrends}
+                  description={t.dashboard.noTrendsDesc}
+                  testId="empty-trends"
+                />
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Activity className="w-4 h-4 text-primary" />
+            <h2 className="text-sm font-bold uppercase tracking-widest text-primary" data-testid="text-section-top-videos">
+              {t.dashboard.topViralVideos}
+            </h2>
+          </div>
+          {topVideos.length > 0 ? (
+            <Card>
+              <CardContent className="p-5">
+                {topVideos.slice(0, 5).map((video, i) => (
+                  <VideoCard key={video.id || i} video={video} index={i} t={t} />
+                ))}
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardContent className="p-0">
+                <EmptySection
+                  icon={BarChart3}
+                  title={t.dashboard.noVideos}
+                  description={t.dashboard.noVideosDesc}
+                  testId="empty-videos"
+                />
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </div>
     </DashboardLayout>
   );

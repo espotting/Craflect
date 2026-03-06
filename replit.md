@@ -1,7 +1,7 @@
 # Craflect - AI Content Intelligence & Creation Platform
 
 ## Overview
-Craflect est une plateforme d'intelligence et de création de contenu basée sur l'analyse de vidéos courtes (TikTok, Instagram Reels, YouTube Shorts). Vision : AI Content Operating System — découvrir les patterns viraux, générer des hooks performants, générer des scripts vidéo, créer du contenu prêt à publier.
+Craflect est une plateforme d'intelligence et de création de contenu basée sur l'analyse de vidéos courtes (TikTok, Instagram Reels, YouTube Shorts). Vision : Trend → Opportunity → Create Script → Create Video → Publish. Pipeline complète : Viral Opportunity Engine + Library unifiée + Ideas + Script Generator (IA) + Video Builder (IA) + Projects.
 
 ## User Preferences
 - Priorité au développement itératif
@@ -16,35 +16,59 @@ React + TypeScript + Tailwind CSS + shadcn/ui + Framer Motion frontend, Express/
 
 **Dual Schema (coexistence) :**
 - **Legacy tables** (frontend actuel) : `video_primitives`, `niche_patterns`, `niche_statistics`, `niche_profiles`, `workspace_intelligence` — taxonomie 4 dimensions (VP_HOOK_TYPES, FORMAT_TYPES, ANGLE_CATEGORIES, STRUCTURE_MODELS)
-- **Craflect Taxonomy v1 tables** (pipeline stable) : `videos`, `viral_patterns` — taxonomie en couches (voir section Taxonomy ci-dessous)
-- Les deux coexistent. Les tables legacy alimentent le frontend actuel. La Taxonomy v1 alimente le Pattern Engine.
+- **Craflect Taxonomy v1 tables** (pipeline stable) : `videos`, `viral_patterns`, `patterns`, `saved_ideas`, `content_projects` — taxonomie en couches
+- Les deux coexistent. Les tables legacy alimentent le frontend actuel. La Taxonomy v1 alimente le Pattern Engine et les nouvelles pages.
 
-## Dashboard V2 (Current)
+## Product Architecture (V3 — Current)
 
-**Architecture :** Sidebar + 6 pages + onboarding + dark mode Linear/Stripe/Vercel inspired
+**Navigation Sidebar :**
+- **Analyze** : Dashboard, Trend Radar, Library
+- **Create** : Ideas, Script Generator, Video Builder, Projects
+- **System** : Settings, Plan & Billing, Admin (admin-only), Intelligence (admin-only)
 
 **Pages :**
-- `/dashboard` — Hub principal, onglets multi-niches, métriques globales, top hooks/formats
-- `/trend-radar` — Daily Viral Opportunities, trending hooks, formats, top videos, **Emerging Trends**, emerging creators. Boutons Create Script/Video sur opportunities et trends.
-- `/niches` — Grille de cartes par niche, top hooks/formats/créateurs, **fastest growing videos**, **emerging patterns**. Boutons Create Script/Video sur chaque carte.
-- `/patterns` — Patterns viraux détectés, filtrable par niche, boutons Create Script/Video
-- `/creators` — Table de découverte de créateurs, triable, filtrable par niche
-- `/videos` — Browse vidéos classifiées, filtres niche/platform, pagination, **velocity** (view_velocity/h), thumbnail (quand dispo). Boutons Create Script/Video.
-
-**Sidebar (app-sidebar.tsx) :**
-- Analyze : Dashboard, Trend Radar, Niches, Patterns, Creators, Videos
-- Create : Script Generator, Video Builder
-- System : Settings, Plan & Billing, Admin (admin-only), Intelligence (admin-only)
+- `/dashboard` — Hub principal avec 4 KPIs + 3 sections : Viral Opportunities Today (max 5 cards avec Opportunity Score), Fastest Growing Trends, Top Viral Videos Today. Boutons Create Script/Video/Save Idea.
+- `/trend-radar` — 3 sections cards : Emerging Trends, Trending Hooks, Trending Formats.
+- `/library` — Explorateur unifié avec 3 onglets (Videos, Patterns, Creators). Filtres (platform, topic_cluster, hook_type, structure_type, trend_score, velocity). Infinite scroll pour Videos/Creators.
+- `/ideas` — 2 onglets : Discovered (auto-générées par Opportunity Engine) et Saved (idées sauvegardées). Cartes avec hook, format, topic, opportunity_score, velocity, videos_detected.
+- `/script-generator` — Formulaire (hook, format, topic, contexte) → Génération IA (OpenAI gpt-4.1-mini) → Script éditable (Hook, Structure, Full Script, CTA). Regenerate, Save to Project, Create Video.
+- `/video-builder` — Formulaire (hook, format, topic, script) → Génération IA → Blueprint éditable (Hook, 4 Scènes, CTA). Regenerate, Save to Project.
+- `/projects` — Liste des projets utilisateur. Filtrage par statut (draft, in_progress, completed). Détail avec script + blueprint éditables.
 
 **Composants clés :**
 - `TrendScore` — composant 0-100 avec couleurs conformes au brief : vert (emerald 75+) = Emerging, jaune (yellow 50+) = Growing, orange (25+) = Peak, gris (zinc <25) = Saturated
 - `DashboardLayout` — wrapper avec auth guard, sidebar, onboarding redirect
+- Opportunity Score colors: 80-100 High (green), 60-80 Medium (yellow), <60 Low (gray)
 
 **Onboarding (welcome.tsx) :** 4 étapes — Welcome → Select niches (max 3) → User goal → Redirect /dashboard
 
-## Craflect Taxonomy v1 (Stable)
+## New API Endpoints (V3)
 
-Structure organisée en blocs — champ `taxonomy_version` pour compatibilité future.
+**Viral Opportunity Engine :**
+- `GET /api/opportunities/engine` — Calcule Opportunity Score (0-100) à partir de virality, engagement, velocity, repetition, cross-platform. Top 5 opportunities.
+
+**Ideas API :**
+- `GET /api/ideas` — Idées sauvegardées de l'utilisateur
+- `POST /api/ideas/save` — Sauvegarder une idée
+- `POST /api/ideas/dismiss` — Rejeter une idée
+
+**AI Generation :**
+- `POST /api/generate/script` — Génération de script IA (hook, structure, script, cta)
+- `POST /api/generate/blueprint` — Génération de blueprint vidéo IA (hook, 4 scenes, cta)
+
+**Projects CRUD :**
+- `GET /api/projects` — Liste des projets
+- `POST /api/projects` — Créer un projet
+- `PATCH /api/projects/:id` — Modifier un projet
+- `DELETE /api/projects/:id` — Supprimer un projet
+
+## DB Tables
+
+**`saved_ideas`** : id, user_id, hook, format, topic, opportunity_score, velocity, videos_detected, status (saved/dismissed), created_at
+
+**`content_projects`** : project_id, user_id, title, hook, format, topic, script (JSONB), blueprint (JSONB), status (draft/in_progress/completed), created_at, updated_at
+
+## Craflect Taxonomy v1 (Stable)
 
 **25 Topic Clusters contrôlés (snake_case) :** ai_tools, ai_automation, online_business, entrepreneurship, digital_marketing, ecommerce, saas, real_estate, finance, crypto, productivity, education, tech, personal_branding, coaching, motivation, lifestyle, fitness, health, beauty, food, travel, relationships, entertainment, gaming
 
@@ -58,13 +82,9 @@ Structure organisée en blocs — champ `taxonomy_version` pour compatibilité f
 
 **Emotional Trigger :** emotion_primary, emotion_secondary
 
-**Topic Classification :** topic_category, topic_cluster, topic_subcluster
-
 **Performance Metrics :** views, likes, comments, shares
 
 **Derived Metrics :** engagement_rate, view_velocity, virality_score, trend_score_processed_at, pattern_id_ref
-
-**Pipeline :** taxonomy_version, classification_status, classified_at, classified_by, classification_started_at, classification_attempts, pattern_notes
 
 ## Twin API (External Agents)
 
@@ -72,7 +92,7 @@ Structure organisée en blocs — champ `taxonomy_version` pour compatibilité f
 
 **Endpoints Lecture :**
 - `GET /api/videos/unclassified` — vidéos pending
-- `GET /api/videos/unscored` — vidéos classifiées sans trend_score (inclut view_velocity, age_hours, niche_averages)
+- `GET /api/videos/unscored` — vidéos classifiées sans trend_score
 - `GET /api/dataset/quality` — état du dataset
 - `GET /api/insights/hooks` — stats par hook mechanism
 - `GET /api/insights/formats` — stats par format
@@ -81,19 +101,10 @@ Structure organisée en blocs — champ `taxonomy_version` pour compatibilité f
 
 **Endpoints Écriture :**
 - `POST /api/videos/ingest` — ingestion batch (max 100)
-- `POST /api/videos/classify` — classification d'une vidéo (retry logic, max 3 attempts)
-- `POST /api/trends/scores` — push trend scores (max 200, formule: view_velocity 40% + engagement 25% + views_vs_niche 20% + freshness 10% + diversity 5%)
-- `POST /api/patterns` — push patterns détectés (upsert par défaut, replace_all protégé)
-- `POST /api/trends/alerts` — push alertes (spike, emerging_pattern, new_creator, niche_shift)
-
-**Dashboard V2 Endpoints (auth required) :**
-- `GET /api/trends/radar` — métriques globales + trending
-- `GET /api/trends/opportunities` — opportunités virales pour dashboard
-- `GET /api/creators` — créateurs discovery
-- `GET /api/videos/browse` — browse vidéos paginé
-- `GET /api/patterns/browse` — patterns browse
-- `GET /api/niches/overview` — overview toutes niches
-- `PATCH /api/user/preferences` — save niches + goal + onboarding
+- `POST /api/videos/classify` — classification d'une vidéo
+- `POST /api/trends/scores` — push trend scores
+- `POST /api/patterns` — push patterns détectés
+- `POST /api/trends/alerts` — push alertes
 
 ## Technical Details
 

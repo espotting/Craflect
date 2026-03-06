@@ -11,21 +11,19 @@ import Landing from "@/pages/landing";
 import Auth from "@/pages/auth";
 import Dashboard from "@/pages/dashboard";
 import TrendRadar from "@/pages/trend-radar";
-import Niches from "@/pages/niches";
-import Patterns from "@/pages/patterns";
-import Creators from "@/pages/creators";
-import Videos from "@/pages/videos";
+import Library from "@/pages/library";
+import Ideas from "@/pages/ideas";
+import ScriptGenerator from "@/pages/script-generator";
+import VideoBuilder from "@/pages/video-builder";
+import Projects from "@/pages/projects";
 import Settings from "@/pages/settings";
 import Welcome from "@/pages/welcome";
 import Admin from "@/pages/admin";
 import Intelligence from "@/pages/intelligence";
 import Pricing from "@/pages/pricing";
-import NicheData from "@/pages/niche-data";
 import PlanBilling from "@/pages/plan-billing";
 import { TermsPage, BillingPage, PrivacyPage, CookiesPage, DpaPage, SecurityPage } from "@/pages/legal";
 import FaqPage from "@/pages/faq";
-import VideoBuilder from "@/pages/video-builder";
-import ScriptGenerator from "@/pages/script-generator";
 
 function Router() {
   return (
@@ -36,17 +34,15 @@ function Router() {
       <Route path="/welcome" component={Welcome} />
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/trend-radar" component={TrendRadar} />
-      <Route path="/niches" component={Niches} />
-      <Route path="/patterns" component={Patterns} />
-      <Route path="/creators" component={Creators} />
-      <Route path="/videos" component={Videos} />
+      <Route path="/library" component={Library} />
+      <Route path="/ideas" component={Ideas} />
+      <Route path="/script-generator" component={ScriptGenerator} />
+      <Route path="/video-builder" component={VideoBuilder} />
+      <Route path="/projects" component={Projects} />
       <Route path="/settings" component={Settings} />
       <Route path="/admin" component={Admin} />
       <Route path="/intelligence" component={Intelligence} />
-      <Route path="/niche-data" component={NicheData} />
       <Route path="/plan-billing" component={PlanBilling} />
-      <Route path="/video-builder" component={VideoBuilder} />
-      <Route path="/script-generator" component={ScriptGenerator} />
       <Route path="/terms" component={TermsPage} />
       <Route path="/billing" component={BillingPage} />
       <Route path="/privacy" component={PrivacyPage} />
