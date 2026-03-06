@@ -765,6 +765,24 @@ export const viralTemplates = pgTable("viral_templates", {
 
 export const insertViralTemplateSchema = createInsertSchema(viralTemplates).omit({ id: true, createdAt: true, usageCount: true });
 
+// ═══════════════════════════════════════════════════════════
+// Intelligence Events — AI activity feed
+// ═══════════════════════════════════════════════════════════
+
+export const intelligenceEvents = pgTable("intelligence_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  eventType: text("event_type").notNull(),
+  title: text("title").notNull(),
+  description: text("description"),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_intelligence_events_type").on(table.eventType),
+  index("idx_intelligence_events_created").on(table.createdAt),
+]);
+
+export const insertIntelligenceEventSchema = createInsertSchema(intelligenceEvents).omit({ id: true, createdAt: true });
+
 export const insertVideoSchema = createInsertSchema(videos).omit({ id: true, collectedAt: true });
 export const insertViralPatternSchema = createInsertSchema(viralPatterns).omit({ patternId: true, lastUpdated: true });
 export const insertPatternSchema = createInsertSchema(patterns).omit({ patternId: true, lastUpdated: true });
@@ -792,3 +810,5 @@ export type SavedIdea = typeof savedIdeas.$inferSelect;
 export type InsertSavedIdea = z.infer<typeof insertSavedIdeaSchema>;
 export type ViralTemplate = typeof viralTemplates.$inferSelect;
 export type InsertViralTemplate = z.infer<typeof insertViralTemplateSchema>;
+export type IntelligenceEvent = typeof intelligenceEvents.$inferSelect;
+export type InsertIntelligenceEvent = z.infer<typeof insertIntelligenceEventSchema>;

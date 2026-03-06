@@ -1,4 +1,5 @@
 import { DashboardLayout } from "@/components/layout";
+import { ContentScorecard } from "@/components/content-scorecard";
 import { useLanguage } from "@/hooks/use-language";
 import { useState, useEffect } from "react";
 import { useLocation, useSearch } from "wouter";
@@ -366,6 +367,15 @@ export default function ScriptGenerator() {
                     {t.scriptGenerator.createVideo}
                   </Button>
                 </div>
+
+                <ContentScorecard
+                  hook={editHook || hook}
+                  format={format}
+                  topic={topic}
+                  script={editScript}
+                  cta={editCta}
+                  visible={!!generatedScript}
+                />
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">

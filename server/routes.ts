@@ -1703,8 +1703,8 @@ The content should directly apply the recommendations from the insight report. W
           creator_archetype: z.string().optional(),
           creator_name: z.string().nullable().optional(),
           structure_type: z.string().nullable().optional(),
-          view_velocity: z.string().nullable().optional(),
-          engagement_rate: z.number().nullable().optional(),
+          view_velocity: z.union([z.string(), z.number()]).nullable().optional(),
+          engagement_rate: z.union([z.string(), z.number()]).nullable().optional(),
           topic_category: z.string().optional(),
           topic_cluster: z.string().optional(),
           topic_subcluster: z.string().optional(),
@@ -1781,10 +1781,16 @@ The content should directly apply the recommendations from the insight report. W
         updateData.structureType = c.structure_type;
       }
       if (c.view_velocity !== undefined && c.view_velocity !== null) {
-        updateData.viewVelocity = c.view_velocity;
+        const parsedVelocity = typeof c.view_velocity === "number" ? c.view_velocity : parseFloat(String(c.view_velocity));
+        if (!isNaN(parsedVelocity)) {
+          updateData.viewVelocity = parsedVelocity;
+        }
       }
       if (c.engagement_rate !== undefined && c.engagement_rate !== null) {
-        updateData.engagementRate = c.engagement_rate;
+        const parsedRate = typeof c.engagement_rate === "number" ? c.engagement_rate : parseFloat(String(c.engagement_rate));
+        if (!isNaN(parsedRate)) {
+          updateData.engagementRate = parsedRate;
+        }
       }
       if (c.topic_category) {
         const val = validateEnum(c.topic_category, TOPIC_CATEGORIES);
@@ -1847,6 +1853,25 @@ The content should directly apply the recommendations from the insight report. W
 
       updateData.classificationAttempts = currentAttempts;
       const updated = await storage.updateVideoClassification(input.video_id, updateData as any);
+
+      if (updated.classificationStatus === "completed") {
+        const vScore = updated.viralityScore;
+        if (vScore && vScore >= 70) {
+          emitIntelligenceEvent("VIRAL_VIDEO_DETECTED",
+            `Viral video detected`,
+            `${updated.creatorName || "Unknown creator"} — ${updated.caption?.substring(0, 80) || "No caption"}`,
+            { video_id: updated.id, virality_score: vScore, views: updated.views, platform: updated.platform, creator: updated.creatorName }
+          );
+        }
+        if (updated.creatorName && !video.creatorName) {
+          emitIntelligenceEvent("NEW_CREATOR_DETECTED",
+            `New creator detected`,
+            `${updated.creatorName} on ${updated.platform}`,
+            { creator_name: updated.creatorName, platform: updated.platform, video_id: updated.id }
+          );
+        }
+      }
+
       res.json({ success: true, video_id: updated.id, status: updated.classificationStatus });
     } catch (err: any) {
       if (err.name === "ZodError") {
@@ -1875,6 +1900,13 @@ The content should directly apply the recommendations from the insight report. W
   app.post("/api/patterns/compute", verifyClassifierApiKey, async (req: any, res) => {
     try {
       const result = await computeAndStorePatterns();
+      if (result && (result as any).patternsCreated > 0) {
+        emitIntelligenceEvent("PATTERN_DETECTED",
+          `${(result as any).patternsCreated} new patterns detected`,
+          `Pattern analysis completed`,
+          result
+        );
+      }
       res.json(result);
     } catch (err: any) {
       console.error("Pattern compute error:", err);
@@ -2819,6 +2851,56 @@ ${input.script ? `Script: ${input.script}` : ""}`;
       res.json({ success: true });
     } catch (err: any) {
       console.error("Project delete error:", err);
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
+  // ─── Intelligence Feed ───
+
+  async function emitIntelligenceEvent(eventType: string, title: string, description?: string, metadata?: any) {
+    try {
+      const { db } = await import("./db");
+      const { intelligenceEvents } = await import("@shared/schema");
+      await db.insert(intelligenceEvents).values({ eventType, title, description, metadata });
+    } catch (err) {
+      console.error("Failed to emit intelligence event:", err);
+    }
+  }
+
+  app.get("/api/intelligence/feed", isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { intelligenceEvents } = await import("@shared/schema");
+      const { desc } = await import("drizzle-orm");
+      const limit = Math.min(parseInt(req.query.limit as string) || 20, 50);
+      const events = await db.select().from(intelligenceEvents).orderBy(desc(intelligenceEvents.createdAt)).limit(limit);
+      res.json(events);
+    } catch (err: any) {
+      console.error("Intelligence feed error:", err);
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
+  app.post("/api/intelligence/events", verifyClassifierApiKey, async (req: any, res) => {
+    try {
+      const input = z.object({
+        event_type: z.string().min(1),
+        title: z.string().min(1),
+        description: z.string().optional(),
+        metadata: z.any().optional(),
+      }).parse(req.body);
+      const { db } = await import("./db");
+      const { intelligenceEvents } = await import("@shared/schema");
+      const [event] = await db.insert(intelligenceEvents).values({
+        eventType: input.event_type,
+        title: input.title,
+        description: input.description,
+        metadata: input.metadata,
+      }).returning();
+      res.status(201).json(event);
+    } catch (err: any) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
+      console.error("Intelligence event create error:", err);
       res.status(500).json({ message: "Internal Error" });
     }
   });

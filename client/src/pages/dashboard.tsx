@@ -24,6 +24,10 @@ import {
   Layers,
   BarChart3,
   Clock,
+  Radio,
+  User,
+  Target,
+  AlertTriangle,
 } from "lucide-react";
 
 interface Opportunity {
@@ -469,6 +473,18 @@ export default function Dashboard() {
     queryKey: ["/api/opportunities/engine"],
   });
 
+  const { data: feedEvents } = useQuery<Array<{
+    id: number;
+    eventType: string;
+    title: string;
+    description: string | null;
+    metadata: any;
+    createdAt: string;
+  }>>({
+    queryKey: ["/api/intelligence/feed"],
+    refetchInterval: 60000,
+  });
+
   const isLoading = radarLoading || oppLoading;
   const metrics = radarData?.metrics;
   const opportunities = opportunityData?.opportunities || [];
@@ -635,6 +651,89 @@ export default function Dashboard() {
                   title={t.dashboard.noVideos}
                   description={t.dashboard.noVideosDesc}
                   testId="empty-videos"
+                />
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Radio className="w-4 h-4 text-primary" />
+            <h2 className="text-sm font-bold uppercase tracking-widest text-primary" data-testid="text-section-intelligence-feed">
+              {t.dashboard.intelligenceFeed}
+            </h2>
+          </div>
+          {feedEvents && feedEvents.length > 0 ? (
+            <Card>
+              <CardContent className="p-5 space-y-3">
+                {feedEvents.slice(0, 10).map((event) => {
+                  const iconMap: Record<string, React.ElementType> = {
+                    VIRAL_VIDEO_DETECTED: Flame,
+                    NEW_CREATOR_DETECTED: User,
+                    PATTERN_DETECTED: Layers,
+                    TREND_ACCELERATING: TrendingUp,
+                    TREND_DECLINING: AlertTriangle,
+                    OPPORTUNITY_CREATED: Target,
+                  };
+                  const colorMap: Record<string, string> = {
+                    VIRAL_VIDEO_DETECTED: "text-orange-400",
+                    NEW_CREATOR_DETECTED: "text-blue-400",
+                    PATTERN_DETECTED: "text-violet-400",
+                    TREND_ACCELERATING: "text-emerald-400",
+                    TREND_DECLINING: "text-red-400",
+                    OPPORTUNITY_CREATED: "text-yellow-400",
+                  };
+                  const labelMap: Record<string, string> = {
+                    VIRAL_VIDEO_DETECTED: t.dashboard.eventViralVideo,
+                    NEW_CREATOR_DETECTED: t.dashboard.eventNewCreator,
+                    PATTERN_DETECTED: t.dashboard.eventPatternDetected,
+                    TREND_ACCELERATING: t.dashboard.eventTrendAccelerating,
+                    TREND_DECLINING: t.dashboard.eventTrendDeclining,
+                    OPPORTUNITY_CREATED: t.dashboard.eventOpportunity,
+                  };
+                  const EvIcon = iconMap[event.eventType] || Sparkles;
+                  const evColor = colorMap[event.eventType] || "text-primary";
+                  const evLabel = labelMap[event.eventType] || event.eventType;
+
+                  const ago = (() => {
+                    const diff = Date.now() - new Date(event.createdAt).getTime();
+                    const mins = Math.floor(diff / 60000);
+                    if (mins < 1) return t.dashboard.justNow;
+                    if (mins < 60) return t.dashboard.minutesAgo.replace("{n}", String(mins));
+                    const hours = Math.floor(mins / 60);
+                    if (hours < 24) return t.dashboard.hoursAgo.replace("{n}", String(hours));
+                    return t.dashboard.daysAgo.replace("{n}", String(Math.floor(hours / 24)));
+                  })();
+
+                  return (
+                    <div key={event.id} className="flex items-start gap-3 py-2 border-b border-border/30 last:border-0" data-testid={`feed-event-${event.id}`}>
+                      <div className={`mt-0.5 ${evColor}`}>
+                        <EvIcon className="w-4 h-4" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <Badge variant="outline" className={`text-[9px] ${evColor} border-current/30`}>{evLabel}</Badge>
+                          <span className="text-[10px] text-muted-foreground">{ago}</span>
+                        </div>
+                        <p className="text-sm font-medium text-foreground leading-snug">{event.title}</p>
+                        {event.description && (
+                          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{event.description}</p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardContent className="p-0">
+                <EmptySection
+                  icon={Radio}
+                  title={t.dashboard.noFeedEvents}
+                  description={t.dashboard.noFeedEventsDesc}
+                  testId="empty-feed"
                 />
               </CardContent>
             </Card>
