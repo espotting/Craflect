@@ -1,0 +1,108 @@
+Suite aux évolutions de l'architecture Craflect, nous allons ajouter quelques éléments pour préparer le Hook Intelligence Engine et le Viral Format Detection System.
+
+L'objectif est d'améliorer l'analyse des hooks et des formats viraux sans modifier la logique actuelle du classifier.
+
+---
+
+1. Champ dérivé hook_mechanism
+
+La classification actuelle produit déjà :
+
+hook_intelligence.hook_type
+hook_intelligence.hook_pattern
+
+Nous allons ajouter un champ dérivé simplifié :
+
+hook_mechanism
+
+Ce champ sera calculé à partir de hook_type et hook_pattern.
+
+Exemples de mapping :
+
+curiosity_gap → curiosity
+contrarian → contrarian
+question → question
+shock_statement → shock
+story_opening → story
+hook_pattern: mistake → mistake
+
+Ce champ simplifié sera utilisé pour :
+
+* le Hook Intelligence Dashboard
+* le Pattern Engine
+* les analyses de hooks par niche
+
+Le champ doit être stocké dans la table videos pour faciliter les requêtes analytiques.
+
+---
+
+2. Endpoint Hook Intelligence
+
+Créer un endpoint pour analyser les hooks par niche.
+
+Endpoint :
+
+GET /api/insights/hooks
+
+Paramètres :
+
+topic_cluster
+time_window (7d / 30d / all)
+
+Réponse attendue :
+
+* hook_mechanism
+* nombre de vidéos
+* virality_score moyen
+* top examples (3 vidéos)
+
+Objectif : alimenter le Hook Intelligence Dashboard.
+
+---
+
+3. Endpoint Viral Format Detection
+
+Créer un endpoint pour analyser les structures narratives par niche.
+
+Endpoint :
+
+GET /api/insights/formats
+
+Paramètres :
+
+topic_cluster
+time_window
+
+Réponse attendue :
+
+* structure_type
+* fréquence
+* virality_score moyen
+* top examples
+
+Objectif : alimenter le Viral Format Detection System.
+
+---
+
+4. Monitoring dataset
+
+Étendre l'endpoint existant :
+
+GET /api/dataset/quality
+
+Ajouter :
+
+distribution hook_mechanism
+distribution structure_type par topic_cluster
+
+Cela permettra de surveiller la qualité du dataset.
+
+---
+
+Ces changements préparent les futures fonctionnalités :
+
+Hook Intelligence Engine
+Viral Format Detection
+Viral Intelligence Dashboard
+
+Sans modifier le pipeline actuel d'ingestion et de classification.
