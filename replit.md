@@ -19,36 +19,47 @@ React + TypeScript + Tailwind CSS + shadcn/ui + Framer Motion frontend, Express/
 - **Craflect Taxonomy v1 tables** (pipeline stable) : `videos`, `viral_patterns`, `patterns`, `saved_ideas`, `content_projects` — taxonomie en couches
 - Les deux coexistent. Les tables legacy alimentent le frontend actuel. La Taxonomy v1 alimente le Pattern Engine et les nouvelles pages.
 
-## Product Architecture (V3 — Current)
+## Product Architecture (V4 — Phase 1 Refonte UX)
 
-**Navigation Sidebar :**
-- **Analyze** : Dashboard, Trend Radar, Library
-- **Create** : Ideas, Script Generator, Video Builder, Projects, Viral Templates, Content Remix, Predicted Views
-- **System** : Settings, Plan & Billing, Admin (admin-only), Intelligence (admin-only)
+**Navigation Sidebar (5 sections) :**
+- **HOME** → `/dashboard` (LayoutDashboard) — Creator Dashboard avec animated empty states
+- **DISCOVER** → `/discover` (Compass) — Fusion Trend Radar + Library, 5 onglets
+- **CREATE** → `/create` (Sparkles) — Wizard 4 étapes fusionnant Ideas/Script/Video/Predicted
+- **WORKSPACE** → `/workspace` (FolderKanban) — Fusion Projects + Ideas + Templates
+- **SYSTEM** : Settings, Plan & Billing, Admin (admin-only), Intelligence (admin-only)
 
 **Pages :**
-- `/dashboard` — Hub principal avec 4 KPIs + 3 sections : Viral Opportunities Today (max 5 cards avec Opportunity Score), Fastest Growing Trends, Top Viral Videos Today. Boutons Create Script/Video/Save Idea.
-- `/trend-radar` — 3 sections cards : Emerging Trends, Trending Hooks, Trending Formats.
-- `/library` — Explorateur unifié avec 3 onglets (Videos, Patterns, Creators). Filtres (platform, topic_cluster, hook_type, structure_type, trend_score, velocity). Infinite scroll pour Videos/Creators.
-- `/ideas` — 2 onglets : Discovered (auto-générées par Opportunity Engine) et Saved (idées sauvegardées). Cartes avec hook, format, topic, opportunity_score, velocity, videos_detected.
-- `/script-generator` — Formulaire (hook, format, topic, contexte) → Génération IA (OpenAI gpt-4.1-mini) → Script éditable (Hook, Structure, Full Script, CTA). Regenerate, Save to Project, Create Video.
-- `/video-builder` — Formulaire (hook, format, topic, script) → Génération IA → Blueprint éditable (Hook, 4 Scènes, CTA). Regenerate, Save to Project.
-- `/projects` — Liste des projets utilisateur. Filtrage par statut (draft, in_progress, completed). Détail avec script + blueprint éditables.
-- `/viral-templates` — Templates auto-générés depuis patterns viraux (topic_cluster + hook_mechanism + structure_type). Bouton "Generate from Patterns". Admin peut créer manuellement. "Use Template" redirige vers Script Generator pré-rempli.
-- `/remix-engine` — Content Remix Engine MVP. Coller un contenu texte → IA retourne analyse, hook amélioré, script optimisé, structure suggérée, blueprint vidéo, liste d'améliorations.
-- `/predicted-views` — Prédiction de vues virales. Formulaire (hook, format, topic, script) → Probabilité virale (%) + fourchette de vues prédites. Bouton "Improve Score" → suggestions IA (hook/format/CTA améliorés + tips).
+- `/dashboard` — Hub principal avec AnimatedEmptyState quand no data, 4 KPIs, Viral Opportunities, Trends, Top Videos, Intelligence Feed
+- `/discover` — 5 onglets : Videos (infinite scroll, filtres), Trends, Hooks, Formats, Creators (infinite scroll)
+- `/create` — Wizard 4 steps : Choose Source (Opportunity/Idea/Remix) → Generate Script → Video Blueprint → Predicted Views. Autosave project on script generation.
+- `/workspace` — 3 onglets : Projects, Saved Ideas, Templates
+- `/settings` — Profile, Notifications, Security tabs
+- `/plan-billing` — Stripe billing management
+
+**Redirections (anciennes routes) :**
+- `/trend-radar` → `/discover`
+- `/library` → `/discover`
+- `/ideas` → `/workspace`
+- `/script-generator` → `/create`
+- `/video-builder` → `/create`
+- `/projects` → `/workspace`
+- `/viral-templates` → `/workspace`
+- `/remix-engine` → `/create`
+- `/predicted-views` → `/create`
 
 **Composants clés :**
-- `TrendScore` — composant 0-100 avec couleurs conformes au brief : vert (emerald 75+) = Emerging, jaune (yellow 50+) = Growing, orange (25+) = Peak, gris (zinc <25) = Saturated
+- `AnimatedEmptyState` — Messages rotatifs ("AI scanning videos...", "Detecting viral patterns...", etc.)
+- `ContentScorecard` — Scorecard réutilisable avec Viral Score, Predicted Views, Hook Strength, Pattern Match, Trend Strength
+- `TrendScore` — composant 0-100 avec couleurs conformes
 - `DashboardLayout` — wrapper avec auth guard, sidebar, onboarding redirect
-- Opportunity Score colors: 80-100 High (green), 60-80 Medium (yellow), <60 Low (gray)
+- Opportunity Score colors: violet (80-100 High), orange (60-80 Medium), jaune (<60 Low)
 
 **Onboarding (welcome.tsx) :** 4 étapes — Welcome → Select niches (max 3) → User goal → Redirect /dashboard
 
-## New API Endpoints (V3)
+## API Endpoints
 
 **Viral Opportunity Engine :**
-- `GET /api/opportunities/engine` — Calcule Opportunity Score (0-100) à partir de virality, engagement, velocity, repetition, cross-platform. Top 5 opportunities.
+- `GET /api/opportunities/engine` — Calcule Opportunity Score (0-100). Top 5 opportunities.
 
 **Ideas API :**
 - `GET /api/ideas` — Idées sauvegardées de l'utilisateur
@@ -59,19 +70,23 @@ React + TypeScript + Tailwind CSS + shadcn/ui + Framer Motion frontend, Express/
 - `POST /api/generate/script` — Génération de script IA (hook, hook_variations[3], structure, script, cta)
 - `POST /api/generate/blueprint` — Génération de blueprint vidéo IA (hook, 4 scenes, cta)
 
+**Intelligence Feed :**
+- `GET /api/intelligence/feed` — Événements intelligence récents (authentifié)
+- `POST /api/intelligence/events` — Push événement (Twin API key)
+
 **Viral Templates :**
 - `GET /api/templates` — Liste des templates
-- `POST /api/templates/generate` — Auto-génère templates depuis patterns vidéo
+- `POST /api/templates/generate` — Auto-génère templates
 - `POST /api/templates` — Créer un template (admin only)
-- `DELETE /api/templates/:id` — Supprimer un template (admin only)
+- `DELETE /api/templates/:id` — Supprimer un template
 - `POST /api/templates/:id/use` — Incrémenter usage_count
 
 **Content Remix :**
-- `POST /api/remix` — Analyse + optimise contenu texte via IA (analysis, improved_hook, optimized_script, structure_suggestion, blueprint, improvements)
+- `POST /api/remix` — Analyse + optimise contenu texte via IA
 
 **Predicted Views :**
-- `POST /api/predict/views` — Prédit probabilité virale + fourchette de vues (basé sur stats DB + heuristiques)
-- `POST /api/predict/improve` — Suggestions IA pour améliorer le score (improved_hook, improved_format, improved_cta, tips)
+- `POST /api/predict/views` — Prédit probabilité virale + fourchette de vues
+- `POST /api/predict/improve` — Suggestions IA pour améliorer le score
 
 **Projects CRUD :**
 - `GET /api/projects` — Liste des projets
@@ -81,33 +96,21 @@ React + TypeScript + Tailwind CSS + shadcn/ui + Framer Motion frontend, Express/
 
 ## DB Tables
 
+**`videos`** : id, platform, platform_video_id, video_url, thumbnail_url, caption, transcript, hashtags, duration_seconds, duration_bucket, creator_name, creator_id, creator_niche, published_at, collected_at, updated_at, hook intelligence fields, narrative structure fields, visual language fields, emotional trigger fields, topic classification (3 levels), performance metrics, derived metrics, classification pipeline fields
+
 **`saved_ideas`** : id, user_id, hook, format, topic, opportunity_score, velocity, videos_detected, status (saved/dismissed), created_at
 
 **`content_projects`** : project_id, user_id, title, hook, format, topic, script (JSONB), blueprint (JSONB), status (draft/in_progress/completed), created_at, updated_at
 
 **`viral_templates`** : id, title, description, topic_cluster, hook_mechanism, structure_type, hook_template, scene_structure (JSONB), source (auto/manual), usage_count, created_at
 
-## Craflect Taxonomy v1 (Stable)
-
-**25 Topic Clusters contrôlés (snake_case) :** ai_tools, ai_automation, online_business, entrepreneurship, digital_marketing, ecommerce, saas, real_estate, finance, crypto, productivity, education, tech, personal_branding, coaching, motivation, lifestyle, fitness, health, beauty, food, travel, relationships, entertainment, gaming
-
-**Video Metadata :** id, platform, platform_video_id, video_url, caption, transcript, hashtags, duration_seconds, duration_bucket, creator_name, creator_id, creator_niche, published_at, collected_at, updated_at
-
-**Hook Intelligence :** hook_type, hook_pattern, hook_text, hook_duration, hook_position, hook_mechanism_primary
-
-**Narrative Structure :** structure_type, beats_count, reveal_time, demo_presence, proof_presence, cta_type
-
-**Visual Language :** facecam, screen_recording, broll_usage, text_overlay_density, cut_frequency, visual_switch_rate
-
-**Emotional Trigger :** emotion_primary, emotion_secondary
-
-**Performance Metrics :** views, likes, comments, shares
-
-**Derived Metrics :** engagement_rate, view_velocity, virality_score, trend_score_processed_at, pattern_id_ref
+**`intelligence_events`** : id, event_type, title, description, metadata (JSONB), created_at
 
 ## Twin API (External Agents)
 
 **Auth :** Header `x-api-key` vérifié contre `CLASSIFIER_API_KEY`. Rate limit 100 req/min.
+
+**Champs classify :** `view_velocity` et `engagement_rate` acceptent string ou number (valeurs non-numériques ignorées). `thumbnail_url` accepté pour les miniatures vidéo.
 
 **Endpoints Lecture :**
 - `GET /api/videos/unclassified` — vidéos pending
@@ -120,10 +123,12 @@ React + TypeScript + Tailwind CSS + shadcn/ui + Framer Motion frontend, Express/
 
 **Endpoints Écriture :**
 - `POST /api/videos/ingest` — ingestion batch (max 100)
-- `POST /api/videos/classify` — classification d'une vidéo
+- `POST /api/videos/classify` — classification d'une vidéo (thumbnail_url, view_velocity, engagement_rate supportés)
+- `POST /api/videos/reset-incomplete` — reset vidéos incomplètes
 - `POST /api/trends/scores` — push trend scores
 - `POST /api/patterns` — push patterns détectés
-- `POST /api/trends/alerts` — push alertes
+- `POST /api/patterns/compute` — compute patterns (émet PATTERN_DETECTED)
+- `POST /api/intelligence/events` — push intelligence events
 
 ## Technical Details
 
@@ -131,6 +136,8 @@ React + TypeScript + Tailwind CSS + shadcn/ui + Framer Motion frontend, Express/
 - **Stripe Billing:** Plans Starter €29, Pro €69, Studio €199
 - **i18n:** EN/FR via useLanguage hook
 - **Pattern Engine v1:** Analyse combinatoire multi-dimensions, min 1000 vidéos
+- **niche = topic_cluster** (25 slugs snake_case). `TOPIC_CLUSTER_LABELS` pour labels lisibles.
+- **isAdmin check frontend:** `(user as any)?.isAdmin === true`
 
 ## Accounts
 - **Demo:** demo@craflect.com / Demo1234! (id: c06b737b)

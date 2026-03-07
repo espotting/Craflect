@@ -1,8 +1,8 @@
 import { 
   LayoutDashboard, 
-  Radar, 
-  BookOpen,
-  Lightbulb,
+  Compass,
+  Sparkles,
+  FolderKanban,
   Settings, 
   LogOut,
   Sun,
@@ -10,12 +10,6 @@ import {
   Shield,
   Brain,
   CreditCard,
-  FileText,
-  Video,
-  FolderKanban,
-  LayoutTemplate,
-  Repeat,
-  TrendingUp,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import {
@@ -44,23 +38,14 @@ export function AppSidebar() {
   const { theme, toggleTheme, isDark } = useTheme();
   const { t } = useLanguage();
 
-  const analyzeItems = [
-    { title: t.sidebar.dashboard, url: "/dashboard", icon: LayoutDashboard },
-    { title: t.sidebar.trendRadar, url: "/trend-radar", icon: Radar },
-    { title: t.sidebar.library, url: "/library", icon: BookOpen },
+  const mainItems = [
+    { title: t.sidebar.home, url: "/dashboard", icon: LayoutDashboard },
+    { title: t.sidebar.discover, url: "/discover", icon: Compass },
+    { title: t.sidebar.create, url: "/create", icon: Sparkles },
+    { title: t.sidebar.workspace, url: "/workspace", icon: FolderKanban },
   ];
 
-  const createItems = [
-    { title: t.sidebar.ideas, url: "/ideas", icon: Lightbulb },
-    { title: t.sidebar.scriptGenerator, url: "/script-generator", icon: FileText },
-    { title: t.sidebar.videoBuilder, url: "/video-builder", icon: Video },
-    { title: t.sidebar.projects, url: "/projects", icon: FolderKanban },
-    { title: t.sidebar.viralTemplates, url: "/viral-templates", icon: LayoutTemplate },
-    { title: t.sidebar.remixEngine, url: "/remix-engine", icon: Repeat },
-    { title: t.sidebar.predictedViews, url: "/predicted-views", icon: TrendingUp },
-  ];
-
-  const secondaryItems = [
+  const systemItems = [
     { title: t.sidebar.settings, url: "/settings", icon: Settings },
     { title: t.sidebar.planBilling, url: "/plan-billing", icon: CreditCard },
   ];
@@ -86,41 +71,10 @@ export function AppSidebar() {
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="text-muted-foreground uppercase tracking-wider text-xs font-semibold mb-2">
-            {t.sidebar.analyze}
-          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {analyzeItems.map((item) => {
-                const isActive = location === item.url;
-                return (
-                  <SidebarMenuItem key={item.url}>
-                    <SidebarMenuButton 
-                      asChild 
-                      isActive={isActive}
-                      className={isActive ? "bg-primary/10 text-primary" : "text-muted-foreground"}
-                      onClick={() => setLocation(item.url)}
-                    >
-                      <button className="flex items-center gap-3 w-full" data-testid={`nav-${item.url.replace("/", "")}`}>
-                        <item.icon className={`w-4 h-4 ${isActive ? 'text-primary' : ''}`} />
-                        <span className="font-medium">{item.title}</span>
-                      </button>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-muted-foreground uppercase tracking-wider text-xs font-semibold mb-2">
-            {t.sidebar.create}
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {createItems.map((item) => {
-                const isActive = location === item.url;
+              {mainItems.map((item) => {
+                const isActive = location === item.url || (item.url === "/dashboard" && location === "/");
                 return (
                   <SidebarMenuItem key={item.url}>
                     <SidebarMenuButton 
@@ -169,7 +123,7 @@ export function AppSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {user?.isAdmin && (
+              {(user as any)?.isAdmin === true && (
                 <SidebarMenuItem>
                   <SidebarMenuButton 
                     asChild 
@@ -184,7 +138,7 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               )}
-              {user?.isAdmin && (
+              {(user as any)?.isAdmin === true && (
                 <SidebarMenuItem>
                   <SidebarMenuButton 
                     asChild 
@@ -199,7 +153,7 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               )}
-              {secondaryItems.map((item) => {
+              {systemItems.map((item) => {
                 const isActive = location === item.url;
                 return (
                   <SidebarMenuItem key={item.url}>

@@ -539,6 +539,7 @@ export const videos = pgTable("videos", {
   platform: text("platform"),
   platformVideoId: text("platform_video_id").unique(),
   videoUrl: text("video_url"),
+  thumbnailUrl: text("thumbnail_url"),
   caption: text("caption"),
   transcript: text("transcript"),
   hashtags: text("hashtags").array(),

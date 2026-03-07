@@ -29,6 +29,7 @@ import {
   Target,
   AlertTriangle,
 } from "lucide-react";
+import { AnimatedEmptyState } from "@/components/animated-empty-state";
 
 interface Opportunity {
   hook: string;
@@ -522,6 +523,33 @@ export default function Dashboard() {
             <Skeleton className="h-64 rounded-md" />
             <Skeleton className="h-64 rounded-md" />
           </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  const hasNoData = !metrics?.total_videos && opportunities.length === 0 && topVideos.length === 0 && trends.length === 0;
+
+  if (hasNoData && !(feedEvents && feedEvents.length > 0)) {
+    return (
+      <DashboardLayout>
+        <div className="space-y-8">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-primary" />
+              <h1 className="text-xl font-bold text-foreground" data-testid="text-dashboard-title">
+                {t.dashboard.title}
+              </h1>
+            </div>
+            <p className="text-sm text-muted-foreground" data-testid="text-dashboard-subtitle">
+              {t.dashboard.subtitle}
+            </p>
+          </div>
+          <Card>
+            <CardContent className="p-0">
+              <AnimatedEmptyState />
+            </CardContent>
+          </Card>
         </div>
       </DashboardLayout>
     );

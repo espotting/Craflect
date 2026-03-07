@@ -1702,6 +1702,7 @@ The content should directly apply the recommendations from the insight report. W
           content_pace: z.string().optional(),
           creator_archetype: z.string().optional(),
           creator_name: z.string().nullable().optional(),
+          thumbnail_url: z.string().nullable().optional(),
           structure_type: z.string().nullable().optional(),
           view_velocity: z.union([z.string(), z.number()]).nullable().optional(),
           engagement_rate: z.union([z.string(), z.number()]).nullable().optional(),
@@ -1776,6 +1777,9 @@ The content should directly apply the recommendations from the insight report. W
       }
       if (c.creator_name !== undefined && c.creator_name !== null) {
         updateData.creatorName = c.creator_name;
+      }
+      if (c.thumbnail_url !== undefined && c.thumbnail_url !== null) {
+        updateData.thumbnailUrl = c.thumbnail_url;
       }
       if (c.structure_type !== undefined && c.structure_type !== null) {
         updateData.structureType = c.structure_type;
