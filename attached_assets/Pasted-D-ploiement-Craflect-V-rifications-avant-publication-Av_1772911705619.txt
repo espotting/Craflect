@@ -1,0 +1,90 @@
+Déploiement Craflect — Vérifications avant publication
+
+Avant de lancer le déploiement, j’ai besoin de confirmer quelques points techniques concernant le pipeline et l’infrastructure.
+
+1 — Scheduler / Jobs automatiques
+
+Actuellement plusieurs processus doivent tourner régulièrement :
+
+* ingestion des vidéos
+* classification
+* calcul des trend scores
+* exécution du Pattern Engine
+
+Questions :
+
+• Est-ce que ces jobs tournent via un scheduler interne dans Replit ?
+• Est-ce que Replit supporte ces jobs après le déploiement ?
+• Ou bien faut-il configurer un cron / worker externe ?
+
+Je veux être sûr que ces processus continueront à tourner automatiquement en production.
+
+2 — Processus actifs après deploy
+
+Après le bouton "Publish", est-ce que :
+
+* le serveur API
+* les jobs planifiés
+* les workers
+
+restent actifs en permanence ?
+
+Ou bien est-ce que l’application peut s’endormir (sleep) comme certains environnements serverless ?
+
+3 — Architecture API
+
+Aujourd’hui l’API semble exposée via :
+
+/api/*
+
+Est-ce que l’architecture suivante est correcte après deploy ?
+
+Frontend :
+https://craflect.com
+
+API :
+https://craflect.com/api/*
+
+Ou recommandez-vous de séparer :
+
+https://craflect.com
+https://api.craflect.com
+
+4 — Variables d’environnement
+
+Pouvez-vous confirmer que les variables suivantes seront bien présentes en production :
+
+* DATABASE_URL
+* CLASSIFIER_API_KEY
+* JWT_SECRET
+* autres secrets nécessaires
+
+5 — Base de données
+
+Vous avez indiqué que la base PostgreSQL dev = production.
+
+Pouvez-vous confirmer que :
+
+* aucune migration n’est nécessaire
+* toutes les données actuelles seront disponibles après deploy
+
+6 — Endpoints production
+
+Merci de confirmer que les routes suivantes fonctionneront après deploy :
+
+POST /api/videos/ingest
+PATCH /api/videos/:id/classify
+POST /api/patterns
+GET /api/trends/radar
+GET /api/dashboard
+GET /api/admin/founder
+
+Objectif
+
+Avant de connecter les agents Twin à l’API de production, je veux m’assurer que :
+
+* le pipeline tourne automatiquement
+* les jobs ne s’arrêtent pas
+* l’API reste disponible en permanence.
+
+Une fois ces points confirmés, je lancerai le déploiement.
