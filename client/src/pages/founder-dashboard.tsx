@@ -19,7 +19,6 @@ import {
   DollarSign,
   CreditCard,
   TrendingUp,
-  Percent,
   Hourglass,
   ArrowUpRight,
   Video,
@@ -31,10 +30,14 @@ import {
   Award,
   Server,
   CheckCircle,
-  AlertTriangle,
   Cpu,
   Bell,
   Crown,
+  AlertTriangle,
+  CalendarDays,
+  Gauge,
+  Download,
+  CheckSquare,
 } from "lucide-react";
 import {
   BarChart,
@@ -54,6 +57,8 @@ interface FounderMetrics {
     new_users_7d: number;
     active_users_24h: number;
     active_users_7d: number;
+    monthly_active_users: number;
+    dau_mau_ratio: number;
     returning_users_rate: number;
   };
   usage: {
@@ -66,16 +71,20 @@ interface FounderMetrics {
   revenue: {
     active_subscriptions: number;
     mrr: number;
+    mrr_growth_30d: number;
     arpu: number;
     active_trials: number;
     trial_to_paid_conversion_rate: number;
   };
   engine: {
     total_videos_analysed: number;
+    videos_ingested_today: number;
+    videos_classified_today: number;
     total_patterns_detected: number;
     patterns_score_above_70: number;
     pattern_reuse_rate: number;
     cross_platform_pattern_rate: number;
+    cross_platform_patterns_count: number;
     rising_patterns_count: number;
     average_pattern_score: number;
   };
@@ -89,6 +98,7 @@ interface FounderMetrics {
     videos_over_time: Array<{ date: string; count: number }>;
     patterns_over_time: Array<{ date: string; count: number }>;
     pattern_reuse_over_time: Array<{ date: string; rate: number }>;
+    cross_platform_over_time: Array<{ date: string; count: number }>;
   };
 }
 
@@ -164,17 +174,29 @@ function SectionHeader({
 }
 
 function formatPercent(val: number): string {
+  if (val == null || isNaN(val)) return "0%";
   return `${(val * 100).toFixed(1)}%`;
 }
 
 function formatCurrency(val: number): string {
-  return `$${val.toFixed(0)}`;
+  if (val == null || isNaN(val)) return "€0";
+  return `€${val.toFixed(0)}`;
 }
 
 function formatDuration(minutes: number): string {
+  if (minutes == null || isNaN(minutes)) return "0m";
   if (minutes < 1) return `${Math.round(minutes * 60)}s`;
   return `${minutes.toFixed(0)}m`;
 }
+
+const tooltipStyle = {
+  background: "hsl(var(--card))",
+  border: "1px solid hsl(var(--border))",
+  borderRadius: "6px",
+  fontSize: "12px",
+};
+
+const axisTick = { fontSize: 10, fill: "hsl(var(--muted-foreground))" };
 
 export default function FounderDashboard() {
   const { t } = useLanguage();
@@ -213,7 +235,7 @@ export default function FounderDashboard() {
 
         {isLoading ? (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {Array.from({ length: 8 }).map((_, i) => (
+            {Array.from({ length: 12 }).map((_, i) => (
               <Skeleton key={i} className="h-24 rounded-md" />
             ))}
           </div>
@@ -221,11 +243,13 @@ export default function FounderDashboard() {
           <>
             <section>
               <SectionHeader title={ft.sectionUsers} color="blue" testId="text-section-users" />
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
                 <ColoredMetricCard label={ft.totalUsers} value={data.users.total_users} icon={Users} color="blue" testId="metric-total-users" />
                 <ColoredMetricCard label={ft.newUsers7d} value={data.users.new_users_7d} icon={UserPlus} color="blue" testId="metric-new-users" />
                 <ColoredMetricCard label={ft.activeUsers24h} value={data.users.active_users_24h} icon={Activity} color="blue" testId="metric-active-24h" />
                 <ColoredMetricCard label={ft.activeUsers7d} value={data.users.active_users_7d} icon={Activity} color="blue" testId="metric-active-7d" />
+                <ColoredMetricCard label={ft.mau} value={data.users.monthly_active_users} icon={CalendarDays} color="blue" testId="metric-mau" />
+                <ColoredMetricCard label={ft.dauMauRatio} value={formatPercent(data.users.dau_mau_ratio)} icon={Gauge} color="blue" testId="metric-dau-mau" />
                 <ColoredMetricCard label={ft.returningRate} value={formatPercent(data.users.returning_users_rate)} icon={RefreshCw} color="blue" testId="metric-returning-rate" />
               </div>
             </section>
@@ -243,9 +267,10 @@ export default function FounderDashboard() {
 
             <section>
               <SectionHeader title={ft.sectionRevenue} color="violet" testId="text-section-revenue" />
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
                 <ColoredMetricCard label={ft.activeSubscriptions} value={data.revenue.active_subscriptions} icon={CreditCard} color="violet" testId="metric-active-subs" />
                 <ColoredMetricCard label={ft.mrr} value={formatCurrency(data.revenue.mrr)} icon={DollarSign} color="violet" testId="metric-mrr" />
+                <ColoredMetricCard label={ft.mrrGrowth30d} value={formatPercent(data.revenue.mrr_growth_30d)} icon={TrendingUp} color="violet" testId="metric-mrr-growth" />
                 <ColoredMetricCard label={ft.arpu} value={formatCurrency(data.revenue.arpu)} icon={TrendingUp} color="violet" testId="metric-arpu" />
                 <ColoredMetricCard label={ft.activeTrials} value={data.revenue.active_trials} icon={Hourglass} color="violet" testId="metric-active-trials" />
                 <ColoredMetricCard label={ft.trialConversion} value={formatPercent(data.revenue.trial_to_paid_conversion_rate)} icon={ArrowUpRight} color="violet" testId="metric-trial-conversion" />
@@ -254,12 +279,15 @@ export default function FounderDashboard() {
 
             <section>
               <SectionHeader title={ft.sectionEngine} color="orange" testId="text-section-engine" />
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
                 <ColoredMetricCard label={ft.totalVideosAnalysed} value={data.engine.total_videos_analysed} icon={Video} color="orange" testId="metric-total-videos" />
+                <ColoredMetricCard label={ft.videosIngestedToday} value={data.engine.videos_ingested_today} icon={Download} color="orange" testId="metric-ingested-today" />
+                <ColoredMetricCard label={ft.videosClassifiedToday} value={data.engine.videos_classified_today} icon={CheckSquare} color="orange" testId="metric-classified-today" />
                 <ColoredMetricCard label={ft.totalPatterns} value={data.engine.total_patterns_detected} icon={Sparkles} color="orange" testId="metric-total-patterns" />
                 <ColoredMetricCard label={ft.patternsAbove70} value={data.engine.patterns_score_above_70} icon={Target} color="orange" testId="metric-patterns-70" />
                 <ColoredMetricCard label={ft.patternReuseRate} value={formatPercent(data.engine.pattern_reuse_rate)} icon={Repeat} color="orange" testId="metric-reuse-rate" />
                 <ColoredMetricCard label={ft.crossPlatformRate} value={formatPercent(data.engine.cross_platform_pattern_rate)} icon={Globe} color="orange" testId="metric-cross-platform" />
+                <ColoredMetricCard label={ft.crossPlatformCount} value={data.engine.cross_platform_patterns_count} icon={Globe} color="orange" testId="metric-cross-platform-count" />
                 <ColoredMetricCard label={ft.risingPatterns} value={data.engine.rising_patterns_count} icon={Flame} color="orange" testId="metric-rising-patterns" />
                 <ColoredMetricCard label={ft.avgPatternScore} value={data.engine.average_pattern_score.toFixed(1)} icon={Award} color="orange" testId="metric-avg-pattern-score" />
               </div>
@@ -275,102 +303,86 @@ export default function FounderDashboard() {
               </div>
             </section>
 
-            <section className="space-y-6">
-              <SectionHeader title={ft.charts} color="blue" testId="text-section-charts" />
+            <section className="space-y-4">
+              <SectionHeader title={ft.engineIntelligence} color="orange" testId="text-section-engine-intelligence" />
 
-              <Card data-testid="chart-dataset-growth">
-                <CardContent className="p-5">
-                  <h3 className="text-sm font-bold text-foreground mb-4" data-testid="text-chart-dataset-title">
-                    {ft.datasetGrowth}
-                  </h3>
-                  <div className="h-48">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={data.charts.videos_over_time}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                        <XAxis
-                          dataKey="date"
-                          tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                          tickFormatter={(v) => v.slice(5)}
-                        />
-                        <YAxis tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} />
-                        <Tooltip
-                          contentStyle={{
-                            background: "hsl(var(--card))",
-                            border: "1px solid hsl(var(--border))",
-                            borderRadius: "6px",
-                            fontSize: "12px",
-                          }}
-                        />
-                        <Bar dataKey="count" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <Card data-testid="chart-dataset-growth">
+                  <CardContent className="p-5">
+                    <h3 className="text-sm font-bold text-foreground mb-4" data-testid="text-chart-dataset-title">
+                      {ft.datasetGrowth}
+                    </h3>
+                    <div className="h-48">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={data.charts.videos_over_time}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                          <XAxis dataKey="date" tick={axisTick} tickFormatter={(v) => v.slice(5)} />
+                          <YAxis tick={axisTick} />
+                          <Tooltip contentStyle={tooltipStyle} />
+                          <Bar dataKey="count" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
 
-              <Card data-testid="chart-pattern-intelligence">
-                <CardContent className="p-5">
-                  <h3 className="text-sm font-bold text-foreground mb-4" data-testid="text-chart-patterns-title">
-                    {ft.patternGrowth}
-                  </h3>
-                  <div className="h-48">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={data.charts.patterns_over_time}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                        <XAxis
-                          dataKey="date"
-                          tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                          tickFormatter={(v) => v.slice(5)}
-                        />
-                        <YAxis tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} />
-                        <Tooltip
-                          contentStyle={{
-                            background: "hsl(var(--card))",
-                            border: "1px solid hsl(var(--border))",
-                            borderRadius: "6px",
-                            fontSize: "12px",
-                          }}
-                        />
-                        <Bar dataKey="count" fill="hsl(var(--chart-2))" radius={[3, 3, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
+                <Card data-testid="chart-pattern-intelligence">
+                  <CardContent className="p-5">
+                    <h3 className="text-sm font-bold text-foreground mb-4" data-testid="text-chart-patterns-title">
+                      {ft.patternGrowth}
+                    </h3>
+                    <div className="h-48">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={data.charts.patterns_over_time}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                          <XAxis dataKey="date" tick={axisTick} tickFormatter={(v) => v.slice(5)} />
+                          <YAxis tick={axisTick} />
+                          <Tooltip contentStyle={tooltipStyle} />
+                          <Bar dataKey="count" fill="hsl(var(--chart-2))" radius={[3, 3, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
 
-              <Card data-testid="chart-pattern-reuse">
-                <CardContent className="p-5">
-                  <h3 className="text-sm font-bold text-foreground mb-4" data-testid="text-chart-reuse-title">
-                    {ft.patternReuseOverTime}
-                  </h3>
-                  <div className="h-48">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={data.charts.pattern_reuse_over_time}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                        <XAxis
-                          dataKey="date"
-                          tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                          tickFormatter={(v) => v.slice(5)}
-                        />
-                        <YAxis
-                          tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                          tickFormatter={(v) => `${(v * 100).toFixed(0)}%`}
-                        />
-                        <Tooltip
-                          contentStyle={{
-                            background: "hsl(var(--card))",
-                            border: "1px solid hsl(var(--border))",
-                            borderRadius: "6px",
-                            fontSize: "12px",
-                          }}
-                          formatter={(value: number) => [`${(value * 100).toFixed(1)}%`, "Reuse Rate"]}
-                        />
-                        <Line type="monotone" dataKey="rate" stroke="hsl(var(--chart-4))" strokeWidth={2} dot={false} />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
+                <Card data-testid="chart-pattern-reuse">
+                  <CardContent className="p-5">
+                    <h3 className="text-sm font-bold text-foreground mb-4" data-testid="text-chart-reuse-title">
+                      {ft.patternReuseOverTime}
+                    </h3>
+                    <div className="h-48">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={data.charts.pattern_reuse_over_time}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                          <XAxis dataKey="date" tick={axisTick} tickFormatter={(v) => v.slice(5)} />
+                          <YAxis tick={axisTick} tickFormatter={(v) => `${(v * 100).toFixed(0)}%`} />
+                          <Tooltip contentStyle={tooltipStyle} formatter={(value: number) => [`${(value * 100).toFixed(1)}%`, "Reuse Rate"]} />
+                          <Line type="monotone" dataKey="rate" stroke="hsl(var(--chart-4))" strokeWidth={2} dot={false} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card data-testid="chart-cross-platform">
+                  <CardContent className="p-5">
+                    <h3 className="text-sm font-bold text-foreground mb-4" data-testid="text-chart-crossplatform-title">
+                      {ft.crossPlatformGrowth}
+                    </h3>
+                    <div className="h-48">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={data.charts.cross_platform_over_time}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                          <XAxis dataKey="date" tick={axisTick} tickFormatter={(v) => v.slice(5)} />
+                          <YAxis tick={axisTick} />
+                          <Tooltip contentStyle={tooltipStyle} />
+                          <Bar dataKey="count" fill="hsl(var(--chart-3))" radius={[3, 3, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </section>
           </>
         ) : (

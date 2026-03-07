@@ -696,7 +696,7 @@ The content should directly apply the recommendations from the insight report. W
         videosCompleted, videosFailed, videosPending, videosIngestedToday, videosClassifiedToday,
         patternsTotal, patternsAbove70, patternsRising, patternsCrossPlatform, patternsAvgScore,
         intelEventsToday, intelPatternRuns,
-        videosOverTime, patternsOverTime
+        videosOverTime, patternsOverTime, crossPlatformOverTime
       ] = await Promise.all([
         db.execute(sql`SELECT COUNT(*) as v FROM users`),
         db.execute(sql`SELECT COUNT(*) as v FROM users WHERE created_at >= NOW() - INTERVAL '7 days'`),
@@ -742,6 +742,16 @@ The content should directly apply the recommendations from the insight report. W
           ) c ON d.day::date = c.day
           ORDER BY d.day
         `),
+        db.execute(sql`
+          SELECT d.day::date as date, COALESCE(c.cnt, 0) as count
+          FROM generate_series(NOW() - INTERVAL '30 days', NOW(), '1 day') d(day)
+          LEFT JOIN (
+            SELECT DATE(last_updated) as day, COUNT(*) as cnt
+            FROM patterns WHERE platform IS NOT NULL AND platform != '' AND last_updated >= NOW() - INTERVAL '30 days'
+            GROUP BY DATE(last_updated)
+          ) c ON d.day::date = c.day
+          ORDER BY d.day
+        `),
       ]);
 
       const v = (r: any) => parseInt((r.rows[0] as any)?.v || '0');
@@ -778,6 +788,7 @@ The content should directly apply the recommendations from the insight report. W
 
       const chartVideos = videosOverTime.rows.map((r: any) => ({ date: r.date, count: parseInt(r.count) }));
       const chartPatterns = patternsOverTime.rows.map((r: any) => ({ date: r.date, count: parseInt(r.count) }));
+      const chartCrossPlatform = crossPlatformOverTime.rows.map((r: any) => ({ date: r.date, count: parseInt(r.count) }));
 
       let cumulativeReuse = 0;
       const chartReuse = chartPatterns.map((p: any, i: number) => {
@@ -832,6 +843,7 @@ The content should directly apply the recommendations from the insight report. W
           videos_over_time: chartVideos,
           patterns_over_time: chartPatterns,
           pattern_reuse_over_time: chartReuse,
+          cross_platform_over_time: chartCrossPlatform,
         },
       });
     } catch (err: any) {

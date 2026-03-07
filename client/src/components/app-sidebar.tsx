@@ -11,6 +11,8 @@ import {
   Brain,
   CreditCard,
   Crown,
+  ScrollText,
+  Wrench,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import {
@@ -155,19 +157,47 @@ export function AppSidebar() {
                 </SidebarMenuItem>
               )}
               {(user as any)?.isAdmin === true && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton 
-                    asChild 
-                    isActive={location === "/system/founder"}
-                    className={location === "/system/founder" ? "bg-primary/10 text-primary" : "text-muted-foreground"}
-                    onClick={() => setLocation("/system/founder")}
-                  >
-                    <button className="flex items-center gap-3 w-full" data-testid="nav-founder">
-                      <Crown className="w-4 h-4" />
-                      <span className="font-medium">{t.sidebar.founderDashboard}</span>
-                    </button>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+                <>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton 
+                      asChild 
+                      isActive={location === "/system/founder"}
+                      className={location === "/system/founder" ? "bg-primary/10 text-primary" : "text-muted-foreground"}
+                      onClick={() => setLocation("/system/founder")}
+                    >
+                      <button className="flex items-center gap-3 w-full" data-testid="nav-founder">
+                        <Crown className="w-4 h-4" />
+                        <span className="font-medium">{t.sidebar.founderDashboard}</span>
+                      </button>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton 
+                      asChild 
+                      isActive={location === "/system/logs"}
+                      className={location === "/system/logs" ? "bg-primary/10 text-primary" : "text-muted-foreground"}
+                      onClick={() => setLocation("/system/logs")}
+                    >
+                      <button className="flex items-center gap-3 w-full" data-testid="nav-logs">
+                        <ScrollText className="w-4 h-4" />
+                        <span className="font-medium">{t.sidebar.logs}</span>
+                      </button>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton 
+                      asChild 
+                      isActive={location === "/system/settings"}
+                      className={location === "/system/settings" ? "bg-primary/10 text-primary" : "text-muted-foreground"}
+                      onClick={() => setLocation("/system/settings")}
+                    >
+                      <button className="flex items-center gap-3 w-full" data-testid="nav-system-settings">
+                        <Wrench className="w-4 h-4" />
+                        <span className="font-medium">{t.sidebar.systemSettings}</span>
+                      </button>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </>
               )}
               {systemItems.map((item) => {
                 const isActive = location === item.url;

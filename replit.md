@@ -145,9 +145,12 @@ React + TypeScript + Tailwind CSS + shadcn/ui + Framer Motion frontend, Express/
 
 ## Founder Dashboard (admin only)
 - Route: `/system/founder` — métriques internes SaaS + moteur
+- Route: `/system/logs` — logs système (placeholder)
+- Route: `/system/settings` — paramètres système (placeholder)
 - Endpoint: `GET /api/admin/founder` — retourne users, usage, revenue, engine, system_health, charts
-- 5 sections : Users (blue), Usage (green), Revenue (violet), Engine (orange), System Health (gray)
-- 3 graphiques recharts 30 jours : Dataset Growth, Pattern Intelligence Growth, Pattern Reuse Rate
+- 5 sections métriques : Users (7 cartes, blue), Usage (5, green), Revenue (6, violet), Engine (10, orange), System Health (4, gray)
+- Section "Engine Intelligence" : 4 graphiques recharts 30j en grille 2x2 (Dataset Growth, Pattern Intelligence Growth, Pattern Reuse Rate, Cross-Platform Pattern Growth)
+- Sidebar SYSTEM : 3 liens admin-only (Founder Dashboard, Logs, Settings)
 
 ## Phase 3 — Shareable Insights (À IMPLÉMENTER PLUS TARD)
 **Route publique** : `/insight/{id}` — accessible SANS authentification
