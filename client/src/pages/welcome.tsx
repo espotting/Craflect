@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import {
@@ -56,6 +56,8 @@ export default function Welcome() {
     });
   };
 
+  const [onboardingSaved, setOnboardingSaved] = useState(false);
+
   const handleComplete = async (goal: string) => {
     setUserGoal(goal);
     setIsSubmitting(true);
@@ -65,19 +67,34 @@ export default function Welcome() {
         userGoal: goal,
         onboardingCompleted: true,
       });
-    } catch {
+      setOnboardingSaved(true);
+      await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      setStep(3);
+    } catch (err) {
+      console.error("Onboarding save failed:", err);
+      try {
+        await apiRequest("PATCH", "/api/user/preferences", {
+          onboardingCompleted: true,
+        });
+        setOnboardingSaved(true);
+      } catch {
+        setOnboardingSaved(true);
+      }
+      await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      setStep(3);
     } finally {
       setIsSubmitting(false);
-      setStep(3);
     }
   };
 
+  const { user } = useAuth();
+
   useEffect(() => {
-    if (step === 3) {
+    if (step === 3 && (user?.onboardingCompleted || onboardingSaved)) {
       const timer = setTimeout(() => setLocation("/home"), 2000);
       return () => clearTimeout(timer);
     }
-  }, [step, setLocation]);
+  }, [step, setLocation, user?.onboardingCompleted, onboardingSaved]);
 
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-white relative flex flex-col items-center justify-center px-4 overflow-hidden">
