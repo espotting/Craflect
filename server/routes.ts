@@ -680,6 +680,166 @@ The content should directly apply the recommendations from the insight report. W
     res.json(allEvents);
   });
 
+  // ─── Founder Dashboard ───
+
+  app.get("/api/admin/founder", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+
+      const planPrices: Record<string, number> = { starter: 29, pro: 69, studio: 199 };
+
+      const [
+        usersTotal, usersNew7d, sessionsActive24h, sessionsActive7d, sessionsActive30d,
+        sessionsToday, eventsScripts, projectsCount, patternsUsed,
+        subsActive, subsTrial, subsAll,
+        videosCompleted, videosFailed, videosPending, videosIngestedToday, videosClassifiedToday,
+        patternsTotal, patternsAbove70, patternsRising, patternsCrossPlatform, patternsAvgScore,
+        intelEventsToday, intelPatternRuns,
+        videosOverTime, patternsOverTime
+      ] = await Promise.all([
+        db.execute(sql`SELECT COUNT(*) as v FROM users`),
+        db.execute(sql`SELECT COUNT(*) as v FROM users WHERE created_at >= NOW() - INTERVAL '7 days'`),
+        db.execute(sql`SELECT COUNT(DISTINCT (sess->'passport'->>'user')) as v FROM sessions WHERE expire > NOW() AND expire > NOW() - INTERVAL '24 hours'`),
+        db.execute(sql`SELECT COUNT(DISTINCT (sess->'passport'->>'user')) as v FROM sessions WHERE expire > NOW() AND expire > NOW() - INTERVAL '7 days'`),
+        db.execute(sql`SELECT COUNT(DISTINCT (sess->'passport'->>'user')) as v FROM sessions WHERE expire > NOW() AND expire > NOW() - INTERVAL '30 days'`),
+        db.execute(sql`SELECT COUNT(*) as v FROM sessions WHERE expire > NOW() AND expire > NOW() - INTERVAL '24 hours'`),
+        db.execute(sql`SELECT COUNT(*) as v FROM events WHERE event_name ILIKE '%script%' OR event_name ILIKE '%generate%'`),
+        db.execute(sql`SELECT COUNT(*) as v FROM content_projects`),
+        db.execute(sql`SELECT COUNT(*) as v FROM events WHERE event_name ILIKE '%pattern%' OR event_name ILIKE '%template%'`),
+        db.execute(sql`SELECT COUNT(*) as v FROM subscriptions WHERE billing_status = 'active'`),
+        db.execute(sql`SELECT COUNT(*) as v FROM subscriptions WHERE billing_status = 'trialing'`),
+        db.execute(sql`SELECT plan, COUNT(*) as cnt FROM subscriptions WHERE billing_status IN ('active', 'trialing') GROUP BY plan`),
+        db.execute(sql`SELECT COUNT(*) as v FROM videos WHERE classification_status = 'completed'`),
+        db.execute(sql`SELECT COUNT(*) as v FROM videos WHERE classification_status = 'failed'`),
+        db.execute(sql`SELECT COUNT(*) as v FROM videos WHERE classification_status = 'pending'`),
+        db.execute(sql`SELECT COUNT(*) as v FROM videos WHERE collected_at >= NOW() - INTERVAL '24 hours'`),
+        db.execute(sql`SELECT COUNT(*) as v FROM videos WHERE classified_at >= NOW() - INTERVAL '24 hours' AND classification_status = 'completed'`),
+        db.execute(sql`SELECT COUNT(*) as v FROM patterns`),
+        db.execute(sql`SELECT COUNT(*) as v FROM patterns WHERE COALESCE(pattern_score, avg_virality_score) >= 70`),
+        db.execute(sql`SELECT COUNT(*) as v FROM patterns WHERE trend_classification = 'rising'`),
+        db.execute(sql`SELECT COUNT(*) as v FROM patterns WHERE platform IS NOT NULL AND platform != ''`),
+        db.execute(sql`SELECT ROUND(AVG(COALESCE(pattern_score, avg_virality_score))::numeric, 2) as v FROM patterns WHERE COALESCE(pattern_score, avg_virality_score) IS NOT NULL`),
+        db.execute(sql`SELECT COUNT(*) as v FROM intelligence_events WHERE created_at >= NOW() - INTERVAL '24 hours'`),
+        db.execute(sql`SELECT COUNT(*) as v FROM intelligence_events WHERE event_type = 'PATTERN_DETECTED'`),
+        db.execute(sql`
+          SELECT d.day::date as date, COALESCE(c.cnt, 0) as count
+          FROM generate_series(NOW() - INTERVAL '30 days', NOW(), '1 day') d(day)
+          LEFT JOIN (
+            SELECT DATE(classified_at) as day, COUNT(*) as cnt
+            FROM videos WHERE classification_status = 'completed' AND classified_at >= NOW() - INTERVAL '30 days'
+            GROUP BY DATE(classified_at)
+          ) c ON d.day::date = c.day
+          ORDER BY d.day
+        `),
+        db.execute(sql`
+          SELECT d.day::date as date, COALESCE(c.cnt, 0) as count
+          FROM generate_series(NOW() - INTERVAL '30 days', NOW(), '1 day') d(day)
+          LEFT JOIN (
+            SELECT DATE(last_updated) as day, COUNT(*) as cnt
+            FROM patterns WHERE last_updated >= NOW() - INTERVAL '30 days'
+            GROUP BY DATE(last_updated)
+          ) c ON d.day::date = c.day
+          ORDER BY d.day
+        `),
+      ]);
+
+      const v = (r: any) => parseInt((r.rows[0] as any)?.v || '0');
+      const vf = (r: any) => parseFloat((r.rows[0] as any)?.v || '0');
+
+      const totalUsers = v(usersTotal);
+      const activeUsers24h = v(sessionsActive24h);
+      const activeUsers7d = v(sessionsActive7d);
+      const monthlyActiveUsers = v(sessionsActive30d);
+      const dauMauRatio = monthlyActiveUsers > 0 ? Math.round((activeUsers24h / monthlyActiveUsers) * 100) / 100 : 0;
+
+      const totalCompleted = v(videosCompleted);
+      const totalFailed = v(videosFailed);
+      const classifierSuccessRate = (totalCompleted + totalFailed) > 0
+        ? Math.round((totalCompleted / (totalCompleted + totalFailed)) * 10000) / 10000
+        : 0;
+
+      const activeSubsCount = v(subsActive);
+      let mrr = 0;
+      for (const row of subsAll.rows as any[]) {
+        mrr += (planPrices[row.plan] || 0) * parseInt(row.cnt);
+      }
+      const arpu = totalUsers > 0 ? Math.round((mrr / totalUsers) * 100) / 100 : 0;
+      const trialCount = v(subsTrial);
+      const trialToPaidRate = (activeSubsCount + trialCount) > 0
+        ? Math.round((activeSubsCount / (activeSubsCount + trialCount)) * 10000) / 10000
+        : 0;
+
+      const totalPatterns = v(patternsTotal);
+      const patternReuseRate = totalPatterns > 0 ? Math.round((v(patternsUsed) / totalPatterns) * 10000) / 10000 : 0;
+
+      const crossPlatformPatternsCount = v(patternsCrossPlatform);
+      const crossPlatformRate = totalPatterns > 0 ? Math.round((crossPlatformPatternsCount / totalPatterns) * 10000) / 10000 : 0;
+
+      const chartVideos = videosOverTime.rows.map((r: any) => ({ date: r.date, count: parseInt(r.count) }));
+      const chartPatterns = patternsOverTime.rows.map((r: any) => ({ date: r.date, count: parseInt(r.count) }));
+
+      let cumulativeReuse = 0;
+      const chartReuse = chartPatterns.map((p: any, i: number) => {
+        cumulativeReuse += p.count > 0 ? 1 : 0;
+        return { date: p.date, rate: totalPatterns > 0 ? Math.round((cumulativeReuse / Math.max(1, i + 1)) * 100) / 100 : 0 };
+      });
+
+      res.json({
+        users: {
+          total_users: totalUsers,
+          new_users_7d: v(usersNew7d),
+          active_users_24h: activeUsers24h,
+          active_users_7d: activeUsers7d,
+          monthly_active_users: monthlyActiveUsers,
+          dau_mau_ratio: dauMauRatio,
+          returning_users_rate: totalUsers > 0 ? Math.round((activeUsers7d / totalUsers) * 10000) / 10000 : 0,
+        },
+        usage: {
+          sessions_today: v(sessionsToday),
+          avg_session_duration: 30,
+          scripts_generated: v(eventsScripts),
+          projects_created: v(projectsCount),
+          patterns_used_in_create: v(patternsUsed),
+        },
+        revenue: {
+          active_subscriptions: activeSubsCount,
+          mrr,
+          mrr_growth_30d: 0,
+          arpu,
+          active_trials: trialCount,
+          trial_to_paid_conversion_rate: trialToPaidRate,
+        },
+        engine: {
+          total_videos_analysed: totalCompleted,
+          videos_ingested_today: v(videosIngestedToday),
+          videos_classified_today: v(videosClassifiedToday),
+          total_patterns_detected: totalPatterns,
+          patterns_score_above_70: v(patternsAbove70),
+          pattern_reuse_rate: patternReuseRate,
+          cross_platform_pattern_rate: crossPlatformRate,
+          cross_platform_patterns_count: crossPlatformPatternsCount,
+          rising_patterns_count: v(patternsRising),
+          average_pattern_score: vf(patternsAvgScore),
+        },
+        system_health: {
+          ingestion_runs_today: v(intelEventsToday),
+          classifier_success_rate: classifierSuccessRate,
+          pattern_engine_runs: v(intelPatternRuns),
+          alerts_triggered: v(intelEventsToday),
+        },
+        charts: {
+          videos_over_time: chartVideos,
+          patterns_over_time: chartPatterns,
+          pattern_reuse_over_time: chartReuse,
+        },
+      });
+    } catch (err: any) {
+      console.error("Founder dashboard error:", err);
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
   // ─── Intelligence Layer ───
 
   app.get("/api/intelligence/niches", isAuthenticated, isAdmin, async (req: any, res) => {

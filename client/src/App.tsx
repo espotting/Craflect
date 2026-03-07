@@ -17,6 +17,7 @@ import Settings from "@/pages/settings";
 import Welcome from "@/pages/welcome";
 import Admin from "@/pages/admin";
 import Intelligence from "@/pages/intelligence";
+import FounderDashboard from "@/pages/founder-dashboard";
 import Pricing from "@/pages/pricing";
 import PlanBilling from "@/pages/plan-billing";
 import { TermsPage, BillingPage, PrivacyPage, CookiesPage, DpaPage, SecurityPage } from "@/pages/legal";
@@ -36,6 +37,7 @@ function Router() {
       <Route path="/settings" component={Settings} />
       <Route path="/admin" component={Admin} />
       <Route path="/intelligence" component={Intelligence} />
+      <Route path="/system/founder" component={FounderDashboard} />
       <Route path="/plan-billing" component={PlanBilling} />
 
       <Route path="/trend-radar">{() => <Redirect to="/discover" />}</Route>

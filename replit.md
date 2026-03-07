@@ -60,6 +60,7 @@ React + TypeScript + Tailwind CSS + shadcn/ui + Framer Motion frontend, Express/
 
 **Dashboard Aggregated :**
 - `GET /api/dashboard` — Single call retournant trending_videos, daily_viral_play, top_patterns, top_hooks, top_formats, alerts
+- `GET /api/admin/founder` — Founder Dashboard métriques (admin only) : users, usage, revenue, engine, system_health, charts
 
 **Viral Opportunity Engine :**
 - `GET /api/opportunities/engine` — Calcule Opportunity Score (0-100). Top 5 opportunities.
@@ -141,6 +142,27 @@ React + TypeScript + Tailwind CSS + shadcn/ui + Framer Motion frontend, Express/
 - **Pattern Engine v1:** Analyse combinatoire multi-dimensions, min 1000 vidéos
 - **niche = topic_cluster** (25 slugs snake_case). `TOPIC_CLUSTER_LABELS` pour labels lisibles.
 - **isAdmin check frontend:** `(user as any)?.isAdmin === true`
+
+## Founder Dashboard (admin only)
+- Route: `/system/founder` — métriques internes SaaS + moteur
+- Endpoint: `GET /api/admin/founder` — retourne users, usage, revenue, engine, system_health, charts
+- 5 sections : Users (blue), Usage (green), Revenue (violet), Engine (orange), System Health (gray)
+- 3 graphiques recharts 30 jours : Dataset Growth, Pattern Intelligence Growth, Pattern Reuse Rate
+
+## Phase 3 — Shareable Insights (À IMPLÉMENTER PLUS TARD)
+**Route publique** : `/insight/{id}` — accessible SANS authentification
+**Contenu affiché** :
+- hook
+- pattern_score
+- trend_classification (badge rising/stable/declining)
+- format_type
+- topic_cluster
+- total_views_analyzed
+- Section "Why this trend matters" — explication basée sur frequency, virality score, cross-platform presence
+- CTA "Create with this pattern" → `/create?hook=...&format=...&topic=...`
+**Partage** : Share X (Twitter) + Share LinkedIn
+**Export visuel** : PNG + SVG (design optimisé pour partage social)
+**Objectif** : Partage viral des insights pour acquisition organique. À lancer après accumulation suffisante de patterns et signaux de tendance.
 
 ## Accounts
 - **Demo:** demo@craflect.com / Demo1234! (id: c06b737b)
