@@ -2049,9 +2049,7 @@ The content should directly apply the recommendations from the insight report. W
         return res.status(404).json({ message: "Video not found" });
       }
 
-      if (video.classificationStatus === "completed") {
-        return res.status(409).json({ message: "Video already classified" });
-      }
+      const isReclassification = video.classificationStatus === "completed";
 
       const c = input.classification;
       const updateData: Record<string, unknown> = {};
@@ -2160,7 +2158,7 @@ The content should directly apply the recommendations from the insight report. W
       if (derivedPrimary) updateData.hookMechanismPrimary = derivedPrimary;
 
       const MAX_CLASSIFICATION_ATTEMPTS = 3;
-      const currentAttempts = (video.classificationAttempts || 0) + 1;
+      const currentAttempts = isReclassification ? 1 : (video.classificationAttempts || 0) + 1;
 
       if (!updateData.topicCluster) {
         if (currentAttempts >= MAX_CLASSIFICATION_ATTEMPTS) {
