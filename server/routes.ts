@@ -696,7 +696,8 @@ The content should directly apply the recommendations from the insight report. W
         videosCompleted, videosFailed, videosPending, videosIngestedToday, videosClassifiedToday,
         patternsTotal, patternsAbove70, patternsRising, patternsCrossPlatform, patternsAvgScore,
         intelEventsToday, intelPatternRuns,
-        videosOverTime, patternsOverTime, crossPlatformOverTime
+        videosOverTime, patternsOverTime, crossPlatformOverTime,
+        videosTotal, creatorsKnown, creatorsUnknown, avgViewVelocity
       ] = await Promise.all([
         db.execute(sql`SELECT COUNT(*) as v FROM users`),
         db.execute(sql`SELECT COUNT(*) as v FROM users WHERE created_at >= NOW() - INTERVAL '7 days'`),
@@ -752,6 +753,10 @@ The content should directly apply the recommendations from the insight report. W
           ) c ON d.day::date = c.day
           ORDER BY d.day
         `),
+        db.execute(sql`SELECT COUNT(*) as v FROM videos`),
+        db.execute(sql`SELECT COUNT(*) as v FROM videos WHERE classification_status = 'completed' AND creator_name IS NOT NULL AND creator_name != 'unknown' AND creator_name != ''`),
+        db.execute(sql`SELECT COUNT(*) as v FROM videos WHERE classification_status = 'completed' AND (creator_name IS NULL OR creator_name = 'unknown' OR creator_name = '')`),
+        db.execute(sql`SELECT ROUND(AVG(view_velocity)::numeric, 2) as v FROM videos WHERE classification_status = 'completed' AND view_velocity IS NOT NULL`),
       ]);
 
       const v = (r: any) => parseInt((r.rows[0] as any)?.v || '0');
@@ -832,6 +837,15 @@ The content should directly apply the recommendations from the insight report. W
           cross_platform_patterns_count: crossPlatformPatternsCount,
           rising_patterns_count: v(patternsRising),
           average_pattern_score: vf(patternsAvgScore),
+        },
+        dataset_health: {
+          total_videos: v(videosTotal),
+          classified_videos: totalCompleted,
+          pending_videos: v(videosPending),
+          failed_videos: totalFailed,
+          creator_coverage: totalCompleted > 0 ? Math.round((v(creatorsKnown) / totalCompleted) * 10000) / 10000 : 0,
+          unknown_creators: totalCompleted > 0 ? Math.round((v(creatorsUnknown) / totalCompleted) * 10000) / 10000 : 0,
+          avg_view_velocity: vf(avgViewVelocity),
         },
         system_health: {
           ingestion_runs_today: v(intelEventsToday),

@@ -88,6 +88,15 @@ interface FounderMetrics {
     rising_patterns_count: number;
     average_pattern_score: number;
   };
+  dataset_health: {
+    total_videos: number;
+    classified_videos: number;
+    pending_videos: number;
+    failed_videos: number;
+    creator_coverage: number;
+    unknown_creators: number;
+    avg_view_velocity: number;
+  };
   system_health: {
     ingestion_runs_today: number;
     classifier_success_rate: number;
@@ -290,6 +299,19 @@ export default function FounderDashboard() {
                 <ColoredMetricCard label={ft.crossPlatformCount} value={data.engine.cross_platform_patterns_count} icon={Globe} color="orange" testId="metric-cross-platform-count" />
                 <ColoredMetricCard label={ft.risingPatterns} value={data.engine.rising_patterns_count} icon={Flame} color="orange" testId="metric-rising-patterns" />
                 <ColoredMetricCard label={ft.avgPatternScore} value={data.engine.average_pattern_score.toFixed(1)} icon={Award} color="orange" testId="metric-avg-pattern-score" />
+              </div>
+            </section>
+
+            <section>
+              <SectionHeader title="Dataset Health" color="green" testId="text-section-dataset-health" />
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3">
+                <ColoredMetricCard label="Total Videos" value={data.dataset_health.total_videos} icon={Video} color="green" testId="metric-ds-total-videos" />
+                <ColoredMetricCard label="Classified" value={data.dataset_health.classified_videos} icon={CheckCircle} color="green" testId="metric-ds-classified" />
+                <ColoredMetricCard label="Pending" value={data.dataset_health.pending_videos} icon={Clock} color="green" testId="metric-ds-pending" />
+                <ColoredMetricCard label="Failed" value={data.dataset_health.failed_videos} icon={AlertTriangle} color="green" testId="metric-ds-failed" />
+                <ColoredMetricCard label="Creator Coverage" value={formatPercent(data.dataset_health.creator_coverage)} icon={Users} color="green" testId="metric-ds-creator-coverage" />
+                <ColoredMetricCard label="Unknown Creators" value={formatPercent(data.dataset_health.unknown_creators)} icon={Users} color="orange" testId="metric-ds-unknown-creators" />
+                <ColoredMetricCard label="Avg View Velocity" value={data.dataset_health.avg_view_velocity.toFixed(0)} icon={TrendingUp} color="green" testId="metric-ds-avg-velocity" />
               </div>
             </section>
 

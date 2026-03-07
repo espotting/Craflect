@@ -186,6 +186,8 @@ export const creators = pgTable("creators", {
   viewsGrowth: doublePrecision("views_growth"),
   viralVideos: integer("viral_videos"),
   niche: text("niche"),
+  seedScore: doublePrecision("seed_score"),
+  discoveredFromCreator: varchar("discovered_from_creator"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
