@@ -74,7 +74,7 @@ export default function Welcome() {
 
   useEffect(() => {
     if (step === 3) {
-      const timer = setTimeout(() => setLocation("/dashboard"), 2000);
+      const timer = setTimeout(() => setLocation("/home"), 2000);
       return () => clearTimeout(timer);
     }
   }, [step, setLocation]);

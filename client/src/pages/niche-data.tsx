@@ -111,7 +111,7 @@ export default function NicheData() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => setLocation("/dashboard")}
+            onClick={() => setLocation("/home")}
             data-testid="button-back-dashboard"
           >
             <ArrowLeft className="w-5 h-5" />
@@ -236,7 +236,7 @@ export default function NicheData() {
             <div className="flex justify-start">
               <Button
                 variant="outline"
-                onClick={() => setLocation("/dashboard")}
+                onClick={() => setLocation("/home")}
                 data-testid="button-back-to-dashboard"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />

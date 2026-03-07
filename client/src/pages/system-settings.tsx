@@ -13,7 +13,7 @@ export default function SystemSettings() {
 
   useEffect(() => {
     if (!authLoading && !(user as any)?.isAdmin) {
-      setLocation("/dashboard");
+      setLocation("/home");
     }
   }, [authLoading, user, setLocation]);
 

@@ -16,7 +16,7 @@ export default function Admin() {
 
   useEffect(() => {
     if (user && !user.isAdmin) {
-      setLocation("/dashboard");
+      setLocation("/home");
     }
   }, [user, setLocation]);
 

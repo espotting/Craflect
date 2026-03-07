@@ -42,7 +42,7 @@ export function AppSidebar() {
   const { t } = useLanguage();
 
   const mainItems = [
-    { title: t.sidebar.home, url: "/dashboard", icon: LayoutDashboard },
+    { title: t.sidebar.home, url: "/home", icon: LayoutDashboard },
     { title: t.sidebar.discover, url: "/discover", icon: Compass },
     { title: t.sidebar.create, url: "/create", icon: Sparkles },
     { title: t.sidebar.workspace, url: "/workspace", icon: FolderKanban },
@@ -77,7 +77,7 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {mainItems.map((item) => {
-                const isActive = location === item.url || (item.url === "/dashboard" && location === "/");
+                const isActive = location === item.url || (item.url === "/home" && location === "/");
                 return (
                   <SidebarMenuItem key={item.url}>
                     <SidebarMenuButton 

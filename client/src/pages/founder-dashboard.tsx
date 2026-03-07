@@ -205,7 +205,7 @@ export default function FounderDashboard() {
 
   useEffect(() => {
     if (!authLoading && !(user as any)?.isAdmin) {
-      setLocation("/dashboard");
+      setLocation("/home");
     }
   }, [authLoading, user, setLocation]);
 

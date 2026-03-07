@@ -57,7 +57,7 @@ export default function Pricing() {
   const { t } = useLanguage();
 
   const handleCta = () => {
-    setLocation(isAuthenticated ? "/dashboard" : "/auth");
+    setLocation(isAuthenticated ? "/home" : "/auth");
   };
 
   const plans = [
@@ -187,7 +187,7 @@ export default function Pricing() {
           {isAuthenticated && (
             <Button
               className="rounded-full px-6 bg-primary hover:bg-primary/90 text-white font-medium"
-              onClick={() => setLocation("/dashboard")}
+              onClick={() => setLocation("/home")}
               data-testid="button-dashboard-pricing"
             >
               {t.sidebar.dashboard}

@@ -32,7 +32,8 @@ function Router() {
       <Route path="/auth" component={Auth} />
       <Route path="/pricing" component={Pricing} />
       <Route path="/welcome" component={Welcome} />
-      <Route path="/dashboard" component={Dashboard} />
+      <Route path="/home" component={Dashboard} />
+      <Route path="/dashboard">{() => <Redirect to="/home" />}</Route>
       <Route path="/discover" component={Discover} />
       <Route path="/create" component={Create} />
       <Route path="/workspace" component={Workspace} />

@@ -61,7 +61,7 @@ export default function Auth() {
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
-      setLocation((user as any)?.isAdmin ? "/system/founder" : "/dashboard");
+      setLocation((user as any)?.isAdmin ? "/system/founder" : "/home");
     }
   }, [isLoading, isAuthenticated, user, setLocation]);
 
@@ -109,7 +109,7 @@ export default function Auth() {
       } else {
         await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
         toast({ title: t.auth.toasts.welcomeBack, description: t.auth.toasts.signedIn });
-        setLocation(data.user?.isAdmin ? "/system/founder" : "/dashboard");
+        setLocation(data.user?.isAdmin ? "/system/founder" : "/home");
       }
     } catch (err: any) {
       toast({ title: t.common.error, description: err.message || t.auth.toasts.loginFailed, variant: "destructive" });
@@ -126,7 +126,7 @@ export default function Auth() {
       await apiRequest("POST", "/api/auth/verify", { email, code });
       await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       toast({ title: t.auth.toasts.welcome, description: isLoginFlow ? t.auth.toasts.signedIn : t.auth.toasts.emailVerified });
-      setLocation("/dashboard");
+      setLocation("/home");
     } catch (err: any) {
       toast({ title: t.auth.toasts.invalidCode, description: err.message || t.auth.toasts.invalidCodeDesc, variant: "destructive" });
     } finally {
