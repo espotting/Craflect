@@ -1,0 +1,121 @@
+Excellent travail sur la Phase 2, le résultat est très propre.
+
+Le nouvel endpoint /api/dashboard, le Daily Viral Play, le Trending Videos Carousel, les Top Hooks / Top Formats et l’onglet Patterns dans Discover correspondent exactement à ce que nous voulions pour cette étape.
+
+La Phase 2 est donc validée.
+
+Décision pour la suite :
+
+Nous n’allons pas lancer immédiatement la Phase 3.
+Nous allons laisser le pipeline tourner quelques jours afin d’accumuler plus de données et stabiliser le Pattern Engine.
+
+Objectif : laisser les patterns, scores et signaux cross-platform se construire avant d’exposer des insights publiquement.
+
+Nous lancerons la Phase 3 après cette courte période d’observation.
+
+Pendant ce temps, merci d’ajouter le Founder Dashboard interne (route /system/founder) pour suivre les métriques stratégiques.
+
+Founder Dashboard attendu :
+
+SECTION USERS
+
+* total_users
+* new_users_7d
+* active_users_24h
+* active_users_7d
+* returning_users_rate
+
+SECTION USAGE
+
+* sessions_today
+* avg_session_duration
+* scripts_generated
+* projects_created
+* patterns_used_in_create
+
+SECTION REVENUE
+
+* active_subscriptions
+* mrr
+* arpu
+* active_trials
+* trial_to_paid_conversion_rate
+
+SECTION ENGINE
+
+* total_videos_analysed
+* total_patterns_detected
+* patterns_score_above_70
+* pattern_reuse_rate
+* cross_platform_pattern_rate
+* rising_patterns_count
+* average_pattern_score
+
+SECTION SYSTEM HEALTH
+
+* ingestion_runs_today
+* classifier_success_rate
+* pattern_engine_runs
+* alerts_triggered
+
+Ajouter également trois graphiques simples :
+
+1. Dataset Growth
+   videos analysed over time (30 days)
+
+2. Pattern Intelligence Growth
+   patterns detected over time (30 days)
+
+3. Pattern Reuse Rate Evolution
+   pattern reuse rate over time
+
+Phase 3 — Shareable Insights (à implémenter plus tard)
+
+Merci d’enregistrer les ajustements suivants pour éviter des changements futurs.
+
+Route publique :
+
+/insight/{id}
+
+Accessible sans authentification.
+
+La page insight doit afficher :
+
+* hook
+* pattern_score
+* trend_classification (badge rising / stable / declining)
+* format_type
+* topic_cluster
+* total_views_analyzed
+
+Ajouter une section :
+
+Why this trend matters
+
+Explication basée sur les données du pattern (frequency, virality score, cross-platform presence).
+
+Ajouter un CTA produit :
+
+Create with this pattern
+
+redirigeant vers :
+
+/create?hook=...&format=...&topic=...
+
+Fonctions de partage :
+
+* Share sur X (Twitter)
+* Share sur LinkedIn
+
+Export visuel :
+
+* PNG
+* SVG
+
+Design optimisé pour partage social.
+
+Objectif de la Phase 3 :
+
+Permettre le partage viral des insights et transformer les patterns détectés en contenu partageable pour l’acquisition organique.
+
+Nous lancerons cette Phase 3 après quelques jours de collecte de données lorsque le moteur aura suffisamment de patterns et de signaux de tendance.
