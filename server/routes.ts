@@ -697,7 +697,8 @@ The content should directly apply the recommendations from the insight report. W
         patternsTotal, patternsAbove70, patternsRising, patternsCrossPlatform, patternsAvgScore,
         intelEventsToday, intelPatternRuns,
         videosOverTime, patternsOverTime, crossPlatformOverTime,
-        videosTotal, creatorsKnown, creatorsUnknown, avgViewVelocity
+        videosTotal, creatorsKnown, creatorsUnknown, avgViewVelocity,
+        lastIngestion, lastClassification, lastPatternRun
       ] = await Promise.all([
         db.execute(sql`SELECT COUNT(*) as v FROM users`),
         db.execute(sql`SELECT COUNT(*) as v FROM users WHERE created_at >= NOW() - INTERVAL '7 days'`),
@@ -757,6 +758,9 @@ The content should directly apply the recommendations from the insight report. W
         db.execute(sql`SELECT COUNT(*) as v FROM videos WHERE classification_status = 'completed' AND creator_name IS NOT NULL AND creator_name != 'unknown' AND creator_name != ''`),
         db.execute(sql`SELECT COUNT(*) as v FROM videos WHERE classification_status = 'completed' AND (creator_name IS NULL OR creator_name = 'unknown' OR creator_name = '')`),
         db.execute(sql`SELECT ROUND(AVG(view_velocity)::numeric, 2) as v FROM videos WHERE classification_status = 'completed' AND view_velocity IS NOT NULL`),
+        db.execute(sql`SELECT MAX(collected_at) as v FROM videos`),
+        db.execute(sql`SELECT MAX(classified_at) as v FROM videos WHERE classification_status = 'completed'`),
+        db.execute(sql`SELECT MAX(last_updated) as v FROM patterns`),
       ]);
 
       const v = (r: any) => parseInt((r.rows[0] as any)?.v || '0');
@@ -843,9 +847,15 @@ The content should directly apply the recommendations from the insight report. W
           classified_videos: totalCompleted,
           pending_videos: v(videosPending),
           failed_videos: totalFailed,
+          videos_last_24h: v(videosIngestedToday),
           creator_coverage: totalCompleted > 0 ? Math.round((v(creatorsKnown) / totalCompleted) * 10000) / 10000 : 0,
           unknown_creators: totalCompleted > 0 ? Math.round((v(creatorsUnknown) / totalCompleted) * 10000) / 10000 : 0,
           avg_view_velocity: vf(avgViewVelocity),
+        },
+        pipeline_status: {
+          last_ingestion_run: (lastIngestion.rows[0] as any)?.v || null,
+          last_classification_run: (lastClassification.rows[0] as any)?.v || null,
+          last_pattern_engine_run: (lastPatternRun.rows[0] as any)?.v || null,
         },
         system_health: {
           ingestion_runs_today: v(intelEventsToday),

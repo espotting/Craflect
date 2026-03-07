@@ -93,9 +93,15 @@ interface FounderMetrics {
     classified_videos: number;
     pending_videos: number;
     failed_videos: number;
+    videos_last_24h: number;
     creator_coverage: number;
     unknown_creators: number;
     avg_view_velocity: number;
+  };
+  pipeline_status: {
+    last_ingestion_run: string | null;
+    last_classification_run: string | null;
+    last_pattern_engine_run: string | null;
   };
   system_health: {
     ingestion_runs_today: number;
@@ -196,6 +202,18 @@ function formatDuration(minutes: number): string {
   if (minutes == null || isNaN(minutes)) return "0m";
   if (minutes < 1) return `${Math.round(minutes * 60)}s`;
   return `${minutes.toFixed(0)}m`;
+}
+
+function formatTimeAgo(dateStr: string | null): string {
+  if (!dateStr) return "Never";
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "Just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
 }
 
 const tooltipStyle = {
@@ -304,14 +322,24 @@ export default function FounderDashboard() {
 
             <section>
               <SectionHeader title="Dataset Health" color="green" testId="text-section-dataset-health" />
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <ColoredMetricCard label="Total Videos" value={data.dataset_health.total_videos} icon={Video} color="green" testId="metric-ds-total-videos" />
                 <ColoredMetricCard label="Classified" value={data.dataset_health.classified_videos} icon={CheckCircle} color="green" testId="metric-ds-classified" />
                 <ColoredMetricCard label="Pending" value={data.dataset_health.pending_videos} icon={Clock} color="green" testId="metric-ds-pending" />
-                <ColoredMetricCard label="Failed" value={data.dataset_health.failed_videos} icon={AlertTriangle} color="green" testId="metric-ds-failed" />
+                <ColoredMetricCard label="Failed" value={data.dataset_health.failed_videos} icon={AlertTriangle} color="orange" testId="metric-ds-failed" />
+                <ColoredMetricCard label="Videos Last 24h" value={data.dataset_health.videos_last_24h} icon={Download} color="green" testId="metric-ds-last-24h" />
                 <ColoredMetricCard label="Creator Coverage" value={formatPercent(data.dataset_health.creator_coverage)} icon={Users} color="green" testId="metric-ds-creator-coverage" />
                 <ColoredMetricCard label="Unknown Creators" value={formatPercent(data.dataset_health.unknown_creators)} icon={Users} color="orange" testId="metric-ds-unknown-creators" />
                 <ColoredMetricCard label="Avg View Velocity" value={data.dataset_health.avg_view_velocity.toFixed(0)} icon={TrendingUp} color="green" testId="metric-ds-avg-velocity" />
+              </div>
+            </section>
+
+            <section>
+              <SectionHeader title="Pipeline Status" color="blue" testId="text-section-pipeline-status" />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <ColoredMetricCard label="Last Ingestion" value={formatTimeAgo(data.pipeline_status.last_ingestion_run)} icon={Download} color="blue" testId="metric-ps-last-ingestion" />
+                <ColoredMetricCard label="Last Classification" value={formatTimeAgo(data.pipeline_status.last_classification_run)} icon={CheckSquare} color="blue" testId="metric-ps-last-classification" />
+                <ColoredMetricCard label="Last Pattern Engine" value={formatTimeAgo(data.pipeline_status.last_pattern_engine_run)} icon={Cpu} color="blue" testId="metric-ps-last-pattern" />
               </div>
             </section>
 
