@@ -6,7 +6,7 @@ import { useLocation } from "wouter";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Mail, Loader2, Sun, Moon, CheckCircle2, Eye, EyeOff, Check, X } from "lucide-react";
+import { ArrowLeft, Mail, Loader2, Sun, Moon, CheckCircle2, Eye, EyeOff, Check, X, AlertCircle } from "lucide-react";
 import { FcGoogle } from "react-icons/fc";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/hooks/use-language";
@@ -29,6 +29,21 @@ function usePasswordValidation(password: string) {
 
 function isPasswordValid(v: ReturnType<typeof usePasswordValidation>) {
   return v.minLength && v.hasUppercase && v.hasNumber && v.hasSpecial;
+}
+
+function InlineError({ message }: { message: string }) {
+  if (!message) return null;
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -4 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="flex items-center gap-2 text-sm text-red-500 mt-3"
+      data-testid="text-inline-error"
+    >
+      <AlertCircle className="w-4 h-4 flex-shrink-0" />
+      <span>{message}</span>
+    </motion.div>
+  );
 }
 
 export default function Auth() {
@@ -54,6 +69,8 @@ export default function Auth() {
   const [isLoginFlow, setIsLoginFlow] = useState(false);
   const [passwordTouched, setPasswordTouched] = useState(false);
   const [confirmTouched, setConfirmTouched] = useState(false);
+  const [loginError, setLoginError] = useState("");
+  const [signupError, setSignupError] = useState("");
 
   const passwordChecks = usePasswordValidation(password);
   const passwordValid = isPasswordValid(passwordChecks);
@@ -69,24 +86,28 @@ export default function Auth() {
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim() || !firstName.trim() || !passwordValid) return;
-    if (!passwordsMatch) {
-      toast({ title: t.common.error, description: t.auth.passwordsMismatch, variant: "destructive" });
+    if (!email.trim() || !passwordValid) {
+      setSignupError(t.auth.toasts.fillAllFields);
       return;
     }
+    if (!passwordsMatch) {
+      setSignupError(t.auth.passwordsMismatch);
+      return;
+    }
+    setSignupError("");
     setSubmitting(true);
     try {
       await apiRequest("POST", "/api/auth/register", {
         email: email.trim(),
-        firstName: firstName.trim(),
-        lastName: lastName.trim() || undefined,
+        firstName: "User",
+        lastName: undefined,
         password: password,
       });
       setIsLoginFlow(false);
       setStep("verify-code");
       toast({ title: t.auth.toasts.codeSent, description: t.auth.toasts.codeSentDesc.replace("{email}", email) });
     } catch (err: any) {
-      toast({ title: t.common.error, description: err.message || t.auth.toasts.registrationFailed, variant: "destructive" });
+      setSignupError(err.message || t.auth.toasts.registrationFailed);
     } finally {
       setSubmitting(false);
     }
@@ -94,7 +115,11 @@ export default function Auth() {
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim() || !password.trim()) return;
+    if (!email.trim() || !password.trim()) {
+      setLoginError(t.auth.toasts.fillAllFields);
+      return;
+    }
+    setLoginError("");
     setSubmitting(true);
     try {
       const res = await apiRequest("POST", "/api/auth/login", {
@@ -112,7 +137,14 @@ export default function Auth() {
         setLocation(data.user?.isAdmin ? "/system/founder" : "/home");
       }
     } catch (err: any) {
-      toast({ title: t.common.error, description: err.message || t.auth.toasts.loginFailed, variant: "destructive" });
+      const msg = err.message || "";
+      if (msg.includes("No account found")) {
+        setLoginError(t.auth.toasts.noAccountFound);
+      } else if (msg.includes("Incorrect password")) {
+        setLoginError(t.auth.toasts.incorrectPassword);
+      } else {
+        setLoginError(msg || t.auth.toasts.loginFailed);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -262,7 +294,7 @@ export default function Auth() {
                       type="email"
                       placeholder="john@example.com"
                       value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      onChange={(e) => { setEmail(e.target.value); setLoginError(""); }}
                       className="bg-background border-border text-foreground h-12 rounded-xl focus-visible:ring-primary"
                       required
                       autoFocus
@@ -276,7 +308,7 @@ export default function Auth() {
                         type={showPassword ? "text" : "password"}
                         placeholder="••••••••"
                         value={password}
-                        onChange={(e) => setPassword(e.target.value)}
+                        onChange={(e) => { setPassword(e.target.value); setLoginError(""); }}
                         className="bg-background border-border text-foreground h-12 rounded-xl focus-visible:ring-primary pr-12"
                         required
                         data-testid="input-login-password"
@@ -294,12 +326,13 @@ export default function Auth() {
                   </div>
                   <Button
                     type="submit"
-                    disabled={submitting || !email.trim() || !password.trim()}
+                    disabled={submitting}
                     className="w-full h-12 rounded-xl bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-white font-medium"
                     data-testid="button-login-submit"
                   >
-                    {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : t.auth.signIn}
+                    {submitting ? (<><Loader2 className="w-5 h-5 animate-spin mr-2" />{t.auth.signingIn}</>) : t.auth.signIn}
                   </Button>
+                  <InlineError message={loginError} />
                 </form>
 
                 <div className="relative flex items-center gap-4 py-1">
@@ -349,39 +382,16 @@ export default function Auth() {
                 </div>
 
                 <form onSubmit={handleEmailSubmit} className="space-y-5">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-muted-foreground">{t.auth.firstName}</label>
-                      <Input
-                        placeholder="John"
-                        value={firstName}
-                        onChange={(e) => setFirstName(e.target.value)}
-                        className="bg-background border-border text-foreground h-12 rounded-xl focus-visible:ring-primary"
-                        required
-                        autoFocus
-                        data-testid="input-firstname"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-muted-foreground">{t.auth.lastName}</label>
-                      <Input
-                        placeholder="Doe"
-                        value={lastName}
-                        onChange={(e) => setLastName(e.target.value)}
-                        className="bg-background border-border text-foreground h-12 rounded-xl focus-visible:ring-primary"
-                        data-testid="input-lastname"
-                      />
-                    </div>
-                  </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-muted-foreground">{t.auth.emailLabel}</label>
                     <Input
                       type="email"
                       placeholder="john@example.com"
                       value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      onChange={(e) => { setEmail(e.target.value); setSignupError(""); }}
                       className="bg-background border-border text-foreground h-12 rounded-xl focus-visible:ring-primary"
                       required
+                      autoFocus
                       data-testid="input-email"
                     />
                   </div>
@@ -392,7 +402,7 @@ export default function Auth() {
                         type={showPassword ? "text" : "password"}
                         placeholder="••••••••"
                         value={password}
-                        onChange={(e) => { setPassword(e.target.value); setPasswordTouched(true); }}
+                        onChange={(e) => { setPassword(e.target.value); setPasswordTouched(true); setSignupError(""); }}
                         className={`bg-background border-border text-foreground h-12 rounded-xl focus-visible:ring-primary pr-12 ${passwordTouched && !passwordValid ? "border-destructive focus-visible:ring-destructive" : ""}`}
                         required
                         data-testid="input-register-password"
@@ -423,7 +433,7 @@ export default function Auth() {
                         type={showConfirmPassword ? "text" : "password"}
                         placeholder="••••••••"
                         value={confirmPassword}
-                        onChange={(e) => { setConfirmPassword(e.target.value); setConfirmTouched(true); }}
+                        onChange={(e) => { setConfirmPassword(e.target.value); setConfirmTouched(true); setSignupError(""); }}
                         onPaste={(e) => e.preventDefault()}
                         className={`bg-background border-border text-foreground h-12 rounded-xl focus-visible:ring-primary pr-12 ${confirmTouched && confirmPassword.length > 0 && !passwordsMatch ? "border-destructive focus-visible:ring-destructive" : ""}`}
                         required
@@ -454,12 +464,13 @@ export default function Auth() {
                   </div>
                   <Button
                     type="submit"
-                    disabled={submitting || !email.trim() || !firstName.trim() || !passwordValid || !passwordsMatch || confirmPassword.length === 0}
+                    disabled={submitting || !email.trim() || !passwordValid || !passwordsMatch || confirmPassword.length === 0}
                     className="w-full h-12 rounded-xl bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-white font-medium"
                     data-testid="button-send-code"
                   >
-                    {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : t.auth.createButton}
+                    {submitting ? (<><Loader2 className="w-5 h-5 animate-spin mr-2" />{t.auth.creatingAccount}</>) : t.auth.createButton}
                   </Button>
+                  <InlineError message={signupError} />
                 </form>
 
                 <p className="text-center text-sm text-muted-foreground">

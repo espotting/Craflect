@@ -1,0 +1,108 @@
+Améliorations UX — Authentification (version finale)
+
+Nous allons appliquer quelques améliorations UX au flux d’authentification afin de réduire la friction et améliorer la perception de réactivité.
+
+Important :
+La connexion via Google reste inchangée.
+
+1 — Affichage des erreurs de connexion
+
+Remplacer les toasts d’erreur par des messages inline dans le formulaire.
+
+Les messages doivent apparaître sous le bouton "Sign in".
+
+Cas à gérer :
+
+Email inconnu
+→ "Aucun compte trouvé avec cet email."
+
+Mot de passe incorrect
+→ "Mot de passe incorrect."
+
+Champs vides
+→ "Veuillez remplir tous les champs."
+
+Affichage :
+
+* texte rouge discret
+* petite icône d’alerte
+* message intégré dans le formulaire
+* visible tant que l’utilisateur n’a pas corrigé la saisie
+
+Le message disparaît automatiquement dès que l’utilisateur modifie un champ.
+
+2 — État du bouton pendant les requêtes
+
+Lorsqu’un utilisateur clique sur un bouton d’authentification, celui-ci doit passer en état de chargement.
+
+Login :
+
+Sign in
+→ Signing in…
+
+Signup :
+
+Get started for free
+→ Creating account…
+
+Pendant cet état :
+
+* le bouton est désactivé
+* afficher un spinner animé
+* utiliser l’icône/logo Craflect (favicon) comme animation si possible
+
+3 — Simplification du formulaire Signup
+
+Réduire la friction à l’inscription.
+
+Structure actuelle :
+
+First name
+Last name
+Email
+Password
+Confirm password
+
+Nouvelle structure :
+
+Email
+Password
+Confirm password
+
+Les champs First name et Last name pourront être demandés plus tard dans le profil utilisateur.
+
+4 — Texte du bouton Signup
+
+Remplacer :
+
+Create account
+
+par :
+
+Get started for free
+
+5 — Connexion Google
+
+Conserver le bouton existant :
+
+Log in with Google
+
+Aucune modification.
+
+6 — Liens de navigation
+
+Sur la page login :
+
+"New to Craflect? Sign up for free"
+
+Sur la page signup :
+
+"Already have an account? Log in"
+
+Objectif
+
+* réduire la friction à l’inscription
+* améliorer la lisibilité des erreurs
+* améliorer la perception de réactivité
+* accélérer l’accès au produit
+* renforcer le message d’inscription gratuite
