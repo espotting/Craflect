@@ -226,7 +226,7 @@ export default function Auth() {
               >
                 <div className="text-center">
                   <h1 className="font-display text-3xl font-bold text-foreground mb-3">{t.auth.welcomeTitle}</h1>
-                  <p className="text-muted-foreground">{t.auth.welcomeSubtitle}</p>
+                  <p className="text-muted-foreground whitespace-pre-line">{t.auth.welcomeSubtitle}</p>
                 </div>
 
                 <div className="space-y-4">

@@ -127,9 +127,9 @@ const fr: Translations = {
 
   auth: {
     welcomeTitle: "Bienvenue sur Craflect",
-    welcomeSubtitle: "Connectez-vous ou créez un compte.",
+    welcomeSubtitle: "Découvrez les tendances virales avant qu'elles n'explosent.\nCommencez gratuitement en quelques secondes.",
     continueGoogle: "Continuer avec Google",
-    signUpEmail: "S'inscrire par email",
+    signUpEmail: "Commencer avec Email",
     alreadyAccount: "Vous avez déjà un compte ?",
     logIn: "Se connecter",
     logInTitle: "Connexion",

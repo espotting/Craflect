@@ -125,9 +125,9 @@ const en = {
 
   auth: {
     welcomeTitle: "Welcome to Craflect",
-    welcomeSubtitle: "Sign in to your account or create a new one.",
+    welcomeSubtitle: "Discover viral trends before they explode.\nGet started for free in seconds.",
     continueGoogle: "Continue with Google",
-    signUpEmail: "Sign up with Email",
+    signUpEmail: "Get started with Email",
     alreadyAccount: "Already have an account?",
     logIn: "Log in",
     logInTitle: "Log in",
