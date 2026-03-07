@@ -3,6 +3,8 @@ import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
 import { storage } from "./storage";
+import { authStorage } from "./replit_integrations/auth";
+import bcrypt from "bcryptjs";
 
 const app = express();
 const httpServer = createServer(app);
@@ -76,9 +78,45 @@ async function seedNiches() {
   }
 }
 
+async function seedDefaultUsers() {
+  const adminEmail = "admin@craflect.com";
+  const demoEmail = "demo@craflect.com";
+
+  const existingAdmin = await authStorage.getUserByEmail(adminEmail);
+  if (!existingAdmin) {
+    const hashedPassword = await bcrypt.hash("Admin1234!", 12);
+    await authStorage.upsertUser({
+      id: crypto.randomUUID(),
+      email: adminEmail,
+      firstName: "Admin",
+      lastName: "Craflect",
+      password: hashedPassword,
+      emailVerified: true,
+      isAdmin: true,
+    });
+    log(`Seeded admin user: ${adminEmail}`);
+  }
+
+  const existingDemo = await authStorage.getUserByEmail(demoEmail);
+  if (!existingDemo) {
+    const hashedPassword = await bcrypt.hash("Demo1234!", 12);
+    await authStorage.upsertUser({
+      id: crypto.randomUUID(),
+      email: demoEmail,
+      firstName: "Demo",
+      lastName: "User",
+      password: hashedPassword,
+      emailVerified: true,
+      isAdmin: false,
+    });
+    log(`Seeded demo user: ${demoEmail}`);
+  }
+}
+
 (async () => {
   await registerRoutes(httpServer, app);
   await seedNiches();
+  await seedDefaultUsers();
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
