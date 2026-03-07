@@ -1,0 +1,184 @@
+Founder Dashboard — Spécification finale (verrouillée)
+
+Créer un Founder Dashboard interne permettant de suivre :
+
+* la traction produit
+* l’engagement utilisateur
+* les revenus
+* la progression de l’intelligence du moteur Craflect
+* la santé du pipeline
+
+AUTHENTIFICATION
+
+Le Founder Dashboard doit utiliser le système de login existant.
+
+Login unique :
+
+/login
+
+Le login utilisateur reste inchangé.
+
+Après authentification :
+
+* si user.role = admin → accès aux routes admin
+* sinon → accès uniquement au produit
+
+Il ne faut PAS créer de login admin séparé.
+
+ROUTES ADMIN
+
+Routes réservées aux admins :
+
+/system/founder
+/system/logs
+/system/settings
+
+Ces routes doivent être protégées côté backend.
+
+Si user.role ≠ admin :
+
+→ retourner 403 ou rediriger vers /home
+
+VISIBILITÉ INTERFACE
+
+Le lien vers le Founder Dashboard ne doit apparaître dans l’interface que pour les comptes admin.
+
+Dans la sidebar admin :
+
+SYSTEM
+
+* Founder Dashboard
+* Logs
+* Settings
+
+BACKEND
+
+Créer un endpoint :
+
+GET /api/admin/founder
+
+Accès :
+
+admin uniquement
+
+Cet endpoint retourne toutes les métriques en un seul appel.
+
+SECTIONS (CARTES MÉTRIQUES)
+
+1 — USERS
+
+* total_users
+* new_users_7d
+* active_users_24h
+* active_users_7d
+* monthly_active_users
+* returning_users_rate
+* dau_mau_ratio
+
+2 — USAGE
+
+* sessions_today
+* avg_session_duration
+* scripts_generated
+* projects_created
+* patterns_used_in_create
+
+3 — REVENUE
+
+* active_subscriptions
+* mrr
+* mrr_growth_30d
+* arpu
+* active_trials
+* trial_to_paid_conversion_rate
+
+4 — ENGINE
+
+* total_videos_analysed
+* videos_ingested_today
+* videos_classified_today
+* total_patterns_detected
+* patterns_score_above_70
+* pattern_reuse_rate
+* cross_platform_pattern_rate
+* cross_platform_patterns_count
+* rising_patterns_count
+* average_pattern_score
+
+5 — SYSTEM HEALTH
+
+* ingestion_runs_today
+* classifier_success_rate
+* pattern_engine_runs
+* alerts_triggered
+
+SECTION GRAPHIQUES — ENGINE INTELLIGENCE
+
+Ajouter une section dédiée aux graphiques en bas du dashboard.
+
+Titre :
+
+Engine Intelligence
+
+Layout :
+
+grille 2 × 2 graphiques
+
+Graphiques :
+
+1 — Dataset Growth
+videos_analysed_over_time (30 jours)
+
+2 — Pattern Intelligence Growth
+patterns_detected_over_time (30 jours)
+
+3 — Pattern Reuse Rate Evolution
+pattern_reuse_rate_over_time (30 jours)
+
+pattern_reuse_rate =
+vidéos utilisant un pattern existant ÷ vidéos classifiées
+
+4 — Cross-Platform Pattern Growth
+cross_platform_patterns_over_time (30 jours)
+
+FRONTEND
+
+Page :
+
+/system/founder
+
+Structure :
+
+FOUNDER DASHBOARD
+
+Users (cartes métriques)
+
+Usage (cartes métriques)
+
+Revenue (cartes métriques)
+
+Engine (cartes métriques)
+
+System Health (cartes métriques)
+
+Engine Intelligence (graphiques)
+
+UI
+
+* cartes métriques simples
+* titres de sections
+* graphiques avec Recharts
+* design cohérent avec le dashboard existant
+* layout responsive
+
+OBJECTIF
+
+Permettre au fondateur de visualiser rapidement :
+
+* la traction utilisateur
+* l’engagement produit
+* la croissance des revenus
+* la progression de l’intelligence du moteur
+* la santé du pipeline
+
+Ce dashboard est interne uniquement et ne doit pas être visible par les utilisateurs.
