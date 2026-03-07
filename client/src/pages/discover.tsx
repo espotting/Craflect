@@ -13,7 +13,7 @@ import { TrendScore } from "@/components/trend-score";
 import { SiTiktok, SiInstagram, SiYoutube } from "react-icons/si";
 import {
   Eye, Heart, MessageCircle, Share2, Zap, Globe, Filter, ArrowUpDown,
-  Video, Layers, Users, FileText, Loader2, Sparkles, TrendingUp, BarChart3, Compass
+  Video, Layers, Users, FileText, Loader2, Sparkles, TrendingUp, BarChart3, Compass, Puzzle
 } from "lucide-react";
 import { TOPIC_CLUSTERS, TOPIC_CLUSTER_LABELS, HOOK_TYPES, STRUCTURE_TYPES } from "@shared/schema";
 import { useLocation } from "wouter";
@@ -177,6 +177,18 @@ export default function Discover() {
     enabled: activeTab === "trends" || activeTab === "hooks" || activeTab === "formats",
   });
 
+  const patternsQuery = useQuery<{ patterns: any[] }>({
+    queryKey: ["/api/patterns/browse", "source=table", nicheParam || "all"],
+    queryFn: async () => {
+      const params = new URLSearchParams({ source: "table" });
+      if (nicheParam) params.set("niche", nicheParam);
+      const res = await fetch(`/api/patterns/browse?${params.toString()}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch patterns");
+      return res.json();
+    },
+    enabled: activeTab === "patterns",
+  });
+
   const creatorsQuery = useInfiniteQuery({
     queryKey: ["discover-creators", topicFilter, platformFilter],
     queryFn: async ({ pageParam = 1 }) => {
@@ -263,6 +275,10 @@ export default function Discover() {
             <TabsTrigger value="creators" data-testid="tab-discover-creators" className="gap-2">
               <Users className="w-4 h-4" />
               {t.discover.tabCreators}
+            </TabsTrigger>
+            <TabsTrigger value="patterns" data-testid="tab-discover-patterns" className="gap-2">
+              <Puzzle className="w-4 h-4" />
+              {t.discover.tabPatterns}
             </TabsTrigger>
           </TabsList>
 
@@ -354,7 +370,7 @@ export default function Discover() {
             </div>
           )}
 
-          {(activeTab === "trends" || activeTab === "hooks" || activeTab === "formats") && (
+          {(activeTab === "trends" || activeTab === "hooks" || activeTab === "formats" || activeTab === "patterns") && (
             <div className="flex items-center flex-wrap gap-3" data-testid="filters-bar-radar">
               <Filter className="w-4 h-4 text-muted-foreground shrink-0" />
               <Select value={nicheFilter} onValueChange={setNicheFilter}>
@@ -612,6 +628,105 @@ export default function Discover() {
                     </CardContent>
                   </Card>
                 ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="patterns" className="space-y-4">
+            {patternsQuery.isLoading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {Array.from({ length: 6 }).map((_, i) => <CardSkeleton key={i} />)}
+              </div>
+            ) : (patternsQuery.data?.patterns || []).length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {(patternsQuery.data?.patterns || []).map((pattern: any, i: number) => {
+                  const score = pattern.pattern_score ?? pattern.avg_virality_score;
+                  const trendClass = pattern.trend_classification;
+                  const trendBadgeClass = trendClass === "rising"
+                    ? "bg-emerald-500/15 text-emerald-500 border-emerald-500/30"
+                    : trendClass === "stable"
+                    ? "bg-yellow-500/15 text-yellow-500 border-yellow-500/30"
+                    : trendClass === "declining"
+                    ? "bg-muted text-muted-foreground border-border"
+                    : "";
+                  const trendLabel = trendClass === "rising"
+                    ? t.discover.rising
+                    : trendClass === "stable"
+                    ? t.discover.stable
+                    : trendClass === "declining"
+                    ? t.discover.declining
+                    : "";
+
+                  return (
+                    <Card key={pattern.pattern_id || i} className="border-border" data-testid={`card-pattern-${pattern.pattern_id || i}`}>
+                      <CardContent className="p-4 space-y-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            {pattern.pattern_label && (
+                              <p className="font-semibold text-foreground text-sm line-clamp-2" data-testid={`text-pattern-label-${i}`}>
+                                {pattern.pattern_label}
+                              </p>
+                            )}
+                          </div>
+                          {score !== null && score !== undefined && (
+                            <TrendScore score={Number(score)} size="sm" />
+                          )}
+                        </div>
+
+                        <div className="flex flex-wrap gap-1">
+                          {pattern.hook_type && (
+                            <Badge variant="secondary" className="rounded-full text-[10px]">
+                              <Zap className="w-2.5 h-2.5 mr-1" />{formatLabel(pattern.hook_type)}
+                            </Badge>
+                          )}
+                          {pattern.structure_type && (
+                            <Badge variant="secondary" className="rounded-full text-[10px]">
+                              <Layers className="w-2.5 h-2.5 mr-1" />{formatLabel(pattern.structure_type)}
+                            </Badge>
+                          )}
+                          {pattern.topic_cluster && (
+                            <Badge variant="outline" className="rounded-full text-[10px]">
+                              {TOPIC_CLUSTER_LABELS[pattern.topic_cluster] || formatLabel(pattern.topic_cluster)}
+                            </Badge>
+                          )}
+                          {trendClass && trendLabel && (
+                            <Badge variant="outline" className={`rounded-full text-[10px] ${trendBadgeClass}`} data-testid={`badge-trend-${i}`}>
+                              {trendLabel}
+                            </Badge>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                          {pattern.video_count !== null && pattern.video_count !== undefined && (
+                            <span>{pattern.video_count} {t.discover.videoCount.toLowerCase()}</span>
+                          )}
+                          {pattern.velocity_mid !== null && pattern.velocity_mid !== undefined && (
+                            <span className="flex items-center gap-1"><Zap className="w-3 h-3" />{Number(pattern.velocity_mid).toFixed(1)}</span>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-2 pt-1">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1 text-xs"
+                            onClick={() => navigate(`/create?hook=${encodeURIComponent(pattern.hook_type || "")}&format=${encodeURIComponent(pattern.structure_type || "")}&topic=${encodeURIComponent(pattern.topic_cluster || "")}`)}
+                            data-testid={`button-create-pattern-${pattern.pattern_id || i}`}
+                          >
+                            <Sparkles className="w-3.5 h-3.5 mr-1" />
+                            {t.discover.createWithPattern}
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center p-16 rounded-md border-dashed border-2 border-border text-center" data-testid="empty-discover-patterns">
+                <Puzzle className="w-10 h-10 text-muted-foreground mb-4" />
+                <h3 className="font-display text-lg font-bold text-foreground mb-2">{t.discover.noPatterns}</h3>
+                <p className="text-muted-foreground text-sm">{t.discover.noPatternsDesc}</p>
               </div>
             )}
           </TabsContent>

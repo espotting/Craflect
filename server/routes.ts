@@ -1074,6 +1074,143 @@ The content should directly apply the recommendations from the insight report. W
     }
   });
 
+  // ─── GET /api/dashboard — Aggregated dashboard data (single call) ───
+
+  app.get("/api/dashboard", isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+
+      const [
+        trendingVideosResult,
+        topHooksResult,
+        topFormatsResult,
+        topPatternsResult,
+        alertsResult,
+        dailyViralPlayResult,
+      ] = await Promise.all([
+        db.execute(sql`
+          SELECT id, caption, platform, creator_name, views, likes, comments,
+                 virality_score, view_velocity, thumbnail_url, hook_text,
+                 hook_mechanism_primary, structure_type, topic_cluster, classified_at
+          FROM videos
+          WHERE classification_status = 'completed' AND virality_score IS NOT NULL
+          ORDER BY virality_score DESC NULLS LAST
+          LIMIT 10
+        `),
+        db.execute(sql`
+          SELECT hook_text, hook_mechanism_primary, COUNT(*) as count,
+                 ROUND(AVG(virality_score)::numeric, 2) as avg_virality
+          FROM videos
+          WHERE classification_status = 'completed' AND hook_text IS NOT NULL
+          GROUP BY hook_text, hook_mechanism_primary
+          ORDER BY count DESC, avg_virality DESC NULLS LAST
+          LIMIT 5
+        `),
+        db.execute(sql`
+          SELECT structure_type, COUNT(*) as count,
+                 ROUND(AVG(virality_score)::numeric, 2) as avg_virality
+          FROM videos
+          WHERE classification_status = 'completed' AND structure_type IS NOT NULL
+          GROUP BY structure_type
+          ORDER BY count DESC, avg_virality DESC NULLS LAST
+          LIMIT 5
+        `),
+        db.execute(sql`
+          SELECT pattern_id, hook_type, structure_type, topic_cluster, 
+                 avg_virality_score, video_count, pattern_label, performance_rank,
+                 pattern_score, velocity_mid, pattern_novelty, trend_classification
+          FROM patterns
+          WHERE avg_virality_score IS NOT NULL
+          ORDER BY COALESCE(pattern_score, avg_virality_score) DESC
+          LIMIT 5
+        `),
+        db.execute(sql`
+          SELECT id, event_type, title, description, metadata, created_at
+          FROM intelligence_events
+          ORDER BY created_at DESC
+          LIMIT 5
+        `),
+        (async () => {
+          const qualified = await db.execute(sql`
+            SELECT pattern_id, hook_type, structure_type, topic_cluster,
+                   pattern_score, velocity_mid, pattern_novelty, trend_classification,
+                   avg_virality_score, video_count, pattern_label
+            FROM patterns
+            WHERE pattern_score >= 70 AND trend_classification = 'rising'
+            ORDER BY pattern_score DESC, velocity_mid DESC NULLS LAST, pattern_novelty DESC NULLS LAST
+            LIMIT 1
+          `);
+          if (qualified.rows.length > 0) return qualified;
+          return db.execute(sql`
+            SELECT pattern_id, hook_type, structure_type, topic_cluster,
+                   pattern_score, velocity_mid, pattern_novelty, trend_classification,
+                   avg_virality_score, video_count, pattern_label
+            FROM patterns
+            WHERE avg_virality_score IS NOT NULL
+            ORDER BY avg_virality_score DESC
+            LIMIT 1
+          `);
+        })(),
+      ]);
+
+      let dailyViralPlay = null;
+      if (dailyViralPlayResult.rows.length > 0) {
+        const p: any = dailyViralPlayResult.rows[0];
+        const score = p.pattern_score ?? p.avg_virality_score ?? 0;
+        const exampleHookResult = await db.execute(sql`
+          SELECT hook_text FROM videos
+          WHERE classification_status = 'completed'
+            AND hook_text IS NOT NULL
+            AND (${p.hook_type ? sql`hook_mechanism_primary = ${p.hook_type}` : sql`TRUE`})
+            AND (${p.structure_type ? sql`structure_type = ${p.structure_type}` : sql`TRUE`})
+            AND (${p.topic_cluster ? sql`topic_cluster = ${p.topic_cluster}` : sql`TRUE`})
+          ORDER BY virality_score DESC NULLS LAST
+          LIMIT 1
+        `);
+
+        const exampleHook = exampleHookResult.rows.length > 0 ? (exampleHookResult.rows[0] as any).hook_text : null;
+        const isQualified = p.pattern_score >= 70 && p.trend_classification === 'rising';
+
+        dailyViralPlay = {
+          pattern_id: p.pattern_id,
+          hook_type: p.hook_type,
+          structure_type: p.structure_type,
+          topic_cluster: p.topic_cluster,
+          pattern_score: score,
+          video_count: p.video_count,
+          pattern_label: p.pattern_label,
+          velocity_mid: p.velocity_mid,
+          pattern_novelty: p.pattern_novelty,
+          trend_classification: p.trend_classification,
+          example_hook: exampleHook,
+          reasoning: isQualified
+            ? `This ${p.hook_type || 'hook'} + ${p.structure_type || 'format'} combo is rising with a pattern score of ${Math.round(score)} and ${p.video_count} videos detected. High velocity and novelty make it today's best play.`
+            : `Best performing pattern: ${p.pattern_label || `${p.hook_type || 'Any hook'} + ${p.structure_type || 'Any format'}`} with ${p.video_count} videos and ${Math.round(score)} avg virality.`,
+        };
+      }
+
+      res.json({
+        trending_videos: trendingVideosResult.rows,
+        daily_viral_play: dailyViralPlay,
+        top_patterns: topPatternsResult.rows,
+        top_hooks: topHooksResult.rows,
+        top_formats: topFormatsResult.rows,
+        alerts: alertsResult.rows.map((e: any) => ({
+          id: e.id,
+          eventType: e.event_type,
+          title: e.title,
+          description: e.description,
+          metadata: e.metadata,
+          createdAt: e.created_at,
+        })),
+      });
+    } catch (err: any) {
+      console.error("Dashboard endpoint error:", err);
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
   // ─── Dashboard V2 — Trend Radar ───
 
   app.get("/api/trends/radar", isAuthenticated, async (req: any, res) => {
@@ -1308,6 +1445,23 @@ The content should directly apply the recommendations from the insight report. W
       const { db } = await import("./db");
       const { sql } = await import("drizzle-orm");
       const niche = req.query.niche as string | undefined;
+      const source = req.query.source as string | undefined;
+
+      if (source === "table") {
+        let nicheFilter = sql``;
+        if (niche) nicheFilter = sql` AND topic_cluster = ${niche}`;
+
+        const patternsFromTable = await db.execute(sql`
+          SELECT pattern_id, hook_type, structure_type, topic_cluster,
+                 avg_virality_score, video_count, pattern_label, performance_rank,
+                 pattern_score, velocity_mid, pattern_novelty, trend_classification
+          FROM patterns
+          WHERE avg_virality_score IS NOT NULL ${nicheFilter}
+          ORDER BY COALESCE(pattern_score, avg_virality_score) DESC
+          LIMIT 30
+        `);
+        return res.json({ patterns: patternsFromTable.rows });
+      }
 
       let nicheFilter = sql``;
       if (niche) nicheFilter = sql` AND v.topic_cluster = ${niche}`;
@@ -2232,6 +2386,10 @@ The content should directly apply the recommendations from the insight report. W
           avg_engagement_rate: z.number().nullish(),
           performance_rank: z.number().int().nullish(),
           pattern_label: z.string().nullish(),
+          pattern_score: z.number().nullish(),
+          velocity_mid: z.number().nullish(),
+          pattern_novelty: z.number().nullish(),
+          trend_classification: z.enum(["rising", "stable", "declining"]).nullish(),
         })).min(1).max(500),
         replace_all: z.boolean().optional(),
       }).parse(req.body);
@@ -2273,6 +2431,10 @@ The content should directly apply the recommendations from the insight report. W
               avg_engagement_rate = ${p.avg_engagement_rate ?? null},
               performance_rank = ${p.performance_rank ?? null},
               pattern_label = ${p.pattern_label ?? null},
+              pattern_score = ${p.pattern_score ?? null},
+              velocity_mid = ${p.velocity_mid ?? null},
+              pattern_novelty = ${p.pattern_novelty ?? null},
+              trend_classification = ${p.trend_classification ?? null},
               emotion_primary = ${p.emotion_primary ?? null},
               topic_category = ${p.topic_category ?? null},
               facecam = ${p.facecam ?? null},
@@ -2284,8 +2446,8 @@ The content should directly apply the recommendations from the insight report. W
           updated++;
         } else {
           await db.execute(sql`
-            INSERT INTO patterns (dimension_keys, hook_type, structure_type, emotion_primary, topic_cluster, topic_category, facecam, cut_frequency, text_overlay_density, platform, video_count, avg_virality_score, median_virality_score, avg_engagement_rate, performance_rank, pattern_label)
-            VALUES (${dimKeysArray}, ${p.hook_type ?? null}, ${p.structure_type ?? null}, ${p.emotion_primary ?? null}, ${p.topic_cluster ?? null}, ${p.topic_category ?? null}, ${p.facecam ?? null}, ${p.cut_frequency ?? null}, ${p.text_overlay_density ?? null}, ${p.platform ?? null}, ${p.video_count}, ${p.avg_virality_score ?? null}, ${p.median_virality_score ?? null}, ${p.avg_engagement_rate ?? null}, ${p.performance_rank ?? null}, ${p.pattern_label ?? null})
+            INSERT INTO patterns (dimension_keys, hook_type, structure_type, emotion_primary, topic_cluster, topic_category, facecam, cut_frequency, text_overlay_density, platform, video_count, avg_virality_score, median_virality_score, avg_engagement_rate, performance_rank, pattern_label, pattern_score, velocity_mid, pattern_novelty, trend_classification)
+            VALUES (${dimKeysArray}, ${p.hook_type ?? null}, ${p.structure_type ?? null}, ${p.emotion_primary ?? null}, ${p.topic_cluster ?? null}, ${p.topic_category ?? null}, ${p.facecam ?? null}, ${p.cut_frequency ?? null}, ${p.text_overlay_density ?? null}, ${p.platform ?? null}, ${p.video_count}, ${p.avg_virality_score ?? null}, ${p.median_virality_score ?? null}, ${p.avg_engagement_rate ?? null}, ${p.performance_rank ?? null}, ${p.pattern_label ?? null}, ${p.pattern_score ?? null}, ${p.velocity_mid ?? null}, ${p.pattern_novelty ?? null}, ${p.trend_classification ?? null})
           `);
           inserted++;
         }

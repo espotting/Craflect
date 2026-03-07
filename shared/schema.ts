@@ -688,6 +688,10 @@ export const patterns = pgTable("patterns", {
   avgEngagementRate: doublePrecision("avg_engagement_rate"),
   performanceRank: integer("performance_rank"),
   patternLabel: text("pattern_label"),
+  patternScore: doublePrecision("pattern_score"),
+  velocityMid: doublePrecision("velocity_mid"),
+  patternNovelty: doublePrecision("pattern_novelty"),
+  trendClassification: text("trend_classification"),
   lastUpdated: timestamp("last_updated").defaultNow().notNull(),
 }, (table) => [
   index("idx_patterns_hook_type").on(table.hookType),
@@ -696,6 +700,8 @@ export const patterns = pgTable("patterns", {
   index("idx_patterns_avg_virality").on(table.avgViralityScore),
   index("idx_patterns_performance_rank").on(table.performanceRank),
   index("idx_patterns_video_count").on(table.videoCount),
+  index("idx_patterns_pattern_score").on(table.patternScore),
+  index("idx_patterns_trend_classification").on(table.trendClassification),
 ]);
 
 // ═══════════════════════════════════════════════════════════

@@ -19,18 +19,18 @@ React + TypeScript + Tailwind CSS + shadcn/ui + Framer Motion frontend, Express/
 - **Craflect Taxonomy v1 tables** (pipeline stable) : `videos`, `viral_patterns`, `patterns`, `saved_ideas`, `content_projects` — taxonomie en couches
 - Les deux coexistent. Les tables legacy alimentent le frontend actuel. La Taxonomy v1 alimente le Pattern Engine et les nouvelles pages.
 
-## Product Architecture (V4 — Phase 1 Refonte UX)
+## Product Architecture (V4 — Phase 2 Refonte UX)
 
 **Navigation Sidebar (5 sections) :**
-- **HOME** → `/dashboard` (LayoutDashboard) — Creator Dashboard avec animated empty states
-- **DISCOVER** → `/discover` (Compass) — Fusion Trend Radar + Library, 5 onglets
+- **HOME** → `/dashboard` (LayoutDashboard) — Creator Dashboard enrichi
+- **DISCOVER** → `/discover` (Compass) — Fusion Trend Radar + Library, 6 onglets (Videos/Trends/Hooks/Formats/Creators/Patterns)
 - **CREATE** → `/create` (Sparkles) — Wizard 4 étapes fusionnant Ideas/Script/Video/Predicted
 - **WORKSPACE** → `/workspace` (FolderKanban) — Fusion Projects + Ideas + Templates
 - **SYSTEM** : Settings, Plan & Billing, Admin (admin-only), Intelligence (admin-only)
 
 **Pages :**
-- `/dashboard` — Hub principal avec AnimatedEmptyState quand no data, 4 KPIs, Viral Opportunities, Trends, Top Videos, Intelligence Feed
-- `/discover` — 5 onglets : Videos (infinite scroll, filtres), Trends, Hooks, Formats, Creators (infinite scroll)
+- `/dashboard` — Hub principal avec AnimatedEmptyState quand no data, 4 KPIs, Daily Viral Play (card accent violet), Trending Videos Carousel, Top Hooks Leaderboard, Top Formats Leaderboard, Viral Opportunities, Emerging Trends, Intelligence Feed. Consomme `GET /api/dashboard` (single call) + `/api/trends/radar` + `/api/opportunities/engine`
+- `/discover` — 6 onglets : Videos (infinite scroll, filtres), Trends, Hooks, Formats, Creators (infinite scroll), Patterns (depuis table patterns, avec "Create with this pattern")
 - `/create` — Wizard 4 steps : Choose Source (Opportunity/Idea/Remix) → Generate Script → Video Blueprint → Predicted Views. Autosave project on script generation.
 - `/workspace` — 3 onglets : Projects, Saved Ideas, Templates
 - `/settings` — Profile, Notifications, Security tabs
@@ -57,6 +57,9 @@ React + TypeScript + Tailwind CSS + shadcn/ui + Framer Motion frontend, Express/
 **Onboarding (welcome.tsx) :** 4 étapes — Welcome → Select niches (max 3) → User goal → Redirect /dashboard
 
 ## API Endpoints
+
+**Dashboard Aggregated :**
+- `GET /api/dashboard` — Single call retournant trending_videos, daily_viral_play, top_patterns, top_hooks, top_formats, alerts
 
 **Viral Opportunity Engine :**
 - `GET /api/opportunities/engine` — Calcule Opportunity Score (0-100). Top 5 opportunities.
@@ -126,7 +129,7 @@ React + TypeScript + Tailwind CSS + shadcn/ui + Framer Motion frontend, Express/
 - `POST /api/videos/classify` — classification d'une vidéo (thumbnail_url, view_velocity, engagement_rate supportés)
 - `POST /api/videos/reset-incomplete` — reset vidéos incomplètes
 - `POST /api/trends/scores` — push trend scores
-- `POST /api/patterns` — push patterns détectés
+- `POST /api/patterns` — push patterns détectés (accepte pattern_score, velocity_mid, pattern_novelty, trend_classification)
 - `POST /api/patterns/compute` — compute patterns (émet PATTERN_DETECTED)
 - `POST /api/intelligence/events` — push intelligence events
 
