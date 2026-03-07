@@ -32,7 +32,7 @@ function isPasswordValid(v: ReturnType<typeof usePasswordValidation>) {
 }
 
 export default function Auth() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const [, setLocation] = useLocation();
   const { isDark, toggleTheme } = useTheme();
   const { toast } = useToast();
@@ -61,9 +61,9 @@ export default function Auth() {
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
-      setLocation("/dashboard");
+      setLocation((user as any)?.isAdmin ? "/system/founder" : "/dashboard");
     }
-  }, [isLoading, isAuthenticated, setLocation]);
+  }, [isLoading, isAuthenticated, user, setLocation]);
 
   if (isLoading || isAuthenticated) return null;
 
@@ -109,7 +109,7 @@ export default function Auth() {
       } else {
         await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
         toast({ title: t.auth.toasts.welcomeBack, description: t.auth.toasts.signedIn });
-        setLocation("/dashboard");
+        setLocation(data.user?.isAdmin ? "/system/founder" : "/dashboard");
       }
     } catch (err: any) {
       toast({ title: t.common.error, description: err.message || t.auth.toasts.loginFailed, variant: "destructive" });

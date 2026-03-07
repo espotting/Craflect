@@ -165,8 +165,8 @@ React + TypeScript + Tailwind CSS + shadcn/ui + Framer Motion frontend, Express/
 **Objectif** : Partage viral des insights pour acquisition organique. À lancer après accumulation suffisante de patterns et signaux de tendance.
 
 ## Accounts
-- **Demo:** demo@craflect.com / Demo1234! (id: c06b737b)
-- **Admin:** admin@craflect.com / Admin1234!
+- **Demo:** demo@craflect.com / Demo1234! (id: c06b737b) → redirigé vers /dashboard
+- **Admin:** admin@craflect.com / Admin1234! → redirigé vers /system/founder (Founder Dashboard)
 - **Stripe:** Plans Starter €29, Pro €69, Studio €199
 
 ## External Dependencies
