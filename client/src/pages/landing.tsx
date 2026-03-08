@@ -18,6 +18,7 @@ import {
   Brain,
   RefreshCw,
   Video,
+  Eye,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -28,12 +29,6 @@ import { LanguageSwitcher } from "@/components/language-switcher";
 import { SiTiktok, SiInstagram, SiYoutube } from "react-icons/si";
 import logoLight from "@/assets/logo-light.png";
 import logoTransparent from "@/assets/logo-transparent.png";
-
-const MOCK_BRIEF = {
-  hook: "\"I almost gave up on content creation until I discovered this one pattern...\"",
-  flow: "Hook → Personal story → Pattern reveal → CTA",
-  cta: "Comment \"PATTERN\" and I'll send you the full breakdown.",
-};
 
 function SectionReveal({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
   return (
@@ -155,7 +150,7 @@ export default function Landing() {
             transition={{ duration: 0.7, ease: "easeOut" }}
             className="max-w-4xl mx-auto relative z-10"
           >
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-muted dark:bg-white/5 border border-border dark:border-white/10 text-sm font-medium text-primary mb-8">
+            <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary/5 dark:bg-primary/10 border border-primary/20 dark:border-primary/30 text-base font-semibold text-primary mb-8">
               <Sparkles className="w-4 h-4" />
               <span data-testid="text-hero-badge">{t.landing.badge}</span>
             </div>
@@ -168,12 +163,11 @@ export default function Landing() {
               <span className="block">{t.landing.heroLine3}</span>
             </h1>
 
-            <p className="text-base sm:text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto leading-relaxed" data-testid="text-hero-subtitle">
+            <p className="text-base sm:text-lg md:text-xl text-muted-foreground mb-6 max-w-2xl mx-auto leading-relaxed" data-testid="text-hero-subtitle">
               {t.landing.subtitle}
             </p>
 
-            <div className="flex flex-col items-center gap-2 mb-8" data-testid="platforms-bar">
-              <span className="text-sm text-muted-foreground font-medium">{t.landing.builtForCreators}</span>
+            <div className="flex flex-col items-center gap-2 mb-4" data-testid="platforms-bar">
               <div className="flex items-center gap-0">
                 <span className="flex items-center gap-1.5 text-xs font-medium text-foreground/50">
                   <SiTiktok className="w-3.5 h-3.5" />
@@ -192,10 +186,15 @@ export default function Landing() {
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <p className="text-xs text-muted-foreground/70 font-medium mb-8" data-testid="text-proof-line">
+              {t.landing.proofLine}
+            </p>
+
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-12">
               <Button
                 size="lg"
-                className="rounded-full px-10 h-14 bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-white font-semibold text-lg shadow-xl shadow-primary/25 transition-all hover:-translate-y-1 gap-3"
+                className="rounded-full px-10 h-14 bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-white font-semibold text-lg shadow-xl transition-all hover:-translate-y-1 gap-3"
+                style={{ boxShadow: "0 0 40px rgba(124, 92, 255, 0.35), 0 10px 25px rgba(124, 92, 255, 0.25)" }}
                 onClick={() => setLocation("/auth")}
                 data-testid="button-hero-cta"
               >
@@ -214,10 +213,43 @@ export default function Landing() {
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.4, ease: "easeOut" }}
+              className="max-w-sm mx-auto"
+            >
+              <p className="text-[11px] uppercase tracking-widest text-muted-foreground/60 font-semibold mb-3" data-testid="text-preview-label">
+                {t.landing.previewLabel}
+              </p>
+              <Card className="border-border/60 bg-card/80 backdrop-blur-sm shadow-lg" data-testid="card-preview-idea">
+                <CardContent className="p-4 space-y-3">
+                  <div>
+                    <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Hook</span>
+                    <p className="text-sm font-semibold text-foreground mt-0.5 leading-snug">"3 AI workflows that save 10 hours per week"</p>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div>
+                      <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Format</span>
+                      <p className="text-xs font-medium text-foreground mt-0.5">Listicle</p>
+                    </div>
+                    <div>
+                      <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Virality</span>
+                      <p className="text-xs font-bold text-violet-500 mt-0.5">82</p>
+                    </div>
+                    <div>
+                      <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold flex items-center gap-1"><Eye className="w-3 h-3" /> Views</span>
+                      <p className="text-xs font-medium text-foreground mt-0.5">300K – 900K</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
           </motion.div>
         </section>
 
-        {/* ═══ HOW CRAFLECT GIVES YOU CLARITY ═══ */}
+        {/* ═══ HOW IT WORKS ═══ */}
         <section id="section-clarity" className="px-4 py-20 sm:py-28">
           <div className="max-w-4xl mx-auto w-full">
             <SectionReveal>
@@ -256,7 +288,7 @@ export default function Landing() {
           </div>
         </section>
 
-        {/* ═══ INSIDE YOUR NICHE INTELLIGENCE ═══ */}
+        {/* ═══ SEE IT. UNDERSTAND IT. USE IT. ═══ */}
         <section className="px-4 py-20 sm:py-28 relative">
           <div className="absolute inset-0 bg-muted/30 dark:bg-[hsl(var(--card)/0.5)] border-y border-border/50 pointer-events-none" />
           <div className="absolute inset-0 pointer-events-none">
@@ -277,7 +309,6 @@ export default function Landing() {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 sm:gap-6">
 
-              {/* Card 1 — What's working (Dashboard mirror) */}
               <SectionReveal delay={0.1} className="lg:col-span-1">
                 <Card className="border-border/60 bg-card shadow-lg dark:shadow-primary/5 h-full hover:shadow-xl transition-shadow">
                   <CardContent className="p-5 sm:p-6 space-y-4">
@@ -313,7 +344,6 @@ export default function Landing() {
                 </Card>
               </SectionReveal>
 
-              {/* Card 2 — What to focus on (Insights mirror) */}
               <SectionReveal delay={0.2} className="lg:col-span-1">
                 <Card className="border-border/60 bg-card shadow-lg dark:shadow-primary/5 h-full hover:shadow-xl transition-shadow">
                   <CardContent className="p-5 sm:p-6 space-y-4">
@@ -343,7 +373,6 @@ export default function Landing() {
                 </Card>
               </SectionReveal>
 
-              {/* Card 3 — Your structured brief (Brief mirror) */}
               <SectionReveal delay={0.3} className="lg:col-span-1">
                 <Card className="border-primary/20 bg-card shadow-lg shadow-primary/5 dark:shadow-primary/10 h-full relative overflow-hidden hover:shadow-xl hover:shadow-primary/10 transition-shadow">
                   <div className="absolute top-0 right-0 w-40 h-40 bg-primary/5 dark:bg-primary/10 rounded-full blur-[60px] -translate-y-1/2 translate-x-1/2 pointer-events-none" />
@@ -355,15 +384,15 @@ export default function Landing() {
                     <div className="space-y-3">
                       <div>
                         <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{t.landing.card3Hook}</span>
-                        <p className="text-sm text-foreground/80 italic mt-0.5" data-testid="text-brief-hook">{MOCK_BRIEF.hook}</p>
+                        <p className="text-sm text-foreground/80 italic mt-0.5" data-testid="text-brief-hook">"I almost gave up on content creation until I discovered this one pattern..."</p>
                       </div>
                       <div>
                         <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{t.landing.card3Flow}</span>
-                        <p className="text-sm text-foreground/80 mt-0.5" data-testid="text-brief-flow">{MOCK_BRIEF.flow}</p>
+                        <p className="text-sm text-foreground/80 mt-0.5" data-testid="text-brief-flow">Hook → Personal story → Pattern reveal → CTA</p>
                       </div>
                       <div>
                         <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{t.landing.card3Cta}</span>
-                        <p className="text-sm text-foreground/80 italic mt-0.5" data-testid="text-brief-cta">{MOCK_BRIEF.cta}</p>
+                        <p className="text-sm text-foreground/80 italic mt-0.5" data-testid="text-brief-cta">Comment "PATTERN" and I'll send you the full breakdown.</p>
                       </div>
                     </div>
                   </CardContent>
@@ -387,13 +416,17 @@ export default function Landing() {
           </div>
         </section>
 
-        {/* ═══ NOT ANOTHER AI CONTENT TOOL ═══ */}
+        {/* ═══ NOT ANOTHER AI CONTENT GENERATOR ═══ */}
         <section className="px-4 py-20 sm:py-28">
           <div className="max-w-4xl mx-auto w-full">
             <SectionReveal>
               <div className="text-center mb-12 sm:mb-16">
                 <h2 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-3" data-testid="text-positioning-title">
                   {t.landing.notAnotherTitle}
+                  <br />
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">
+                    {t.landing.notAnotherTitle2}
+                  </span>
                 </h2>
                 <p className="text-sm sm:text-base text-muted-foreground max-w-lg mx-auto">
                   {t.landing.notAnotherSubtitle}
@@ -442,7 +475,8 @@ export default function Landing() {
               </p>
               <Button
                 size="lg"
-                className="rounded-full px-10 h-14 bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-white font-semibold text-lg shadow-xl shadow-primary/25 transition-all hover:-translate-y-1 gap-3"
+                className="rounded-full px-10 h-14 bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-white font-semibold text-lg transition-all hover:-translate-y-1 gap-3"
+                style={{ boxShadow: "0 0 40px rgba(124, 92, 255, 0.35), 0 10px 25px rgba(124, 92, 255, 0.25)" }}
                 onClick={() => setLocation("/auth")}
                 data-testid="button-final-cta"
               >
@@ -463,40 +497,46 @@ export default function Landing() {
               </div>
 
               <div>
-                <h4 className="text-sm font-semibold text-foreground mb-3" data-testid="footer-product-heading">{t.footerLinks.product}</h4>
-                <ul className="space-y-2">
-                  <li><Link href="/pricing" className="text-sm text-muted-foreground hover-elevate" data-testid="footer-link-pricing">{t.footerLinks.pricing}</Link></li>
-                  <li><Link href="/faq" className="text-sm text-muted-foreground hover-elevate" data-testid="footer-link-faq">{t.footerLinks.faq}</Link></li>
-                  <li><Link href="/security" className="text-sm text-muted-foreground hover-elevate" data-testid="footer-link-security">{t.footerLinks.security}</Link></li>
+                <h4 className="text-xs font-bold uppercase tracking-widest text-foreground mb-4">{t.landing.footerProduct}</h4>
+                <ul className="space-y-2.5">
+                  <li><button onClick={() => setLocation("/pricing")} className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-footer-pricing">{t.nav.pricing}</button></li>
+                  <li><button onClick={() => setLocation("/faq")} className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-footer-faq">FAQ</button></li>
                 </ul>
               </div>
-
               <div>
-                <h4 className="text-sm font-semibold text-foreground mb-3" data-testid="footer-legal-heading">{t.footerLinks.legal}</h4>
-                <ul className="space-y-2">
-                  <li><Link href="/terms" className="text-sm text-muted-foreground hover-elevate" data-testid="footer-link-terms">{t.footerLinks.terms}</Link></li>
-                  <li><Link href="/billing" className="text-sm text-muted-foreground hover-elevate" data-testid="footer-link-billing">{t.footerLinks.billing}</Link></li>
-                  <li><Link href="/privacy" className="text-sm text-muted-foreground hover-elevate" data-testid="footer-link-privacy">{t.footerLinks.privacy}</Link></li>
-                  <li><Link href="/cookies" className="text-sm text-muted-foreground hover-elevate" data-testid="footer-link-cookies">{t.footerLinks.cookies}</Link></li>
-                  <li><Link href="/dpa" className="text-sm text-muted-foreground hover-elevate" data-testid="footer-link-dpa">{t.footerLinks.dpa}</Link></li>
+                <h4 className="text-xs font-bold uppercase tracking-widest text-foreground mb-4">{t.landing.footerLegal}</h4>
+                <ul className="space-y-2.5">
+                  <li><Link href="/legal/terms" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-footer-terms">{t.landing.footerTerms}</Link></li>
+                  <li><Link href="/legal/privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-footer-privacy">{t.landing.footerPrivacy}</Link></li>
                 </ul>
               </div>
-
               <div>
-                <h4 className="text-sm font-semibold text-foreground mb-3" data-testid="footer-company-heading">{t.footerLinks.company}</h4>
-                <ul className="space-y-2">
-                  <li><a href="mailto:contact@craflect.com" className="text-sm text-muted-foreground hover-elevate" data-testid="footer-link-contact">{t.footerLinks.contact}</a></li>
+                <h4 className="text-xs font-bold uppercase tracking-widest text-foreground mb-4">{t.landing.footerAccount}</h4>
+                <ul className="space-y-2.5">
+                  <li><button onClick={() => setLocation("/auth?mode=login")} className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-footer-login">{t.auth.logIn}</button></li>
+                  <li><button onClick={() => setLocation("/auth")} className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-footer-signup">{t.nav.signUp}</button></li>
                 </ul>
               </div>
             </div>
 
-            <div className="pt-6 border-t border-border/30 text-center">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-8 border-t border-border/50">
               <p className="text-xs text-muted-foreground">
                 {t.landing.copyright.replace("{year}", new Date().getFullYear().toString())}
               </p>
+              <div className="flex items-center gap-4">
+                <LanguageSwitcher variant="icon" />
+                <button
+                  onClick={toggleTheme}
+                  className="p-2 rounded-full hover:bg-muted transition-colors text-muted-foreground"
+                  data-testid="button-theme-toggle-footer"
+                >
+                  {isDark ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+                </button>
+              </div>
             </div>
           </div>
         </footer>
+
       </main>
     </div>
   );
