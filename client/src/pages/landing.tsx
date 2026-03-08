@@ -79,7 +79,7 @@ export default function Landing() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setLocation("/pricing")}
-              className="hidden sm:inline-flex text-sm font-medium text-muted-foreground hover:text-foreground px-2 py-1 transition-colors"
+              className="hidden sm:inline-flex text-sm font-medium text-muted-foreground hover:text-primary px-2 py-1 rounded-lg transition-colors"
               data-testid="nav-pricing-sticky"
             >
               {t.nav.pricing}
@@ -103,7 +103,7 @@ export default function Landing() {
         <div className="flex items-center gap-2 sm:gap-3">
           <button
             onClick={() => setLocation("/pricing")}
-            className="hidden sm:inline-flex text-sm font-medium text-muted-foreground hover:text-foreground px-3 py-1.5 transition-colors"
+            className="hidden sm:inline-flex text-sm font-medium text-muted-foreground hover:text-primary px-3 py-1.5 rounded-lg transition-colors"
             data-testid="nav-pricing"
           >
             {t.nav.pricing}
@@ -111,7 +111,7 @@ export default function Landing() {
           <LanguageSwitcher variant="icon" />
           <button
             onClick={toggleTheme}
-            className="p-2.5 rounded-full bg-muted hover:bg-accent text-foreground transition-all border border-border"
+            className="p-2.5 rounded-full bg-muted hover:bg-primary/10 hover:text-primary text-foreground transition-all border border-border hover:border-primary/30"
             title={isDark ? "Switch to light mode" : "Switch to dark mode"}
             data-testid="button-theme-toggle-landing"
           >
@@ -119,7 +119,7 @@ export default function Landing() {
           </button>
           <button
             onClick={() => setLocation("/auth?mode=login")}
-            className="p-2.5 rounded-full bg-muted hover:bg-accent text-foreground transition-all border border-border"
+            className="p-2.5 rounded-full bg-muted hover:bg-primary/10 hover:text-primary text-foreground transition-all border border-border hover:border-primary/30"
             title="Log in"
             data-testid="button-login-nav"
           >
@@ -138,10 +138,25 @@ export default function Landing() {
       <main className="relative z-10 flex-1 flex flex-col">
 
         {/* ═══ HERO ═══ */}
-        <section className="relative flex flex-col items-center justify-center px-4 text-center pt-10 sm:pt-16 pb-12 sm:pb-16">
+        <section className="relative flex flex-col items-center justify-center px-4 text-center pt-10 sm:pt-16 pb-20 sm:pb-28">
           <div className="absolute inset-0 z-0 pointer-events-none">
+            <div
+              className="absolute inset-0"
+              style={{
+                background: isDark
+                  ? "radial-gradient(circle at 50% 10%, rgba(124,92,255,0.18), transparent 60%)"
+                  : "radial-gradient(circle at 50% 10%, rgba(124,92,255,0.10), transparent 60%)",
+              }}
+            />
             <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/5 dark:bg-primary/10 rounded-full blur-[150px] -translate-y-1/2 translate-x-1/3" />
             <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-secondary/5 dark:bg-secondary/10 rounded-full blur-[120px] translate-y-1/3 -translate-x-1/3" />
+            <div
+              className="absolute inset-0 opacity-[0.015] dark:opacity-[0.03]"
+              style={{
+                backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
+                backgroundRepeat: "repeat",
+              }}
+            />
           </div>
 
           <motion.div
@@ -190,10 +205,10 @@ export default function Landing() {
               {t.landing.proofLine}
             </p>
 
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-12">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-0">
               <Button
                 size="lg"
-                className="rounded-full px-10 h-14 bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-white font-semibold text-lg shadow-xl transition-all hover:-translate-y-1 gap-3"
+                className="rounded-full px-10 h-14 bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-white font-semibold text-lg transition-all hover:-translate-y-1 gap-3"
                 style={{ boxShadow: "0 0 40px rgba(124, 92, 255, 0.35), 0 10px 25px rgba(124, 92, 255, 0.25)" }}
                 onClick={() => setLocation("/auth")}
                 data-testid="button-hero-cta"
@@ -206,46 +221,53 @@ export default function Landing() {
                   const el = document.getElementById("section-clarity");
                   el?.scrollIntoView({ behavior: "smooth" });
                 }}
-                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
+                className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors flex items-center gap-1.5"
                 data-testid="button-hero-secondary"
               >
                 {t.landing.ctaSecondary}
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
+          </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.4, ease: "easeOut" }}
-              className="max-w-sm mx-auto"
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.35, ease: "easeOut" }}
+            className="relative z-10 w-full max-w-[420px] mx-auto -mt-2"
+            style={{ marginTop: "-8px" }}
+          >
+            <p className="text-[11px] uppercase tracking-widest text-muted-foreground/60 font-semibold mb-3 text-center" data-testid="text-preview-label">
+              {t.landing.previewLabel}
+            </p>
+            <div
+              className="rounded-2xl border border-border/50 dark:border-white/10 bg-card/90 dark:bg-card/80 backdrop-blur-md p-5 space-y-3"
+              style={{
+                boxShadow: isDark
+                  ? "0 10px 40px rgba(0,0,0,0.3), 0 0 60px rgba(124,92,255,0.08)"
+                  : "0 10px 30px rgba(0,0,0,0.08), 0 0 60px rgba(124,92,255,0.06)",
+              }}
+              data-testid="card-preview-idea"
             >
-              <p className="text-[11px] uppercase tracking-widest text-muted-foreground/60 font-semibold mb-3" data-testid="text-preview-label">
-                {t.landing.previewLabel}
-              </p>
-              <Card className="border-border/60 bg-card/80 backdrop-blur-sm shadow-lg" data-testid="card-preview-idea">
-                <CardContent className="p-4 space-y-3">
-                  <div>
-                    <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Hook</span>
-                    <p className="text-sm font-semibold text-foreground mt-0.5 leading-snug">"3 AI workflows that save 10 hours per week"</p>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div>
-                      <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Format</span>
-                      <p className="text-xs font-medium text-foreground mt-0.5">Listicle</p>
-                    </div>
-                    <div>
-                      <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Virality</span>
-                      <p className="text-xs font-bold text-violet-500 mt-0.5">82</p>
-                    </div>
-                    <div>
-                      <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold flex items-center gap-1"><Eye className="w-3 h-3" /> Views</span>
-                      <p className="text-xs font-medium text-foreground mt-0.5">300K – 900K</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
+              <div>
+                <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Hook</span>
+                <p className="text-sm font-semibold text-foreground mt-0.5 leading-snug">"3 AI workflows that save 10 hours per week"</p>
+              </div>
+              <div className="flex items-center gap-5">
+                <div>
+                  <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Format</span>
+                  <p className="text-xs font-medium text-foreground mt-0.5">Listicle</p>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Virality</span>
+                  <p className="text-sm font-bold text-violet-500 mt-0.5">82</p>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold flex items-center gap-1"><Eye className="w-3 h-3" /> Views</span>
+                  <p className="text-xs font-medium text-foreground mt-0.5">300K – 900K</p>
+                </div>
+              </div>
+            </div>
           </motion.div>
         </section>
 
