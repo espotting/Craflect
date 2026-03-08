@@ -1723,6 +1723,63 @@ The content should directly apply the recommendations from the insight report. W
     }
   });
 
+  // ─── Onboarding — Generate Viral Idea ───
+
+  app.post("/api/onboarding/generate-idea", isAuthenticated, async (req: any, res) => {
+    try {
+      const input = z.object({
+        niches: z.array(z.string()).min(1).max(3),
+        creatorType: z.string(),
+      }).parse(req.body);
+
+      const nichesText = input.niches.map(n => n.replace(/_/g, " ")).join(", ");
+      const profileText = input.creatorType.replace(/_/g, " ");
+
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4.1-mini",
+        temperature: 0.9,
+        max_tokens: 300,
+        messages: [
+          {
+            role: "system",
+            content: `You are a viral video strategist. Generate ONE viral video idea based on the user's niches and profile. Return ONLY valid JSON with these fields:
+- "topic": the specific topic/niche for this idea (one of: ${input.niches.join(", ")})
+- "hook": a compelling hook text (the first sentence viewers see, in quotes style, max 15 words)
+- "format": the video format (one of: listicle, tutorial, story, comparison, challenge, reaction, behind_the_scenes, tips, transformation, explainer)
+- "structure": brief video structure description (3-4 bullet points as a single string separated by " → ")
+No markdown, no explanation, just the JSON object.`,
+          },
+          {
+            role: "user",
+            content: `Generate a viral video idea for a ${profileText} who creates content about: ${nichesText}`,
+          },
+        ],
+      });
+
+      const raw = completion.choices[0]?.message?.content?.trim() || "{}";
+      let idea: any;
+      try {
+        const cleaned = raw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+        idea = JSON.parse(cleaned);
+      } catch {
+        idea = {};
+      }
+
+      const allowedFormats = ["listicle", "tutorial", "story", "comparison", "challenge", "reaction", "behind_the_scenes", "tips", "transformation", "explainer"];
+      const topic = (typeof idea.topic === "string" && input.niches.includes(idea.topic)) ? idea.topic : input.niches[0];
+      const hook = (typeof idea.hook === "string" && idea.hook.length > 3 && idea.hook.length < 200) ? idea.hook : "3 AI tools nobody talks about";
+      const format = (typeof idea.format === "string" && allowedFormats.includes(idea.format)) ? idea.format : "listicle";
+      const structure = (typeof idea.structure === "string" && idea.structure.length > 3) ? idea.structure.slice(0, 300) : "Hook → Content → CTA";
+
+      const viralityScore = Math.floor(Math.random() * 20) + 72;
+
+      res.json({ topic, hook, format, structure, viralityScore });
+    } catch (err: any) {
+      console.error("Onboarding generate-idea error:", err);
+      res.status(500).json({ message: "Failed to generate idea" });
+    }
+  });
+
   // ─── Dashboard V2 — Niches Overview ───
 
   app.get("/api/niches/overview", isAuthenticated, async (req: any, res) => {

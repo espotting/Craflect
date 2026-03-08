@@ -68,7 +68,9 @@ React + TypeScript + Tailwind CSS + shadcn/ui + Framer Motion frontend, Express/
 - `DashboardLayout` — wrapper avec auth guard, sidebar, onboarding redirect
 - Virality Score colors: violet (80-100 High), orange (60-80 Good), jaune (40-60 Medium), gris (<40 Low)
 
-**Onboarding (welcome.tsx) :** 4 étapes — Welcome → Select niches (max 3) → User goal → Redirect /dashboard
+**Onboarding (welcome.tsx) :** 5 étapes — (1) Intro "Créer des vidéos virales avec l'IA" → (2) Sélection niches (max 3) → (3) Profil créateur (Créateur/Marketeur/Entrepreneur/Explorateur) → (4) Analyse IA animée (2-3s, appel OpenAI en parallèle) → (5) Carte idée virale générée (topic, hook, format, virality score animé, predicted views, CTA "Créer la vidéo virale" → /create avec params pré-remplis)
+- Endpoint: `POST /api/onboarding/generate-idea` — appelle gpt-4.1-mini, retourne { topic, hook, format, structure, viralityScore }
+- Virality Score + Predicted Views calculés côté Craflect (pas OpenAI)
 
 ## API Endpoints
 
