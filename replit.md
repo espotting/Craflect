@@ -19,26 +19,33 @@ React + TypeScript + Tailwind CSS + shadcn/ui + Framer Motion frontend, Express/
 - **Craflect Taxonomy v1 tables** (pipeline stable) : `videos`, `viral_patterns`, `patterns`, `saved_ideas`, `content_projects` — taxonomie en couches
 - Les deux coexistent. Les tables legacy alimentent le frontend actuel. La Taxonomy v1 alimente le Pattern Engine et les nouvelles pages.
 
-## Product Architecture (V4 — Phase 2 Refonte UX)
+## Product Architecture (V5 — Phase 1 Creator-First UX)
 
-**Navigation Sidebar (5 sections) :**
-- **HOME** → `/dashboard` (LayoutDashboard) — Creator Dashboard enrichi
-- **DISCOVER** → `/discover` (Compass) — Fusion Trend Radar + Library, 6 onglets (Videos/Trends/Hooks/Formats/Creators/Patterns)
-- **CREATE** → `/create` (Sparkles) — Wizard 4 étapes fusionnant Ideas/Script/Video/Predicted
-- **WORKSPACE** → `/workspace` (FolderKanban) — Fusion Projects + Ideas + Templates
-- **SYSTEM** : Settings, Plan & Billing, Admin (admin-only), Intelligence (admin-only)
+**Dual Interface Layer :**
+- **Layer 1 — Creator Mode** (default) : Home, Opportunities, Create, Workspace — orienté action/création
+- **Layer 2 — Insight Mode** : Insights — analytics avancées style TradingView (Phase 3)
+
+**Navigation Sidebar :**
+- **HOME** → `/home` (LayoutDashboard) — Creator Dashboard : Hero CTA "Create Viral Video", Viral Play of the Day, Trending Opportunities carousel, Create From Image
+- **OPPORTUNITIES** → `/opportunities` (Target) — Galerie de cartes vidéo verticales (style Canva/CapCut), 4 par ligne, scroll infini, filtres platform/niche
+- **CREATE** → `/create` (Sparkles) — Wizard 4 étapes
+- **WORKSPACE** → `/workspace` (FolderKanban) — Bibliothèque personnelle
+- **INSIGHTS** → `/insights` (BarChart3) — Placeholder "Coming Soon" (Phase 3)
+- **SYSTEM** : Settings, Plan & Billing, Admin (admin-only), Intelligence (admin-only), Founder Dashboard (admin-only)
 
 **Pages :**
-- `/dashboard` — Hub principal avec AnimatedEmptyState quand no data, 4 KPIs, Daily Viral Play (card accent violet), Trending Videos Carousel, Top Hooks Leaderboard, Top Formats Leaderboard, Viral Opportunities, Emerging Trends, Intelligence Feed. Consomme `GET /api/dashboard` (single call) + `/api/trends/radar` + `/api/opportunities/engine`
-- `/discover` — 6 onglets : Videos (infinite scroll, filtres), Trends, Hooks, Formats, Creators (infinite scroll), Patterns (depuis table patterns, avec "Create with this pattern")
-- `/create` — Wizard 4 steps : Choose Source (Opportunity/Idea/Remix) → Generate Script → Video Blueprint → Predicted Views. Autosave project on script generation.
+- `/home` — Hub créateur : Hero gradient violet "Create Viral Video", Viral Play of the Day (hook + format + score + predicted views), Trending Opportunities (carousel horizontal de VideoCards compacts), Create From Image (teaser upload). Consomme `GET /api/dashboard`
+- `/opportunities` — Galerie cartes verticales (remplace Discover). VideoCard avec thumbnail/placeholder gradient, hook, virality score color-coded (violet 80+, orange 60-80, jaune <60), predicted views, format badge, "Create Video" button. Infinite scroll via IntersectionObserver. Filtres platform + topic. Consomme `GET /api/videos/browse`
+- `/insights` — Placeholder Coming Soon avec 4 feature cards (Niche Growth Charts, Hook Performance, Format Success Rates, Trend Velocity) + mini SVG charts + lock overlay
+- `/create` — Wizard 4 steps
 - `/workspace` — 3 onglets : Projects, Saved Ideas, Templates
 - `/settings` — Profile, Notifications, Security tabs
 - `/plan-billing` — Stripe billing management
 
 **Redirections (anciennes routes) :**
-- `/trend-radar` → `/discover`
-- `/library` → `/discover`
+- `/discover` → `/opportunities`
+- `/trend-radar` → `/opportunities`
+- `/library` → `/opportunities`
 - `/ideas` → `/workspace`
 - `/script-generator` → `/create`
 - `/video-builder` → `/create`
@@ -47,12 +54,19 @@ React + TypeScript + Tailwind CSS + shadcn/ui + Framer Motion frontend, Express/
 - `/remix-engine` → `/create`
 - `/predicted-views` → `/create`
 
+**Predicted Views (calculées côté client) :**
+- Score 80+ → 300K – 1M
+- Score 60-80 → 120K – 600K
+- Score 40-60 → 50K – 200K
+- Score <40 → 10K – 50K
+
 **Composants clés :**
+- `VideoCard` (`client/src/components/video-card.tsx`) — Carte vidéo verticale réutilisable (9:16). Props: VideoCardData + compact mode. Gradient placeholder si pas de thumbnail. Hover scale + play overlay
+- `getPredictedViews` (`client/src/lib/predicted-views.ts`) — Utilitaire predicted views + getViralityColor + formatCompactNumber
 - `AnimatedEmptyState` — Messages rotatifs ("AI scanning videos...", "Detecting viral patterns...", etc.)
 - `ContentScorecard` — Scorecard réutilisable avec Viral Score, Predicted Views, Hook Strength, Pattern Match, Trend Strength
-- `TrendScore` — composant 0-100 avec couleurs conformes
 - `DashboardLayout` — wrapper avec auth guard, sidebar, onboarding redirect
-- Opportunity Score colors: violet (80-100 High), orange (60-80 Medium), jaune (<60 Low)
+- Virality Score colors: violet (80-100 High), orange (60-80 Good), jaune (40-60 Medium), gris (<40 Low)
 
 **Onboarding (welcome.tsx) :** 4 étapes — Welcome → Select niches (max 3) → User goal → Redirect /dashboard
 

@@ -1,8 +1,10 @@
 import { 
   LayoutDashboard, 
   Compass,
+  Target,
   Sparkles,
   FolderKanban,
+  BarChart3,
   Settings, 
   LogOut,
   Sun,
@@ -43,9 +45,10 @@ export function AppSidebar() {
 
   const mainItems = [
     { title: t.sidebar.home, url: "/home", icon: LayoutDashboard },
-    { title: t.sidebar.discover, url: "/discover", icon: Compass },
+    { title: t.sidebar.opportunities, url: "/opportunities", icon: Target },
     { title: t.sidebar.create, url: "/create", icon: Sparkles },
     { title: t.sidebar.workspace, url: "/workspace", icon: FolderKanban },
+    { title: t.sidebar.insights, url: "/insights", icon: BarChart3 },
   ];
 
   const systemItems = [

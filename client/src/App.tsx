@@ -11,6 +11,8 @@ import Landing from "@/pages/landing";
 import Auth from "@/pages/auth";
 import Dashboard from "@/pages/dashboard";
 import Discover from "@/pages/discover";
+import Opportunities from "@/pages/opportunities";
+import Insights from "@/pages/insights";
 import Create from "@/pages/create";
 import Workspace from "@/pages/workspace";
 import Settings from "@/pages/settings";
@@ -34,7 +36,9 @@ function Router() {
       <Route path="/welcome" component={Welcome} />
       <Route path="/home" component={Dashboard} />
       <Route path="/dashboard">{() => <Redirect to="/home" />}</Route>
-      <Route path="/discover" component={Discover} />
+      <Route path="/opportunities" component={Opportunities} />
+      <Route path="/discover">{() => <Redirect to="/opportunities" />}</Route>
+      <Route path="/insights" component={Insights} />
       <Route path="/create" component={Create} />
       <Route path="/workspace" component={Workspace} />
       <Route path="/settings" component={Settings} />
@@ -45,8 +49,8 @@ function Router() {
       <Route path="/system/settings" component={SystemSettings} />
       <Route path="/plan-billing" component={PlanBilling} />
 
-      <Route path="/trend-radar">{() => <Redirect to="/discover" />}</Route>
-      <Route path="/library">{() => <Redirect to="/discover" />}</Route>
+      <Route path="/trend-radar">{() => <Redirect to="/opportunities" />}</Route>
+      <Route path="/library">{() => <Redirect to="/opportunities" />}</Route>
       <Route path="/ideas">{() => <Redirect to="/workspace" />}</Route>
       <Route path="/script-generator">{() => <Redirect to="/create" />}</Route>
       <Route path="/video-builder">{() => <Redirect to="/create" />}</Route>
