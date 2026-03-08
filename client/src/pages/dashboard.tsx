@@ -162,7 +162,7 @@ function ViralOpportunityToday({
   if (!play) return null;
 
   const hookText = play.example_hook || play.hook_type || "";
-  const topicLabel = play.topic_cluster
+  const topicLabel = play.topic_cluster && play.topic_cluster !== "unknown"
     ? TOPIC_CLUSTER_LABELS[play.topic_cluster] || formatLabel(play.topic_cluster)
     : null;
   const predicted = getPredictedViews(play.pattern_score);

@@ -369,6 +369,7 @@ export const TOPIC_CLUSTER_LABELS: Record<string, string> = {
   relationships: "Relationships",
   entertainment: "Entertainment",
   gaming: "Gaming",
+  unknown: "General",
 };
 
 export function normalizeTopicCluster(raw: string | null | undefined): string | null {

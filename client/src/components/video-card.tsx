@@ -6,6 +6,7 @@ import { SiTiktok, SiInstagram, SiYoutube } from "react-icons/si";
 import { Globe } from "lucide-react";
 import { useLocation } from "wouter";
 import { useLanguage } from "@/hooks/use-language";
+import { TOPIC_CLUSTER_LABELS } from "@shared/schema";
 import {
   getPredictedViews,
   getViralityColor,
@@ -192,9 +193,9 @@ export function VideoCard({ video, compact = false, isSaved, onSave }: VideoCard
             <Eye className="w-3.5 h-3.5" />
             <span className="text-xs font-medium" data-testid={`text-predicted-${video.id}`}>{predicted.label}</span>
           </div>
-          {video.topicCluster && (
+          {video.topicCluster && video.topicCluster !== "unknown" && (
             <Badge variant="outline" className="text-[10px]" data-testid={`badge-topic-${video.id}`}>
-              {formatLabel(video.topicCluster)}
+              {TOPIC_CLUSTER_LABELS[video.topicCluster] || formatLabel(video.topicCluster)}
             </Badge>
           )}
         </div>

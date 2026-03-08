@@ -757,7 +757,7 @@ The content should directly apply the recommendations from the insight report. W
         db.execute(sql`SELECT COUNT(*) as v FROM videos`),
         db.execute(sql`SELECT COUNT(*) as v FROM videos WHERE classification_status = 'completed' AND creator_name IS NOT NULL AND creator_name != 'unknown' AND creator_name != ''`),
         db.execute(sql`SELECT COUNT(*) as v FROM videos WHERE classification_status = 'completed' AND (creator_name IS NULL OR creator_name = 'unknown' OR creator_name = '')`),
-        db.execute(sql`SELECT ROUND(AVG(view_velocity)::numeric, 2) as v FROM videos WHERE classification_status = 'completed' AND view_velocity IS NOT NULL`),
+        db.execute(sql`SELECT ROUND(AVG(view_velocity)::numeric, 2) as v FROM videos WHERE classification_status = 'completed' AND view_velocity IS NOT NULL AND view_velocity != 5000`),
         db.execute(sql`SELECT MAX(collected_at) as v FROM videos`),
         db.execute(sql`SELECT MAX(classified_at) as v FROM videos WHERE classification_status = 'completed'`),
         db.execute(sql`SELECT MAX(last_updated) as v FROM patterns`),
@@ -1287,7 +1287,7 @@ The content should directly apply the recommendations from the insight report. W
       ] = await Promise.all([
         db.execute(sql`
           SELECT id, caption, platform, creator_name, views, likes, comments,
-                 virality_score, view_velocity, thumbnail_url, hook_text,
+                 virality_score, NULLIF(view_velocity, 5000) as view_velocity, thumbnail_url, hook_text,
                  hook_mechanism_primary, structure_type, topic_cluster, classified_at
           FROM videos
           WHERE classification_status = 'completed' AND virality_score IS NOT NULL
@@ -1616,7 +1616,7 @@ The content should directly apply the recommendations from the insight report. W
         SELECT id, caption, platform, creator_name, views, likes, comments, shares,
           engagement_rate, virality_score, topic_cluster, structure_type,
           hook_mechanism_primary, hook_text, duration_bucket, classified_at,
-          view_velocity
+          NULLIF(view_velocity, 5000) as view_velocity
         FROM videos ${filters}
         ${orderBy}
         LIMIT ${limit} OFFSET ${offset}
@@ -2111,10 +2111,14 @@ No markdown, no explanation, just the JSON object.`,
           creator_name: z.string().nullable().optional(),
           thumbnail_url: z.string().nullable().optional(),
           structure_type: z.string().nullable().optional(),
+          format_type: z.string().nullable().optional(),
           view_velocity: z.union([z.string(), z.number()]).nullable().optional(),
+          trend_velocity: z.union([z.string(), z.number()]).nullable().optional(),
           engagement_rate: z.union([z.string(), z.number()]).nullable().optional(),
+          engagement_ratio: z.union([z.string(), z.number()]).nullable().optional(),
           topic_category: z.string().nullable().optional(),
           topic_cluster: z.string().nullable().optional(),
+          topic: z.string().nullable().optional(),
           topic_subcluster: z.string().nullable().optional(),
           call_to_action: z.string().nullable().optional(),
           controversy_level: z.string().nullable().optional(),
@@ -2134,6 +2138,11 @@ No markdown, no explanation, just the JSON object.`,
 
       const c = input.classification;
       const updateData: Record<string, unknown> = {};
+
+      if ((c as any).format_type && !c.structure_type) c.structure_type = (c as any).format_type;
+      if ((c as any).topic && !c.topic_cluster) c.topic_cluster = (c as any).topic;
+      if ((c as any).engagement_ratio !== undefined && c.engagement_rate === undefined) c.engagement_rate = (c as any).engagement_ratio;
+      if ((c as any).trend_velocity !== undefined && c.view_velocity === undefined) c.view_velocity = (c as any).trend_velocity;
 
       if (c.hook_mechanism) {
         const val = validateEnumArray(c.hook_mechanism, HOOK_MECHANISMS);
@@ -2191,7 +2200,7 @@ No markdown, no explanation, just the JSON object.`,
       }
       if (c.view_velocity !== undefined && c.view_velocity !== null) {
         const parsedVelocity = typeof c.view_velocity === "number" ? c.view_velocity : parseFloat(String(c.view_velocity));
-        if (!isNaN(parsedVelocity)) {
+        if (!isNaN(parsedVelocity) && parsedVelocity !== 5000) {
           updateData.viewVelocity = parsedVelocity;
         }
       }
