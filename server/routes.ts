@@ -2,6 +2,16 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
+
+function cleanHookYear(text: string | null | undefined): string | null {
+  if (!text) return text as null;
+  const currentYear = new Date().getFullYear();
+  return text.replace(/\b(20\d{2})\b/g, (match, yearStr) => {
+    const year = parseInt(yearStr, 10);
+    if (year < currentYear) return "";
+    return match;
+  }).replace(/\s{2,}/g, " ").replace(/\s+([!?.,:;])/g, "$1").replace(/\b(in|for|of)\s+([!?.,:;])/gi, "$2").replace(/\b(in|for|of)\s*$/gi, "").trim();
+}
 import { registerChatRoutes } from "./replit_integrations/chat";
 import { registerImageRoutes } from "./replit_integrations/image";
 import { z } from "zod";
@@ -1365,7 +1375,7 @@ The content should directly apply the recommendations from the insight report. W
           LIMIT 1
         `);
 
-        const exampleHook = exampleHookResult.rows.length > 0 ? (exampleHookResult.rows[0] as any).hook_text : null;
+        const exampleHook = exampleHookResult.rows.length > 0 ? cleanHookYear((exampleHookResult.rows[0] as any).hook_text) : null;
         const isQualified = p.pattern_score >= 70 && p.trend_classification === 'rising';
 
         dailyViralPlay = {
@@ -1512,7 +1522,7 @@ The content should directly apply the recommendations from the insight report. W
 
       const opportunities = topPatterns.rows.map((p: any) => ({
         niche: p.topic_cluster,
-        hook: p.hook_text,
+        hook: cleanHookYear(p.hook_text),
         hook_mechanism: p.hook_mechanism_primary,
         format: p.structure_type,
         recommended_duration: p.duration_bucket || "30-60s",
@@ -1767,7 +1777,7 @@ No markdown, no explanation, just the JSON object.`,
 
       const allowedFormats = ["listicle", "tutorial", "story", "comparison", "challenge", "reaction", "behind_the_scenes", "tips", "transformation", "explainer"];
       const topic = (typeof idea.topic === "string" && input.niches.includes(idea.topic)) ? idea.topic : input.niches[0];
-      const hook = (typeof idea.hook === "string" && idea.hook.length > 3 && idea.hook.length < 200) ? idea.hook : "3 AI tools nobody talks about";
+      const hook = cleanHookYear((typeof idea.hook === "string" && idea.hook.length > 3 && idea.hook.length < 200) ? idea.hook : "3 AI tools nobody talks about");
       const format = (typeof idea.format === "string" && allowedFormats.includes(idea.format)) ? idea.format : "listicle";
       const structure = (typeof idea.structure === "string" && idea.structure.length > 3) ? idea.structure.slice(0, 300) : "Hook → Content → CTA";
 
@@ -2499,7 +2509,7 @@ No markdown, no explanation, just the JSON object.`,
 
       const result = opportunities.rows.map((o: any, i: number) => ({
         niche: o.niche,
-        hook: o.hook,
+        hook: cleanHookYear(o.hook),
         format: o.format,
         recommended_duration: parseInt(o.recommended_duration) || 30,
         trend_score: parseFloat(o.trend_score) || 0,
@@ -3029,7 +3039,7 @@ No markdown, no explanation, just the JSON object.`,
         );
 
         return {
-          hook: p.hook_text,
+          hook: cleanHookYear(p.hook_text),
           format: p.structure_type,
           topic: p.topic_cluster,
           hook_mechanism: p.hook_mechanism_primary,
@@ -3150,6 +3160,10 @@ ${input.context ? `Additional context: ${input.context}` : ""}`;
       });
 
       const result = JSON.parse(completion.choices[0].message.content || "{}");
+      if (result.hook_line) result.hook_line = cleanHookYear(result.hook_line);
+      if (Array.isArray(result.hook_variations)) {
+        result.hook_variations = result.hook_variations.map((h: string) => cleanHookYear(h) || h);
+      }
       res.json(result);
     } catch (err: any) {
       console.error("Script generation error:", err);
