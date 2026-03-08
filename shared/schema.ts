@@ -710,6 +710,21 @@ export const patterns = pgTable("patterns", {
 ]);
 
 // ═══════════════════════════════════════════════════════════
+// Video Patterns — Liaison videos ↔ patterns (futur Pattern Engine)
+// ═══════════════════════════════════════════════════════════
+
+export const videoPatterns = pgTable("video_patterns", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  videoId: varchar("video_id").notNull(),
+  patternId: varchar("pattern_id").notNull(),
+  matchScore: doublePrecision("match_score"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_video_patterns_video_id").on(table.videoId),
+  index("idx_video_patterns_pattern_id").on(table.patternId),
+]);
+
+// ═══════════════════════════════════════════════════════════
 // Saved Ideas — User-curated opportunities
 // ═══════════════════════════════════════════════════════════
 
@@ -816,6 +831,7 @@ export type ViralPattern = typeof viralPatterns.$inferSelect;
 export type InsertViralPattern = z.infer<typeof insertViralPatternSchema>;
 export type Pattern = typeof patterns.$inferSelect;
 export type InsertPattern = z.infer<typeof insertPatternSchema>;
+export type VideoPattern = typeof videoPatterns.$inferSelect;
 export type ContentProject = typeof contentProjects.$inferSelect;
 export type InsertContentProject = z.infer<typeof insertContentProjectSchema>;
 export type SavedIdea = typeof savedIdeas.$inferSelect;
