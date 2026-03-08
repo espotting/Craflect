@@ -289,6 +289,7 @@ const en = {
     createFromImage: "Create From Image",
     createFromImageDesc: "Upload an image and let AI generate a viral video concept",
     uploadImage: "Upload Image",
+    generateFromImage: "Generate Video Idea from Image",
     predictedViewsRange: "Predicted Views",
   },
 

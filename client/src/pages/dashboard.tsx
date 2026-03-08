@@ -20,11 +20,19 @@ import {
   TrendingUp,
   Zap,
   Target,
-  Upload,
+  Loader2,
+  Image,
+  Lock,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { VideoCard, VideoCardData } from "@/components/video-card";
 import { getPredictedViews, getViralityColor, formatCompactNumber } from "@/lib/predicted-views";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 
 interface DashboardData {
   trending_videos: Array<{
@@ -175,6 +183,14 @@ function ViralPlayCard({ play, t }: { play: DashboardData["daily_viral_play"]; t
             </div>
 
             <div className="flex-1 p-6 space-y-4">
+              {topicLabel && (
+                <div className="flex items-center gap-2" data-testid="viral-play-topic-section">
+                  <Badge variant="secondary" className="text-xs font-semibold" data-testid="badge-viral-play-topic">
+                    {topicLabel}
+                  </Badge>
+                </div>
+              )}
+
               <div className="space-y-2">
                 {play.example_hook && (
                   <p className="text-lg font-semibold text-foreground leading-snug" data-testid="text-viral-play-hook">
@@ -183,19 +199,14 @@ function ViralPlayCard({ play, t }: { play: DashboardData["daily_viral_play"]; t
                 )}
 
                 <div className="flex items-center gap-2 flex-wrap">
-                  {play.hook_type && (
-                    <Badge variant="outline" className="text-xs" data-testid="badge-viral-play-hook-type">
-                      {formatLabel(play.hook_type)}
-                    </Badge>
-                  )}
                   {play.structure_type && (
                     <Badge variant="outline" className="text-xs" data-testid="badge-viral-play-format">
                       {formatLabel(play.structure_type)}
                     </Badge>
                   )}
-                  {topicLabel && (
-                    <Badge variant="secondary" className="text-xs" data-testid="badge-viral-play-topic">
-                      {topicLabel}
+                  {play.hook_type && (
+                    <Badge variant="outline" className="text-xs" data-testid="badge-viral-play-hook-type">
+                      {formatLabel(play.hook_type)}
                     </Badge>
                   )}
                 </div>
@@ -219,7 +230,7 @@ function ViralPlayCard({ play, t }: { play: DashboardData["daily_viral_play"]; t
               )}
 
               <Button
-                className="bg-violet-600 hover:bg-violet-700 text-white"
+                className="bg-violet-600 text-white"
                 onClick={() => navigate(`/create?hook=${encodeURIComponent(play.example_hook || play.hook_type || "")}&format=${encodeURIComponent(play.structure_type || "")}&topic=${encodeURIComponent(play.topic_cluster || "")}`)}
                 data-testid="button-viral-play-create"
               >
@@ -300,7 +311,7 @@ function TrendingOpportunities({ videos, t }: { videos: DashboardData["trending_
 }
 
 function CreateFromImageSection({ t }: { t: any }) {
-  const [, navigate] = useLocation();
+  const [showComingSoon, setShowComingSoon] = useState(false);
 
   return (
     <div className="space-y-4" data-testid="section-create-from-image">
@@ -311,15 +322,11 @@ function CreateFromImageSection({ t }: { t: any }) {
         </h2>
       </div>
 
-      <Card
-        className="group cursor-pointer transition-all duration-200 hover:shadow-lg hover:border-primary/30"
-        onClick={() => navigate("/create?mode=image")}
-        data-testid="card-create-from-image"
-      >
+      <Card className="group transition-all duration-200" data-testid="card-create-from-image">
         <CardContent className="p-8">
           <div className="flex flex-col md:flex-row items-center gap-6">
-            <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-cyan-500/10 to-blue-500/10 border-2 border-dashed border-cyan-500/30 flex items-center justify-center group-hover:border-cyan-500/50 transition-colors">
-              <Upload className="w-10 h-10 text-cyan-500/50 group-hover:text-cyan-500/70 transition-colors" />
+            <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-cyan-500/10 to-blue-500/10 border-2 border-dashed border-cyan-500/30 flex items-center justify-center">
+              <Image className="w-10 h-10 text-cyan-500/50" />
             </div>
 
             <div className="flex-1 text-center md:text-left space-y-2">
@@ -331,13 +338,40 @@ function CreateFromImageSection({ t }: { t: any }) {
               </p>
             </div>
 
-            <Button variant="outline" className="flex-shrink-0" data-testid="button-upload-image">
-              <Upload className="w-4 h-4 mr-2" />
-              {t.dashboard.uploadImage}
+            <Button
+              variant="outline"
+              className="flex-shrink-0"
+              onClick={() => setShowComingSoon(true)}
+              data-testid="button-generate-from-image"
+            >
+              <Sparkles className="w-4 h-4 mr-2" />
+              {t.dashboard.generateFromImage || "Generate Video Idea from Image"}
             </Button>
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={showComingSoon} onOpenChange={setShowComingSoon}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Lock className="w-5 h-5 text-muted-foreground" />
+              {t.dashboard.createFromImage}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col items-center gap-4 py-6">
+            <div className="w-16 h-16 rounded-2xl bg-cyan-500/10 flex items-center justify-center">
+              <Image className="w-8 h-8 text-cyan-500/50" />
+            </div>
+            <p className="text-sm text-muted-foreground text-center">
+              {t.sidebar.comingSoon}
+            </p>
+            <p className="text-xs text-muted-foreground/70 text-center max-w-sm">
+              {t.dashboard.createFromImageDesc}
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -346,6 +380,7 @@ export default function Dashboard() {
   const { t } = useLanguage();
   const { user } = useAuth();
   const [, navigate] = useLocation();
+  const [showGenerateModal, setShowGenerateModal] = useState(false);
 
   const { data: dashboardData, isLoading } = useQuery<DashboardData>({
     queryKey: ["/api/dashboard"],
@@ -383,7 +418,7 @@ export default function Dashboard() {
       <div className="space-y-10">
         <HeroCreateSection
           t={t}
-          onCreateClick={() => navigate("/create")}
+          onCreateClick={() => setShowGenerateModal(true)}
         />
 
         <ViralPlayCard play={dailyViralPlay} t={t} />
@@ -392,6 +427,28 @@ export default function Dashboard() {
 
         <CreateFromImageSection t={t} />
       </div>
+
+      <Dialog open={showGenerateModal} onOpenChange={setShowGenerateModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-violet-500" />
+              Generate Viral Idea
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col items-center gap-4 py-8">
+            <div className="w-16 h-16 rounded-2xl bg-violet-500/10 flex items-center justify-center">
+              <Loader2 className="w-8 h-8 text-violet-500 animate-spin" />
+            </div>
+            <p className="text-sm text-muted-foreground text-center" data-testid="text-generating-idea">
+              Generating your viral idea...
+            </p>
+            <p className="text-xs text-muted-foreground/70 text-center">
+              {t.sidebar.comingSoon}
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }

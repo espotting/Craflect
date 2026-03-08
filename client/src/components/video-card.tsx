@@ -101,13 +101,19 @@ export function VideoCard({ video, compact = false }: VideoCardProps) {
               {hookDisplay}
             </p>
           </div>
-          {video.viralityScore != null && (
-            <div className="absolute top-2 right-2">
+          <div className="absolute top-2 left-2 right-2 flex items-start justify-between">
+            {video.platform && (
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5 bg-black/50 text-white border-0 backdrop-blur-sm flex items-center gap-1" data-testid={`badge-platform-compact-${video.id}`}>
+                <PlatformIcon platform={video.platform} className="w-3 h-3" />
+              </Badge>
+            )}
+            {!video.platform && <div />}
+            {video.viralityScore != null && (
               <Badge variant="secondary" className={`text-[10px] px-1.5 py-0 ${viralityColorClass}`} data-testid={`badge-virality-compact-${video.id}`}>
                 {Math.round(video.viralityScore)}
               </Badge>
-            </div>
-          )}
+            )}
+          </div>
         </div>
         <div className="p-2 space-y-1">
           <div className="flex items-center gap-1 text-muted-foreground">
@@ -137,7 +143,13 @@ export function VideoCard({ video, compact = false }: VideoCardProps) {
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent rounded-t-md" />
 
         <div className="absolute top-3 left-3 right-3 flex items-start justify-between gap-2">
-          <PlatformIcon platform={video.platform} className="w-4 h-4 text-white/70" />
+          {video.platform && (
+            <Badge variant="secondary" className="text-[10px] px-2 py-0.5 bg-black/50 text-white border-0 backdrop-blur-sm flex items-center gap-1" data-testid={`badge-platform-${video.id}`}>
+              <PlatformIcon platform={video.platform} className="w-3.5 h-3.5" />
+              <span className="capitalize">{video.platform}</span>
+            </Badge>
+          )}
+          {!video.platform && <div />}
           {video.viralityScore != null && (
             <Badge variant="secondary" className={`text-xs ${viralityColorClass}`} data-testid={`badge-virality-${video.id}`}>
               <TrendingUp className="w-3 h-3 mr-1" />

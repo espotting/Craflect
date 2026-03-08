@@ -291,6 +291,7 @@ const fr: Translations = {
     createFromImage: "Créer à partir d'une Image",
     createFromImageDesc: "Uploadez une image et laissez l'IA générer un concept vidéo viral",
     uploadImage: "Uploader une Image",
+    generateFromImage: "Générer une idée vidéo à partir d'une image",
     predictedViewsRange: "Vues Prédites",
   },
 
