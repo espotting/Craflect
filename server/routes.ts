@@ -1922,6 +1922,7 @@ No markdown, no explanation, just the JSON object.`,
           comments: z.number().optional(),
           shares: z.number().optional(),
           creator_name: z.string().optional(),
+          creator_url: z.string().optional(),
           creator_id: z.string().optional(),
           creator_niche: z.string().optional(),
           published_at: z.string().optional(),
@@ -1962,6 +1963,7 @@ No markdown, no explanation, just the JSON object.`,
           comments: v.comments ?? null,
           shares: v.shares ?? null,
           creatorName: v.creator_name || null,
+          creatorUrl: v.creator_url || null,
           creatorId: v.creator_id || null,
           creatorNiche: v.creator_niche || null,
           publishedAt: v.published_at ? new Date(v.published_at) : null,
@@ -2109,6 +2111,7 @@ No markdown, no explanation, just the JSON object.`,
           content_pace: z.string().nullable().optional(),
           creator_archetype: z.string().nullable().optional(),
           creator_name: z.string().nullable().optional(),
+          creator_url: z.string().nullable().optional(),
           thumbnail_url: z.string().nullable().optional(),
           structure_type: z.string().nullable().optional(),
           format_type: z.string().nullable().optional(),
@@ -2191,6 +2194,9 @@ No markdown, no explanation, just the JSON object.`,
       }
       if (c.creator_name !== undefined && c.creator_name !== null) {
         updateData.creatorName = c.creator_name;
+      }
+      if (c.creator_url !== undefined && c.creator_url !== null) {
+        updateData.creatorUrl = c.creator_url;
       }
       if (c.thumbnail_url !== undefined && c.thumbnail_url !== null) {
         updateData.thumbnailUrl = c.thumbnail_url;

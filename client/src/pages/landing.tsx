@@ -18,7 +18,6 @@ import {
   Brain,
   RefreshCw,
   Video,
-  Eye,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -232,48 +231,6 @@ export default function Landing() {
             </div>
           </motion.div>
         </section>
-
-        {/* ═══ FLOATING PREVIEW CARD (chevauche le Hero) ═══ */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.35, ease: "easeOut" }}
-          className="relative z-20 w-full max-w-[420px] mx-auto px-4"
-          style={{ transform: "translateY(-40px)", marginBottom: "-20px" }}
-        >
-          <p className="text-[11px] uppercase tracking-widest text-muted-foreground/50 font-semibold mb-3 text-center" data-testid="text-preview-label">
-            {t.landing.previewLabel}
-          </p>
-          <div
-            className="rounded-2xl border border-border/40 dark:border-white/8 bg-card dark:bg-card/95 p-5 space-y-3"
-            style={{
-              borderRadius: "16px",
-              boxShadow: isDark
-                ? "0 12px 30px rgba(0,0,0,0.25), 0 0 80px rgba(124,92,255,0.06)"
-                : "0 12px 30px rgba(0,0,0,0.08), 0 0 80px rgba(124,92,255,0.04)",
-            }}
-            data-testid="card-preview-idea"
-          >
-            <div>
-              <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Hook</span>
-              <p className="text-sm font-semibold text-foreground mt-0.5 leading-snug">"3 AI workflows that save 10 hours per week"</p>
-            </div>
-            <div className="flex items-center gap-5">
-              <div>
-                <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Format</span>
-                <p className="text-xs font-medium text-foreground mt-0.5">Listicle</p>
-              </div>
-              <div>
-                <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Virality</span>
-                <p className="text-sm font-bold text-violet-500 mt-0.5">82</p>
-              </div>
-              <div>
-                <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold flex items-center gap-1"><Eye className="w-3 h-3" /> Views</span>
-                <p className="text-xs font-medium text-foreground mt-0.5">300K – 900K</p>
-              </div>
-            </div>
-          </div>
-        </motion.div>
 
         {/* ═══ HOW IT WORKS ═══ */}
         <section id="section-clarity" className="px-4 py-20 sm:py-28">
@@ -545,20 +502,10 @@ export default function Landing() {
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-8 border-t border-border/50">
-              <p className="text-xs text-muted-foreground">
+            <div className="pt-8 border-t border-border/50">
+              <p className="text-xs text-muted-foreground text-center">
                 {t.landing.copyright.replace("{year}", new Date().getFullYear().toString())}
               </p>
-              <div className="flex items-center gap-4">
-                <LanguageSwitcher variant="icon" />
-                <button
-                  onClick={toggleTheme}
-                  className="p-2 rounded-full hover:bg-muted transition-colors text-muted-foreground"
-                  data-testid="button-theme-toggle-footer"
-                >
-                  {isDark ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
-                </button>
-              </div>
             </div>
           </div>
         </footer>

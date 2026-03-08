@@ -549,6 +549,7 @@ export const videos = pgTable("videos", {
   durationSeconds: integer("duration_seconds"),
   durationBucket: text("duration_bucket"),
   creatorName: text("creator_name"),
+  creatorUrl: text("creator_url"),
   creatorId: text("creator_id"),
   creatorNiche: text("creator_niche"),
   publishedAt: timestamp("published_at"),
