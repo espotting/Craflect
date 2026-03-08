@@ -1,0 +1,287 @@
+CRAFLECT – FINAL UX REDESIGN BRIEF
+
+OBJECTIVE
+
+Transform Craflect from a complex analytics dashboard into a visual AI Viral Content OS.
+
+The product must feel like a creative tool for content creators rather than a data analytics platform.
+
+Design inspiration:
+
+Canva – template exploration
+CapCut – video creation simplicity
+TikTok – vertical video browsing
+
+UX PRINCIPLES
+
+Visual first
+Minimal text
+Action oriented
+Creator focused
+Fast exploration
+
+MAIN NAVIGATION
+
+Home
+Opportunities
+Create
+Workspace
+Insights
+Settings
+
+HOME PAGE STRUCTURE
+
+The home page must focus on one primary action:
+
+CREATE VIRAL VIDEO
+
+Structure:
+
+1. Create Viral Video (Primary Action)
+2. Viral Play of the Day
+3. Trending Opportunities
+4. Create From Image
+
+PRIMARY ACTION – CREATE VIRAL VIDEO
+
+This is the main button at the top of the Home page.
+
+Button text:
+
+Create Viral Video
+
+Clicking the button opens:
+
+Generate Viral Idea
+
+GENERATE VIRAL IDEA
+
+Craflect generates a complete video concept.
+
+Example output:
+
+Topic
+AI Tools
+
+Hook
+"5 AI tools nobody is talking about"
+
+Format
+Listicle
+
+Structure
+Hook → Tool → Demo → CTA
+
+Virality Score
+78
+
+Predicted Views
+120k – 600k
+
+Button
+Create Video
+
+VIRAL PLAY OF THE DAY (HERO CARD)
+
+A highlighted video opportunity displayed on the Home page.
+
+Card includes:
+
+Video preview
+Hook
+Format
+Virality Score
+Predicted Views
+
+Button: Create Video
+
+OPPORTUNITIES PAGE
+
+This page shows a gallery of vertical video cards.
+
+Cards must resemble template galleries in modern creative tools.
+
+Layout:
+
+4 cards per row
+Infinite scroll
+
+VIDEO CARD STRUCTURE
+
+Each card includes:
+
+Vertical video preview (autoplay)
+
+Hook example:
+"Nobody talks about this AI tool"
+
+Views example:
+2.3M views
+
+Format example:
+Listicle
+
+Virality Score example:
+78
+
+Predicted Views example:
+120k – 600k
+
+Button:
+Create Video
+
+VIDEO PREVIEW
+
+Each card displays a short autoplay preview.
+
+Preview length:
+3–5 seconds
+
+Format:
+MP4
+
+Preview storage:
+Cloudflare R2
+
+CREATE PAGE
+
+Users can create videos from:
+
+Opportunity
+Image
+Hook
+
+CREATION FLOW
+
+Idea
+Script
+Video Blueprint
+Render
+Download
+
+CREATE FROM IMAGE
+
+Users upload an image.
+
+Craflect generates:
+
+Hook
+Script
+Video structure
+
+AI CONTENT AGENT
+
+An AI assistant available inside the interface.
+
+Position:
+
+Bottom-right panel.
+
+Example interaction:
+
+User:
+What should I post today?
+
+Agent:
+Here are 3 viral opportunities in your niche.
+
+VIRALITY SCORE
+
+Each opportunity displays a score from 0 to 100.
+
+Score ranges:
+
+80+ Hot
+60–80 Growing
+40–60 Early
+
+PREDICTED VIEWS
+
+Each opportunity includes a predicted views range.
+
+Example:
+
+120k – 600k views
+
+WORKSPACE
+
+Personal content library containing:
+
+Created videos
+Saved inspiration videos
+
+SAVED INSPIRATION
+
+Users can bookmark inspiring videos.
+
+Only metadata is stored:
+
+Video ID
+Thumbnail
+Hook
+Stats
+
+CREATOR FEEDBACK LOOP
+
+When a user creates a video, store:
+
+Hook generated
+Format
+Topic
+Virality score prediction
+Predicted views
+
+After publishing the video, the user can add the video URL.
+
+Craflect retrieves:
+
+Views
+Likes
+Comments
+
+This improves the prediction model.
+
+FREE PLAN WATERMARK
+
+Free plan exports include watermark:
+
+Created with Craflect
+
+Position:
+
+Bottom-right corner
+
+Small and subtle.
+
+VIDEO EXPORT
+
+Videos are not stored permanently.
+
+Workflow:
+
+Render video
+Temporary storage
+User downloads video
+File automatically deleted
+
+STORAGE
+
+Use Cloudflare R2 for:
+
+Video previews
+Temporary rendered videos
+Thumbnails
+
+PERFORMANCE GOALS
+
+Fast loading
+Visual browsing
+Minimal cognitive load
+
+FINAL PRODUCT VISION
+
+Craflect should feel like:
+
+"Canva for Viral Content Creation"
+
+not a traditional analytics dashboard.
