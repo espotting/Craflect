@@ -3103,11 +3103,14 @@ No markdown, no explanation, just the JSON object.`,
 
       const systemPrompt = `You are a viral content scriptwriter. Generate a complete video script optimized for virality.
 Return a JSON object with exactly these fields:
-- hook: A powerful opening hook (1-2 sentences)
-- hook_variations: An array of exactly 3 alternative hooks, each a string (1-2 sentences). Different angles, tones, or approaches.
+- hook_line: The opening hook line that grabs attention (1-2 sentences, spoken directly to camera)
+- scene_1: First main content section (2-4 sentences, the setup or first point)
+- scene_2: Second main content section (2-4 sentences, the core value or second point)
+- scene_3: Third main content section (2-4 sentences, the proof or third point)
+- cta: A compelling call-to-action closing (1-2 sentences)
+- hook_variations: An array of exactly 3 alternative hook lines
 - structure: The video structure breakdown (e.g., "Hook → Problem → Solution → CTA")
-- script: The full script text (200-400 words)
-- cta: A compelling call-to-action (1-2 sentences)`;
+Each scene should be written as spoken script, not descriptions. Keep it conversational and punchy.`;
 
       const userPrompt = `Create a viral video script with:
 Hook: "${input.hook}"
@@ -3142,7 +3145,22 @@ ${input.context ? `Additional context: ${input.context}` : ""}`;
         format: z.string().optional(),
         topic: z.string().optional(),
         script: z.string().optional(),
+        hook_line: z.string().optional(),
+        scene_1: z.string().optional(),
+        scene_2: z.string().optional(),
+        scene_3: z.string().optional(),
+        cta_text: z.string().optional(),
       }).parse(req.body);
+
+      const scriptContext = input.script
+        ? `Script: ${input.script}`
+        : [
+            input.hook_line ? `Hook Line: ${input.hook_line}` : "",
+            input.scene_1 ? `Scene 1: ${input.scene_1}` : "",
+            input.scene_2 ? `Scene 2: ${input.scene_2}` : "",
+            input.scene_3 ? `Scene 3: ${input.scene_3}` : "",
+            input.cta_text ? `CTA: ${input.cta_text}` : "",
+          ].filter(Boolean).join("\n");
 
       const systemPrompt = `You are a viral video producer. Generate a detailed video blueprint with scenes.
 Return a JSON object with exactly these fields:
@@ -3154,7 +3172,7 @@ Return a JSON object with exactly these fields:
 Hook: "${input.hook}"
 ${input.format ? `Format: ${input.format}` : ""}
 ${input.topic ? `Topic: ${input.topic}` : ""}
-${input.script ? `Script: ${input.script}` : ""}`;
+${scriptContext ? scriptContext : ""}`;
 
       const completion = await openai.chat.completions.create({
         model: "gpt-4.1-mini",

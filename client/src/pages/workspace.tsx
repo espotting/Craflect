@@ -6,7 +6,7 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import type { ContentProject, SavedIdea } from "@shared/schema";
 import { TOPIC_CLUSTER_LABELS } from "@shared/schema";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -14,7 +14,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/use-auth";
 import {
   Dialog,
   DialogContent,
@@ -33,7 +32,6 @@ import {
   FolderOpen,
   FileText,
   Video,
-  Plus,
   Pencil,
   Trash2,
   Clock,
@@ -42,33 +40,13 @@ import {
   ChevronRight,
   Lightbulb,
   Bookmark,
-  Compass,
   TrendingUp,
   Eye,
-  X,
-  Sparkles,
-  LayoutTemplate,
   ArrowRight,
-  Zap,
-  Tag,
-  Layers,
 } from "lucide-react";
+import { getViralityColor } from "@/lib/predicted-views";
 
 type ProjectStatus = "draft" | "in_progress" | "completed";
-
-interface ViralTemplate {
-  id: string;
-  title: string;
-  description: string | null;
-  topicCluster: string | null;
-  hookMechanism: string | null;
-  structureType: string | null;
-  hookTemplate: string | null;
-  sceneStructure: any;
-  source: string;
-  usageCount: number;
-  createdAt: string;
-}
 
 function getStatusConfig(status: string) {
   switch (status) {
@@ -103,111 +81,59 @@ function getScoreColor(score: number) {
   return "text-yellow-500 dark:text-yellow-400";
 }
 
-function getScoreBadgeVariant(score: number): "default" | "secondary" | "outline" {
-  if (score >= 80) return "default";
-  if (score >= 60) return "secondary";
-  return "outline";
-}
-
-function getScoreLabel(score: number) {
-  if (score >= 80) return "High";
-  if (score >= 60) return "Medium";
-  return "Low";
-}
-
-function ProjectCard({
-  project,
-  onOpen,
-  onDelete,
-}: {
-  project: ContentProject;
-  onOpen: () => void;
-  onDelete: () => void;
-}) {
-  const { t } = useLanguage();
-  const hasScript = project.script && Object.keys(project.script as object).length > 0;
-  const hasBlueprint = project.blueprint && Object.keys(project.blueprint as object).length > 0;
-
+function ViralityScoreBadge({ score }: { score: number | null | undefined }) {
+  if (score === null || score === undefined || score <= 0) return null;
+  const colorClass = getViralityColor(score);
   return (
-    <Card
-      className="hover-elevate cursor-pointer transition-all"
-      data-testid={`card-project-${project.projectId}`}
-    >
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between gap-2 mb-3">
-          <div className="flex-1 min-w-0">
-            <h3
-              className="font-semibold text-foreground truncate"
-              data-testid={`text-project-title-${project.projectId}`}
-            >
-              {project.title || project.hook || t.projects.untitled}
-            </h3>
-            {project.topic && (
-              <p className="text-sm text-muted-foreground mt-0.5" data-testid={`text-project-topic-${project.projectId}`}>
-                {project.topic}
+    <div className="flex-shrink-0 text-center">
+      <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-semibold ${colorClass}`}>
+        <TrendingUp className="w-3 h-3" />
+        {score}
+      </div>
+    </div>
+  );
+}
+
+function IdeaCard({
+  hook,
+  format,
+  score,
+  date,
+  actions,
+  testIdPrefix,
+}: {
+  hook: string | null | undefined;
+  format: string | null | undefined;
+  score: number | null | undefined;
+  date: string | Date;
+  actions: React.ReactNode;
+  testIdPrefix: string;
+}) {
+  return (
+    <Card className="hover-elevate transition-all" data-testid={testIdPrefix}>
+      <CardContent className="p-4 space-y-3">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            {hook && (
+              <p className="text-sm text-foreground italic line-clamp-2" data-testid={`${testIdPrefix}-hook`}>
+                "{hook}"
               </p>
             )}
           </div>
-          <ProjectStatusBadge status={project.status} />
+          <ViralityScoreBadge score={typeof score === "number" ? score : null} />
         </div>
-
-        {project.hook && (
-          <div className="flex items-center gap-3 mb-3 text-sm text-muted-foreground">
-            <p className="line-clamp-2 text-sm text-muted-foreground italic" data-testid={`text-project-hook-${project.projectId}`}>
-              "{project.hook}"
-            </p>
-          </div>
-        )}
-
-        <div className="flex items-center gap-2 mb-3 flex-wrap">
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <FileText className="w-3.5 h-3.5" />
-            <span data-testid={`text-script-status-${project.projectId}`}>
-              {hasScript ? t.projects.scriptReady : t.projects.noScript}
-            </span>
-          </div>
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Video className="w-3.5 h-3.5" />
-            <span data-testid={`text-blueprint-status-${project.projectId}`}>
-              {hasBlueprint ? t.projects.blueprintReady : t.projects.noBlueprint}
-            </span>
-          </div>
-          {project.format && (
-            <Badge variant="outline" className="text-xs" data-testid={`badge-format-${project.projectId}`}>
-              {project.format}
+        <div className="flex items-center gap-2 flex-wrap">
+          {format && (
+            <Badge variant="outline" className="text-xs" data-testid={`${testIdPrefix}-format`}>
+              {format.replace(/_/g, " ")}
             </Badge>
           )}
-        </div>
-
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-xs text-muted-foreground" data-testid={`text-project-date-${project.projectId}`}>
-            {new Date(project.createdAt).toLocaleDateString()}
+          <span className="text-xs text-muted-foreground" data-testid={`${testIdPrefix}-date`}>
+            {new Date(date).toLocaleDateString()}
           </span>
-          <div className="flex items-center gap-1">
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={(e) => {
-                e.stopPropagation();
-                onOpen();
-              }}
-              data-testid={`button-open-project-${project.projectId}`}
-            >
-              {t.projects.open}
-              <ChevronRight className="w-3.5 h-3.5 ml-1" />
-            </Button>
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete();
-              }}
-              data-testid={`button-delete-project-${project.projectId}`}
-            >
-              <Trash2 className="w-4 h-4 text-destructive" />
-            </Button>
-          </div>
+        </div>
+        <div className="flex items-center gap-2 pt-1 border-t border-border/50 flex-wrap">
+          {actions}
         </div>
       </CardContent>
     </Card>
@@ -334,7 +260,7 @@ function ProjectDetail({
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => setLocation(`/script-generator?projectId=${project.projectId}`)}
+                    onClick={() => setLocation(`/create?projectId=${project.projectId}`)}
                     data-testid="button-edit-script"
                   >
                     <Pencil className="w-3.5 h-3.5 mr-1" />
@@ -342,6 +268,12 @@ function ProjectDetail({
                   </Button>
                 </div>
                 <div className="space-y-2 text-sm">
+                  {script.hook_line && (
+                    <div>
+                      <span className="font-medium text-muted-foreground">{t.projects.hookLabel}:</span>
+                      <p className="text-foreground mt-0.5">{script.hook_line}</p>
+                    </div>
+                  )}
                   {script.hook && (
                     <div>
                       <span className="font-medium text-muted-foreground">{t.projects.hookLabel}:</span>
@@ -382,7 +314,7 @@ function ProjectDetail({
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => setLocation(`/video-builder?projectId=${project.projectId}`)}
+                    onClick={() => setLocation(`/create?projectId=${project.projectId}`)}
                     data-testid="button-edit-blueprint"
                   >
                     <Pencil className="w-3.5 h-3.5 mr-1" />
@@ -417,24 +349,14 @@ function ProjectDetail({
           )}
 
           <div className="flex items-center justify-between gap-2 pt-2 flex-wrap">
-            <div className="flex items-center gap-2 flex-wrap">
-              <Button
-                variant="outline"
-                onClick={() => setLocation(`/script-generator?hook=${encodeURIComponent(hook)}&format=${encodeURIComponent(format)}&topic=${encodeURIComponent(topic)}`)}
-                data-testid="button-create-script"
-              >
-                <FileText className="w-4 h-4 mr-1.5" />
-                {t.projects.createScript}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setLocation(`/video-builder?hook=${encodeURIComponent(hook)}&format=${encodeURIComponent(format)}&topic=${encodeURIComponent(topic)}`)}
-                data-testid="button-create-video"
-              >
-                <Video className="w-4 h-4 mr-1.5" />
-                {t.projects.createVideo}
-              </Button>
-            </div>
+            <Button
+              variant="outline"
+              onClick={() => setLocation(`/create?hook=${encodeURIComponent(hook)}&format=${encodeURIComponent(format)}&topic=${encodeURIComponent(topic)}`)}
+              data-testid="button-continue-create"
+            >
+              <ArrowRight className="w-4 h-4 mr-1.5" />
+              {t.workspace.continueInCreate}
+            </Button>
             <div className="flex items-center gap-2 flex-wrap">
               <Button variant="ghost" onClick={onClose} data-testid="button-close-detail">
                 {t.common.cancel}
@@ -457,9 +379,117 @@ function ProjectDetail({
   );
 }
 
-function ProjectsTab() {
+function LoadingSkeleton() {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <Card key={i}>
+          <CardContent className="p-4 space-y-3">
+            <Skeleton className="h-5 w-3/4" />
+            <Skeleton className="h-4 w-1/2" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-8 w-24" />
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+function GeneratedIdeasTab() {
   const { t } = useLanguage();
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
+
+  const { data: projects, isLoading } = useQuery<ContentProject[]>({
+    queryKey: ["/api/projects"],
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest("DELETE", `/api/projects/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      toast({ title: t.projects.deleteSuccess });
+    },
+    onError: () => {
+      toast({ title: t.projects.deleteError, variant: "destructive" });
+    },
+  });
+
+  if (isLoading) return <LoadingSkeleton />;
+
+  const ideas = (projects || []).filter((p) => {
+    const script = p.script as Record<string, unknown> | null;
+    return !script || Object.keys(script).length === 0;
+  });
+
+  if (ideas.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center">
+        <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center mb-4">
+          <Lightbulb className="w-7 h-7 text-muted-foreground" />
+        </div>
+        <p className="text-muted-foreground font-medium mb-1" data-testid="text-no-generated-ideas">
+          {t.workspace.noGeneratedIdeas}
+        </p>
+        <p className="text-sm text-muted-foreground mb-4">
+          {t.workspace.noGeneratedIdeasHint}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" data-testid="grid-generated-ideas">
+      {ideas.map((project) => (
+        <IdeaCard
+          key={project.projectId}
+          hook={project.hook}
+          format={project.format}
+          score={(project as any).opportunity_score ?? null}
+          date={project.createdAt}
+          testIdPrefix={`card-generated-idea-${project.projectId}`}
+          actions={
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 text-xs"
+                onClick={() => {
+                  const params = new URLSearchParams();
+                  if (project.hook) params.set("hook", project.hook);
+                  if (project.format) params.set("format", project.format);
+                  if (project.topic) params.set("topic", project.topic);
+                  setLocation(`/create?${params.toString()}`);
+                }}
+                data-testid={`button-continue-idea-${project.projectId}`}
+              >
+                <ArrowRight className="w-3 h-3 mr-1" />
+                {t.workspace.continueAction}
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => deleteMutation.mutate(project.projectId)}
+                disabled={deleteMutation.isPending}
+                data-testid={`button-delete-idea-${project.projectId}`}
+              >
+                <Trash2 className="w-4 h-4 text-destructive" />
+              </Button>
+            </>
+          }
+        />
+      ))}
+    </div>
+  );
+}
+
+function CreatedScriptsTab() {
+  const { t } = useLanguage();
+  const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [selectedProject, setSelectedProject] = useState<ContentProject | null>(null);
 
   const { data: projects, isLoading } = useQuery<ContentProject[]>({
@@ -479,81 +509,113 @@ function ProjectsTab() {
     },
   });
 
-  const createMutation = useMutation({
-    mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/projects", { title: t.projects.newProject, status: "draft" });
-      return res.json();
-    },
-    onSuccess: (project: ContentProject) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
-      setSelectedProject(project);
-    },
+  if (isLoading) return <LoadingSkeleton />;
+
+  const scripts = (projects || []).filter((p) => {
+    const script = p.script as Record<string, unknown> | null;
+    return script && Object.keys(script).length > 0;
   });
 
-  if (isLoading) {
+  if (scripts.length === 0) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <Card key={i}>
-            <CardContent className="p-4 space-y-3">
-              <Skeleton className="h-5 w-3/4" />
-              <Skeleton className="h-4 w-1/2" />
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-8 w-24" />
-            </CardContent>
-          </Card>
-        ))}
+      <div className="flex flex-col items-center justify-center py-16 text-center">
+        <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center mb-4">
+          <FileText className="w-7 h-7 text-muted-foreground" />
+        </div>
+        <p className="text-muted-foreground font-medium mb-1" data-testid="text-no-created-scripts">
+          {t.workspace.noCreatedScripts}
+        </p>
+        <p className="text-sm text-muted-foreground mb-4">
+          {t.workspace.noCreatedScriptsHint}
+        </p>
       </div>
     );
   }
 
-  const allProjects = projects || [];
-
   return (
     <>
-      <div className="flex items-center justify-end mb-4">
-        <Button
-          onClick={() => createMutation.mutate()}
-          disabled={createMutation.isPending}
-          data-testid="button-new-project"
-        >
-          {createMutation.isPending ? (
-            <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
-          ) : (
-            <Plus className="w-4 h-4 mr-1.5" />
-          )}
-          {t.projects.newProject}
-        </Button>
-      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" data-testid="grid-created-scripts">
+        {scripts.map((project) => {
+          const hasBlueprint = !!(project.blueprint && Object.keys(project.blueprint as object).length > 0);
 
-      {allProjects.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center mb-4">
-            <FolderOpen className="w-7 h-7 text-muted-foreground" />
-          </div>
-          <p className="text-muted-foreground font-medium mb-1" data-testid="text-no-projects">
-            {t.projects.noProjects}
-          </p>
-          <p className="text-sm text-muted-foreground mb-4">
-            {t.projects.noProjectsHint}
-          </p>
-          <Button onClick={() => createMutation.mutate()} data-testid="button-create-first-project">
-            <Plus className="w-4 h-4 mr-1.5" />
-            {t.projects.newProject}
-          </Button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {allProjects.map((project) => (
-            <ProjectCard
+          return (
+            <Card
               key={project.projectId}
-              project={project}
-              onOpen={() => setSelectedProject(project)}
-              onDelete={() => deleteMutation.mutate(project.projectId)}
-            />
-          ))}
-        </div>
-      )}
+              className="hover-elevate transition-all"
+              data-testid={`card-script-${project.projectId}`}
+            >
+              <CardContent className="p-4 space-y-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-semibold text-foreground truncate text-sm" data-testid={`text-script-title-${project.projectId}`}>
+                      {project.title || project.hook || t.projects.untitled}
+                    </h3>
+                    {project.hook && (
+                      <p className="text-sm text-muted-foreground italic line-clamp-2 mt-1" data-testid={`text-script-hook-${project.projectId}`}>
+                        "{project.hook}"
+                      </p>
+                    )}
+                  </div>
+                  <ViralityScoreBadge score={(project as any).opportunity_score ?? null} />
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  {project.format && (
+                    <Badge variant="outline" className="text-xs" data-testid={`badge-script-format-${project.projectId}`}>
+                      {project.format.replace(/_/g, " ")}
+                    </Badge>
+                  )}
+                  <Badge variant="secondary" className="text-xs" data-testid={`badge-script-ready-${project.projectId}`}>
+                    <FileText className="w-3 h-3 mr-0.5" />
+                    {t.projects.scriptReady}
+                  </Badge>
+                  {hasBlueprint && (
+                    <Badge variant="secondary" className="text-xs" data-testid={`badge-blueprint-ready-${project.projectId}`}>
+                      <Video className="w-3 h-3 mr-0.5" />
+                      {t.projects.blueprintReady}
+                    </Badge>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2 pt-1 border-t border-border/50 flex-wrap">
+                  <span className="text-xs text-muted-foreground" data-testid={`text-script-date-${project.projectId}`}>
+                    {new Date(project.createdAt).toLocaleDateString()}
+                  </span>
+                  <div className="flex items-center gap-1 ml-auto">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setSelectedProject(project)}
+                      data-testid={`button-open-script-${project.projectId}`}
+                    >
+                      {t.projects.open}
+                      <ChevronRight className="w-3.5 h-3.5 ml-1" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setLocation(`/create?projectId=${project.projectId}`)}
+                      data-testid={`button-continue-script-${project.projectId}`}
+                    >
+                      <ArrowRight className="w-3 h-3 mr-1" />
+                      {t.workspace.continueInCreate}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => deleteMutation.mutate(project.projectId)}
+                      disabled={deleteMutation.isPending}
+                      data-testid={`button-delete-script-${project.projectId}`}
+                    >
+                      <Trash2 className="w-4 h-4 text-destructive" />
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
 
       {selectedProject && (
         <ProjectDetail
@@ -566,7 +628,7 @@ function ProjectsTab() {
   );
 }
 
-function SavedIdeasTab() {
+function SavedInspirationsTab() {
   const { t } = useLanguage();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -581,293 +643,81 @@ function SavedIdeasTab() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/ideas"] });
-      toast({ title: "Idea dismissed" });
+      toast({ title: t.workspace.ideaDismissed });
     },
     onError: () => {
-      toast({ title: "Error", description: "Failed to dismiss idea.", variant: "destructive" });
+      toast({ title: t.common.error, variant: "destructive" });
     },
   });
 
-  function navigateToScript(hook: string, format?: string | null, topic?: string | null) {
-    const params = new URLSearchParams();
-    params.set("hook", hook);
-    if (format) params.set("format", format);
-    if (topic) params.set("topic", topic);
-    setLocation(`/script-generator?${params.toString()}`);
-  }
+  if (isLoading) return <LoadingSkeleton />;
 
-  function navigateToVideo(hook: string, format?: string | null, topic?: string | null) {
-    const params = new URLSearchParams();
-    params.set("hook", hook);
-    if (format) params.set("format", format);
-    if (topic) params.set("topic", topic);
-    setLocation(`/video-builder?${params.toString()}`);
-  }
+  const activeIdeas = (savedIdeas || []).filter((i) => i.status === "saved");
 
-  if (isLoading) {
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {[...Array(6)].map((_, i) => (
-          <Skeleton key={i} className="h-48 rounded-md" />
-        ))}
-      </div>
-    );
-  }
-
-  const activeSavedIdeas = (savedIdeas || []).filter((i) => i.status === "saved");
-
-  if (activeSavedIdeas.length === 0) {
+  if (activeIdeas.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
-        <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-          <Bookmark className="w-7 h-7 text-primary/40" />
+        <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center mb-4">
+          <Bookmark className="w-7 h-7 text-muted-foreground" />
         </div>
-        <h3 className="text-lg font-bold text-foreground mb-1" data-testid="text-no-saved-title">
-          No saved ideas yet
-        </h3>
-        <p className="text-sm text-muted-foreground max-w-md" data-testid="text-no-saved-desc">
-          Save interesting opportunities from the Discover page to build your idea collection.
+        <p className="text-muted-foreground font-medium mb-1" data-testid="text-no-inspirations">
+          {t.workspace.noInspirations}
+        </p>
+        <p className="text-sm text-muted-foreground mb-4" data-testid="text-no-inspirations-hint">
+          {t.workspace.noInspirationsHint}
         </p>
       </div>
     );
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" data-testid="grid-saved-ideas">
-      {activeSavedIdeas.map((idea) => {
-        const score = idea.opportunityScore || 0;
-        return (
-          <Card key={idea.id} data-testid={`card-idea-${idea.id}`}>
-            <CardContent className="p-5 space-y-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0 flex-1 space-y-1">
-                  <p className="text-sm font-medium text-foreground line-clamp-2" data-testid={`text-idea-hook-${idea.id}`}>
-                    {idea.hook}
-                  </p>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {idea.format && (
-                      <Badge variant="outline" className="text-[10px]">
-                        {idea.format.replace(/_/g, " ")}
-                      </Badge>
-                    )}
-                    {idea.topic && (
-                      <Badge variant="secondary" className="text-[10px]">
-                        {formatTopic(idea.topic)}
-                      </Badge>
-                    )}
-                    <Badge variant="outline" className="text-[10px]">
-                      <Bookmark className="w-2.5 h-2.5 mr-0.5" />
-                      Saved
-                    </Badge>
-                  </div>
-                </div>
-                {score > 0 && (
-                  <div className="flex-shrink-0 text-center">
-                    <p className={`text-2xl font-bold ${getScoreColor(score)}`} data-testid={`text-idea-score-${idea.id}`}>
-                      {score}
-                    </p>
-                    <Badge variant={getScoreBadgeVariant(score)} className="text-[9px] mt-1">
-                      {getScoreLabel(score)}
-                    </Badge>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                {idea.velocity != null && idea.velocity > 0 && (
-                  <span className="flex items-center gap-1">
-                    <TrendingUp className="w-3 h-3" />
-                    {idea.velocity.toFixed(1)} vel.
-                  </span>
-                )}
-                {idea.videosDetected != null && idea.videosDetected > 0 && (
-                  <span className="flex items-center gap-1">
-                    <Eye className="w-3 h-3" />
-                    {idea.videosDetected} videos
-                  </span>
-                )}
-              </div>
-
-              <div className="flex items-center gap-2 pt-1 border-t border-border/50">
-                <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => navigateToScript(idea.hook, idea.format, idea.topic)} data-testid={`button-idea-script-${idea.id}`}>
-                  <FileText className="w-3 h-3 mr-1" />
-                  Script
-                </Button>
-                <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => navigateToVideo(idea.hook, idea.format, idea.topic)} data-testid={`button-idea-video-${idea.id}`}>
-                  <Video className="w-3 h-3 mr-1" />
-                  Video
-                </Button>
-                <Button variant="ghost" size="icon" onClick={() => dismissMutation.mutate(idea.id)} disabled={dismissMutation.isPending} data-testid={`button-idea-dismiss-${idea.id}`}>
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        );
-      })}
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" data-testid="grid-saved-inspirations">
+      {activeIdeas.map((idea) => (
+        <IdeaCard
+          key={idea.id}
+          hook={idea.hook}
+          format={idea.format}
+          score={idea.opportunityScore}
+          date={idea.createdAt}
+          testIdPrefix={`card-inspiration-${idea.id}`}
+          actions={
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 text-xs"
+                onClick={() => {
+                  const params = new URLSearchParams();
+                  params.set("hook", idea.hook);
+                  if (idea.format) params.set("format", idea.format);
+                  if (idea.topic) params.set("topic", idea.topic);
+                  setLocation(`/create?${params.toString()}`);
+                }}
+                data-testid={`button-create-from-inspiration-${idea.id}`}
+              >
+                <ArrowRight className="w-3 h-3 mr-1" />
+                {t.workspace.createFromThis}
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => dismissMutation.mutate(idea.id)}
+                disabled={dismissMutation.isPending}
+                data-testid={`button-delete-inspiration-${idea.id}`}
+              >
+                <Trash2 className="w-4 h-4 text-destructive" />
+              </Button>
+            </>
+          }
+        />
+      ))}
     </div>
-  );
-}
-
-function TemplatesTab() {
-  const { t } = useLanguage();
-  const { toast } = useToast();
-  const { user } = useAuth();
-  const [, setLocation] = useLocation();
-
-  const { data: templates, isLoading } = useQuery<ViralTemplate[]>({
-    queryKey: ["/api/templates"],
-  });
-
-  const generateMutation = useMutation({
-    mutationFn: () => apiRequest("POST", "/api/templates/generate"),
-    onSuccess: async (res) => {
-      const data = await res.json();
-      queryClient.invalidateQueries({ queryKey: ["/api/templates"] });
-      toast({
-        title: data.created > 0
-          ? t.viralTemplates.generatedSuccess.replace("{count}", String(data.created))
-          : t.viralTemplates.generatedNone,
-      });
-    },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => apiRequest("DELETE", `/api/templates/${id}`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/templates"] });
-      toast({ title: t.viralTemplates.deleteSuccess });
-    },
-  });
-
-  const useMut = useMutation({
-    mutationFn: (id: string) => apiRequest("POST", `/api/templates/${id}/use`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/templates"] });
-    },
-  });
-
-  const handleUseTemplate = (tmpl: ViralTemplate) => {
-    useMut.mutate(tmpl.id);
-    const params = new URLSearchParams();
-    if (tmpl.hookTemplate) params.set("hook", tmpl.hookTemplate);
-    if (tmpl.topicCluster) params.set("topic", tmpl.topicCluster);
-    if (tmpl.structureType) params.set("format", tmpl.structureType.replace(/_/g, " "));
-    setLocation(`/script-generator?${params.toString()}`);
-  };
-
-  const isAdmin = (user as any)?.isAdmin === true;
-
-  if (isLoading) {
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <Skeleton key={i} className="h-48 rounded-lg" />
-        ))}
-      </div>
-    );
-  }
-
-  return (
-    <>
-      <div className="flex items-center justify-end mb-4 gap-2">
-        <Button
-          onClick={() => generateMutation.mutate()}
-          disabled={generateMutation.isPending}
-          variant="outline"
-          data-testid="button-generate-templates"
-        >
-          <Sparkles className="w-4 h-4 mr-2" />
-          {generateMutation.isPending ? t.viralTemplates.generating : t.viralTemplates.generate}
-        </Button>
-      </div>
-
-      {!templates || templates.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center mb-4">
-            <LayoutTemplate className="w-7 h-7 text-muted-foreground" />
-          </div>
-          <p className="text-lg font-medium text-muted-foreground">{t.viralTemplates.noTemplates}</p>
-          <p className="text-sm text-muted-foreground/70 mt-1">{t.viralTemplates.noTemplatesHint}</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {templates.map((tmpl) => (
-            <Card key={tmpl.id} data-testid={`card-template-${tmpl.id}`}>
-              <CardHeader className="pb-2">
-                <div className="flex items-start justify-between gap-2">
-                  <CardTitle className="text-base leading-tight">{tmpl.title}</CardTitle>
-                  <Badge variant={tmpl.source === "auto" ? "secondary" : "outline"} className="text-[10px] shrink-0">
-                    {tmpl.source === "auto" ? t.viralTemplates.autoGenerated : t.viralTemplates.manualCreated}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-3">
-                {tmpl.description && (
-                  <p className="text-xs text-muted-foreground line-clamp-2">{tmpl.description}</p>
-                )}
-                <div className="flex flex-wrap gap-1.5">
-                  {tmpl.topicCluster && (
-                    <Badge variant="outline" className="text-[10px] gap-1">
-                      <Tag className="w-3 h-3" />
-                      {TOPIC_CLUSTER_LABELS[tmpl.topicCluster as keyof typeof TOPIC_CLUSTER_LABELS] || tmpl.topicCluster}
-                    </Badge>
-                  )}
-                  {tmpl.hookMechanism && (
-                    <Badge variant="outline" className="text-[10px] gap-1">
-                      <Zap className="w-3 h-3" />
-                      {tmpl.hookMechanism.replace(/_/g, " ")}
-                    </Badge>
-                  )}
-                  {tmpl.structureType && (
-                    <Badge variant="outline" className="text-[10px] gap-1">
-                      <Layers className="w-3 h-3" />
-                      {tmpl.structureType.replace(/_/g, " ")}
-                    </Badge>
-                  )}
-                </div>
-                {tmpl.hookTemplate && (
-                  <p className="text-xs italic text-foreground/80 bg-muted/30 p-2 rounded">"{tmpl.hookTemplate}"</p>
-                )}
-                <div className="flex items-center justify-between mt-auto pt-2 border-t border-border/50">
-                  <span className="text-[10px] text-muted-foreground">
-                    {t.viralTemplates.usedTimes.replace("{count}", String(tmpl.usageCount))}
-                  </span>
-                  <div className="flex gap-1.5">
-                    {isAdmin && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-xs text-destructive"
-                        onClick={() => deleteMutation.mutate(tmpl.id)}
-                        data-testid={`button-delete-template-${tmpl.id}`}
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
-                    )}
-                    <Button
-                      size="sm"
-                      className="text-xs gap-1"
-                      onClick={() => handleUseTemplate(tmpl)}
-                      data-testid={`button-use-template-${tmpl.id}`}
-                    >
-                      {t.viralTemplates.useTemplate}
-                      <ArrowRight className="w-3 h-3" />
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-    </>
   );
 }
 
 export default function WorkspacePage() {
   const { t } = useLanguage();
-  const [activeTab, setActiveTab] = useState("projects");
+  const [activeTab, setActiveTab] = useState("generated-ideas");
 
   return (
     <DashboardLayout>
@@ -886,30 +736,30 @@ export default function WorkspacePage() {
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList data-testid="tabs-workspace">
-            <TabsTrigger value="projects" data-testid="tab-projects">
-              <FolderOpen className="w-4 h-4 mr-1.5" />
-              {t.workspace.tabProjects}
-            </TabsTrigger>
-            <TabsTrigger value="ideas" data-testid="tab-ideas">
+            <TabsTrigger value="generated-ideas" data-testid="tab-generated-ideas">
               <Lightbulb className="w-4 h-4 mr-1.5" />
-              {t.workspace.tabIdeas}
+              {t.workspace.tabGeneratedIdeas}
             </TabsTrigger>
-            <TabsTrigger value="templates" data-testid="tab-templates">
-              <LayoutTemplate className="w-4 h-4 mr-1.5" />
-              {t.workspace.tabTemplates}
+            <TabsTrigger value="created-scripts" data-testid="tab-created-scripts">
+              <FileText className="w-4 h-4 mr-1.5" />
+              {t.workspace.tabCreatedScripts}
+            </TabsTrigger>
+            <TabsTrigger value="saved-inspirations" data-testid="tab-saved-inspirations">
+              <Bookmark className="w-4 h-4 mr-1.5" />
+              {t.workspace.tabSavedInspirations}
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="projects" className="mt-4">
-            <ProjectsTab />
+          <TabsContent value="generated-ideas" className="mt-4">
+            <GeneratedIdeasTab />
           </TabsContent>
 
-          <TabsContent value="ideas" className="mt-4">
-            <SavedIdeasTab />
+          <TabsContent value="created-scripts" className="mt-4">
+            <CreatedScriptsTab />
           </TabsContent>
 
-          <TabsContent value="templates" className="mt-4">
-            <TemplatesTab />
+          <TabsContent value="saved-inspirations" className="mt-4">
+            <SavedInspirationsTab />
           </TabsContent>
         </Tabs>
       </div>

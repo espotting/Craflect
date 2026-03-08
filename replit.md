@@ -34,11 +34,11 @@ React + TypeScript + Tailwind CSS + shadcn/ui + Framer Motion frontend, Express/
 - **SYSTEM** : Settings, Plan & Billing, Admin (admin-only), Intelligence (admin-only), Founder Dashboard (admin-only)
 
 **Pages :**
-- `/home` — Hub créateur : Hero gradient violet "Create Viral Video", Viral Play of the Day (hook + format + score + predicted views), Trending Opportunities (carousel horizontal de VideoCards compacts), Create From Image (teaser upload). Consomme `GET /api/dashboard`
+- `/home` — Hub créateur : Hero gradient violet "Create Viral Video" (ouvre modal Generate Viral Idea → appel OpenAI → carte idée virale → CTA "Créer la vidéo" → /create), Viral Play of the Day (hook + format + score + predicted views), Trending Opportunities (carousel horizontal de VideoCards compacts), Create From Image (teaser upload). Consomme `GET /api/dashboard`
 - `/opportunities` — Galerie cartes verticales (remplace Discover). VideoCard avec thumbnail/placeholder gradient, hook, virality score color-coded (violet 80+, orange 60-80, jaune <60), predicted views, format badge, "Create Video" button. Infinite scroll via IntersectionObserver. Filtres platform + topic. Consomme `GET /api/videos/browse`
 - `/insights` — Placeholder Coming Soon avec 4 feature cards (Niche Growth Charts, Hook Performance, Format Success Rates, Trend Velocity) + mini SVG charts + lock overlay
-- `/create` — Wizard 4 steps
-- `/workspace` — 3 onglets : Projects, Saved Ideas, Templates
+- `/create` — Wizard 4 étapes : Step 1 Idea (review/edit hook, format, topic, context) → Step 2 Script (generate structured script: hook_line + scene_1/2/3 + cta + hook_variations) → Step 3 Blueprint (generate video blueprint: hook + 4 scenes with visual suggestions + cta) → Step 4 Export (copy to clipboard / download .txt). Auto-save projet dans content_projects. Params pré-remplis via query string (?hook=&format=&topic=&structure=)
+- `/workspace` — 3 onglets : Generated Ideas (projects sans script) | Created Scripts (projects avec script) | Saved Inspirations (saved_ideas)
 - `/settings` — Profile, Notifications, Security tabs
 - `/plan-billing` — Stripe billing management
 
@@ -87,8 +87,9 @@ React + TypeScript + Tailwind CSS + shadcn/ui + Framer Motion frontend, Express/
 - `POST /api/ideas/dismiss` — Rejeter une idée
 
 **AI Generation :**
-- `POST /api/generate/script` — Génération de script IA (hook, hook_variations[3], structure, script, cta)
-- `POST /api/generate/blueprint` — Génération de blueprint vidéo IA (hook, 4 scenes, cta)
+- `POST /api/generate/script` — Génération de script structuré IA (hook_line, scene_1, scene_2, scene_3, cta, hook_variations[3], structure)
+- `POST /api/generate/blueprint` — Génération de blueprint vidéo IA (hook + 4 scenes avec visual_suggestion + cta). Accepte structured script fields (hook_line, scene_1, scene_2, scene_3, cta_text)
+- `POST /api/onboarding/generate-idea` — Génération d'idée virale (topic, hook, format, structure, viralityScore). Utilisé par onboarding step 5 + Generate Viral Idea modal (Home)
 
 **Intelligence Feed :**
 - `GET /api/intelligence/feed` — Événements intelligence récents (authentifié)

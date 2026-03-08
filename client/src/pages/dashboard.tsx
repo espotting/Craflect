@@ -23,6 +23,8 @@ import {
   Loader2,
   Image,
   Lock,
+  RefreshCw,
+  Check,
 } from "lucide-react";
 import {
   Dialog,
@@ -32,7 +34,8 @@ import {
 } from "@/components/ui/dialog";
 import { VideoCard, VideoCardData } from "@/components/video-card";
 import { getPredictedViews, getViralityColor, formatCompactNumber } from "@/lib/predicted-views";
-import { useRef, useState } from "react";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useRef, useState, useEffect, useCallback } from "react";
 
 interface DashboardData {
   trending_videos: Array<{
@@ -428,27 +431,303 @@ export default function Dashboard() {
         <CreateFromImageSection t={t} />
       </div>
 
-      <Dialog open={showGenerateModal} onOpenChange={setShowGenerateModal}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-violet-500" />
-              Generate Viral Idea
-            </DialogTitle>
-          </DialogHeader>
-          <div className="flex flex-col items-center gap-4 py-8">
-            <div className="w-16 h-16 rounded-2xl bg-violet-500/10 flex items-center justify-center">
-              <Loader2 className="w-8 h-8 text-violet-500 animate-spin" />
-            </div>
-            <p className="text-sm text-muted-foreground text-center" data-testid="text-generating-idea">
-              Generating your viral idea...
-            </p>
-            <p className="text-xs text-muted-foreground/70 text-center">
-              {t.sidebar.comingSoon}
-            </p>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <GenerateIdeaDialog
+        open={showGenerateModal}
+        onOpenChange={setShowGenerateModal}
+        user={user}
+        t={t}
+      />
     </DashboardLayout>
+  );
+}
+
+interface ViralIdea {
+  topic: string;
+  hook: string;
+  format: string;
+  structure: string;
+  viralityScore: number;
+}
+
+const ANALYSIS_STEPS = [
+  "Analyzing trending hooks...",
+  "Analyzing viral formats...",
+  "Analyzing niche engagement...",
+  "Calculating virality score...",
+];
+
+function AnimatedScore({ target }: { target: number }) {
+  const [current, setCurrent] = useState(0);
+  const rafRef = useRef<number>(0);
+
+  useEffect(() => {
+    const duration = 1500;
+    const start = performance.now();
+
+    const animate = (now: number) => {
+      const elapsed = now - start;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setCurrent(Math.round(eased * target));
+      if (progress < 1) {
+        rafRef.current = requestAnimationFrame(animate);
+      }
+    };
+
+    rafRef.current = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [target]);
+
+  return <span>{current}</span>;
+}
+
+function GenerateIdeaDialog({
+  open,
+  onOpenChange,
+  user,
+  t,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  user: any;
+  t: any;
+}) {
+  const [, navigate] = useLocation();
+  const [loading, setLoading] = useState(false);
+  const [idea, setIdea] = useState<ViralIdea | null>(null);
+  const [error, setError] = useState(false);
+  const [analysisStep, setAnalysisStep] = useState(-1);
+  const generationRef = useRef(0);
+
+  const generate = useCallback(async () => {
+    const genId = ++generationRef.current;
+    setLoading(true);
+    setIdea(null);
+    setError(false);
+    setAnalysisStep(-1);
+
+    const delays = [300, 700, 1200, 1800];
+    const timers = delays.map((delay, idx) =>
+      setTimeout(() => {
+        if (generationRef.current === genId) setAnalysisStep(idx);
+      }, delay)
+    );
+
+    try {
+      const niches = user?.selectedNiches || [];
+      const creatorType = user?.userGoal || "content_creator";
+      const resp = await apiRequest("POST", "/api/onboarding/generate-idea", {
+        niches,
+        creatorType,
+      });
+      if (generationRef.current !== genId) return;
+      const data = await resp.json();
+      setAnalysisStep(3);
+      await new Promise((r) => setTimeout(r, 400));
+      if (generationRef.current !== genId) return;
+      setIdea(data);
+    } catch {
+      if (generationRef.current === genId) {
+        setError(true);
+      }
+    } finally {
+      if (generationRef.current === genId) {
+        setLoading(false);
+      }
+    }
+
+    return () => {
+      timers.forEach(clearTimeout);
+    };
+  }, [user]);
+
+  useEffect(() => {
+    if (open) {
+      generate();
+    } else {
+      setIdea(null);
+      setError(false);
+      setLoading(false);
+      setAnalysisStep(-1);
+    }
+  }, [open, generate]);
+
+  const handleCreateVideo = async () => {
+    if (!idea) return;
+    try {
+      await apiRequest("POST", "/api/projects", {
+        title: (idea.hook || "Untitled").substring(0, 80),
+        hook: idea.hook,
+        format: idea.format || undefined,
+        topic: idea.topic || undefined,
+        status: "draft",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+    } catch {}
+    const params = new URLSearchParams();
+    params.set("hook", idea.hook);
+    params.set("format", idea.format);
+    params.set("topic", idea.topic);
+    if (idea.structure) params.set("structure", idea.structure);
+    onOpenChange(false);
+    navigate(`/create?${params.toString()}`);
+  };
+
+  const predicted = idea ? getPredictedViews(idea.viralityScore) : null;
+  const viralityColorClass = idea ? getViralityColor(idea.viralityScore) : "";
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2" data-testid="text-generate-dialog-title">
+            <Sparkles className="w-5 h-5 text-violet-500" />
+            {t.dashboard.createViralVideo}
+          </DialogTitle>
+        </DialogHeader>
+
+        {loading && !idea && (
+          <div className="flex flex-col items-center gap-6 py-6" data-testid="section-generating-loading">
+            <div className="w-14 h-14 rounded-2xl bg-violet-500/10 flex items-center justify-center">
+              <TrendingUp className="w-7 h-7 text-violet-500 animate-pulse" />
+            </div>
+            <p className="text-sm font-medium text-foreground" data-testid="text-generating-idea">
+              {t.dashboard.createViralVideo}...
+            </p>
+            <div className="space-y-3 w-full max-w-sm">
+              {ANALYSIS_STEPS.map((label, idx) => (
+                <div
+                  key={idx}
+                  className={`flex items-center gap-3 transition-opacity duration-300 ${
+                    analysisStep >= idx ? "opacity-100" : "opacity-20"
+                  }`}
+                  data-testid={`analysis-step-${idx}`}
+                >
+                  {analysisStep >= idx ? (
+                    <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
+                      <Check className="w-3 h-3 text-emerald-500" />
+                    </div>
+                  ) : (
+                    <div className="w-5 h-5 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                      <Loader2 className="w-3 h-3 text-muted-foreground animate-spin" />
+                    </div>
+                  )}
+                  <span className={`text-sm ${analysisStep >= idx ? "text-foreground" : "text-muted-foreground"}`}>
+                    {label}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {error && (
+          <div className="flex flex-col items-center gap-4 py-6" data-testid="section-generate-error">
+            <p className="text-sm text-muted-foreground text-center">
+              An error occurred. Please try again.
+            </p>
+            <Button
+              variant="outline"
+              onClick={generate}
+              data-testid="button-retry-generate"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Try Again
+            </Button>
+          </div>
+        )}
+
+        {idea && (
+          <div className="space-y-5 py-2" data-testid="section-idea-result">
+            <Card className="border-violet-500/20" data-testid="card-generated-idea">
+              <CardContent className="p-5 space-y-4">
+                <div className="space-y-1">
+                  <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
+                    Topic
+                  </span>
+                  <p className="text-sm font-semibold text-violet-600 dark:text-violet-400" data-testid="text-idea-topic">
+                    {formatLabel(idea.topic)}
+                  </p>
+                </div>
+
+                <div className="space-y-1">
+                  <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
+                    Hook
+                  </span>
+                  <p className="text-base font-bold text-foreground leading-snug" data-testid="text-idea-hook">
+                    "{idea.hook}"
+                  </p>
+                </div>
+
+                <div className="space-y-1">
+                  <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
+                    Format
+                  </span>
+                  <Badge variant="secondary" className="text-xs" data-testid="badge-idea-format">
+                    {formatLabel(idea.format)}
+                  </Badge>
+                </div>
+
+                {idea.structure && (
+                  <div className="space-y-1">
+                    <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
+                      Video Structure
+                    </span>
+                    <p className="text-sm text-muted-foreground" data-testid="text-idea-structure">
+                      {idea.structure}
+                    </p>
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between pt-3 border-t">
+                  <div className="space-y-1">
+                    <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
+                      Virality Score
+                    </span>
+                    <div className={`text-2xl font-bold ${viralityColorClass}`} data-testid="text-idea-score">
+                      <AnimatedScore target={idea.viralityScore} />
+                    </div>
+                  </div>
+                  <div className="space-y-1 text-right">
+                    <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
+                      {t.dashboard.predictedViewsRange}
+                    </span>
+                    <p className="text-sm font-semibold text-muted-foreground flex items-center gap-1 justify-end" data-testid="text-idea-predicted">
+                      <Eye className="w-4 h-4" />
+                      {predicted?.label}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="flex flex-col gap-3">
+              <Button
+                className="w-full bg-violet-600 text-white"
+                onClick={handleCreateVideo}
+                data-testid="button-create-from-idea"
+              >
+                <Play className="w-4 h-4 mr-2 fill-white" />
+                {t.dashboard.createVideo}
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={generate}
+                disabled={loading}
+                data-testid="button-generate-another"
+              >
+                {loading ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                )}
+                Generate another idea
+              </Button>
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
