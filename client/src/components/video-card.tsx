@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Eye, Play, TrendingUp } from "lucide-react";
+import { Eye, Play, TrendingUp, Star } from "lucide-react";
 import { SiTiktok, SiInstagram, SiYoutube } from "react-icons/si";
 import { Globe } from "lucide-react";
 import { useLocation } from "wouter";
@@ -58,9 +58,11 @@ export interface VideoCardData {
 interface VideoCardProps {
   video: VideoCardData;
   compact?: boolean;
+  isSaved?: boolean;
+  onSave?: () => void;
 }
 
-export function VideoCard({ video, compact = false }: VideoCardProps) {
+export function VideoCard({ video, compact = false, isSaved, onSave }: VideoCardProps) {
   const [, navigate] = useLocation();
   const { t } = useLanguage();
 
@@ -196,14 +198,27 @@ export function VideoCard({ video, compact = false }: VideoCardProps) {
             </Badge>
           )}
         </div>
-        <Button
-          size="sm"
-          className="w-full"
-          onClick={handleCreateVideo}
-          data-testid={`button-create-from-video-${video.id}`}
-        >
-          {t.opportunities?.createVideo || t.dashboard?.createVideo || "Create Video"}
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            size="sm"
+            className="flex-1"
+            onClick={handleCreateVideo}
+            data-testid={`button-create-from-video-${video.id}`}
+          >
+            {t.opportunities?.createVideo || t.dashboard?.createVideo || "Create Video"}
+          </Button>
+          {onSave && (
+            <Button
+              size="sm"
+              variant={isSaved ? "secondary" : "outline"}
+              className="px-2.5"
+              onClick={(e: any) => { e.stopPropagation(); onSave(); }}
+              data-testid={`button-save-video-${video.id}`}
+            >
+              <Star className={`w-4 h-4 ${isSaved ? "fill-yellow-500 text-yellow-500" : ""}`} />
+            </Button>
+          )}
+        </div>
       </div>
     </Card>
   );

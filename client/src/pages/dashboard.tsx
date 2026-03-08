@@ -1,7 +1,7 @@
 import { DashboardLayout } from "@/components/layout";
 import { useLanguage } from "@/hooks/use-language";
 import { useAuth } from "@/hooks/use-auth";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { TOPIC_CLUSTER_LABELS } from "@shared/schema";
 import { Card, CardContent } from "@/components/ui/card";
@@ -25,6 +25,7 @@ import {
   Lock,
   RefreshCw,
   Check,
+  Star,
 } from "lucide-react";
 import {
   Dialog,
@@ -148,99 +149,140 @@ function HeroCreateSection({ t, onCreateClick }: { t: any; onCreateClick: () => 
   );
 }
 
-function ViralPlayCard({ play, t }: { play: DashboardData["daily_viral_play"]; t: any }) {
+function ViralOpportunityToday({
+  play, t, savedIdeas,
+}: {
+  play: DashboardData["daily_viral_play"];
+  t: any;
+  savedIdeas: any[];
+}) {
   const [, navigate] = useLocation();
+  const [saving, setSaving] = useState(false);
+
   if (!play) return null;
 
+  const hookText = play.example_hook || play.hook_type || "";
   const topicLabel = play.topic_cluster
     ? TOPIC_CLUSTER_LABELS[play.topic_cluster] || formatLabel(play.topic_cluster)
     : null;
-
   const predicted = getPredictedViews(play.pattern_score);
   const viralityColorClass = getViralityColor(play.pattern_score);
 
+  const isSaved = (savedIdeas || []).some(
+    (i: any) => i.hook === hookText && i.status === "saved"
+  );
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      if (isSaved) {
+        const idea = (savedIdeas || []).find((i: any) => i.hook === hookText && i.status === "saved");
+        if (idea) await apiRequest("POST", "/api/ideas/dismiss", { id: idea.id });
+      } else {
+        await apiRequest("POST", "/api/ideas/save", {
+          hook: hookText,
+          format: play.structure_type || "",
+          topic: play.topic_cluster || "",
+          opportunityScore: Math.round(play.pattern_score || 0),
+          velocity: 0,
+          videosDetected: play.video_count || 0,
+        });
+      }
+      queryClient.invalidateQueries({ queryKey: ["/api/ideas"] });
+    } catch {} finally {
+      setSaving(false);
+    }
+  };
+
+  const handleRefresh = () => {
+    queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
+  };
+
   return (
-    <div className="space-y-4" data-testid="section-viral-play">
+    <div className="space-y-4" data-testid="section-viral-opportunity">
       <div className="flex items-center gap-2">
-        <Zap className="w-5 h-5 text-violet-500" />
-        <h2 className="text-lg font-bold text-foreground" data-testid="text-section-viral-play">
-          {t.dashboard.viralPlayOfTheDay}
+        <Flame className="w-5 h-5 text-orange-500" />
+        <h2 className="text-lg font-bold text-foreground" data-testid="text-section-viral-opportunity">
+          {t.dashboard.viralOpportunityToday || "Viral Opportunity Today"}
         </h2>
       </div>
 
-      <Card className="overflow-hidden border-violet-500/20 bg-gradient-to-br from-violet-500/5 to-transparent" data-testid="card-viral-play">
-        <CardContent className="p-0">
-          <div className="flex flex-col md:flex-row">
-            <div className="md:w-48 lg:w-56 aspect-[9/16] md:aspect-auto bg-gradient-to-br from-violet-600 to-indigo-700 flex items-center justify-center relative flex-shrink-0">
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                  <Play className="w-8 h-8 text-white fill-white" />
-                </div>
-              </div>
-              <div className="absolute top-3 right-3">
-                <Badge className={`${viralityColorClass} text-xs font-bold`} data-testid="badge-viral-play-score">
-                  <TrendingUp className="w-3 h-3 mr-1" />
-                  {Math.round(play.pattern_score)}
-                </Badge>
-              </div>
-            </div>
-
-            <div className="flex-1 p-6 space-y-4">
+      <Card className="overflow-hidden border-violet-500/20 bg-gradient-to-br from-violet-500/5 to-transparent" data-testid="card-viral-opportunity">
+        <CardContent className="p-6 space-y-5">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1 space-y-3">
               {topicLabel && (
-                <div className="flex items-center gap-2" data-testid="viral-play-topic-section">
-                  <Badge variant="secondary" className="text-xs font-semibold" data-testid="badge-viral-play-topic">
-                    {topicLabel}
-                  </Badge>
-                </div>
+                <Badge variant="secondary" className="text-xs font-semibold" data-testid="badge-opportunity-topic">
+                  {topicLabel}
+                </Badge>
               )}
 
-              <div className="space-y-2">
-                {play.example_hook && (
-                  <p className="text-lg font-semibold text-foreground leading-snug" data-testid="text-viral-play-hook">
-                    "{play.example_hook}"
-                  </p>
-                )}
-
-                <div className="flex items-center gap-2 flex-wrap">
-                  {play.structure_type && (
-                    <Badge variant="outline" className="text-xs" data-testid="badge-viral-play-format">
-                      {formatLabel(play.structure_type)}
-                    </Badge>
-                  )}
-                  {play.hook_type && (
-                    <Badge variant="outline" className="text-xs" data-testid="badge-viral-play-hook-type">
-                      {formatLabel(play.hook_type)}
-                    </Badge>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                <span className="flex items-center gap-1.5" data-testid="text-viral-play-predicted">
-                  <Eye className="w-4 h-4" />
-                  {predicted.label}
-                </span>
-                <span className="flex items-center gap-1.5" data-testid="text-viral-play-videos">
-                  <Target className="w-4 h-4" />
-                  {play.video_count} videos
-                </span>
-              </div>
-
-              {play.reasoning && (
-                <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2" data-testid="text-viral-play-reasoning">
-                  {play.reasoning}
+              {hookText && (
+                <p className="text-lg font-bold text-foreground leading-snug" data-testid="text-opportunity-hook">
+                  "{hookText}"
                 </p>
               )}
 
-              <Button
-                className="bg-violet-600 text-white"
-                onClick={() => navigate(`/create?hook=${encodeURIComponent(play.example_hook || play.hook_type || "")}&format=${encodeURIComponent(play.structure_type || "")}&topic=${encodeURIComponent(play.topic_cluster || "")}`)}
-                data-testid="button-viral-play-create"
-              >
-                <Play className="w-4 h-4 mr-2 fill-white" />
-                {t.dashboard.createVideo}
-              </Button>
+              <div className="flex items-center gap-2 flex-wrap">
+                {play.structure_type && (
+                  <Badge variant="outline" className="text-xs" data-testid="badge-opportunity-format">
+                    {formatLabel(play.structure_type)}
+                  </Badge>
+                )}
+              </div>
             </div>
+
+            <div className="flex flex-col items-center gap-1 shrink-0">
+              <div className={`text-3xl font-bold ${viralityColorClass}`} data-testid="text-opportunity-score">
+                {Math.round(play.pattern_score)}
+              </div>
+              <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Score</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4 text-sm text-muted-foreground pt-2 border-t border-border/50">
+            <span className="flex items-center gap-1.5" data-testid="text-opportunity-predicted">
+              <Eye className="w-4 h-4" />
+              {predicted.label}
+            </span>
+            {play.video_count > 0 && (
+              <span className="flex items-center gap-1.5" data-testid="text-opportunity-videos">
+                <Target className="w-4 h-4" />
+                {play.video_count} videos
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-3 flex-wrap">
+            <Button
+              className="bg-violet-600 text-white"
+              onClick={() => navigate(`/create?hook=${encodeURIComponent(hookText)}&format=${encodeURIComponent(play.structure_type || "")}&topic=${encodeURIComponent(play.topic_cluster || "")}`)}
+              data-testid="button-opportunity-create"
+            >
+              <Play className="w-4 h-4 mr-2 fill-white" />
+              {t.dashboard.createVideo}
+            </Button>
+
+            <Button
+              variant={isSaved ? "secondary" : "outline"}
+              onClick={handleSave}
+              disabled={saving || !hookText}
+              className="gap-2"
+              data-testid="button-opportunity-save"
+            >
+              <Star className={`w-4 h-4 ${isSaved ? "fill-yellow-500 text-yellow-500" : ""}`} />
+              {isSaved ? (t.dashboard.saved || "Saved") : (t.dashboard.save || "Save")}
+            </Button>
+
+            <Button
+              variant="ghost"
+              onClick={handleRefresh}
+              className="gap-2"
+              data-testid="button-opportunity-refresh"
+            >
+              <RefreshCw className="w-4 h-4" />
+              {t.dashboard.generateAnother || "Refresh"}
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -389,6 +431,8 @@ export default function Dashboard() {
     queryKey: ["/api/dashboard"],
   });
 
+  const { data: savedIdeas } = useQuery<any[]>({ queryKey: ["/api/ideas"] });
+
   const trendingVideos = dashboardData?.trending_videos || [];
   const dailyViralPlay = dashboardData?.daily_viral_play || null;
 
@@ -424,7 +468,7 @@ export default function Dashboard() {
           onCreateClick={() => setShowGenerateModal(true)}
         />
 
-        <ViralPlayCard play={dailyViralPlay} t={t} />
+        <ViralOpportunityToday play={dailyViralPlay} t={t} savedIdeas={savedIdeas || []} />
 
         <TrendingOpportunities videos={trendingVideos} t={t} />
 
@@ -436,6 +480,7 @@ export default function Dashboard() {
         onOpenChange={setShowGenerateModal}
         user={user}
         t={t}
+        savedIdeas={savedIdeas || []}
       />
     </DashboardLayout>
   );
@@ -486,11 +531,13 @@ function GenerateIdeaDialog({
   onOpenChange,
   user,
   t,
+  savedIdeas,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   user: any;
   t: any;
+  savedIdeas: any[];
 }) {
   const [, navigate] = useLocation();
   const [loading, setLoading] = useState(false);
@@ -571,6 +618,34 @@ function GenerateIdeaDialog({
     if (idea.structure) params.set("structure", idea.structure);
     onOpenChange(false);
     navigate(`/create?${params.toString()}`);
+  };
+
+  const [savingIdea, setSavingIdea] = useState(false);
+  const ideaIsSaved = idea ? (savedIdeas || []).some(
+    (i: any) => i.hook === idea.hook && i.status === "saved"
+  ) : false;
+
+  const handleSaveIdea = async () => {
+    if (!idea) return;
+    setSavingIdea(true);
+    try {
+      if (ideaIsSaved) {
+        const existing = (savedIdeas || []).find((i: any) => i.hook === idea.hook && i.status === "saved");
+        if (existing) await apiRequest("POST", "/api/ideas/dismiss", { id: existing.id });
+      } else {
+        await apiRequest("POST", "/api/ideas/save", {
+          hook: idea.hook,
+          format: idea.format || "",
+          topic: idea.topic || "",
+          opportunityScore: Math.round(idea.viralityScore || 0),
+          velocity: 0,
+          videosDetected: 0,
+        });
+      }
+      queryClient.invalidateQueries({ queryKey: ["/api/ideas"] });
+    } catch {} finally {
+      setSavingIdea(false);
+    }
   };
 
   const predicted = idea ? getPredictedViews(idea.viralityScore) : null;
@@ -702,14 +777,26 @@ function GenerateIdeaDialog({
             </Card>
 
             <div className="flex flex-col gap-3">
-              <Button
-                className="w-full bg-violet-600 text-white"
-                onClick={handleCreateVideo}
-                data-testid="button-create-from-idea"
-              >
-                <Play className="w-4 h-4 mr-2 fill-white" />
-                {t.dashboard.createVideo}
-              </Button>
+              <div className="flex gap-3">
+                <Button
+                  className="flex-1 bg-violet-600 text-white"
+                  onClick={handleCreateVideo}
+                  data-testid="button-create-from-idea"
+                >
+                  <Play className="w-4 h-4 mr-2 fill-white" />
+                  {t.dashboard.createVideo}
+                </Button>
+                <Button
+                  variant={ideaIsSaved ? "secondary" : "outline"}
+                  onClick={handleSaveIdea}
+                  disabled={savingIdea}
+                  className="gap-2"
+                  data-testid="button-save-idea"
+                >
+                  <Star className={`w-4 h-4 ${ideaIsSaved ? "fill-yellow-500 text-yellow-500" : ""}`} />
+                  {ideaIsSaved ? (t.dashboard.saved || "Saved") : (t.dashboard.save || "Save")}
+                </Button>
+              </div>
               <Button
                 variant="outline"
                 className="w-full"
@@ -722,7 +809,7 @@ function GenerateIdeaDialog({
                 ) : (
                   <RefreshCw className="w-4 h-4 mr-2" />
                 )}
-                Generate another idea
+                {t.dashboard.generateAnother || "Generate another idea"}
               </Button>
             </div>
           </div>

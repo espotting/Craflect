@@ -1,7 +1,9 @@
 import { useState, useCallback, useRef } from "react";
 import { DashboardLayout } from "@/components/layout";
 import { useLanguage } from "@/hooks/use-language";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { VideoCard } from "@/components/video-card";
@@ -40,8 +42,36 @@ const PAGE_SIZE = 20;
 
 export default function Opportunities() {
   const { t } = useLanguage();
+  const { toast } = useToast();
   const [platformFilter, setPlatformFilter] = useState("all");
   const [topicFilter, setTopicFilter] = useState("all");
+
+  const { data: savedIdeas } = useQuery<any[]>({ queryKey: ["/api/ideas"] });
+  const savedHooks = new Set((savedIdeas || []).filter((i: any) => i.status === "saved").map((i: any) => i.hook));
+
+  const saveMutation = useMutation({
+    mutationFn: async (video: any) => {
+      const hook = video.hook_text || video.caption || "";
+      if (savedHooks.has(hook)) {
+        const idea = (savedIdeas || []).find((i: any) => i.hook === hook && i.status === "saved");
+        if (idea) {
+          await apiRequest("POST", "/api/ideas/dismiss", { id: idea.id });
+        }
+      } else {
+        await apiRequest("POST", "/api/ideas/save", {
+          hook,
+          format: video.structure_type || video.content_format || "",
+          topic: video.topic_cluster || "",
+          opportunityScore: Math.round(video.virality_score || 0),
+          velocity: video.view_velocity || 0,
+          videosDetected: 1,
+        });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/ideas"] });
+    },
+  });
 
   const buildParams = (page: number) => {
     const params = new URLSearchParams();
@@ -129,22 +159,27 @@ export default function Opportunities() {
         ) : allVideos.length > 0 ? (
           <>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4" data-testid="grid-opportunities">
-              {allVideos.map((video: any) => (
-                <VideoCard
-                  key={video.id}
-                  video={{
-                    id: video.id,
-                    caption: video.caption,
-                    hookText: video.hook_text || video.caption,
-                    platform: video.platform,
-                    views: video.views,
-                    viralityScore: video.virality_score,
-                    contentFormat: video.structure_type || video.content_format,
-                    thumbnailUrl: video.thumbnail_url,
-                    topicCluster: video.topic_cluster,
-                  }}
-                />
-              ))}
+              {allVideos.map((video: any) => {
+                const videoHook = video.hook_text || video.caption || "";
+                return (
+                  <VideoCard
+                    key={video.id}
+                    video={{
+                      id: video.id,
+                      caption: video.caption,
+                      hookText: video.hook_text || video.caption,
+                      platform: video.platform,
+                      views: video.views,
+                      viralityScore: video.virality_score,
+                      contentFormat: video.structure_type || video.content_format,
+                      thumbnailUrl: video.thumbnail_url,
+                      topicCluster: video.topic_cluster,
+                    }}
+                    isSaved={savedHooks.has(videoHook)}
+                    onSave={() => saveMutation.mutate(video)}
+                  />
+                );
+              })}
             </div>
             <div ref={sentinelRef} className="flex justify-center py-4">
               {videosQuery.isFetchingNextPage && (
