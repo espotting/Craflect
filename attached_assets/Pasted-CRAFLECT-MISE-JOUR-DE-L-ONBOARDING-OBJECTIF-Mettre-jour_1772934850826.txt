@@ -1,0 +1,155 @@
+CRAFLECT – MISE À JOUR DE L’ONBOARDING
+
+OBJECTIF
+
+Mettre à jour l’onboarding existant pour l’aligner avec la promesse principale de Craflect :
+
+"Créer des vidéos virales avec l’IA."
+
+IMPORTANT :
+
+Le design actuel de l’onboarding est bon et doit être conservé.
+
+NE PAS refaire l’interface.
+
+Conserver :
+
+* le layout actuel
+* la barre de progression
+* les cartes de sélection
+* les animations existantes
+* la structure en étapes
+
+Les modifications portent uniquement sur :
+
+* le wording
+* le contenu des questions
+* l’écran final
+* l’ajout d’un écran d’analyse IA
+
+ÉTAPE 1 – INTRODUCTION
+
+Titre :
+
+Créer des vidéos virales avec l’IA
+
+Sous-titre :
+
+Répondez à 3 questions rapides et obtenez votre première idée de vidéo virale.
+
+Bouton :
+
+Commencer
+
+ÉTAPE 2 – SÉLECTION DES NICHES
+
+Titre :
+
+Quels sujets de contenu créez-vous ?
+
+Sous-titre :
+
+Sélectionnez jusqu’à 3 niches pour que nous puissions trouver des idées virales pour vous.
+
+Conserver les niches existantes :
+
+AI tools
+AI automation
+Online business
+Entrepreneurship
+Digital marketing
+Ecommerce
+SaaS
+Real estate
+Finance
+Crypto
+
+Enregistrer les niches sélectionnées dans le profil utilisateur.
+
+ÉTAPE 3 – PROFIL UTILISATEUR
+
+Titre :
+
+Comment créez-vous du contenu ?
+
+Options :
+
+Créateur de contenu
+Marketeur
+Entrepreneur
+Explorateur de tendances
+
+Enregistrer le type de profil dans le profil utilisateur.
+
+ÉTAPE 4 – ANALYSE IA (NOUVEL ÉCRAN)
+
+Après l’étape 3, afficher un écran simulant l’analyse de l’IA.
+
+Titre :
+
+Analyse des patterns viraux dans votre niche…
+
+Afficher les lignes suivantes progressivement :
+
+✓ analyse des hooks tendances
+✓ analyse des formats viraux
+✓ analyse de l’engagement dans la niche
+✓ calcul du score de viralité
+
+Durée totale :
+
+2 à 3 secondes.
+
+ÉTAPE 5 – PREMIÈRE IDÉE VIRALE
+
+Afficher l’idée générée.
+
+Titre :
+
+🔥 Votre première idée de vidéo virale
+
+Structure affichée :
+
+Hook
+"3 outils IA dont personne ne parle"
+
+Format
+Liste (Listicle)
+
+Score de viralité
+Animation du score de 0 jusqu’à la valeur finale
+
+Vues prédites
+120k – 600k
+
+Bouton principal :
+
+Créer la vidéo virale
+
+COMPORTEMENT DU BOUTON
+
+Si l’utilisateur clique sur :
+
+Créer la vidéo virale
+
+Alors :
+
+* rediriger vers le flow de création
+* pré-remplir l’idée générée
+
+DONNÉES À ENREGISTRER
+
+Stocker les réponses dans le profil utilisateur :
+
+user_niches
+user_creator_type
+
+OBJECTIF PRODUIT
+
+Réduire le temps jusqu’à la première valeur.
+
+L’utilisateur doit comprendre immédiatement que Craflect permet de :
+
+* trouver des idées virales
+* prédire le potentiel d’une vidéo
+* créer du contenu viral rapidement.
