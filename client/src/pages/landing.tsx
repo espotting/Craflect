@@ -138,20 +138,22 @@ export default function Landing() {
       <main className="relative z-10 flex-1 flex flex-col">
 
         {/* ═══ HERO ═══ */}
-        <section className="relative flex flex-col items-center justify-center px-4 text-center pt-10 sm:pt-16 pb-20 sm:pb-28">
-          <div className="absolute inset-0 z-0 pointer-events-none">
+        <section className="relative flex flex-col items-center justify-center px-4 text-center pt-10 sm:pt-16 pb-10 sm:pb-14">
+          <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
             <div
-              className="absolute inset-0"
+              className="absolute left-1/2 -translate-x-1/2"
               style={{
+                top: "-200px",
+                width: "900px",
+                height: "500px",
                 background: isDark
-                  ? "radial-gradient(circle at 50% 10%, rgba(124,92,255,0.18), transparent 60%)"
-                  : "radial-gradient(circle at 50% 10%, rgba(124,92,255,0.10), transparent 60%)",
+                  ? "radial-gradient(circle, rgba(124,92,255,0.22), transparent 70%)"
+                  : "radial-gradient(circle, rgba(124,92,255,0.12), transparent 70%)",
+                filter: "blur(80px)",
               }}
             />
-            <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/5 dark:bg-primary/10 rounded-full blur-[150px] -translate-y-1/2 translate-x-1/3" />
-            <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-secondary/5 dark:bg-secondary/10 rounded-full blur-[120px] translate-y-1/3 -translate-x-1/3" />
             <div
-              className="absolute inset-0 opacity-[0.015] dark:opacity-[0.03]"
+              className="absolute inset-0 opacity-[0.015] dark:opacity-[0.025]"
               style={{
                 backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
                 backgroundRepeat: "repeat",
@@ -229,47 +231,49 @@ export default function Landing() {
               </button>
             </div>
           </motion.div>
+        </section>
 
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.35, ease: "easeOut" }}
-            className="relative z-10 w-full max-w-[420px] mx-auto -mt-2"
-            style={{ marginTop: "-8px" }}
+        {/* ═══ FLOATING PREVIEW CARD (chevauche le Hero) ═══ */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, delay: 0.35, ease: "easeOut" }}
+          className="relative z-20 w-full max-w-[420px] mx-auto px-4"
+          style={{ transform: "translateY(-40px)", marginBottom: "-20px" }}
+        >
+          <p className="text-[11px] uppercase tracking-widest text-muted-foreground/50 font-semibold mb-3 text-center" data-testid="text-preview-label">
+            {t.landing.previewLabel}
+          </p>
+          <div
+            className="rounded-2xl border border-border/40 dark:border-white/8 bg-card dark:bg-card/95 p-5 space-y-3"
+            style={{
+              borderRadius: "16px",
+              boxShadow: isDark
+                ? "0 12px 30px rgba(0,0,0,0.25), 0 0 80px rgba(124,92,255,0.06)"
+                : "0 12px 30px rgba(0,0,0,0.08), 0 0 80px rgba(124,92,255,0.04)",
+            }}
+            data-testid="card-preview-idea"
           >
-            <p className="text-[11px] uppercase tracking-widest text-muted-foreground/60 font-semibold mb-3 text-center" data-testid="text-preview-label">
-              {t.landing.previewLabel}
-            </p>
-            <div
-              className="rounded-2xl border border-border/50 dark:border-white/10 bg-card/90 dark:bg-card/80 backdrop-blur-md p-5 space-y-3"
-              style={{
-                boxShadow: isDark
-                  ? "0 10px 40px rgba(0,0,0,0.3), 0 0 60px rgba(124,92,255,0.08)"
-                  : "0 10px 30px rgba(0,0,0,0.08), 0 0 60px rgba(124,92,255,0.06)",
-              }}
-              data-testid="card-preview-idea"
-            >
+            <div>
+              <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Hook</span>
+              <p className="text-sm font-semibold text-foreground mt-0.5 leading-snug">"3 AI workflows that save 10 hours per week"</p>
+            </div>
+            <div className="flex items-center gap-5">
               <div>
-                <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Hook</span>
-                <p className="text-sm font-semibold text-foreground mt-0.5 leading-snug">"3 AI workflows that save 10 hours per week"</p>
+                <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Format</span>
+                <p className="text-xs font-medium text-foreground mt-0.5">Listicle</p>
               </div>
-              <div className="flex items-center gap-5">
-                <div>
-                  <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Format</span>
-                  <p className="text-xs font-medium text-foreground mt-0.5">Listicle</p>
-                </div>
-                <div>
-                  <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Virality</span>
-                  <p className="text-sm font-bold text-violet-500 mt-0.5">82</p>
-                </div>
-                <div>
-                  <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold flex items-center gap-1"><Eye className="w-3 h-3" /> Views</span>
-                  <p className="text-xs font-medium text-foreground mt-0.5">300K – 900K</p>
-                </div>
+              <div>
+                <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Virality</span>
+                <p className="text-sm font-bold text-violet-500 mt-0.5">82</p>
+              </div>
+              <div>
+                <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold flex items-center gap-1"><Eye className="w-3 h-3" /> Views</span>
+                <p className="text-xs font-medium text-foreground mt-0.5">300K – 900K</p>
               </div>
             </div>
-          </motion.div>
-        </section>
+          </div>
+        </motion.div>
 
         {/* ═══ HOW IT WORKS ═══ */}
         <section id="section-clarity" className="px-4 py-20 sm:py-28">
@@ -440,7 +444,7 @@ export default function Landing() {
 
         {/* ═══ NOT ANOTHER AI CONTENT GENERATOR ═══ */}
         <section className="px-4 py-20 sm:py-28">
-          <div className="max-w-4xl mx-auto w-full">
+          <div className="max-w-[1100px] mx-auto w-full">
             <SectionReveal>
               <div className="text-center mb-12 sm:mb-16">
                 <h2 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-3" data-testid="text-positioning-title">
@@ -456,7 +460,7 @@ export default function Landing() {
               </div>
             </SectionReveal>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               {[
                 { icon: Brain, title: t.landing.pillar1, desc: t.landing.pillar1Desc },
                 { icon: TrendingUp, title: t.landing.pillar2, desc: t.landing.pillar2Desc },
@@ -465,7 +469,7 @@ export default function Landing() {
               ].map((item, i) => (
                 <SectionReveal key={i} delay={i * 0.08}>
                   <div
-                    className="flex items-start gap-4 p-5 rounded-xl bg-card border border-border/60 hover:border-primary/20 transition-colors"
+                    className="flex items-start gap-4 p-5 rounded-xl bg-card border border-border/60 hover:border-primary/20 transition-colors h-full"
                     data-testid={`card-pillar-${i}`}
                   >
                     <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
