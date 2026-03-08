@@ -1,0 +1,125 @@
+CRAFLECT – MISE À JOUR HOME + SAVE FEATURE
+
+OBJECTIF
+
+Simplifier la Home tout en introduisant une opportunité virale personnalisée et une fonctionnalité de sauvegarde.
+
+La Home doit rester simple, claire et compréhensible en moins de 3 secondes.
+
+1. FUSION DES CARTES : VIRAL PLAY + DAILY IDEA
+
+La carte actuelle "Viral Play of the Day" devient :
+
+🔥 Viral Opportunity Today
+
+Cette carte doit combiner :
+
+* les données de tendance (trend)
+* les niches de l’utilisateur
+
+Structure de la carte :
+
+Topic
+Hook
+Format
+Virality Score
+Predicted Views
+
+Actions :
+
+Create Video
+⭐ Save
+Generate Another
+
+2. POSITION SUR LA HOME
+
+Structure finale de la Home :
+
+Hero section
+(Create Viral Video)
+
+↓
+
+🔥 Viral Opportunity Today
+
+↓
+
+Trending Opportunities (carousel)
+
+↓
+
+Create From Image
+
+Important :
+
+Ne pas ajouter de nouveaux blocs supplémentaires afin de garder la Home simple et lisible.
+
+3. FONCTIONNALITÉ SAVE (⭐)
+
+Ajouter une fonctionnalité Save sur les éléments suivants :
+
+* VideoCards dans Opportunities
+* Viral Opportunity Today
+* Viral Idea générée dans Generate Viral Idea
+
+COMPORTEMENT
+
+Lorsque l’utilisateur clique sur ⭐ :
+
+* l’élément est sauvegardé
+* l’icône passe à l’état "Saved"
+
+Exemple :
+
+⭐ Save → ⭐ Saved
+
+Cliquer à nouveau doit permettre de retirer l’élément.
+
+4. DESTINATION DES ÉLÉMENTS SAUVEGARDÉS
+
+Les éléments sauvegardés doivent apparaître dans :
+
+Workspace → Saved Inspirations
+
+5. INFORMATIONS AFFICHÉES
+
+Chaque élément sauvegardé doit afficher :
+
+Hook
+Format
+Virality Score
+Date de sauvegarde
+
+Si disponible :
+
+Topic
+Platform
+
+6. STRUCTURE DE DONNÉES
+
+Créer une table :
+
+saved_items
+
+Champs recommandés :
+
+user_id
+item_id
+item_type (idea / opportunity / video)
+hook
+format
+virality_score
+saved_at
+
+7. OBJECTIF PRODUIT
+
+Transformer Craflect en :
+
+* moteur d’opportunités virales
+* bibliothèque d’idées de contenu
+
+Les utilisateurs doivent pouvoir :
+
+* découvrir des opportunités
+* sauvegarder des idées
+* revenir plus tard pour créer leur contenu.
