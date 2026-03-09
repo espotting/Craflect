@@ -1,10 +1,10 @@
 import { DashboardLayout } from "@/components/layout";
 import { useLanguage } from "@/hooks/use-language";
 import { useState, useEffect, useRef } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { useSearch } from "wouter";
+import { useSearch, useLocation } from "wouter";
 import { TOPIC_CLUSTER_LABELS } from "@shared/schema";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,6 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   Sparkles,
   ArrowLeft,
@@ -29,6 +28,12 @@ import {
   Copy,
   Download,
   Check,
+  Coins,
+  Crown,
+  Lock,
+  Target,
+  Lightbulb,
+  BookmarkPlus,
 } from "lucide-react";
 import { getPredictedViews, getViralityColor } from "@/lib/predicted-views";
 
@@ -65,14 +70,57 @@ interface Blueprint {
   cta: BlueprintCTA;
 }
 
+interface CreditsInfo {
+  credits: number;
+  maxCredits: number;
+  plan: string;
+  costs: Record<string, number>;
+}
+
 function formatLabel(s: string | null | undefined): string {
   if (!s) return "";
   return s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+function CreditsDisplay({ credits }: { credits: CreditsInfo | undefined }) {
+  const { t } = useLanguage();
+  const [, setLocation] = useLocation();
+
+  if (!credits) return null;
+
+  const percentage = (credits.credits / credits.maxCredits) * 100;
+
+  return (
+    <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-muted/50 border border-border/50" data-testid="credits-display">
+      <Coins className="h-4 w-4 text-violet-500 shrink-0" />
+      <div className="flex-1 min-w-0">
+        <div className="h-1.5 w-full rounded-full bg-muted">
+          <div className="h-full rounded-full bg-violet-500 transition-all" style={{ width: `${Math.min(100, percentage)}%` }} />
+        </div>
+      </div>
+      <span className="text-xs font-medium whitespace-nowrap" data-testid="text-credits-remaining">
+        {credits.credits}/{credits.maxCredits}
+      </span>
+      {credits.plan === "free" && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-[10px] text-violet-500 hover:text-violet-400 h-6 px-2"
+          onClick={() => setLocation("/billing")}
+          data-testid="link-upgrade-create"
+        >
+          <Crown className="h-3 w-3 mr-1" />
+          Upgrade
+        </Button>
+      )}
+    </div>
+  );
+}
+
 export default function CreatePage() {
   const { t } = useLanguage();
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
 
   const STEP_LABELS = [
     t.createFlow?.step1 || "Idea",
@@ -99,8 +147,13 @@ export default function CreatePage() {
   const [isGeneratingBlueprint, setIsGeneratingBlueprint] = useState(false);
 
   const [copied, setCopied] = useState(false);
+  const [showNextActions, setShowNextActions] = useState(false);
   const autoSavedRef = useRef(false);
   const searchString = useSearch();
+
+  const { data: credits, refetch: refetchCredits } = useQuery<CreditsInfo>({
+    queryKey: ["/api/credits"],
+  });
 
   useEffect(() => {
     const params = new URLSearchParams(searchString);
@@ -136,10 +189,16 @@ export default function CreatePage() {
     },
     onSuccess: (data) => {
       setScript(data);
+      refetchCredits();
       autoSaveProject(data);
     },
-    onError: () => {
-      toast({ title: "Error", description: "Failed to generate script", variant: "destructive" });
+    onError: (err: any) => {
+      const msg = err?.message || "";
+      if (msg.includes("402")) {
+        toast({ title: t.createFlow.notEnoughCredits, description: t.createFlow.notEnoughCreditsDesc, variant: "destructive" });
+      } else {
+        toast({ title: "Error", description: "Failed to generate script", variant: "destructive" });
+      }
     },
   });
 
@@ -184,9 +243,15 @@ export default function CreatePage() {
       });
       const data = await res.json();
       setBlueprint(data);
+      refetchCredits();
       if (!autoSavedRef.current) autoSaveProject();
-    } catch {
-      toast({ title: "Error", description: "Failed to generate blueprint", variant: "destructive" });
+    } catch (err: any) {
+      const msg = err?.message || "";
+      if (msg.includes("402")) {
+        toast({ title: t.createFlow.notEnoughCredits, description: t.createFlow.notEnoughCreditsDesc, variant: "destructive" });
+      } else {
+        toast({ title: "Error", description: "Failed to generate blueprint", variant: "destructive" });
+      }
     } finally {
       setIsGeneratingBlueprint(false);
     }
@@ -241,7 +306,7 @@ export default function CreatePage() {
     navigator.clipboard.writeText(getExportText());
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-    toast({ title: "Copied to clipboard" });
+    toast({ title: t.createFlow.copied });
   }
 
   function handleDownloadExport() {
@@ -261,24 +326,49 @@ export default function CreatePage() {
     return false;
   };
 
+  const isFreePlan = credits?.plan === "free";
   const viralityScore = 75;
   const predicted = getPredictedViews(viralityScore);
   const viralityColorClass = getViralityColor(viralityScore);
 
+  function handleReset() {
+    setCurrentStep(0);
+    setHook("");
+    setFormat("");
+    setTopic("");
+    setStructure("");
+    setContext("");
+    setScript(null);
+    setBlueprint(null);
+    setEditHookLine("");
+    setEditScene1("");
+    setEditScene2("");
+    setEditScene3("");
+    setEditCta("");
+    setCopied(false);
+    setShowNextActions(false);
+    autoSavedRef.current = false;
+  }
+
   return (
     <DashboardLayout>
       <div className="flex flex-col gap-6 p-6 max-w-5xl mx-auto" data-testid="page-create">
-        <div className="flex flex-row items-center gap-3 flex-wrap">
-          <div className="w-10 h-10 rounded-md bg-primary/10 flex items-center justify-center">
-            <Sparkles className="w-5 h-5 text-primary" />
+        <div className="flex flex-row items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-md bg-primary/10 flex items-center justify-center">
+              <Sparkles className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-foreground" data-testid="text-create-title">
+                {t.createFlow?.title || "Create Viral Video"}
+              </h1>
+              <p className="text-sm text-muted-foreground" data-testid="text-create-subtitle">
+                {t.createFlow?.subtitle || "From idea to export in 4 steps"}
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-xl font-bold text-foreground" data-testid="text-create-title">
-              {t.createFlow?.title || "Create Viral Video"}
-            </h1>
-            <p className="text-sm text-muted-foreground" data-testid="text-create-subtitle">
-              {t.createFlow?.subtitle || "From idea to export in 4 steps"}
-            </p>
+          <div className="w-64">
+            <CreditsDisplay credits={credits} />
           </div>
         </div>
 
@@ -310,83 +400,81 @@ export default function CreatePage() {
           ))}
         </div>
 
-        {currentStep === 0 && (
-          <StepIdea
-            hook={hook} setHook={setHook}
-            format={format} setFormat={setFormat}
-            topic={topic} setTopic={setTopic}
-            structure={structure} setStructure={setStructure}
-            context={context} setContext={setContext}
-            predicted={predicted}
-            viralityColorClass={viralityColorClass}
-            t={t}
-          />
-        )}
-
-        {currentStep === 1 && (
-          <StepScript
-            hook={hook}
-            script={script}
-            editHookLine={editHookLine} setEditHookLine={setEditHookLine}
-            editScene1={editScene1} setEditScene1={setEditScene1}
-            editScene2={editScene2} setEditScene2={setEditScene2}
-            editScene3={editScene3} setEditScene3={setEditScene3}
-            editCta={editCta} setEditCta={setEditCta}
-            generateMutation={generateScriptMutation}
-            t={t}
-          />
-        )}
-
-        {currentStep === 2 && (
-          <StepBlueprint
-            hook={hook}
-            blueprint={blueprint}
-            isGenerating={isGeneratingBlueprint}
-            onGenerate={handleGenerateBlueprint}
-            updateBlueprintHook={updateBlueprintHook}
-            updateScene={updateScene}
-            updateCTA={updateCTA}
-            t={t}
-          />
-        )}
-
+        {currentStep === 0 && <StepIdea
+          hook={hook} setHook={setHook}
+          format={format} setFormat={setFormat}
+          topic={topic} setTopic={setTopic}
+          context={context} setContext={setContext}
+          viralityScore={viralityScore}
+          predicted={predicted}
+          viralityColorClass={viralityColorClass}
+          t={t}
+        />}
+        {currentStep === 1 && <StepScript
+          script={script}
+          editHookLine={editHookLine} setEditHookLine={setEditHookLine}
+          editScene1={editScene1} setEditScene1={setEditScene1}
+          editScene2={editScene2} setEditScene2={setEditScene2}
+          editScene3={editScene3} setEditScene3={setEditScene3}
+          editCta={editCta} setEditCta={setEditCta}
+          generateScriptMutation={generateScriptMutation}
+          credits={credits}
+          t={t}
+        />}
+        {currentStep === 2 && <StepBlueprint
+          blueprint={blueprint}
+          isGenerating={isGeneratingBlueprint}
+          onGenerate={handleGenerateBlueprint}
+          updateBlueprintHook={updateBlueprintHook}
+          updateScene={updateScene}
+          updateCTA={updateCTA}
+          credits={credits}
+          t={t}
+        />}
         {currentStep === 3 && (
-          <StepExport
-            hook={hook} format={format} topic={topic}
-            script={script}
-            editHookLine={editHookLine}
-            editScene1={editScene1}
-            editScene2={editScene2}
-            editScene3={editScene3}
-            editCta={editCta}
-            blueprint={blueprint}
-            copied={copied}
-            onCopy={handleCopyExport}
-            onDownload={handleDownloadExport}
-            t={t}
-          />
+          showNextActions ? (
+            <NextActionsScreen onReset={handleReset} t={t} />
+          ) : (
+            <StepExport
+              script={script}
+              blueprint={blueprint}
+              editHookLine={editHookLine}
+              editScene1={editScene1}
+              editScene2={editScene2}
+              editScene3={editScene3}
+              editCta={editCta}
+              hook={hook}
+              format={format}
+              topic={topic}
+              copied={copied}
+              onCopy={handleCopyExport}
+              onDownload={handleDownloadExport}
+              isFreePlan={isFreePlan}
+              onShowNextActions={() => setShowNextActions(true)}
+              t={t}
+            />
+          )
         )}
 
-        <div className="flex items-center justify-between gap-2 pt-4 border-t border-border/50">
+        <div className="flex justify-between pt-4">
           <Button
             variant="outline"
             onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
             disabled={currentStep === 0}
-            className="gap-2"
             data-testid="button-back"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-4 h-4 mr-1" />
             {t.createFlow?.back || "Back"}
           </Button>
           {currentStep < 3 && (
             <Button
               onClick={() => setCurrentStep(currentStep + 1)}
               disabled={!canGoNext()}
-              className="gap-2"
+              className="bg-violet-600 hover:bg-violet-700"
               data-testid="button-next"
             >
-              {t.createFlow?.next || "Next"}
-              <ArrowRight className="w-4 h-4" />
+              {t.createFlow?.next || "Next Step"}
+              <ArrowRight className="w-4 h-4 ml-1" />
             </Button>
           )}
         </div>
@@ -395,545 +483,502 @@ export default function CreatePage() {
   );
 }
 
-function StepIdea({
-  hook, setHook, format, setFormat, topic, setTopic,
-  structure, setStructure, context, setContext,
-  predicted, viralityColorClass, t,
-}: any) {
+function StepIdea({ hook, setHook, format, setFormat, topic, setTopic, context, setContext, viralityScore, predicted, viralityColorClass, t }: any) {
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6" data-testid="step-idea-content">
-      <div className="lg:col-span-2 flex flex-col gap-4">
-        <Card className="p-5 flex flex-col gap-4" data-testid="card-idea-edit">
-          <div className="flex items-center gap-2 mb-1">
-            <Pencil className="w-4 h-4 text-muted-foreground" />
-            <span className="font-semibold text-foreground">Your Viral Idea</span>
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="idea-hook">Hook *</Label>
-            <Textarea
-              id="idea-hook"
-              data-testid="input-hook"
-              value={hook}
-              onChange={(e: any) => setHook(e.target.value)}
-              placeholder="e.g. 3 AI tools nobody talks about"
-              className="resize-none min-h-[80px]"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="idea-format">Format</Label>
+    <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+      <div className="lg:col-span-3 space-y-4">
+        <Card>
+          <CardContent className="p-5 space-y-4">
+            <div>
+              <Label className="text-sm font-medium">Hook *</Label>
               <Input
-                id="idea-format"
-                data-testid="input-format"
-                value={format}
-                onChange={(e: any) => setFormat(e.target.value)}
-                placeholder="e.g. listicle, tutorial"
+                placeholder='e.g. "3 AI tools nobody talks about"'
+                value={hook}
+                onChange={(e) => setHook(e.target.value)}
+                className="mt-1"
+                data-testid="input-hook"
               />
             </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="idea-topic">Topic</Label>
-              <Input
-                id="idea-topic"
-                data-testid="input-topic"
-                value={topic}
-                onChange={(e: any) => setTopic(e.target.value)}
-                placeholder="e.g. ai_tools"
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-sm font-medium">{t.createFlow?.step3 || "Format"}</Label>
+                <Input
+                  placeholder="e.g. Listicle, Tutorial"
+                  value={format}
+                  onChange={(e) => setFormat(e.target.value)}
+                  className="mt-1"
+                  data-testid="input-format"
+                />
+              </div>
+              <div>
+                <Label className="text-sm font-medium">Topic</Label>
+                <Input
+                  placeholder="e.g. AI Tools"
+                  value={topic}
+                  onChange={(e) => setTopic(e.target.value)}
+                  className="mt-1"
+                  data-testid="input-topic"
+                />
+              </div>
+            </div>
+            <div>
+              <Label className="text-sm font-medium">Context</Label>
+              <Textarea
+                placeholder="Additional context for better AI results..."
+                value={context}
+                onChange={(e) => setContext(e.target.value)}
+                className="mt-1 h-20"
+                data-testid="input-context"
               />
             </div>
-          </div>
-
-          {structure && (
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="idea-structure">Video Structure</Label>
-              <Input
-                id="idea-structure"
-                data-testid="input-structure"
-                value={structure}
-                onChange={(e: any) => setStructure(e.target.value)}
-              />
-            </div>
-          )}
-
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="idea-context">Additional Context</Label>
-            <Textarea
-              id="idea-context"
-              data-testid="input-context"
-              value={context}
-              onChange={(e: any) => setContext(e.target.value)}
-              placeholder="Any additional details for the AI..."
-              className="resize-none min-h-[60px]"
-            />
-          </div>
+          </CardContent>
         </Card>
       </div>
-
-      <div className="flex flex-col gap-4">
-        <Card className="p-5 space-y-4" data-testid="card-idea-preview">
-          <div className="flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-primary" />
-            <span className="font-semibold text-foreground text-sm">Preview</span>
-          </div>
-
-          {hook ? (
-            <div className="space-y-3">
-              {topic && (
-                <div>
-                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Topic</span>
-                  <p className="text-sm font-medium text-primary" data-testid="text-preview-topic">
-                    {TOPIC_CLUSTER_LABELS[topic] || formatLabel(topic)}
-                  </p>
+      <div className="lg:col-span-2">
+        <Card className="border border-border/50">
+          <CardContent className="p-5 space-y-4">
+            <h3 className="font-semibold text-sm flex items-center gap-2">
+              <Eye className="h-4 w-4 text-violet-500" />
+              Preview
+            </h3>
+            {hook ? (
+              <>
+                <div className="p-3 rounded-lg bg-muted/50 border border-border/30">
+                  <p className="text-sm font-medium">"{hook}"</p>
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {format && <Badge variant="outline" className="text-[10px]">{formatLabel(format)}</Badge>}
+                    {topic && <Badge variant="outline" className="text-[10px]">{formatLabel(topic)}</Badge>}
+                  </div>
                 </div>
-              )}
-              <div>
-                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Hook</span>
-                <p className="text-sm font-semibold text-foreground" data-testid="text-preview-hook">
-                  "{hook}"
-                </p>
-              </div>
-              {format && (
-                <div>
-                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Format</span>
-                  <p className="text-sm text-foreground" data-testid="text-preview-format">
-                    {formatLabel(format)}
-                  </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="text-center p-2 rounded-lg bg-background/40 border border-border/30">
+                    <div className={`text-lg font-bold ${viralityColorClass}`}>{viralityScore}</div>
+                    <div className="text-[10px] text-muted-foreground">Predicted Score</div>
+                  </div>
+                  <div className="text-center p-2 rounded-lg bg-background/40 border border-border/30">
+                    <div className="text-sm font-semibold">{predicted.label}</div>
+                    <div className="text-[10px] text-muted-foreground">Est. Views</div>
+                  </div>
                 </div>
-              )}
-              <div className="flex items-center justify-between pt-3 border-t border-border/50">
-                <div className="flex items-center gap-1.5">
-                  <Eye className="w-3.5 h-3.5 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground" data-testid="text-preview-predicted">{predicted.label}</span>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground text-center py-4">
-              Enter a hook to see preview
-            </p>
-          )}
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-8">
+                {t.createFlow?.enterHookPreview || "Enter a hook to see preview"}
+              </p>
+            )}
+          </CardContent>
         </Card>
       </div>
     </div>
   );
 }
 
-function StepScript({
-  hook, script,
-  editHookLine, setEditHookLine,
-  editScene1, setEditScene1,
-  editScene2, setEditScene2,
-  editScene3, setEditScene3,
-  editCta, setEditCta,
-  generateMutation, t,
-}: any) {
+function StepScript({ script, editHookLine, setEditHookLine, editScene1, setEditScene1, editScene2, setEditScene2, editScene3, setEditScene3, editCta, setEditCta, generateScriptMutation, credits, t }: any) {
+  const scriptCost = credits?.costs?.script || 3;
+  const hasEnoughCredits = credits ? credits.credits >= scriptCost : true;
+
   return (
-    <div className="flex flex-col gap-4" data-testid="step-script-content">
-      <div className="flex items-center justify-between gap-2 flex-wrap">
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <FileText className="w-5 h-5 text-primary" />
-          <h2 className="text-lg font-semibold text-foreground">Script</h2>
+          <Button
+            onClick={() => generateScriptMutation.mutate()}
+            disabled={generateScriptMutation.isPending || !hasEnoughCredits}
+            className="bg-violet-600 hover:bg-violet-700"
+            data-testid="button-generate-script"
+          >
+            {generateScriptMutation.isPending ? (
+              <><Loader2 className="w-4 h-4 mr-2 animate-spin" />{t.createFlow?.generating || "Generating..."}</>
+            ) : script ? (
+              <><RefreshCw className="w-4 h-4 mr-2" />{t.createFlow?.regenerateScript || "Regenerate Script"}</>
+            ) : (
+              <><Sparkles className="w-4 h-4 mr-2" />{t.createFlow?.generateScript || "Generate Script"}</>
+            )}
+          </Button>
+          <Badge variant="outline" className="text-xs">
+            <Coins className="h-3 w-3 mr-1" />
+            {scriptCost} {t.createFlow?.creditsCost?.replace("{n}", "") || "credits"}
+          </Badge>
         </div>
-        <Button
-          onClick={() => generateMutation.mutate()}
-          disabled={generateMutation.isPending || !hook.trim()}
-          className="gap-2"
-          data-testid="button-generate-script"
-        >
-          {generateMutation.isPending ? (
-            <><Loader2 className="w-4 h-4 animate-spin" /> Generating...</>
-          ) : script ? (
-            <><RefreshCw className="w-4 h-4" /> Regenerate Script</>
-          ) : (
-            <><Sparkles className="w-4 h-4" /> Generate Script</>
-          )}
-        </Button>
+        {!hasEnoughCredits && (
+          <p className="text-xs text-destructive">{t.createFlow?.notEnoughCredits || "Not enough credits"}</p>
+        )}
       </div>
 
-      {generateMutation.isPending && !script && (
-        <div className="space-y-4">
-          <Skeleton className="h-20 w-full" />
-          <Skeleton className="h-24 w-full" />
-          <Skeleton className="h-24 w-full" />
-          <Skeleton className="h-24 w-full" />
-          <Skeleton className="h-20 w-full" />
-        </div>
-      )}
-
-      {script && (
-        <div className="flex flex-col gap-4">
-          <div className="flex items-center gap-2">
-            <Badge variant="secondary" className="text-xs">Editable</Badge>
-            {script.structure && (
-              <Badge variant="outline" className="text-xs" data-testid="badge-script-structure">
-                {script.structure}
-              </Badge>
-            )}
-          </div>
-
-          <ScriptSection
-            label="Hook"
-            icon={<Megaphone className="w-4 h-4 text-violet-500" />}
-            value={editHookLine}
-            onChange={setEditHookLine}
-            testId="textarea-hook-line"
-            accent="border-l-violet-500"
-          />
+      {script ? (
+        <div className="space-y-3">
+          <ScriptSection icon={Sparkles} label="Hook" color="violet" value={editHookLine} onChange={setEditHookLine} testId="edit-hook-line" />
+          <ScriptSection icon={FileText} label="Scene 1 — Setup" color="blue" value={editScene1} onChange={setEditScene1} testId="edit-scene-1" />
+          <ScriptSection icon={FileText} label="Scene 2 — Core Value" color="emerald" value={editScene2} onChange={setEditScene2} testId="edit-scene-2" />
+          <ScriptSection icon={FileText} label="Scene 3 — Proof" color="amber" value={editScene3} onChange={setEditScene3} testId="edit-scene-3" />
+          <ScriptSection icon={Megaphone} label="CTA" color="red" value={editCta} onChange={setEditCta} testId="edit-cta" />
 
           {script.hook_variations && script.hook_variations.length > 0 && (
-            <Card className="p-4">
-              <p className="text-xs font-medium text-muted-foreground mb-2">Alternative Hooks</p>
-              <div className="space-y-2">
-                {script.hook_variations.map((v: string, i: number) => (
-                  <div
-                    key={i}
-                    className="flex items-start gap-2 p-2 rounded-md border border-border/50 bg-muted/30 cursor-pointer hover:bg-muted/60 transition-colors"
-                    onClick={() => setEditHookLine(v)}
-                    data-testid={`hook-variation-${i}`}
-                  >
-                    <Badge variant="outline" className="text-[10px] mt-0.5 shrink-0">
-                      {String.fromCharCode(65 + i)}
-                    </Badge>
-                    <p className="text-sm text-foreground">{v}</p>
-                  </div>
-                ))}
-              </div>
-            </Card>
-          )}
-
-          <ScriptSection
-            label="Scene 1"
-            icon={<span className="w-4 h-4 rounded-full bg-blue-500/20 text-blue-500 text-[10px] flex items-center justify-center font-bold">1</span>}
-            value={editScene1}
-            onChange={setEditScene1}
-            testId="textarea-scene-1"
-            accent="border-l-blue-500"
-          />
-
-          <ScriptSection
-            label="Scene 2"
-            icon={<span className="w-4 h-4 rounded-full bg-emerald-500/20 text-emerald-500 text-[10px] flex items-center justify-center font-bold">2</span>}
-            value={editScene2}
-            onChange={setEditScene2}
-            testId="textarea-scene-2"
-            accent="border-l-emerald-500"
-          />
-
-          <ScriptSection
-            label="Scene 3"
-            icon={<span className="w-4 h-4 rounded-full bg-amber-500/20 text-amber-500 text-[10px] flex items-center justify-center font-bold">3</span>}
-            value={editScene3}
-            onChange={setEditScene3}
-            testId="textarea-scene-3"
-            accent="border-l-amber-500"
-          />
-
-          <ScriptSection
-            label="Call to Action"
-            icon={<Megaphone className="w-4 h-4 text-red-500" />}
-            value={editCta}
-            onChange={setEditCta}
-            testId="textarea-cta"
-            accent="border-l-red-500"
-          />
-        </div>
-      )}
-
-      {!script && !generateMutation.isPending && (
-        <Card className="border-dashed">
-          <CardContent className="flex flex-col items-center justify-center py-16 text-center text-muted-foreground">
-            <FileText className="w-12 h-12 mb-4 opacity-30" />
-            <p className="text-sm">Click "Generate Script" to create your viral video script</p>
-            <p className="text-xs text-muted-foreground/60 mt-1">AI will generate hook, scenes, and CTA</p>
-          </CardContent>
-        </Card>
-      )}
-    </div>
-  );
-}
-
-function ScriptSection({ label, icon, value, onChange, testId, accent }: {
-  label: string;
-  icon: React.ReactNode;
-  value: string;
-  onChange: (v: string) => void;
-  testId: string;
-  accent: string;
-}) {
-  return (
-    <Card className={`p-4 border-l-4 ${accent}`} data-testid={`card-${testId}`}>
-      <div className="flex items-center gap-2 mb-2">
-        {icon}
-        <span className="text-sm font-semibold text-foreground">{label}</span>
-      </div>
-      <Textarea
-        value={value}
-        onChange={(e: any) => onChange(e.target.value)}
-        className="resize-none min-h-[80px]"
-        data-testid={testId}
-      />
-    </Card>
-  );
-}
-
-function StepBlueprint({
-  hook, blueprint, isGenerating, onGenerate,
-  updateBlueprintHook, updateScene, updateCTA, t,
-}: any) {
-  return (
-    <div className="flex flex-col gap-4" data-testid="step-blueprint-content">
-      <div className="flex items-center justify-between gap-2 flex-wrap">
-        <div className="flex items-center gap-2">
-          <Video className="w-5 h-5 text-primary" />
-          <h2 className="text-lg font-semibold text-foreground">Video Blueprint</h2>
-        </div>
-        <Button
-          onClick={onGenerate}
-          disabled={!hook.trim() || isGenerating}
-          className="gap-2"
-          data-testid="button-generate-blueprint"
-        >
-          {isGenerating ? (
-            <><Loader2 className="w-4 h-4 animate-spin" /> Generating...</>
-          ) : blueprint ? (
-            <><RefreshCw className="w-4 h-4" /> Regenerate Blueprint</>
-          ) : (
-            <><Sparkles className="w-4 h-4" /> Generate Blueprint</>
-          )}
-        </Button>
-      </div>
-
-      {isGenerating && !blueprint && (
-        <div className="space-y-4">
-          <Skeleton className="h-32 w-full" />
-          <Skeleton className="h-40 w-full" />
-          <Skeleton className="h-40 w-full" />
-        </div>
-      )}
-
-      {blueprint && (
-        <div className="space-y-4" data-testid="section-blueprint-result">
-          <div className="flex items-center gap-2">
-            <Badge variant="secondary" className="text-xs">Editable</Badge>
-          </div>
-
-          <Card className="p-4 space-y-3 border-l-4 border-l-violet-500" data-testid="card-blueprint-hook">
-            <div className="flex items-center gap-2">
-              <Megaphone className="w-4 h-4 text-violet-500" />
-              <h3 className="font-semibold text-foreground">Hook</h3>
-            </div>
-            <div className="space-y-2">
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-muted-foreground">Text</label>
-                <Input
-                  value={blueprint.hook.text}
-                  onChange={(e: any) => updateBlueprintHook("text", e.target.value)}
-                  data-testid="input-edit-hook-text"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-muted-foreground">Visual Suggestion</label>
-                <Textarea
-                  value={blueprint.hook.visual_suggestion}
-                  onChange={(e: any) => updateBlueprintHook("visual_suggestion", e.target.value)}
-                  rows={2}
-                  data-testid="input-edit-hook-visual"
-                />
-              </div>
-            </div>
-          </Card>
-
-          {blueprint.scenes.map((scene: BlueprintScene, i: number) => (
-            <Card key={i} className="p-4 space-y-3" data-testid={`card-blueprint-scene-${i}`}>
-              <div className="flex items-center gap-2">
-                <Eye className="w-4 h-4 text-primary" />
-                <h3 className="font-semibold text-foreground">
-                  Scene {i + 1}: {scene.title}
-                </h3>
-              </div>
-              <div className="space-y-2">
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-muted-foreground">Description</label>
-                  <Textarea
-                    value={scene.description}
-                    onChange={(e: any) => updateScene(i, "description", e.target.value)}
-                    rows={2}
-                    data-testid={`input-edit-scene-description-${i}`}
-                  />
+            <Card className="border border-border/50">
+              <CardContent className="p-4">
+                <p className="text-xs font-medium text-muted-foreground mb-2">{t.createFlow?.alternativeHooks || "Alternative Hooks"}</p>
+                <div className="space-y-2">
+                  {script.hook_variations.map((v: string, i: number) => (
+                    <button
+                      key={i}
+                      onClick={() => setEditHookLine(v)}
+                      className="w-full text-left p-2 rounded-md text-sm hover:bg-muted/50 transition-colors border border-border/30"
+                      data-testid={`button-alt-hook-${i}`}
+                    >
+                      "{v}"
+                    </button>
+                  ))}
                 </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-muted-foreground">Visual Suggestion</label>
-                  <Textarea
-                    value={scene.visual_suggestion}
-                    onChange={(e: any) => updateScene(i, "visual_suggestion", e.target.value)}
-                    rows={2}
-                    data-testid={`input-edit-scene-visual-${i}`}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-muted-foreground">Script Lines</label>
-                  <Textarea
-                    value={scene.script_lines}
-                    onChange={(e: any) => updateScene(i, "script_lines", e.target.value)}
-                    rows={2}
-                    data-testid={`input-edit-scene-script-${i}`}
-                  />
-                </div>
-              </div>
-            </Card>
-          ))}
-
-          <Card className="p-4 space-y-3 border-l-4 border-l-red-500" data-testid="card-blueprint-cta">
-            <div className="flex items-center gap-2">
-              <Megaphone className="w-4 h-4 text-red-500" />
-              <h3 className="font-semibold text-foreground">Call to Action</h3>
-            </div>
-            <div className="space-y-2">
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-muted-foreground">Text</label>
-                <Input
-                  value={blueprint.cta.text}
-                  onChange={(e: any) => updateCTA("text", e.target.value)}
-                  data-testid="input-edit-cta-text"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-muted-foreground">Visual Suggestion</label>
-                <Textarea
-                  value={blueprint.cta.visual_suggestion}
-                  onChange={(e: any) => updateCTA("visual_suggestion", e.target.value)}
-                  rows={2}
-                  data-testid="input-edit-cta-visual"
-                />
-              </div>
-            </div>
-          </Card>
-        </div>
-      )}
-
-      {!blueprint && !isGenerating && (
-        <Card className="border-dashed">
-          <CardContent className="flex flex-col items-center justify-center py-16 text-center text-muted-foreground">
-            <Video className="w-12 h-12 mb-4 opacity-30" />
-            <p className="text-sm">Click "Generate Blueprint" to create your video structure</p>
-            <p className="text-xs text-muted-foreground/60 mt-1">AI will create scenes with visual suggestions</p>
-          </CardContent>
-        </Card>
-      )}
-    </div>
-  );
-}
-
-function StepExport({
-  hook, format, topic, script,
-  editHookLine, editScene1, editScene2, editScene3, editCta,
-  blueprint, copied, onCopy, onDownload, t,
-}: any) {
-  return (
-    <div className="flex flex-col gap-6" data-testid="step-export-content">
-      <div className="flex items-center justify-between gap-2 flex-wrap">
-        <div className="flex items-center gap-2">
-          <Download className="w-5 h-5 text-primary" />
-          <h2 className="text-lg font-semibold text-foreground">Export</h2>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={onCopy} className="gap-2" data-testid="button-copy-export">
-            {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-            {copied ? "Copied!" : "Copy All"}
-          </Button>
-          <Button onClick={onDownload} className="gap-2" data-testid="button-download-export">
-            <Download className="w-4 h-4" />
-            Download .txt
-          </Button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="flex flex-col gap-4">
-          <Card className="p-5 space-y-4" data-testid="card-export-idea">
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-violet-500" />
-              <span className="font-semibold text-foreground">Idea Summary</span>
-            </div>
-            <div className="space-y-2 text-sm">
-              {topic && (
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground w-16">Topic:</span>
-                  <span className="text-foreground font-medium" data-testid="text-export-topic">
-                    {TOPIC_CLUSTER_LABELS[topic] || formatLabel(topic)}
-                  </span>
-                </div>
-              )}
-              <div className="flex items-start gap-2">
-                <span className="text-muted-foreground w-16 shrink-0">Hook:</span>
-                <span className="text-foreground font-medium" data-testid="text-export-hook">"{hook}"</span>
-              </div>
-              {format && (
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground w-16">Format:</span>
-                  <Badge variant="outline" className="text-xs" data-testid="text-export-format">{formatLabel(format)}</Badge>
-                </div>
-              )}
-            </div>
-          </Card>
-
-          {script && (
-            <Card className="p-5 space-y-4" data-testid="card-export-script">
-              <div className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-blue-500" />
-                <span className="font-semibold text-foreground">Script</span>
-              </div>
-              <div className="space-y-3 text-sm">
-                <ExportBlock label="Hook" content={editHookLine} color="violet" />
-                <ExportBlock label="Scene 1" content={editScene1} color="blue" />
-                <ExportBlock label="Scene 2" content={editScene2} color="emerald" />
-                <ExportBlock label="Scene 3" content={editScene3} color="amber" />
-                <ExportBlock label="CTA" content={editCta} color="red" />
-              </div>
-            </Card>
-          )}
-        </div>
-
-        <div className="flex flex-col gap-4">
-          {blueprint && (
-            <Card className="p-5 space-y-4" data-testid="card-export-blueprint">
-              <div className="flex items-center gap-2">
-                <Video className="w-4 h-4 text-emerald-500" />
-                <span className="font-semibold text-foreground">Video Blueprint</span>
-              </div>
-              <div className="space-y-3 text-sm">
-                <div className="p-3 rounded-md bg-violet-500/5 border border-violet-500/20">
-                  <p className="text-xs font-medium text-violet-500 mb-1">Hook</p>
-                  <p className="text-foreground">{blueprint.hook.text}</p>
-                  <p className="text-xs text-muted-foreground mt-1">Visual: {blueprint.hook.visual_suggestion}</p>
-                </div>
-                {blueprint.scenes.map((scene: BlueprintScene, i: number) => (
-                  <div key={i} className="p-3 rounded-md bg-muted/50 border border-border/50">
-                    <p className="text-xs font-medium text-primary mb-1">Scene {i + 1}: {scene.title}</p>
-                    <p className="text-foreground text-xs">{scene.description}</p>
-                    <p className="text-xs text-muted-foreground mt-1">Visual: {scene.visual_suggestion}</p>
-                  </div>
-                ))}
-                <div className="p-3 rounded-md bg-red-500/5 border border-red-500/20">
-                  <p className="text-xs font-medium text-red-500 mb-1">CTA</p>
-                  <p className="text-foreground">{blueprint.cta.text}</p>
-                  <p className="text-xs text-muted-foreground mt-1">Visual: {blueprint.cta.visual_suggestion}</p>
-                </div>
-              </div>
-            </Card>
-          )}
-
-          {!script && !blueprint && (
-            <Card className="border-dashed">
-              <CardContent className="flex flex-col items-center justify-center py-16 text-center text-muted-foreground">
-                <Download className="w-12 h-12 mb-4 opacity-30" />
-                <p className="text-sm">No content to export yet</p>
-                <p className="text-xs text-muted-foreground/60 mt-1">Generate a script or blueprint first</p>
               </CardContent>
             </Card>
           )}
         </div>
+      ) : (
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col items-center justify-center py-16 text-center text-muted-foreground">
+            <FileText className="w-12 h-12 mb-4 opacity-30" />
+            <p className="text-sm">{t.createFlow?.clickGenerateScript || 'Click "Generate Script" to create your viral video script'}</p>
+            <p className="text-xs text-muted-foreground/60 mt-1">{t.createFlow?.aiGenerateHint || "AI will generate hook, scenes, and CTA"}</p>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+function ScriptSection({ icon: Icon, label, color, value, onChange, testId }: any) {
+  const colorMap: Record<string, string> = {
+    violet: "border-violet-500/20 bg-violet-500/5",
+    blue: "border-blue-500/20 bg-blue-500/5",
+    emerald: "border-emerald-500/20 bg-emerald-500/5",
+    amber: "border-amber-500/20 bg-amber-500/5",
+    red: "border-red-500/20 bg-red-500/5",
+  };
+  const labelColorMap: Record<string, string> = {
+    violet: "text-violet-500",
+    blue: "text-blue-500",
+    emerald: "text-emerald-500",
+    amber: "text-amber-500",
+    red: "text-red-500",
+  };
+
+  return (
+    <Card className={`border ${colorMap[color] || ""}`}>
+      <CardContent className="p-4">
+        <div className="flex items-center gap-2 mb-2">
+          <Icon className={`w-4 h-4 ${labelColorMap[color] || ""}`} />
+          <span className={`text-xs font-medium ${labelColorMap[color] || ""}`}>{label}</span>
+          <Badge variant="outline" className="text-[10px] ml-auto">
+            <Pencil className="w-2.5 h-2.5 mr-1" />
+            Editable
+          </Badge>
+        </div>
+        <Textarea
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="min-h-[60px] text-sm bg-transparent border-0 p-0 resize-none focus-visible:ring-0"
+          data-testid={testId}
+        />
+      </CardContent>
+    </Card>
+  );
+}
+
+function StepBlueprint({ blueprint, isGenerating, onGenerate, updateBlueprintHook, updateScene, updateCTA, credits, t }: any) {
+  const blueprintCost = credits?.costs?.blueprint || 3;
+  const hasEnoughCredits = credits ? credits.credits >= blueprintCost : true;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={onGenerate}
+            disabled={isGenerating || !hasEnoughCredits}
+            className="bg-violet-600 hover:bg-violet-700"
+            data-testid="button-generate-blueprint"
+          >
+            {isGenerating ? (
+              <><Loader2 className="w-4 h-4 mr-2 animate-spin" />{t.createFlow?.generating || "Generating..."}</>
+            ) : blueprint ? (
+              <><RefreshCw className="w-4 h-4 mr-2" />{t.createFlow?.regenerateBlueprint || "Regenerate Blueprint"}</>
+            ) : (
+              <><Video className="w-4 h-4 mr-2" />{t.createFlow?.generateBlueprint || "Generate Blueprint"}</>
+            )}
+          </Button>
+          <Badge variant="outline" className="text-xs">
+            <Coins className="h-3 w-3 mr-1" />
+            {blueprintCost} {t.createFlow?.creditsCost?.replace("{n}", "") || "credits"}
+          </Badge>
+        </div>
+        {!hasEnoughCredits && (
+          <p className="text-xs text-destructive">{t.createFlow?.notEnoughCredits || "Not enough credits"}</p>
+        )}
+      </div>
+
+      {blueprint ? (
+        <div className="space-y-3">
+          <Card className="border border-violet-500/20 bg-violet-500/5">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Sparkles className="w-4 h-4 text-violet-500" />
+                <span className="text-xs font-medium text-violet-500">Hook (0-3s)</span>
+              </div>
+              <Textarea
+                value={blueprint.hook.text}
+                onChange={(e) => updateBlueprintHook("text", e.target.value)}
+                className="min-h-[40px] text-sm bg-transparent border-0 p-0 resize-none focus-visible:ring-0 mb-2"
+                data-testid="edit-bp-hook"
+              />
+              <p className="text-xs text-muted-foreground">Visual: {blueprint.hook.visual_suggestion}</p>
+            </CardContent>
+          </Card>
+
+          {blueprint.scenes.map((scene: BlueprintScene, i: number) => (
+            <Card key={i} className="border border-border/50">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Video className="w-4 h-4 text-primary" />
+                  <span className="text-xs font-medium text-primary">Scene {i + 1}: {scene.title}</span>
+                </div>
+                <Textarea
+                  value={scene.description}
+                  onChange={(e) => updateScene(i, "description", e.target.value)}
+                  className="min-h-[40px] text-sm bg-transparent border-0 p-0 resize-none focus-visible:ring-0 mb-2"
+                  data-testid={`edit-bp-scene-${i}`}
+                />
+                <p className="text-xs text-muted-foreground">Visual: {scene.visual_suggestion}</p>
+                <p className="text-xs text-muted-foreground mt-1">Script: {scene.script_lines}</p>
+              </CardContent>
+            </Card>
+          ))}
+
+          <Card className="border border-red-500/20 bg-red-500/5">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Megaphone className="w-4 h-4 text-red-500" />
+                <span className="text-xs font-medium text-red-500">CTA</span>
+              </div>
+              <Textarea
+                value={blueprint.cta.text}
+                onChange={(e) => updateCTA("text", e.target.value)}
+                className="min-h-[40px] text-sm bg-transparent border-0 p-0 resize-none focus-visible:ring-0 mb-2"
+                data-testid="edit-bp-cta"
+              />
+              <p className="text-xs text-muted-foreground">Visual: {blueprint.cta.visual_suggestion}</p>
+            </CardContent>
+          </Card>
+        </div>
+      ) : (
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col items-center justify-center py-16 text-center text-muted-foreground">
+            <Video className="w-12 h-12 mb-4 opacity-30" />
+            <p className="text-sm">{t.createFlow?.clickGenerateBlueprint || 'Click "Generate Blueprint" to create your video structure'}</p>
+            <p className="text-xs text-muted-foreground/60 mt-1">{t.createFlow?.aiScenesHint || "AI will create scenes with visual suggestions"}</p>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+function StepExport({ script, blueprint, editHookLine, editScene1, editScene2, editScene3, editCta, hook, format, topic, copied, onCopy, onDownload, isFreePlan, onShowNextActions, t }: any) {
+  const [, setLocation] = useLocation();
+
+  return (
+    <div className="space-y-6">
+      {isFreePlan && (script || blueprint) && (
+        <Card className="border border-violet-500/30 bg-gradient-to-r from-violet-500/10 to-purple-500/10" data-testid="card-paywall">
+          <CardContent className="p-6 text-center space-y-4">
+            <div className="inline-flex p-3 rounded-full bg-violet-500/20">
+              <Lock className="h-6 w-6 text-violet-500" />
+            </div>
+            <h3 className="text-lg font-bold" data-testid="text-paywall-title">{t.createFlow?.paywallTitle || "Your viral video is ready"}</h3>
+            <p className="text-sm text-muted-foreground" data-testid="text-paywall-desc">{t.createFlow?.paywallDesc || "Export requires Creator plan"}</p>
+            <div className="flex gap-3 justify-center">
+              <Button
+                className="bg-violet-600 hover:bg-violet-700"
+                onClick={() => setLocation("/billing")}
+                data-testid="button-paywall-upgrade"
+              >
+                <Crown className="h-4 w-4 mr-2" />
+                {t.createFlow?.paywallUpgrade || "Upgrade"}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setLocation("/billing")}
+                data-testid="button-paywall-plans"
+              >
+                {t.createFlow?.paywallViewPlans || "View Plans"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="flex flex-wrap gap-3">
+        {!isFreePlan && (
+          <>
+            <Button
+              variant="outline"
+              onClick={onCopy}
+              disabled={!script && !blueprint}
+              data-testid="button-copy"
+            >
+              {copied ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
+              {copied ? t.createFlow?.copied || "Copied!" : t.createFlow?.copyAll || "Copy All"}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={onDownload}
+              disabled={!script && !blueprint}
+              data-testid="button-download"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              {t.createFlow?.downloadTxt || "Download .txt"}
+            </Button>
+          </>
+        )}
+        {!isFreePlan && (script || blueprint) && (
+          <Button
+            className="ml-auto bg-violet-600 hover:bg-violet-700"
+            onClick={onShowNextActions}
+            data-testid="button-done"
+          >
+            <CheckCircle className="w-4 h-4 mr-2" />
+            Done
+          </Button>
+        )}
+      </div>
+
+      <div className="space-y-4">
+        {script && (
+          <Card className="p-5 space-y-4" data-testid="card-export-script">
+            <div className="flex items-center gap-2">
+              <FileText className="w-4 h-4 text-violet-500" />
+              <span className="font-semibold text-foreground">{t.createFlow?.ideaSummary || "Script"}</span>
+            </div>
+            <div className="space-y-2 text-sm">
+              <ExportBlock label="Hook" content={editHookLine || script.hook_line} color="violet" />
+              <ExportBlock label="Scene 1" content={editScene1 || script.scene_1} color="blue" />
+              <ExportBlock label="Scene 2" content={editScene2 || script.scene_2} color="emerald" />
+              <ExportBlock label="Scene 3" content={editScene3 || script.scene_3} color="amber" />
+              <ExportBlock label="CTA" content={editCta || script.cta} color="red" />
+            </div>
+          </Card>
+        )}
+
+        {blueprint && (
+          <Card className="p-5 space-y-4" data-testid="card-export-blueprint">
+            <div className="flex items-center gap-2">
+              <Video className="w-4 h-4 text-emerald-500" />
+              <span className="font-semibold text-foreground">Video Blueprint</span>
+            </div>
+            <div className="space-y-3 text-sm">
+              <div className="p-3 rounded-md bg-violet-500/5 border border-violet-500/20">
+                <p className="text-xs font-medium text-violet-500 mb-1">Hook</p>
+                <p className="text-foreground">{blueprint.hook.text}</p>
+                <p className="text-xs text-muted-foreground mt-1">Visual: {blueprint.hook.visual_suggestion}</p>
+              </div>
+              {blueprint.scenes.map((scene: BlueprintScene, i: number) => (
+                <div key={i} className="p-3 rounded-md bg-muted/50 border border-border/50">
+                  <p className="text-xs font-medium text-primary mb-1">Scene {i + 1}: {scene.title}</p>
+                  <p className="text-foreground text-xs">{scene.description}</p>
+                  <p className="text-xs text-muted-foreground mt-1">Visual: {scene.visual_suggestion}</p>
+                </div>
+              ))}
+              <div className="p-3 rounded-md bg-red-500/5 border border-red-500/20">
+                <p className="text-xs font-medium text-red-500 mb-1">CTA</p>
+                <p className="text-foreground">{blueprint.cta.text}</p>
+                <p className="text-xs text-muted-foreground mt-1">Visual: {blueprint.cta.visual_suggestion}</p>
+              </div>
+            </div>
+          </Card>
+        )}
+
+        {!script && !blueprint && (
+          <Card className="border-dashed">
+            <CardContent className="flex flex-col items-center justify-center py-16 text-center text-muted-foreground">
+              <Download className="w-12 h-12 mb-4 opacity-30" />
+              <p className="text-sm">{t.createFlow?.noContentExport || "No content to export yet"}</p>
+              <p className="text-xs text-muted-foreground/60 mt-1">{t.createFlow?.noContentExportHint || "Generate a script or blueprint first"}</p>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function NextActionsScreen({ onReset, t }: { onReset: () => void; t: any }) {
+  const [, setLocation] = useLocation();
+  const { toast } = useToast();
+
+  const actions = [
+    {
+      icon: Sparkles,
+      title: t.createFlow?.generateAnother || "Generate Another",
+      desc: t.createFlow?.generateAnotherDesc || "Start a new viral video from scratch",
+      action: onReset,
+      color: "text-violet-500",
+      testId: "card-next-generate",
+    },
+    {
+      icon: Target,
+      title: t.createFlow?.exploreOpportunities || "Explore Opportunities",
+      desc: t.createFlow?.exploreOpportunitiesDesc || "Browse top-performing patterns",
+      action: () => setLocation("/opportunities"),
+      color: "text-orange-500",
+      testId: "card-next-opportunities",
+    },
+    {
+      icon: RefreshCw,
+      title: t.createFlow?.improveScript || "Improve Script",
+      desc: t.createFlow?.improveScriptDesc || "Refine and optimize your current script",
+      action: () => {
+        onReset();
+      },
+      color: "text-blue-500",
+      testId: "card-next-improve",
+    },
+    {
+      icon: BookmarkPlus,
+      title: t.createFlow?.saveToWorkspace || "Save to Workspace",
+      desc: t.createFlow?.saveToWorkspaceDesc || "Keep this project for later",
+      action: () => {
+        toast({ title: t.createFlow?.scriptSaved || "Script saved to workspace" });
+        setLocation("/workspace");
+      },
+      color: "text-green-500",
+      testId: "card-next-save",
+    },
+  ];
+
+  return (
+    <div className="space-y-6" data-testid="section-next-actions">
+      <div className="text-center">
+        <div className="inline-flex p-3 rounded-full bg-green-500/20 mb-3">
+          <CheckCircle className="h-8 w-8 text-green-500" />
+        </div>
+        <h2 className="text-xl font-bold">{t.createFlow?.nextActions || "What do you want to do next?"}</h2>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
+        {actions.map((action) => (
+          <Card
+            key={action.testId}
+            className="border border-border/50 cursor-pointer hover:border-border transition-colors"
+            onClick={action.action}
+            data-testid={action.testId}
+          >
+            <CardContent className="p-5 text-center space-y-3">
+              <div className={`inline-flex p-3 rounded-xl bg-muted/50 ${action.color}`}>
+                <action.icon className="h-6 w-6" />
+              </div>
+              <h3 className="font-semibold text-sm">{action.title}</h3>
+              <p className="text-xs text-muted-foreground">{action.desc}</p>
+            </CardContent>
+          </Card>
+        ))}
       </div>
     </div>
   );

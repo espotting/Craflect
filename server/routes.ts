@@ -1742,6 +1742,11 @@ The content should directly apply the recommendations from the insight report. W
         creatorType: z.string(),
       }).parse(req.body);
 
+      const creditResult = await deductCredits(req.user.id, "idea");
+      if (!creditResult.ok) {
+        return res.status(402).json({ message: creditResult.error, creditsRemaining: creditResult.remaining });
+      }
+
       const nichesText = input.niches.map(n => n.replace(/_/g, " ")).join(", ");
       const profileText = input.creatorType.replace(/_/g, " ");
 
@@ -1785,6 +1790,7 @@ No markdown, no explanation, just the JSON object.`,
 
       res.json({ topic, hook, format, structure, viralityScore });
     } catch (err: any) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
       console.error("Onboarding generate-idea error:", err);
       res.status(500).json({ message: "Failed to generate idea" });
     }
@@ -3132,6 +3138,11 @@ No markdown, no explanation, just the JSON object.`,
         context: z.string().optional(),
       }).parse(req.body);
 
+      const creditResult = await deductCredits(req.user.id, "script");
+      if (!creditResult.ok) {
+        return res.status(402).json({ message: creditResult.error, creditsRemaining: creditResult.remaining });
+      }
+
       const systemPrompt = `You are a viral content scriptwriter. Generate a complete video script optimized for virality.
 Return a JSON object with exactly these fields:
 - hook_line: The opening hook line that grabs attention (1-2 sentences, spoken directly to camera)
@@ -3166,6 +3177,7 @@ ${input.context ? `Additional context: ${input.context}` : ""}`;
       }
       res.json(result);
     } catch (err: any) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
       console.error("Script generation error:", err);
       res.status(500).json({ message: "Failed to generate script" });
     }
@@ -3186,6 +3198,11 @@ ${input.context ? `Additional context: ${input.context}` : ""}`;
         scene_3: z.string().optional(),
         cta_text: z.string().optional(),
       }).parse(req.body);
+
+      const creditResult = await deductCredits(req.user.id, "blueprint");
+      if (!creditResult.ok) {
+        return res.status(402).json({ message: creditResult.error, creditsRemaining: creditResult.remaining });
+      }
 
       const scriptContext = input.script
         ? `Script: ${input.script}`
@@ -3222,6 +3239,7 @@ ${scriptContext ? scriptContext : ""}`;
       const result = JSON.parse(completion.choices[0].message.content || "{}");
       res.json(result);
     } catch (err: any) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
       console.error("Blueprint generation error:", err);
       res.status(500).json({ message: "Failed to generate blueprint" });
     }
@@ -3638,6 +3656,442 @@ ${input.cta ? `CTA: ${input.cta}` : ""}`;
     } catch (err: any) {
       console.error("Improve score error:", err);
       res.status(500).json({ message: "Failed to improve score" });
+    }
+  });
+
+  // ─── AI Credits System ───
+
+  const CREDIT_COSTS: Record<string, number> = {
+    idea: 2,
+    script: 3,
+    blueprint: 3,
+  };
+
+  const PLAN_CREDITS: Record<string, number> = {
+    free: 40,
+    creator: 1000,
+  };
+
+  function getViewRange(viralityScore: number): string {
+    if (viralityScore >= 90) return "500k - 1M+";
+    if (viralityScore >= 80) return "100k - 500k";
+    if (viralityScore >= 70) return "50k - 100k";
+    if (viralityScore >= 60) return "10k - 50k";
+    if (viralityScore >= 50) return "5k - 10k";
+    return "1k - 5k";
+  }
+
+  app.get("/api/credits", isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { users } = await import("@shared/schema");
+      const { eq, sql } = await import("drizzle-orm");
+
+      const [user] = await db.select({
+        aiCredits: users.aiCredits,
+        aiCreditsResetAt: users.aiCreditsResetAt,
+      }).from(users).where(eq(users.id, req.user.id));
+
+      if (!user) return res.status(404).json({ message: "User not found" });
+
+      const plan = await getUserPlan(req.user.id);
+      const maxCredits = PLAN_CREDITS[plan] || 40;
+      let credits = user.aiCredits ?? maxCredits;
+
+      const resetAt = user.aiCreditsResetAt ? new Date(user.aiCreditsResetAt) : new Date();
+      const now = new Date();
+      const monthDiff = (now.getFullYear() - resetAt.getFullYear()) * 12 + (now.getMonth() - resetAt.getMonth());
+      if (monthDiff >= 1) {
+        credits = maxCredits;
+        await db.update(users).set({ aiCredits: maxCredits, aiCreditsResetAt: now }).where(eq(users.id, req.user.id));
+      }
+
+      res.json({
+        credits,
+        maxCredits,
+        plan,
+        costs: CREDIT_COSTS,
+        resetsAt: resetAt.toISOString(),
+      });
+    } catch (err: any) {
+      console.error("Credits fetch error:", err);
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
+  async function getUserPlan(userId: string): Promise<string> {
+    const { db } = await import("./db");
+    const { sql } = await import("drizzle-orm");
+    const subResult = await db.execute(sql`SELECT plan, billing_status FROM subscriptions WHERE user_id = ${userId} LIMIT 1`);
+    const sub = (subResult as any).rows?.[0] || (subResult as any)[0];
+    if (sub && (sub.billing_status === "active" || sub.billing_status === "trialing") && sub.plan) {
+      return sub.plan === "starter" || sub.plan === "pro" || sub.plan === "studio" ? "creator" : "free";
+    }
+    return "free";
+  }
+
+  async function deductCredits(userId: string, action: string): Promise<{ ok: boolean; remaining: number; error?: string }> {
+    const { db } = await import("./db");
+    const { sql } = await import("drizzle-orm");
+
+    const cost = CREDIT_COSTS[action];
+    if (!cost) return { ok: false, remaining: 0, error: "Unknown action" };
+
+    const plan = await getUserPlan(userId);
+    const maxCredits = PLAN_CREDITS[plan] || 40;
+
+    const resetResult = await db.execute(sql`
+      UPDATE users SET ai_credits = ${maxCredits}, ai_credits_reset_at = NOW()
+      WHERE id = ${userId}
+        AND (ai_credits_reset_at IS NULL OR (EXTRACT(YEAR FROM AGE(NOW(), ai_credits_reset_at)) * 12 + EXTRACT(MONTH FROM AGE(NOW(), ai_credits_reset_at))) >= 1)
+      RETURNING ai_credits
+    `);
+    const wasReset = ((resetResult as any).rows?.length || (resetResult as any).length) > 0;
+
+    const result = await db.execute(sql`
+      UPDATE users SET ai_credits = ai_credits - ${cost}
+      WHERE id = ${userId} AND ai_credits >= ${cost}
+      RETURNING ai_credits
+    `);
+    const rows = (result as any).rows || (result as any);
+    if (!rows || rows.length === 0) {
+      const userResult = await db.execute(sql`SELECT ai_credits FROM users WHERE id = ${userId}`);
+      const userRows = (userResult as any).rows || (userResult as any);
+      const remaining = userRows?.[0]?.ai_credits ?? 0;
+      return { ok: false, remaining, error: `Not enough credits. Need ${cost}, have ${remaining}.` };
+    }
+    return { ok: true, remaining: rows[0].ai_credits };
+  }
+
+  // ─── Home Page Endpoints ───
+
+  app.get("/api/home/viral-play", isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+
+      const qualified = await db.execute(sql`
+        SELECT p.pattern_id, p.hook_type, p.structure_type, p.topic_cluster,
+               p.pattern_score, p.avg_virality_score, p.video_count, p.pattern_label,
+               p.velocity_mid, p.pattern_novelty, p.trend_classification
+        FROM patterns p
+        WHERE p.avg_virality_score IS NOT NULL
+        ORDER BY 
+          CASE WHEN p.pattern_score >= 70 AND p.trend_classification = 'rising' THEN 0 ELSE 1 END,
+          COALESCE(p.pattern_score, p.avg_virality_score) DESC
+        LIMIT 1
+      `);
+
+      if (qualified.rows.length === 0) {
+        return res.json(null);
+      }
+
+      const p: any = qualified.rows[0];
+      const score = Math.round(p.pattern_score ?? p.avg_virality_score ?? 0);
+
+      const hookResult = await db.execute(sql`
+        SELECT hook_text, platform FROM videos
+        WHERE classification_status = 'completed' AND hook_text IS NOT NULL
+          AND (${p.hook_type ? sql`hook_mechanism_primary = ${p.hook_type}` : sql`TRUE`})
+          AND (${p.topic_cluster ? sql`topic_cluster = ${p.topic_cluster}` : sql`TRUE`})
+        ORDER BY virality_score DESC NULLS LAST
+        LIMIT 1
+      `);
+
+      const hook = hookResult.rows.length > 0 ? cleanHookYear((hookResult.rows[0] as any).hook_text) : null;
+      const platform = hookResult.rows.length > 0 ? (hookResult.rows[0] as any).platform : null;
+
+      let whyItWorks = `This ${p.hook_type || 'hook'} + ${p.structure_type || 'format'} combo has a pattern score of ${score} across ${p.video_count} videos.`;
+      try {
+        const aiResult = await openai.chat.completions.create({
+          model: "gpt-4.1-mini",
+          temperature: 0.7,
+          max_tokens: 120,
+          messages: [
+            { role: "system", content: "You are a viral content analyst. Explain in 2 sentences max WHY this content pattern works well for virality. Be specific and actionable. Do not use markdown." },
+            { role: "user", content: `Hook type: ${p.hook_type}, Format: ${p.structure_type}, Topic: ${p.topic_cluster}, Pattern score: ${score}/100, Videos: ${p.video_count}` },
+          ],
+        });
+        whyItWorks = aiResult.choices[0]?.message?.content?.trim() || whyItWorks;
+      } catch {}
+
+      res.json({
+        hook: hook || `Best ${p.hook_type || 'viral'} hook for ${(p.topic_cluster || 'your niche').replace(/_/g, ' ')}`,
+        format: p.structure_type || "Hook_Value_CTA",
+        topic: p.topic_cluster || "general",
+        platform,
+        viralityScore: score,
+        viewRange: getViewRange(score),
+        confidence: Math.min(100, Math.round((p.video_count || 1) / 5 * 100)),
+        videoCount: p.video_count || 0,
+        whyItWorks,
+        trendClassification: p.trend_classification,
+      });
+    } catch (err: any) {
+      console.error("Home viral-play error:", err);
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
+  app.get("/api/home/trending-opportunities", isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+
+      const result = await db.execute(sql`
+        SELECT v.id, v.hook_text, v.structure_type, v.topic_cluster, v.platform,
+               v.virality_score, v.views, v.thumbnail_url, v.hook_mechanism_primary
+        FROM videos v
+        WHERE v.classification_status = 'completed' AND v.virality_score IS NOT NULL AND v.hook_text IS NOT NULL
+        ORDER BY v.virality_score DESC NULLS LAST
+        LIMIT 6
+      `);
+
+      const opportunities = result.rows.map((v: any) => ({
+        id: v.id,
+        hook: cleanHookYear(v.hook_text),
+        format: v.structure_type || v.hook_mechanism_primary || "Mixed",
+        topic: v.topic_cluster || "general",
+        platform: v.platform || "TikTok",
+        viralityScore: Math.round(v.virality_score || 0),
+        viewRange: getViewRange(v.virality_score || 0),
+        views: v.views,
+        thumbnailUrl: v.thumbnail_url,
+      }));
+
+      res.json(opportunities);
+    } catch (err: any) {
+      console.error("Home trending-opportunities error:", err);
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
+  app.get("/api/home/trending-hooks", isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+
+      const result = await db.execute(sql`
+        SELECT hook_text, hook_mechanism_primary, topic_cluster,
+               ROUND(AVG(virality_score)::numeric, 1) as avg_virality,
+               COUNT(*) as usage_count
+        FROM videos
+        WHERE classification_status = 'completed' AND hook_text IS NOT NULL AND virality_score IS NOT NULL
+        GROUP BY hook_text, hook_mechanism_primary, topic_cluster
+        HAVING COUNT(*) >= 1
+        ORDER BY AVG(virality_score) DESC NULLS LAST
+        LIMIT 10
+      `);
+
+      const hooks = result.rows.map((h: any) => ({
+        hook: cleanHookYear(h.hook_text),
+        hookType: h.hook_mechanism_primary,
+        topic: h.topic_cluster,
+        avgVirality: parseFloat(h.avg_virality) || 0,
+        usageCount: parseInt(h.usage_count) || 0,
+      }));
+
+      res.json(hooks);
+    } catch (err: any) {
+      console.error("Home trending-hooks error:", err);
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
+  app.get("/api/home/trending-niches", isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+
+      const result = await db.execute(sql`
+        SELECT topic_cluster,
+               COUNT(*) as video_count,
+               ROUND(AVG(virality_score)::numeric, 1) as avg_virality,
+               MAX(virality_score) as top_score
+        FROM videos
+        WHERE classification_status = 'completed' AND topic_cluster IS NOT NULL AND virality_score IS NOT NULL
+        GROUP BY topic_cluster
+        ORDER BY AVG(virality_score) DESC NULLS LAST
+        LIMIT 5
+      `);
+
+      const niches = result.rows.map((n: any) => ({
+        niche: n.topic_cluster,
+        label: (n.topic_cluster as string).replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
+        videoCount: parseInt(n.video_count) || 0,
+        avgVirality: parseFloat(n.avg_virality) || 0,
+        topScore: Math.round(n.top_score || 0),
+      }));
+
+      res.json(niches);
+    } catch (err: any) {
+      console.error("Home trending-niches error:", err);
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
+  // ─── Opportunities Page Endpoints ───
+
+  app.get("/api/opportunities/top", isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const format = req.query.format as string | undefined;
+
+      let query;
+      if (format) {
+        query = db.execute(sql`
+          SELECT v.id, v.hook_text, v.structure_type, v.topic_cluster, v.platform,
+                 v.virality_score, v.views, v.thumbnail_url, v.hook_mechanism_primary,
+                 v.emotion_primary
+          FROM videos v
+          WHERE v.classification_status = 'completed' AND v.virality_score IS NOT NULL 
+            AND v.hook_text IS NOT NULL AND v.structure_type = ${format}
+          ORDER BY v.virality_score DESC NULLS LAST
+          LIMIT 20
+        `);
+      } else {
+        query = db.execute(sql`
+          SELECT v.id, v.hook_text, v.structure_type, v.topic_cluster, v.platform,
+                 v.virality_score, v.views, v.thumbnail_url, v.hook_mechanism_primary,
+                 v.emotion_primary
+          FROM videos v
+          WHERE v.classification_status = 'completed' AND v.virality_score IS NOT NULL AND v.hook_text IS NOT NULL
+          ORDER BY v.virality_score DESC NULLS LAST
+          LIMIT 20
+        `);
+      }
+
+      const result = await query;
+
+      const opportunities = result.rows.map((v: any) => ({
+        id: v.id,
+        hook: cleanHookYear(v.hook_text),
+        format: v.structure_type || "Mixed",
+        topic: v.topic_cluster || "general",
+        platform: v.platform || "TikTok",
+        viralityScore: Math.round(v.virality_score || 0),
+        viewRange: getViewRange(v.virality_score || 0),
+        views: v.views,
+        thumbnailUrl: v.thumbnail_url,
+        hookType: v.hook_mechanism_primary,
+        emotion: v.emotion_primary,
+      }));
+
+      res.json(opportunities);
+    } catch (err: any) {
+      console.error("Opportunities top error:", err);
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
+  app.get("/api/opportunities/emerging", isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+
+      const result = await db.execute(sql`
+        SELECT p.pattern_id, p.hook_type, p.structure_type, p.topic_cluster,
+               p.pattern_score, p.avg_virality_score, p.video_count, p.pattern_label,
+               p.trend_classification
+        FROM patterns p
+        WHERE p.trend_classification = 'rising' AND p.avg_virality_score IS NOT NULL
+        ORDER BY p.pattern_score DESC NULLS LAST
+        LIMIT 10
+      `);
+
+      const emerging = await Promise.all(result.rows.map(async (p: any) => {
+        const hookResult = await db.execute(sql`
+          SELECT hook_text FROM videos
+          WHERE classification_status = 'completed' AND hook_text IS NOT NULL
+            AND (${p.hook_type ? sql`hook_mechanism_primary = ${p.hook_type}` : sql`TRUE`})
+            AND (${p.topic_cluster ? sql`topic_cluster = ${p.topic_cluster}` : sql`TRUE`})
+          ORDER BY virality_score DESC NULLS LAST
+          LIMIT 1
+        `);
+        const hook = hookResult.rows.length > 0 ? cleanHookYear((hookResult.rows[0] as any).hook_text) : null;
+        const score = Math.round(p.pattern_score ?? p.avg_virality_score ?? 0);
+
+        return {
+          id: p.pattern_id,
+          hook: hook || `Rising ${p.hook_type || 'viral'} pattern`,
+          format: p.structure_type || "Mixed",
+          topic: p.topic_cluster || "general",
+          viralityScore: score,
+          viewRange: getViewRange(score),
+          videoCount: p.video_count || 0,
+          trendClassification: "rising",
+          label: p.pattern_label,
+        };
+      }));
+
+      res.json(emerging);
+    } catch (err: any) {
+      console.error("Opportunities emerging error:", err);
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
+  app.get("/api/opportunities/trending-formats", isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+
+      const result = await db.execute(sql`
+        SELECT structure_type, 
+               COUNT(*) as count,
+               ROUND(AVG(virality_score)::numeric, 1) as avg_virality,
+               MAX(virality_score) as top_score
+        FROM videos
+        WHERE classification_status = 'completed' AND structure_type IS NOT NULL AND virality_score IS NOT NULL
+        GROUP BY structure_type
+        ORDER BY count DESC
+      `);
+
+      const total = result.rows.reduce((sum: number, r: any) => sum + parseInt(r.count), 0);
+      const formats = result.rows.map((f: any) => ({
+        format: f.structure_type,
+        label: (f.structure_type as string).replace(/_/g, ' '),
+        count: parseInt(f.count) || 0,
+        percentage: total > 0 ? Math.round((parseInt(f.count) / total) * 100) : 0,
+        avgVirality: parseFloat(f.avg_virality) || 0,
+        topScore: Math.round(f.top_score || 0),
+      }));
+
+      res.json(formats);
+    } catch (err: any) {
+      console.error("Opportunities trending-formats error:", err);
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
+  app.get("/api/opportunities/trending-hooks", isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+
+      const result = await db.execute(sql`
+        SELECT hook_text, hook_mechanism_primary, topic_cluster, platform,
+               virality_score, views
+        FROM videos
+        WHERE classification_status = 'completed' AND hook_text IS NOT NULL AND virality_score IS NOT NULL
+        ORDER BY virality_score DESC NULLS LAST
+        LIMIT 15
+      `);
+
+      const hooks = result.rows.map((h: any) => ({
+        hook: cleanHookYear(h.hook_text),
+        hookType: h.hook_mechanism_primary,
+        topic: h.topic_cluster,
+        platform: h.platform,
+        viralityScore: Math.round(h.virality_score || 0),
+        views: h.views,
+      }));
+
+      res.json(hooks);
+    } catch (err: any) {
+      console.error("Opportunities trending-hooks error:", err);
+      res.status(500).json({ message: "Internal Error" });
     }
   });
 

@@ -26,6 +26,9 @@ export const users = pgTable("users", {
   userGoal: text("user_goal"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  aiCredits: integer("ai_credits").default(40),
+  aiCreditsResetAt: timestamp("ai_credits_reset_at").defaultNow(),
+  plan: varchar("plan").default("free"),
 });
 
 export const verificationCodes = pgTable("verification_codes", {

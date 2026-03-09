@@ -86,10 +86,28 @@ React + TypeScript + Tailwind CSS + shadcn/ui + Framer Motion frontend, Express/
 - `POST /api/ideas/save` — Sauvegarder une idée
 - `POST /api/ideas/dismiss` — Rejeter une idée
 
+**AI Credits System :**
+- `GET /api/credits` — Current credits count, maxCredits, plan (derived from subscription), costs, resetsAt
+- Credits: Free=40/month, Creator=1000/month (any paid plan = creator). Costs: idea=2, script=3, blueprint=3
+- Atomic deduction via SQL UPDATE WHERE ai_credits >= cost. Plan derived from subscriptions table (active/trialing = creator)
+- Paywall: Export blocked for Free plan in Create Studio. Script + Blueprint visible but export requires paid plan
+
 **AI Generation :**
-- `POST /api/generate/script` — Génération de script structuré IA (hook_line, scene_1, scene_2, scene_3, cta, hook_variations[3], structure)
-- `POST /api/generate/blueprint` — Génération de blueprint vidéo IA (hook + 4 scenes avec visual_suggestion + cta). Accepte structured script fields (hook_line, scene_1, scene_2, scene_3, cta_text)
-- `POST /api/onboarding/generate-idea` — Génération d'idée virale (topic, hook, format, structure, viralityScore). Utilisé par onboarding step 5 + Generate Viral Idea modal (Home)
+- `POST /api/generate/script` — Génération de script structuré IA (hook_line, scene_1, scene_2, scene_3, cta, hook_variations[3], structure). Deducts 3 credits after validation
+- `POST /api/generate/blueprint` — Génération de blueprint vidéo IA (hook + 4 scenes avec visual_suggestion + cta). Deducts 3 credits after validation
+- `POST /api/onboarding/generate-idea` — Génération d'idée virale (topic, hook, format, structure, viralityScore). Deducts 2 credits after validation
+
+**Home Aggregated Endpoints :**
+- `GET /api/home/viral-play` — Best daily opportunity with "why it works" via OpenAI
+- `GET /api/home/trending-opportunities` — Top 6 opportunities (hook, format, topic, virality, view range)
+- `GET /api/home/trending-hooks` — Top 8-10 hooks by virality
+- `GET /api/home/trending-niches` — Top 5 niches by activity
+
+**Opportunities Aggregated Endpoints :**
+- `GET /api/opportunities/top` — 10-20 top opportunities with format filter support
+- `GET /api/opportunities/emerging` — Rising trend classification
+- `GET /api/opportunities/trending-formats` — Format distribution
+- `GET /api/opportunities/trending-hooks` — Top hooks with scores
 
 **Intelligence Feed :**
 - `GET /api/intelligence/feed` — Événements intelligence récents (authentifié)
