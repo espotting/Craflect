@@ -1,0 +1,139 @@
+Craflect – Brief Produit : Refonte des pages Home et Opportunities
+
+IMPORTANT
+
+Avant toute modification du code :
+
+1. Lire entièrement ce brief
+2. Faire un court résumé de compréhension
+3. Attendre validation avant implémentation
+
+Aucune initiative produit ne doit être prise en dehors des éléments explicitement décrits dans ce brief.
+
+L’objectif est d’exécuter précisément les spécifications suivantes.
+
+---
+
+CONTEXTE PRODUIT
+
+Craflect est une plateforme d’intelligence de contenu pour créateurs.
+
+Le produit doit aider les utilisateurs à répondre à une question simple :
+
+"Quelle vidéo dois-je publier aujourd’hui ?"
+
+Le dashboard ne doit pas être perçu comme une base de données de vidéos mais comme un assistant stratégique de création.
+
+Le workflow produit est :
+
+Discover → Opportunity → Create → Publish
+
+Les pages Home et Opportunities doivent refléter ce workflow.
+
+---
+
+PAGE HOME
+
+La Home actuelle contient une bannière générique "Create Viral Video".
+
+Cette bannière doit être remplacée par une section stratégique appelée :
+
+VIRAL PLAY OF THE DAY
+
+---
+
+SECTION 1 – VIRAL PLAY OF THE DAY
+
+Cette section doit être le premier bloc visible sur la page.
+
+Elle remplace la bannière actuelle.
+
+Contenu à afficher :
+
+Hook
+Format
+Topic
+Prédiction de vues
+Score de confiance
+
+Exemple d’affichage :
+
+Hook
+"3 AI tools nobody talks about"
+
+Format
+Listicle
+
+Topic
+AI tools
+
+Prédiction de vues
+120K – 600K
+
+Score de confiance
+78%
+
+CTA principal :
+
+Créer cette vidéo
+
+Comportement du bouton :
+
+Le bouton doit rediriger vers la page Create.
+
+Les champs suivants doivent être automatiquement pré-remplis :
+
+Hook
+Format
+Topic
+
+---
+
+SECTION 2 – TRENDING OPPORTUNITIES
+
+Afficher maximum 6 cartes.
+
+Chaque carte représente une opportunité de contenu.
+
+Chaque carte doit afficher :
+
+Icône plateforme (TikTok / Instagram / etc)
+Hook
+Format
+Score de viralité
+Fourchette de vues
+
+Actions disponibles :
+
+Créer la vidéo
+Sauvegarder
+
+Comportement :
+
+Créer la vidéo → ouvre Create avec les champs pré-remplis
+
+---
+
+SECTION 3 – CREATE YOUR NEXT VIDEO
+
+Cette section doit utiliser le même pattern UX que l’onboarding.
+
+C’est-à-dire :
+
+Cartes cliquables.
+
+Trois cartes doivent être affichées :
+
+Carte 1
+
+Titre : From Viral Opportunity
+Description : Create a video from a trending pattern.
+
+Carte 2
+
+Titre : From Image
+Description : Upload an image and generate a viral video concept.
+
+Carte 3
+
+Titre : From Idea

@@ -1,0 +1,372 @@
+CRAFLECT — BRIEF PRODUIT FINAL
+Refonte Home + Opportunities + Create Studio + Navigation guidée
+
+---
+
+1. IMPORTANT
+
+Avant toute implémentation :
+
+1. Lire l’intégralité du brief
+2. Confirmer la compréhension point par point
+3. Lister les changements techniques nécessaires
+4. Attendre validation avant toute modification du code
+
+Aucune initiative produit ne doit être prise en dehors de ce document.
+
+---
+
+2. CONTEXTE PRODUIT
+
+Craflect est une plateforme d’intelligence de contenu pour créateurs.
+
+Objectif principal :
+
+Aider un créateur à répondre à la question :
+
+"Quelle vidéo dois-je publier aujourd’hui ?"
+
+Le produit doit fonctionner comme un assistant stratégique.
+
+Workflow produit :
+
+Discover → Opportunity → Create → Publish
+
+---
+
+3. ARCHITECTURE UX DU DASHBOARD
+
+Le dashboard doit fonctionner avec deux couches.
+
+COUCHE 1 — CREATOR EXPERIENCE
+
+Interface simple et intuitive inspirée de Canva.
+
+Utilisée par la majorité des utilisateurs.
+
+Pages principales :
+
+Home
+Opportunities
+Create
+Workspace
+
+Objectif :
+
+Trouver une idée → Créer une vidéo → Publier
+
+---
+
+COUCHE 2 — INTELLIGENCE LAYER
+
+Interface d’analyse avancée inspirée de TradingView.
+
+Accessible via la page Insights.
+
+Contenu futur :
+
+Analyse des patterns
+Analyse des hooks
+Analyse des formats
+Analyse des niches
+
+Cette couche est destinée aux utilisateurs avancés et aux agences.
+
+---
+
+4. PRINCIPE UX FONDAMENTAL
+
+Le produit doit créer un effet WOW.
+
+Chaque action de création doit produire un résultat immédiat.
+
+Règle UX :
+
+1 clic → résultat généré par l’IA.
+
+Aucun formulaire vide ne doit apparaître après une action de création.
+
+---
+
+5. NAVIGATION GUIDÉE
+
+Le dashboard ne doit jamais présenter d’écran statique.
+
+Chaque action doit proposer une action suivante.
+
+Principe :
+
+Action → Résultat → Next Action
+
+Afficher toujours 3 à 4 options maximum.
+
+Les options doivent apparaître sous forme de cartes cliquables.
+
+---
+
+6. STRUCTURE DE LA PAGE HOME
+
+La Home doit devenir un centre de décision créatif.
+
+Structure de la page :
+
+1. Viral Play of the Day
+2. Trending Opportunities
+3. Create Your Next Video
+4. Trending Hooks
+5. Trending Niches
+
+---
+
+7. SECTION — VIRAL PLAY OF THE DAY
+
+Cette section remplace la bannière actuelle.
+
+Contenu affiché :
+
+Hook
+Format
+Topic
+Prédiction de vues
+Score de confiance
+Pourquoi cette idée fonctionne
+
+Exemple :
+
+Hook
+"3 AI tools nobody talks about"
+
+Format
+Listicle
+
+Topic
+AI tools
+
+Prédiction de vues
+120K – 600K
+
+Score de confiance
+78%
+
+Pourquoi ça fonctionne
+Curiosity gap + topic trending
+
+CTA principal :
+
+Créer cette vidéo
+
+Action :
+
+Ouvre Create Studio avec Hook / Topic / Format préremplis.
+
+---
+
+8. SECTION — TRENDING OPPORTUNITIES
+
+Afficher maximum 6 cartes.
+
+Chaque carte doit contenir :
+
+Plateforme
+Hook
+Format
+Score de viralité
+Fourchette de vues
+
+Actions :
+
+Créer la vidéo
+Sauvegarder
+
+Créer la vidéo ouvre Create Studio.
+
+---
+
+9. SECTION — CREATE YOUR NEXT VIDEO
+
+Utiliser des cartes cliquables.
+
+Trois cartes :
+
+From Viral Opportunity
+Créer une vidéo à partir d’une opportunité virale.
+
+From Image
+Uploader une image et générer un concept vidéo.
+
+From Idea
+Créer une vidéo à partir d’un sujet.
+
+Cliquer sur une carte ouvre Create Studio.
+
+---
+
+10. CREATE STUDIO — WORKFLOW
+
+Le Create Studio doit fonctionner avec un workflow clair.
+
+Étape 1 — IDEA
+
+Afficher :
+
+Hook
+Topic
+Format
+
+Les champs sont générés automatiquement.
+
+L’utilisateur peut modifier si nécessaire.
+
+---
+
+Étape 2 — SCRIPT
+
+Génération automatique :
+
+Hook
+Intro
+Points principaux
+Call To Action
+
+Bouton :
+
+Edit script
+
+---
+
+Étape 3 — VIDEO BLUEPRINT
+
+Structure vidéo.
+
+Exemple :
+
+0-3s Hook
+3-8s Point 1
+8-12s Point 2
+12-15s CTA
+
+Afficher aussi :
+
+Suggestions de visuels
+Suggestions de captions
+
+---
+
+Étape 4 — EXPORT
+
+Options :
+
+Copy script
+Export blueprint
+Save to workspace
+
+---
+
+11. NEXT ACTION SCREEN
+
+Après génération du blueprint, afficher un écran :
+
+"What do you want to do next?"
+
+Afficher 4 cartes maximum.
+
+Exemples :
+
+Generate another video
+Explore more opportunities
+Improve this script
+Save to workspace
+
+Ces cartes doivent rediriger vers les actions correspondantes.
+
+---
+
+12. PAGE OPPORTUNITIES
+
+La page Opportunities ne doit plus afficher une base de données brute.
+
+Le système actuel affiche environ 470 vidéos.
+
+Cette logique doit être remplacée par un moteur de découverte d’opportunités.
+
+---
+
+SECTION — TOP OPPORTUNITIES TODAY
+
+Afficher 10 à 20 opportunités maximum.
+
+Chaque carte contient :
+
+Hook
+Format
+Topic
+Fourchette de vues
+Score de viralité
+Pourquoi ça fonctionne
+
+Actions :
+
+Créer la vidéo
+Sauvegarder
+
+---
+
+SECTION — EMERGING OPPORTUNITIES
+
+Afficher les opportunités avec croissance rapide.
+
+Badge :
+
+Emerging
+
+---
+
+SECTION — TRENDING FORMATS
+
+Afficher des cartes :
+
+Talking head
+Listicle
+Reaction
+Tutorial
+Storytelling
+
+Cliquer applique un filtre.
+
+---
+
+SECTION — TRENDING HOOKS
+
+Afficher les hooks les plus performants.
+
+Cliquer ouvre Create Studio avec le hook.
+
+---
+
+13. RÈGLES UX
+
+Utiliser des cartes cliquables lorsque l’utilisateur doit choisir.
+
+Limiter les sections à 6-10 éléments maximum.
+
+Afficher toujours des actions possibles après chaque étape.
+
+---
+
+14. ÉLÉMENTS À NE PAS MODIFIER
+
+Navigation sidebar
+Workspace
+Settings
+Billing
+
+---
+
+15. RÉSULTAT ATTENDU
+
+Le dashboard doit devenir un centre de décision créatif quotidien.
+
+L’utilisateur doit immédiatement comprendre que :
+
+Craflect identifie les opportunités virales
+Craflect aide à créer des vidéos virales
