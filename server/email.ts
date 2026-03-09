@@ -11,7 +11,7 @@ const transporter = nodemailer.createTransport({
 });
 
 export async function sendAdminVerificationCode(code: string): Promise<void> {
-  const targetEmail = process.env.ADMIN_VERIFICATION_EMAIL || "pgdtglobal@gmail.com";
+  const targetEmail = process.env.ADMIN_VERIFICATION_EMAIL || "admin@craflect.com";
 
   await transporter.sendMail({
     from: `"Craflect Security" <${process.env.SMTP_USER || "admin@craflect.com"}>`,
