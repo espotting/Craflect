@@ -192,6 +192,22 @@ const fr: Translations = {
       codeResentDesc: "Un nouveau code de vérification a été envoyé.",
       resendFailed: "Échec du renvoi du code",
     },
+    adminVerify: {
+      title: "Vérification Admin",
+      subtitle: "Un code de vérification à 6 chiffres a été envoyé à votre email de sécurité.",
+      codeLabel: "Code de vérification",
+      verifyButton: "Vérifier et accéder au Dashboard",
+      verifying: "Vérification...",
+      didntReceive: "Vous ne l'avez pas reçu ?",
+      resendCode: "Renvoyer le code",
+      resending: "Renvoi en cours...",
+      codeSent: "Code envoyé",
+      codeSentDesc: "Un nouveau code de vérification admin a été envoyé.",
+      invalidCode: "Code invalide ou expiré",
+      tooManyAttempts: "Trop de tentatives. Veuillez demander un nouveau code.",
+      resendFailed: "Échec du renvoi du code",
+      verificationFailed: "Échec de la vérification",
+    },
   },
 
   dashboard: {

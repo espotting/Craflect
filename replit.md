@@ -160,6 +160,14 @@ React + TypeScript + Tailwind CSS + shadcn/ui + Framer Motion frontend, Express/
 - **niche = topic_cluster** (25 slugs snake_case). `TOPIC_CLUSTER_LABELS` pour labels lisibles.
 - **isAdmin check frontend:** `(user as any)?.isAdmin === true`
 
+## Navigation Separation (User vs Admin)
+- **User sidebar:** Home, Opportunities, Create, Workspace, Insights + Settings, Plan & Billing
+- **Admin sidebar:** Founder Dashboard, Logs, Settings (only 3 items, no user pages)
+- **Route protection:** Admin → redirect to `/system/founder` if accessing user routes. User → redirect to `/home` if accessing admin routes.
+- **Admin login flow:** login → detect admin → send 6-digit code to pgdtglobal@gmail.com via SMTP (mail.craflect.com:465 SSL) → verify code → access `/system/founder`
+- **Admin verification:** 10min expiry, max 5 attempts, table `admin_verification_codes`
+- **Email service:** `server/email.ts` using nodemailer, SMTP config: SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, ADMIN_VERIFICATION_EMAIL
+
 ## Founder Dashboard (admin only)
 - Route: `/system/founder` — métriques internes SaaS + moteur
 - Route: `/system/logs` — logs système (placeholder)
@@ -167,7 +175,6 @@ React + TypeScript + Tailwind CSS + shadcn/ui + Framer Motion frontend, Express/
 - Endpoint: `GET /api/admin/founder` — retourne users, usage, revenue, engine, system_health, charts
 - 5 sections métriques : Users (7 cartes, blue), Usage (5, green), Revenue (6, violet), Engine (10, orange), System Health (4, gray)
 - Section "Engine Intelligence" : 4 graphiques recharts 30j en grille 2x2 (Dataset Growth, Pattern Intelligence Growth, Pattern Reuse Rate, Cross-Platform Pattern Growth)
-- Sidebar SYSTEM : 3 liens admin-only (Founder Dashboard, Logs, Settings)
 
 ## Phase 3 — Shareable Insights (À IMPLÉMENTER PLUS TARD)
 **Route publique** : `/insight/{id}` — accessible SANS authentification
@@ -190,4 +197,4 @@ React + TypeScript + Tailwind CSS + shadcn/ui + Framer Motion frontend, Express/
 - **Stripe:** Plans Starter €29, Pro €69, Studio €199
 
 ## External Dependencies
-- OpenAI (gpt-4.1-mini), PostgreSQL, Google OAuth, Stripe, @stripe/react-stripe-js, bcryptjs, connect-pg-simple, wouter, Express, framer-motion
+- OpenAI (gpt-4.1-mini), PostgreSQL, Google OAuth, Stripe, @stripe/react-stripe-js, bcryptjs, connect-pg-simple, wouter, Express, framer-motion, nodemailer

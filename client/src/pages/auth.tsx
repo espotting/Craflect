@@ -6,7 +6,7 @@ import { useLocation } from "wouter";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Mail, Loader2, Sun, Moon, CheckCircle2, Eye, EyeOff, Check, X, AlertCircle } from "lucide-react";
+import { ArrowLeft, Mail, Loader2, Sun, Moon, CheckCircle2, Eye, EyeOff, Check, X, AlertCircle, Shield } from "lucide-react";
 import { FcGoogle } from "react-icons/fc";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/hooks/use-language";
@@ -16,7 +16,7 @@ import { queryClient } from "@/lib/queryClient";
 import logoLight from "@/assets/logo-light.png";
 import logoTransparent from "@/assets/logo-transparent.png";
 
-type AuthStep = "choose" | "email-form" | "login-form" | "verify-code";
+type AuthStep = "choose" | "email-form" | "login-form" | "verify-code" | "admin-verify";
 
 function usePasswordValidation(password: string) {
   return useMemo(() => ({
@@ -71,6 +71,9 @@ export default function Auth() {
   const [confirmTouched, setConfirmTouched] = useState(false);
   const [loginError, setLoginError] = useState("");
   const [signupError, setSignupError] = useState("");
+  const [adminVerifyError, setAdminVerifyError] = useState("");
+  const [adminCode, setAdminCode] = useState("");
+  const [challengeToken, setChallengeToken] = useState("");
 
   const passwordChecks = usePasswordValidation(password);
   const passwordValid = isPasswordValid(passwordChecks);
@@ -131,6 +134,12 @@ export default function Auth() {
         setIsLoginFlow(true);
         setStep("verify-code");
         toast({ title: t.auth.toasts.verificationNeeded, description: t.auth.toasts.verificationNeededDesc });
+      } else if (data.needsAdminVerification) {
+        setAdminCode("");
+        setAdminVerifyError("");
+        setChallengeToken(data.challengeToken || "");
+        setStep("admin-verify");
+        toast({ title: t.auth.adminVerify.title, description: t.auth.adminVerify.subtitle });
       } else {
         await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
         toast({ title: t.auth.toasts.welcomeBack, description: t.auth.toasts.signedIn });
@@ -163,6 +172,43 @@ export default function Auth() {
       toast({ title: t.auth.toasts.invalidCode, description: err.message || t.auth.toasts.invalidCodeDesc, variant: "destructive" });
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleAdminVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (adminCode.length !== 6) return;
+    setSubmitting(true);
+    setAdminVerifyError("");
+    try {
+      const res = await apiRequest("POST", "/api/auth/admin-verify", { email, code: adminCode, challengeToken });
+      const data = await res.json();
+      await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      toast({ title: t.auth.toasts.welcomeBack, description: t.auth.toasts.signedIn });
+      setLocation("/system/founder");
+    } catch (err: any) {
+      const msg = err.message || "";
+      if (msg.includes("Too many attempts")) {
+        setAdminVerifyError(t.auth.adminVerify.tooManyAttempts);
+      } else {
+        setAdminVerifyError(t.auth.adminVerify.invalidCode);
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleAdminResend = async () => {
+    setResending(true);
+    try {
+      await apiRequest("POST", "/api/auth/admin-resend", { email, challengeToken });
+      setAdminCode("");
+      setAdminVerifyError("");
+      toast({ title: t.auth.adminVerify.codeSent, description: t.auth.adminVerify.codeSentDesc });
+    } catch {
+      toast({ title: t.common.error, description: t.auth.adminVerify.resendFailed, variant: "destructive" });
+    } finally {
+      setResending(false);
     }
   };
 
@@ -540,6 +586,68 @@ export default function Auth() {
                     data-testid="button-resend"
                   >
                     {resending ? t.auth.resending : `${t.auth.didntReceive} ${t.auth.resendCode}`}
+                  </button>
+                </div>
+              </motion.div>
+            )}
+
+            {step === "admin-verify" && (
+              <motion.div
+                key="admin-verify"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3 }}
+                className="space-y-8"
+              >
+                <div>
+                  <button
+                    onClick={() => { setStep("login-form"); setAdminCode(""); setAdminVerifyError(""); }}
+                    className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
+                    data-testid="button-back-admin-verify"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                    {t.common.back}
+                  </button>
+                  <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-6 border border-primary/20">
+                    <Shield className="w-8 h-8 text-primary" />
+                  </div>
+                  <h1 className="font-display text-3xl font-bold text-foreground mb-3">{t.auth.adminVerify.title}</h1>
+                  <p className="text-muted-foreground">{t.auth.adminVerify.subtitle}</p>
+                </div>
+
+                <form onSubmit={handleAdminVerify} className="space-y-5">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-muted-foreground">{t.auth.adminVerify.codeLabel}</label>
+                    <Input
+                      placeholder="000000"
+                      value={adminCode}
+                      onChange={(e) => { setAdminCode(e.target.value.replace(/\D/g, "").slice(0, 6)); setAdminVerifyError(""); }}
+                      className="bg-background border-border text-foreground h-14 rounded-xl focus-visible:ring-primary text-center text-2xl tracking-[0.5em] font-mono"
+                      maxLength={6}
+                      autoFocus
+                      data-testid="input-admin-code"
+                    />
+                  </div>
+                  <Button
+                    type="submit"
+                    disabled={submitting || adminCode.length !== 6}
+                    className="w-full h-12 rounded-xl bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-white font-medium"
+                    data-testid="button-admin-verify"
+                  >
+                    {submitting ? (<><Loader2 className="w-5 h-5 animate-spin mr-2" />{t.auth.adminVerify.verifying}</>) : t.auth.adminVerify.verifyButton}
+                  </Button>
+                  <InlineError message={adminVerifyError} />
+                </form>
+
+                <div className="text-center">
+                  <button
+                    onClick={handleAdminResend}
+                    disabled={resending}
+                    className="text-sm text-primary hover:text-primary/80 transition-colors disabled:opacity-50"
+                    data-testid="button-admin-resend"
+                  >
+                    {resending ? t.auth.adminVerify.resending : `${t.auth.adminVerify.didntReceive} ${t.auth.adminVerify.resendCode}`}
                   </button>
                 </div>
               </motion.div>

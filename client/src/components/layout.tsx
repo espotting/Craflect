@@ -7,10 +7,15 @@ import { Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useLanguage } from "@/hooks/use-language";
 
+const userRoutes = ["/home", "/opportunities", "/create", "/workspace", "/insights", "/settings", "/plan-billing", "/welcome"];
+const adminRoutes = ["/system/founder", "/system/logs", "/system/settings"];
+
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading, user } = useAuth();
   const [location, setLocation] = useLocation();
   const { t } = useLanguage();
+
+  const isAdmin = (user as any)?.isAdmin === true;
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -19,10 +24,20 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   }, [isLoading, isAuthenticated, setLocation]);
 
   useEffect(() => {
-    if (!isLoading && isAuthenticated && user && !user.onboardingCompleted && location !== "/welcome") {
-      setLocation("/welcome");
+    if (!isLoading && isAuthenticated && user) {
+      if (isAdmin && userRoutes.some(r => location === r)) {
+        setLocation("/system/founder");
+        return;
+      }
+      if (!isAdmin && adminRoutes.some(r => location === r)) {
+        setLocation("/home");
+        return;
+      }
+      if (!isAdmin && !user.onboardingCompleted && location !== "/welcome") {
+        setLocation("/welcome");
+      }
     }
-  }, [isLoading, isAuthenticated, user, location, setLocation]);
+  }, [isLoading, isAuthenticated, user, location, setLocation, isAdmin]);
 
   if (isLoading) {
     return (

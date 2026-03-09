@@ -190,6 +190,22 @@ const en = {
       codeResentDesc: "A new verification code has been sent.",
       resendFailed: "Failed to resend code",
     },
+    adminVerify: {
+      title: "Admin Verification",
+      subtitle: "A 6-digit verification code has been sent to your security email.",
+      codeLabel: "Verification code",
+      verifyButton: "Verify & Access Dashboard",
+      verifying: "Verifying...",
+      didntReceive: "Didn't receive it?",
+      resendCode: "Resend code",
+      resending: "Resending...",
+      codeSent: "Code sent",
+      codeSentDesc: "A new admin verification code has been sent.",
+      invalidCode: "Invalid or expired code",
+      tooManyAttempts: "Too many attempts. Please request a new code.",
+      resendFailed: "Failed to resend code",
+      verificationFailed: "Verification failed",
+    },
   },
 
   dashboard: {

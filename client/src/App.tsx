@@ -17,8 +17,6 @@ import Create from "@/pages/create";
 import Workspace from "@/pages/workspace";
 import Settings from "@/pages/settings";
 import Welcome from "@/pages/welcome";
-import Admin from "@/pages/admin";
-import Intelligence from "@/pages/intelligence";
 import FounderDashboard from "@/pages/founder-dashboard";
 import SystemLogs from "@/pages/system-logs";
 import SystemSettings from "@/pages/system-settings";
@@ -42,8 +40,6 @@ function Router() {
       <Route path="/create" component={Create} />
       <Route path="/workspace" component={Workspace} />
       <Route path="/settings" component={Settings} />
-      <Route path="/admin" component={Admin} />
-      <Route path="/intelligence" component={Intelligence} />
       <Route path="/system/founder" component={FounderDashboard} />
       <Route path="/system/logs" component={SystemLogs} />
       <Route path="/system/settings" component={SystemSettings} />

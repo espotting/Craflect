@@ -103,6 +103,12 @@ export default function Welcome() {
 
   const { user } = useAuth();
 
+  useEffect(() => {
+    if ((user as any)?.isAdmin) {
+      setLocation("/system/founder");
+    }
+  }, [user, setLocation]);
+
   const toggleNiche = (value: string) => {
     setSelectedNiches((prev) => {
       if (prev.includes(value)) return prev.filter((n) => n !== value);

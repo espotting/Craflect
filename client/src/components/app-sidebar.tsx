@@ -1,6 +1,5 @@
 import { 
   LayoutDashboard, 
-  Compass,
   Target,
   Sparkles,
   FolderKanban,
@@ -9,8 +8,6 @@ import {
   LogOut,
   Sun,
   Moon,
-  Shield,
-  Brain,
   CreditCard,
   Crown,
   ScrollText,
@@ -43,7 +40,9 @@ export function AppSidebar() {
   const { theme, toggleTheme, isDark } = useTheme();
   const { t } = useLanguage();
 
-  const mainItems = [
+  const isAdmin = (user as any)?.isAdmin === true;
+
+  const userItems = [
     { title: t.sidebar.home, url: "/home", icon: LayoutDashboard },
     { title: t.sidebar.opportunities, url: "/opportunities", icon: Target },
     { title: t.sidebar.create, url: "/create", icon: Sparkles },
@@ -51,10 +50,18 @@ export function AppSidebar() {
     { title: t.sidebar.insights, url: "/insights", icon: BarChart3 },
   ];
 
-  const systemItems = [
+  const userSystemItems = [
     { title: t.sidebar.settings, url: "/settings", icon: Settings },
     { title: t.sidebar.planBilling, url: "/plan-billing", icon: CreditCard },
   ];
+
+  const adminItems = [
+    { title: t.sidebar.founderDashboard, url: "/system/founder", icon: Crown },
+    { title: t.sidebar.logs, url: "/system/logs", icon: ScrollText },
+    { title: t.sidebar.systemSettings, url: "/system/settings", icon: Wrench },
+  ];
+
+  const mainItems = isAdmin ? adminItems : userItems;
 
   return (
     <Sidebar variant="inset" className="border-r border-border bg-sidebar">
@@ -80,7 +87,7 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {mainItems.map((item) => {
-                const isActive = location === item.url || (item.url === "/home" && location === "/");
+                const isActive = location === item.url || (!isAdmin && item.url === "/home" && location === "/");
                 return (
                   <SidebarMenuItem key={item.url}>
                     <SidebarMenuButton 
@@ -89,7 +96,7 @@ export function AppSidebar() {
                       className={isActive ? "bg-primary/10 text-primary" : "text-muted-foreground"}
                       onClick={() => setLocation(item.url)}
                     >
-                      <button className="flex items-center gap-3 w-full" data-testid={`nav-${item.url.replace("/", "")}`}>
+                      <button className="flex items-center gap-3 w-full" data-testid={`nav-${item.url.replace(/\//g, '-').replace(/^-/, '')}`}>
                         <item.icon className={`w-4 h-4 ${isActive ? 'text-primary' : ''}`} />
                         <span className="font-medium">{item.title}</span>
                       </button>
@@ -101,7 +108,7 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {!user?.onboardingCompleted && (
+        {!isAdmin && !user?.onboardingCompleted && (
           <SidebarGroup>
             <SidebarGroupLabel className="text-muted-foreground uppercase tracking-wider text-xs font-semibold mb-2">
               {t.sidebar.gettingStarted}
@@ -123,106 +130,35 @@ export function AppSidebar() {
           </SidebarGroup>
         )}
 
-        <SidebarGroup className="mt-auto">
-          <SidebarGroupLabel className="text-muted-foreground uppercase tracking-wider text-xs font-semibold mb-2">
-            {t.sidebar.system}
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {(user as any)?.isAdmin === true && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton 
-                    asChild 
-                    isActive={location === "/admin"}
-                    className={location === "/admin" ? "bg-primary/10 text-primary" : "text-muted-foreground"}
-                    onClick={() => setLocation("/admin")}
-                  >
-                    <button className="flex items-center gap-3 w-full" data-testid="nav-admin">
-                      <Shield className="w-4 h-4" />
-                      <span className="font-medium">{t.sidebar.admin}</span>
-                    </button>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              )}
-              {(user as any)?.isAdmin === true && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton 
-                    asChild 
-                    isActive={location === "/intelligence"}
-                    className={location === "/intelligence" ? "bg-primary/10 text-primary" : "text-muted-foreground"}
-                    onClick={() => setLocation("/intelligence")}
-                  >
-                    <button className="flex items-center gap-3 w-full" data-testid="nav-intelligence">
-                      <Brain className="w-4 h-4" />
-                      <span className="font-medium">{t.sidebar.intelligence}</span>
-                    </button>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              )}
-              {(user as any)?.isAdmin === true && (
-                <>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton 
-                      asChild 
-                      isActive={location === "/system/founder"}
-                      className={location === "/system/founder" ? "bg-primary/10 text-primary" : "text-muted-foreground"}
-                      onClick={() => setLocation("/system/founder")}
-                    >
-                      <button className="flex items-center gap-3 w-full" data-testid="nav-founder">
-                        <Crown className="w-4 h-4" />
-                        <span className="font-medium">{t.sidebar.founderDashboard}</span>
-                      </button>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton 
-                      asChild 
-                      isActive={location === "/system/logs"}
-                      className={location === "/system/logs" ? "bg-primary/10 text-primary" : "text-muted-foreground"}
-                      onClick={() => setLocation("/system/logs")}
-                    >
-                      <button className="flex items-center gap-3 w-full" data-testid="nav-logs">
-                        <ScrollText className="w-4 h-4" />
-                        <span className="font-medium">{t.sidebar.logs}</span>
-                      </button>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton 
-                      asChild 
-                      isActive={location === "/system/settings"}
-                      className={location === "/system/settings" ? "bg-primary/10 text-primary" : "text-muted-foreground"}
-                      onClick={() => setLocation("/system/settings")}
-                    >
-                      <button className="flex items-center gap-3 w-full" data-testid="nav-system-settings">
-                        <Wrench className="w-4 h-4" />
-                        <span className="font-medium">{t.sidebar.systemSettings}</span>
-                      </button>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                </>
-              )}
-              {systemItems.map((item) => {
-                const isActive = location === item.url;
-                return (
-                  <SidebarMenuItem key={item.url}>
-                    <SidebarMenuButton 
-                      asChild 
-                      isActive={isActive}
-                      className={isActive ? "bg-primary/10 text-primary" : "text-muted-foreground"}
-                      onClick={() => setLocation(item.url)}
-                    >
-                      <button className="flex items-center gap-3 w-full" data-testid={`nav-${item.url.replace("/", "")}`}>
-                        <item.icon className={`w-4 h-4 ${isActive ? 'text-primary' : ''}`} />
-                        <span className="font-medium">{item.title}</span>
-                      </button>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {!isAdmin && (
+          <SidebarGroup className="mt-auto">
+            <SidebarGroupLabel className="text-muted-foreground uppercase tracking-wider text-xs font-semibold mb-2">
+              {t.sidebar.system}
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {userSystemItems.map((item) => {
+                  const isActive = location === item.url;
+                  return (
+                    <SidebarMenuItem key={item.url}>
+                      <SidebarMenuButton 
+                        asChild 
+                        isActive={isActive}
+                        className={isActive ? "bg-primary/10 text-primary" : "text-muted-foreground"}
+                        onClick={() => setLocation(item.url)}
+                      >
+                        <button className="flex items-center gap-3 w-full" data-testid={`nav-${item.url.replace("/", "")}`}>
+                          <item.icon className={`w-4 h-4 ${isActive ? 'text-primary' : ''}`} />
+                          <span className="font-medium">{item.title}</span>
+                        </button>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
 
       <SidebarFooter className="p-4 border-t border-border">

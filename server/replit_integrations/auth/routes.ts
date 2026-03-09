@@ -3,6 +3,30 @@ import { isAuthenticated } from "./replitAuth";
 import { authStorage } from "./storage";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
+import { sendAdminVerificationCode } from "../../email";
+
+const adminChallengeTokens = new Map<string, { email: string; expiresAt: number }>();
+
+function createAdminChallengeToken(email: string): string {
+  const token = crypto.randomBytes(32).toString("hex");
+  adminChallengeTokens.set(token, { email, expiresAt: Date.now() + 10 * 60 * 1000 });
+  return token;
+}
+
+function validateAdminChallengeToken(token: string, email: string): boolean {
+  const entry = adminChallengeTokens.get(token);
+  if (!entry) return false;
+  if (entry.email !== email || entry.expiresAt < Date.now()) {
+    adminChallengeTokens.delete(token);
+    return false;
+  }
+  return true;
+}
+
+function consumeAdminChallengeToken(token: string): void {
+  adminChallengeTokens.delete(token);
+}
 
 function sanitizeUser(user: any) {
   if (!user) return user;
@@ -152,6 +176,18 @@ export function registerAuthRoutes(app: Express): void {
         return res.json({ message: "Email not verified. Verification code sent.", needsVerification: true });
       }
 
+      if (user.isAdmin) {
+        const code = await authStorage.createAdminVerificationCode(email);
+        const challengeToken = createAdminChallengeToken(email);
+        try {
+          await sendAdminVerificationCode(code);
+          console.log(`[AUTH] Admin verification code sent to security email`);
+        } catch (emailErr) {
+          console.error("[AUTH] Failed to send admin verification email:", emailErr);
+        }
+        return res.json({ message: "Admin verification required", needsAdminVerification: true, email, challengeToken });
+      }
+
       req.login(user, (err: any) => {
         if (err) {
           console.error("Login error:", err);
@@ -165,6 +201,84 @@ export function registerAuthRoutes(app: Express): void {
       }
       console.error("Login error:", err);
       res.status(500).json({ message: "Login failed" });
+    }
+  });
+
+  app.post("/api/auth/admin-verify", async (req: any, res) => {
+    try {
+      const input = z.object({
+        email: z.string().email(),
+        code: z.string().length(6),
+        challengeToken: z.string().min(1),
+      }).parse(req.body);
+
+      if (!validateAdminChallengeToken(input.challengeToken, input.email)) {
+        return res.status(403).json({ message: "Invalid or expired challenge. Please login again." });
+      }
+
+      const user = await authStorage.getUserByEmail(input.email);
+      if (!user || !user.isAdmin) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+
+      const result = await authStorage.verifyAdminCode(input.email, input.code);
+
+      if (result.tooManyAttempts) {
+        consumeAdminChallengeToken(input.challengeToken);
+        return res.status(429).json({ message: "Too many attempts. Please request a new code.", tooManyAttempts: true });
+      }
+
+      if (!result.valid) {
+        return res.status(400).json({ message: "Invalid or expired code" });
+      }
+
+      consumeAdminChallengeToken(input.challengeToken);
+
+      req.login(user, (err: any) => {
+        if (err) {
+          console.error("Admin login error after verification:", err);
+          return res.status(500).json({ message: "Login failed" });
+        }
+        res.json({ message: "Admin verified", user: sanitizeUser(user) });
+      });
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      console.error("Admin verification error:", err);
+      res.status(500).json({ message: "Verification failed" });
+    }
+  });
+
+  app.post("/api/auth/admin-resend", async (req, res) => {
+    try {
+      const input = z.object({
+        email: z.string().email(),
+        challengeToken: z.string().min(1),
+      }).parse(req.body);
+
+      if (!validateAdminChallengeToken(input.challengeToken, input.email)) {
+        return res.status(403).json({ message: "Invalid or expired challenge. Please login again." });
+      }
+
+      const user = await authStorage.getUserByEmail(input.email);
+      if (!user || !user.isAdmin) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+
+      const code = await authStorage.createAdminVerificationCode(input.email);
+      try {
+        await sendAdminVerificationCode(code);
+        console.log(`[AUTH] Admin verification code resent to security email`);
+      } catch (emailErr) {
+        console.error("[AUTH] Failed to send admin verification email:", emailErr);
+      }
+      res.json({ message: "New admin code sent" });
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      res.status(500).json({ message: "Failed to resend code" });
     }
   });
 
