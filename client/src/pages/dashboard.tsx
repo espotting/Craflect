@@ -1,9 +1,8 @@
+import { useState } from "react";
 import { DashboardLayout } from "@/components/layout";
 import { useLanguage } from "@/hooks/use-language";
-import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -14,34 +13,15 @@ import {
   TrendingUp,
   Zap,
   Target,
-  Image,
-  Lightbulb,
   Flame,
-  BookmarkPlus,
+  BarChart3,
   Coins,
-  Crown,
 } from "lucide-react";
-import { useState } from "react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-
-function getViralityColor(score: number) {
-  if (score >= 80) return "text-violet-500";
-  if (score >= 60) return "text-orange-500";
-  return "text-yellow-500";
-}
-
-function getViralityBg(score: number) {
-  if (score >= 80) return "bg-violet-500/10 border-violet-500/20";
-  if (score >= 60) return "bg-orange-500/10 border-orange-500/20";
-  return "bg-yellow-500/10 border-yellow-500/20";
-}
-
-function getViralityBadge(score: number) {
-  if (score >= 80) return "bg-violet-500/20 text-violet-400 border-violet-500/30";
-  if (score >= 60) return "bg-orange-500/20 text-orange-400 border-orange-500/30";
-  return "bg-yellow-500/20 text-yellow-400 border-yellow-500/30";
-}
+import { OpportunityCard, type OpportunityData } from "@/components/opportunity-card";
+import { VideoCardV2, type VideoCardData } from "@/components/video-card-v2";
+import { GuidedWorkflow } from "@/components/guided-workflow";
 
 interface ViralPlay {
   hook: string;
@@ -89,141 +69,133 @@ interface CreditsInfo {
   maxCredits: number;
   plan: string;
   costs: Record<string, number>;
+  estimatedVideos: number;
 }
 
-function CreditsCounter({ credits }: { credits: CreditsInfo | undefined }) {
+function IntelligenceLayer() {
   const { t } = useLanguage();
-  const [, setLocation] = useLocation();
 
-  if (!credits) return null;
+  const { data: hooks } = useQuery<TrendingHook[]>({ queryKey: ["/api/home/trending-hooks"] });
+  const { data: niches } = useQuery<TrendingNiche[]>({ queryKey: ["/api/home/trending-niches"] });
+  const { data: trending } = useQuery<TrendingOpportunity[]>({ queryKey: ["/api/home/trending-opportunities"] });
 
-  const percentage = (credits.credits / credits.maxCredits) * 100;
+  const totalVideos = niches?.reduce((sum, n) => sum + n.videoCount, 0) || 0;
+  const totalPatterns = trending?.length || 0;
+  const avgVirality = niches && niches.length > 0
+    ? (niches.reduce((sum, n) => sum + n.avgVirality, 0) / niches.length).toFixed(1)
+    : "0";
+
+  const stats = [
+    { label: t.dashboard?.intel?.videosAnalyzed || "Videos Analyzed", value: totalVideos.toLocaleString(), change: "+12%", icon: BarChart3, color: "text-blue-400" },
+    { label: t.dashboard?.intel?.patternsDetected || "Patterns Detected", value: totalPatterns.toString(), change: "+8%", icon: TrendingUp, color: "text-purple-400" },
+    { label: t.dashboard?.intel?.avgVirality || "Avg Virality Score", value: avgVirality, change: "+5%", icon: Zap, color: "text-orange-400" },
+    { label: t.dashboard?.intel?.successRate || "Success Rate", value: "68%", change: "+15%", icon: TrendingUp, color: "text-green-400" },
+  ];
+
+  const topHooks = hooks?.slice(0, 5) || [];
 
   return (
-    <Card className="border border-border/50" data-testid="credits-counter">
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Coins className="h-4 w-4 text-violet-500" />
-            <span className="text-sm font-medium">{t.dashboard.aiCredits}</span>
+    <div className="space-y-6" data-testid="intelligence-layer">
+      <div className="grid grid-cols-4 gap-4">
+        {stats.map((stat, i) => (
+          <div key={i} className="bg-slate-900/50 rounded-xl p-4 border border-slate-800" data-testid={`stat-card-${i}`}>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-slate-400 text-sm">{stat.label}</span>
+              <stat.icon className={`w-4 h-4 ${stat.color}`} />
+            </div>
+            <div className="flex items-end gap-2">
+              <span className="text-2xl font-bold text-white">{stat.value}</span>
+              <span className="text-green-400 text-sm">{stat.change}</span>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-bold" data-testid="text-credits-count">{credits.credits}</span>
-            <span className="text-xs text-muted-foreground">/ {credits.maxCredits}</span>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-2 gap-6">
+        <div className="bg-slate-900/50 rounded-2xl p-6 border border-slate-800">
+          <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
+            <BarChart3 className="w-5 h-5 text-purple-400" />
+            {t.dashboard?.intel?.topPatterns || "Top Performing Patterns"}
+          </h3>
+          <div className="space-y-3">
+            {trending?.slice(0, 4).map((item, i) => (
+              <div key={i} className="flex items-center gap-4">
+                <span className="text-slate-500 w-6">{i + 1}</span>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-white text-sm truncate">{item.hook}</span>
+                    <span className="text-purple-400 text-sm font-medium ml-2 shrink-0">{item.viralityScore}</span>
+                  </div>
+                  <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                    <div className="h-full bg-purple-500 rounded-full" style={{ width: `${item.viralityScore}%` }} />
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
-        <div className="mt-2 h-1.5 w-full rounded-full bg-muted">
-          <div
-            className="h-full rounded-full bg-violet-500 transition-all"
-            style={{ width: `${Math.min(100, percentage)}%` }}
-          />
+
+        <div className="bg-slate-900/50 rounded-2xl p-6 border border-slate-800">
+          <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
+            <TrendingUp className="w-5 h-5 text-green-400" />
+            {t.dashboard?.intel?.trendingTopics || "Trending Topics"}
+          </h3>
+          <div className="space-y-3">
+            {niches?.slice(0, 5).map((niche, i) => (
+              <div key={i} className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="text-slate-500 w-6">{i + 1}</span>
+                  <span className="text-white text-sm">{niche.label}</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-slate-400 text-sm">{niche.videoCount} videos</span>
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                    niche.avgVirality >= 75 ? "bg-red-500/20 text-red-400" :
+                    niche.avgVirality >= 65 ? "bg-orange-500/20 text-orange-400" :
+                    "bg-green-500/20 text-green-400"
+                  }`}>
+                    {niche.avgVirality >= 75 ? "hot" : niche.avgVirality >= 65 ? "rising" : "stable"}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
-        {credits.plan === "free" && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="mt-2 w-full text-xs text-violet-500 hover:text-violet-400"
-            onClick={() => setLocation("/billing")}
-            data-testid="link-upgrade-credits"
-          >
-            <Crown className="h-3 w-3 mr-1" />
-            {t.dashboard.upgradeForMore}
-          </Button>
-        )}
-      </CardContent>
-    </Card>
+      </div>
+
+      <div className="bg-slate-900/50 rounded-2xl p-6 border border-slate-800">
+        <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
+          <Zap className="w-5 h-5 text-yellow-400" />
+          {t.dashboard?.intel?.hookPerformance || "Hook Performance"}
+        </h3>
+        <div className="grid grid-cols-5 gap-4">
+          {topHooks.map((hook, i) => (
+            <div key={i} className="text-center p-3 bg-slate-800/50 rounded-xl">
+              <p className="text-white font-medium text-sm capitalize mb-1">{hook.hookType?.replace(/_/g, " ") || "Hook"}</p>
+              <p className="text-slate-400 text-xs">{hook.usageCount} uses</p>
+              <p className="text-lg font-bold text-purple-400 mt-1">{Math.round(hook.avgVirality)}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
 
-function ViralPlaySection({ data, credits }: { data: ViralPlay | null; credits: CreditsInfo | undefined }) {
+function CreatorLayer({
+  viralPlay,
+  trending,
+  hooks,
+  credits,
+  onNavigate,
+}: {
+  viralPlay: ViralPlay | null;
+  trending: TrendingOpportunity[] | undefined;
+  hooks: TrendingHook[] | undefined;
+  credits: CreditsInfo | undefined;
+  onNavigate: (path: string) => void;
+}) {
   const { t } = useLanguage();
-  const [, setLocation] = useLocation();
-
-  if (!data) {
-    return (
-      <Card className="border border-border/50">
-        <CardContent className="p-8 text-center">
-          <Target className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
-          <h3 className="font-semibold text-lg">{t.dashboard.noDataTitle}</h3>
-          <p className="text-sm text-muted-foreground mt-1">{t.dashboard.noDataDesc}</p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  const topicLabel = data.topic.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-  const formatLabel = data.format.replace(/_/g, " ");
-
-  return (
-    <Card className={`border ${getViralityBg(data.viralityScore)} relative overflow-hidden`} data-testid="card-viral-play">
-      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-violet-500/5 to-transparent rounded-bl-full" />
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Zap className="h-5 w-5 text-violet-500" />
-            <CardTitle className="text-lg">{t.dashboard.viralPlayOfTheDay}</CardTitle>
-          </div>
-          {data.trendClassification === "rising" && (
-            <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
-              <TrendingUp className="h-3 w-3 mr-1" /> Rising
-            </Badge>
-          )}
-        </div>
-        <p className="text-xs text-muted-foreground">{t.dashboard.viralPlayDesc}</p>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="p-4 rounded-lg bg-background/60 border border-border/30">
-          <p className="text-base font-medium leading-snug" data-testid="text-viral-play-hook">"{data.hook}"</p>
-          <div className="flex flex-wrap gap-2 mt-3">
-            <Badge variant="outline" className="text-xs">{formatLabel}</Badge>
-            <Badge variant="outline" className="text-xs">{topicLabel}</Badge>
-            {data.platform && <Badge variant="outline" className="text-xs">{data.platform}</Badge>}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-3 gap-3">
-          <div className="text-center p-2 rounded-lg bg-background/40">
-            <div className={`text-xl font-bold ${getViralityColor(data.viralityScore)}`} data-testid="text-viral-play-score">
-              {data.viralityScore}
-            </div>
-            <div className="text-[10px] text-muted-foreground uppercase tracking-wide">{t.dashboard.viralityScore}</div>
-          </div>
-          <div className="text-center p-2 rounded-lg bg-background/40">
-            <div className="text-sm font-semibold" data-testid="text-viral-play-views">{data.viewRange}</div>
-            <div className="text-[10px] text-muted-foreground uppercase tracking-wide">{t.dashboard.predictedViews}</div>
-          </div>
-          <div className="text-center p-2 rounded-lg bg-background/40">
-            <div className="text-sm font-semibold">{data.confidence}%</div>
-            <div className="text-[10px] text-muted-foreground uppercase tracking-wide">{t.dashboard.confidence}</div>
-          </div>
-        </div>
-
-        <div className="p-3 rounded-lg bg-muted/30 border border-border/20">
-          <div className="flex items-start gap-2">
-            <Lightbulb className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
-            <div>
-              <p className="text-xs font-medium text-amber-500 mb-1">{t.dashboard.whyItWorks}</p>
-              <p className="text-xs text-muted-foreground leading-relaxed" data-testid="text-why-it-works">{data.whyItWorks}</p>
-            </div>
-          </div>
-        </div>
-
-        <Button
-          className="w-full bg-violet-600 hover:bg-violet-700"
-          onClick={() => setLocation(`/create?hook=${encodeURIComponent(data.hook)}&format=${encodeURIComponent(data.format)}&topic=${encodeURIComponent(data.topic)}`)}
-          data-testid="button-create-viral-play"
-        >
-          <Sparkles className="h-4 w-4 mr-2" />
-          {t.dashboard.createThisVideo}
-        </Button>
-      </CardContent>
-    </Card>
-  );
-}
-
-function TrendingOpportunitiesSection({ data }: { data: TrendingOpportunity[] | undefined }) {
-  const { t } = useLanguage();
-  const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
 
@@ -237,213 +209,127 @@ function TrendingOpportunitiesSection({ data }: { data: TrendingOpportunity[] | 
       });
       setSavedIds((prev) => new Set(prev).add(opp.id));
       queryClient.invalidateQueries({ queryKey: ["/api/ideas"] });
-      toast({ title: t.dashboard.savedIdea });
+      toast({ title: t.dashboard?.savedIdea || "Idea saved" });
     } catch {}
   };
 
-  if (!data || data.length === 0) return null;
+  const viralPlayOpp: OpportunityData | null = viralPlay ? {
+    id: "viral-play",
+    topic: viralPlay.topic,
+    hook: viralPlay.hook,
+    format: viralPlay.format,
+    predictedViews: viralPlay.viewRange,
+    confidence: viralPlay.confidence,
+    trend: (viralPlay.trendClassification === "rising" ? "rising" : viralPlay.viralityScore >= 80 ? "hot" : "stable") as "rising" | "stable" | "hot",
+    whyItWorks: viralPlay.whyItWorks,
+  } : null;
+
+  const trendingAsVideos: VideoCardData[] = (trending || []).map((opp) => ({
+    id: opp.id,
+    hook: opp.hook,
+    format: opp.format,
+    views: opp.viewRange,
+    viralityScore: opp.viralityScore,
+    platform: opp.platform,
+    thumbnail: opp.thumbnailUrl || undefined,
+  }));
+
+  const opportunities: OpportunityData[] = (trending || []).slice(4).map((opp) => ({
+    id: opp.id,
+    topic: opp.topic,
+    hook: opp.hook,
+    format: opp.format,
+    predictedViews: opp.viewRange,
+    confidence: opp.viralityScore,
+    trend: (opp.viralityScore >= 80 ? "hot" : opp.viralityScore >= 65 ? "rising" : "stable") as "rising" | "stable" | "hot",
+  }));
 
   return (
-    <div className="space-y-4" data-testid="section-trending-opportunities">
-      <div>
-        <h2 className="text-lg font-semibold flex items-center gap-2">
-          <Flame className="h-5 w-5 text-orange-500" />
-          {t.dashboard.trendingOpportunities}
-        </h2>
-        <p className="text-sm text-muted-foreground">{t.dashboard.trendingOpportunitiesDesc}</p>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {data.map((opp) => (
-          <Card key={opp.id} className="border border-border/50 hover:border-border transition-colors" data-testid={`card-opportunity-${opp.id}`}>
-            <CardContent className="p-4 space-y-3">
-              <div className="flex items-start justify-between gap-2">
-                <Badge className={`text-[10px] ${getViralityBadge(opp.viralityScore)}`}>
-                  {opp.viralityScore}
-                </Badge>
-                <Badge variant="outline" className="text-[10px]">{opp.platform}</Badge>
-              </div>
-              <p className="text-sm font-medium line-clamp-2 min-h-[2.5rem]" data-testid={`text-hook-${opp.id}`}>"{opp.hook}"</p>
-              <div className="flex flex-wrap gap-1.5">
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground">{opp.format.replace(/_/g, " ")}</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground">{opp.topic.replace(/_/g, " ")}</span>
-              </div>
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span className="flex items-center gap-1">
-                  <Eye className="h-3 w-3" /> {opp.viewRange}
-                </span>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  className="flex-1 text-xs bg-violet-600 hover:bg-violet-700"
-                  onClick={() => setLocation(`/create?hook=${encodeURIComponent(opp.hook)}&format=${encodeURIComponent(opp.format)}&topic=${encodeURIComponent(opp.topic)}`)}
-                  data-testid={`button-create-${opp.id}`}
-                >
-                  {t.dashboard.createVideo}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="text-xs"
-                  onClick={() => handleSave(opp)}
-                  disabled={savedIds.has(opp.id)}
-                  data-testid={`button-save-${opp.id}`}
-                >
-                  <BookmarkPlus className="h-3 w-3 mr-1" />
-                  {savedIds.has(opp.id) ? t.dashboard.saved : t.dashboard.save}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    </div>
-  );
-}
+    <div className="space-y-8" data-testid="creator-layer">
+      {viralPlayOpp && (
+        <OpportunityCard
+          opportunity={viralPlayOpp}
+          featured
+          onCreate={(opp) => onNavigate(`/create?hook=${encodeURIComponent(opp.hook)}&format=${encodeURIComponent(opp.format)}&topic=${encodeURIComponent(opp.topic)}`)}
+          onSeeSimilar={() => onNavigate("/opportunities")}
+        />
+      )}
 
-function CreateNextVideoSection() {
-  const { t } = useLanguage();
-  const [, setLocation] = useLocation();
+      {trendingAsVideos.length > 0 && (
+        <section data-testid="section-trending-videos">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <Flame className="w-5 h-5 text-orange-400" />
+                {t.dashboard?.trendingOpportunities || "Trending Videos"}
+              </h2>
+              <p className="text-slate-400 text-sm mt-1">{t.dashboard?.trendingOpportunitiesDesc || "Top performing content right now"}</p>
+            </div>
+            <Button variant="outline" className="border-slate-700 text-slate-300" onClick={() => onNavigate("/opportunities")} data-testid="button-see-all-videos">
+              {t.dashboard?.seeAll || "See All"}
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+          </div>
+          <div className="grid grid-cols-4 gap-4">
+            {trendingAsVideos.slice(0, 4).map((video) => (
+              <VideoCardV2
+                key={video.id}
+                video={video}
+                onCreateSimilar={(v) => onNavigate(`/create?hook=${encodeURIComponent(v.hook)}&format=${encodeURIComponent(v.format)}`)}
+                onAnalyze={() => {}}
+                onSave={(v) => {
+                  const opp = trending?.find((o) => o.id === v.id);
+                  if (opp) handleSave(opp);
+                }}
+              />
+            ))}
+          </div>
+        </section>
+      )}
 
-  const cards = [
-    {
-      icon: Target,
-      title: t.dashboard.fromViralOpportunity,
-      desc: t.dashboard.fromViralOpportunityDesc,
-      action: () => setLocation("/opportunities"),
-      color: "text-violet-500",
-      testId: "card-from-opportunity",
-    },
-    {
-      icon: Image,
-      title: t.dashboard.fromImage,
-      desc: t.dashboard.fromImageDesc,
-      action: null,
-      color: "text-blue-500",
-      comingSoon: true,
-      testId: "card-from-image",
-    },
-    {
-      icon: Lightbulb,
-      title: t.dashboard.fromIdea,
-      desc: t.dashboard.fromIdeaDesc,
-      action: () => setLocation("/create"),
-      color: "text-amber-500",
-      testId: "card-from-idea",
-    },
-  ];
+      {opportunities.length > 0 && (
+        <section data-testid="section-more-opportunities">
+          <div className="mb-4">
+            <h2 className="text-xl font-bold text-white flex items-center gap-2">
+              <Target className="w-5 h-5 text-purple-400" />
+              {t.dashboard?.moreOpportunities || "More Opportunities"}
+            </h2>
+            <p className="text-slate-400 text-sm mt-1">{t.dashboard?.moreOpportunitiesDesc || "Additional content ideas based on current trends"}</p>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            {opportunities.map((opp) => (
+              <OpportunityCard
+                key={opp.id}
+                opportunity={opp}
+                onCreate={(o) => onNavigate(`/create?hook=${encodeURIComponent(o.hook)}&format=${encodeURIComponent(o.format)}&topic=${encodeURIComponent(o.topic)}`)}
+              />
+            ))}
+          </div>
+        </section>
+      )}
 
-  return (
-    <div className="space-y-4" data-testid="section-create-next">
-      <h2 className="text-lg font-semibold flex items-center gap-2">
-        <Sparkles className="h-5 w-5 text-violet-500" />
-        {t.dashboard.createYourNextVideo}
-      </h2>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {cards.map((card) => (
-          <Card
-            key={card.testId}
-            className={`border border-border/50 cursor-pointer hover:border-border transition-colors ${card.comingSoon ? "opacity-60" : ""}`}
-            onClick={card.action || undefined}
-            data-testid={card.testId}
+      <section className="bg-gradient-to-r from-purple-900/30 to-fuchsia-900/30 rounded-2xl p-8 border border-purple-500/20" data-testid="section-cta-studio">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-white mb-2">
+              {t.dashboard?.readyToCreate || "Ready to create your next viral video?"}
+            </h2>
+            <p className="text-slate-400">
+              {t.dashboard?.jumpIntoStudio || "Jump into the Studio and turn these insights into viral content"}
+            </p>
+          </div>
+          <Button
+            size="lg"
+            className="bg-purple-600 hover:bg-purple-700 text-white px-8 h-14 text-lg font-semibold rounded-xl"
+            onClick={() => onNavigate("/create")}
+            data-testid="button-open-studio"
           >
-            <CardContent className="p-5 text-center space-y-3">
-              <div className={`inline-flex p-3 rounded-xl bg-muted/50 ${card.color}`}>
-                <card.icon className="h-6 w-6" />
-              </div>
-              <h3 className="font-semibold text-sm">{card.title}</h3>
-              <p className="text-xs text-muted-foreground">{card.desc}</p>
-              {card.comingSoon && (
-                <Badge variant="outline" className="text-[10px]">{t.dashboard.comingSoon}</Badge>
-              )}
-              {!card.comingSoon && (
-                <Button variant="ghost" size="sm" className="text-xs text-violet-500">
-                  <ArrowRight className="h-3 w-3 ml-1" />
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function TrendingHooksSection({ data }: { data: TrendingHook[] | undefined }) {
-  const { t } = useLanguage();
-  const [, setLocation] = useLocation();
-
-  if (!data || data.length === 0) return null;
-
-  return (
-    <div className="space-y-4" data-testid="section-trending-hooks">
-      <div>
-        <h2 className="text-lg font-semibold flex items-center gap-2">
-          <TrendingUp className="h-5 w-5 text-green-500" />
-          {t.dashboard.trendingHooks}
-        </h2>
-        <p className="text-sm text-muted-foreground">{t.dashboard.trendingHooksDesc}</p>
-      </div>
-      <div className="space-y-2">
-        {data.slice(0, 8).map((hook, i) => (
-          <Card
-            key={i}
-            className="border border-border/50 cursor-pointer hover:border-border transition-colors"
-            onClick={() => setLocation(`/create?hook=${encodeURIComponent(hook.hook || "")}`)}
-            data-testid={`card-hook-${i}`}
-          >
-            <CardContent className="p-3 flex items-center justify-between">
-              <div className="flex items-center gap-3 flex-1 min-w-0">
-                <span className="text-xs font-mono text-muted-foreground w-5 shrink-0">#{i + 1}</span>
-                <p className="text-sm truncate flex-1">{hook.hook}</p>
-              </div>
-              <div className="flex items-center gap-3 shrink-0">
-                {hook.hookType && (
-                  <Badge variant="outline" className="text-[10px]">{hook.hookType.replace(/_/g, " ")}</Badge>
-                )}
-                <span className={`text-sm font-bold ${getViralityColor(hook.avgVirality)}`}>
-                  {Math.round(hook.avgVirality)}
-                </span>
-                <ArrowRight className="h-3 w-3 text-muted-foreground" />
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function TrendingNichesSection({ data }: { data: TrendingNiche[] | undefined }) {
-  const { t } = useLanguage();
-
-  if (!data || data.length === 0) return null;
-
-  return (
-    <div className="space-y-4" data-testid="section-trending-niches">
-      <div>
-        <h2 className="text-lg font-semibold flex items-center gap-2">
-          <Target className="h-5 w-5 text-blue-500" />
-          {t.dashboard.trendingNiches}
-        </h2>
-        <p className="text-sm text-muted-foreground">{t.dashboard.trendingNichesDesc}</p>
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {data.map((niche, i) => (
-          <Card key={i} className="border border-border/50" data-testid={`card-niche-${i}`}>
-            <CardContent className="p-4 space-y-2">
-              <h3 className="font-semibold text-sm">{niche.label}</h3>
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>{niche.videoCount} {t.dashboard.videos}</span>
-                <span>{t.dashboard.avgScore}: <span className={`font-bold ${getViralityColor(niche.avgVirality)}`}>{Math.round(niche.avgVirality)}</span></span>
-              </div>
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>{t.dashboard.topScore}: <span className={`font-bold ${getViralityColor(niche.topScore)}`}>{niche.topScore}</span></span>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+            <Sparkles className="w-5 h-5 mr-2" />
+            {t.dashboard?.openStudio || "Open Studio"}
+            <ArrowRight className="w-5 h-5 ml-2" />
+          </Button>
+        </div>
+      </section>
     </div>
   );
 }
@@ -451,12 +337,16 @@ function TrendingNichesSection({ data }: { data: TrendingNiche[] | undefined }) 
 function LoadingSkeleton() {
   return (
     <div className="space-y-6">
-      <Skeleton className="h-64 w-full" />
-      <Skeleton className="h-48 w-full" />
-      <div className="grid grid-cols-3 gap-4">
-        <Skeleton className="h-32" />
-        <Skeleton className="h-32" />
-        <Skeleton className="h-32" />
+      <Skeleton className="h-64 w-full rounded-2xl" />
+      <div className="grid grid-cols-4 gap-4">
+        <Skeleton className="h-80 rounded-2xl" />
+        <Skeleton className="h-80 rounded-2xl" />
+        <Skeleton className="h-80 rounded-2xl" />
+        <Skeleton className="h-80 rounded-2xl" />
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <Skeleton className="h-32 rounded-2xl" />
+        <Skeleton className="h-32 rounded-2xl" />
       </div>
     </div>
   );
@@ -464,62 +354,82 @@ function LoadingSkeleton() {
 
 export default function DashboardPage() {
   const { t } = useLanguage();
+  const [, navigate] = useLocation();
+  const [intelligenceMode, setIntelligenceMode] = useState(false);
+  const [workflowStep] = useState<"idea" | "script" | "blueprint" | "export">("idea");
 
   const { data: viralPlay, isLoading: loadingPlay } = useQuery<ViralPlay | null>({
     queryKey: ["/api/home/viral-play"],
   });
-
   const { data: trending, isLoading: loadingTrending } = useQuery<TrendingOpportunity[]>({
     queryKey: ["/api/home/trending-opportunities"],
   });
-
-  const { data: hooks, isLoading: loadingHooks } = useQuery<TrendingHook[]>({
-    queryKey: ["/api/home/trending-hooks"],
-  });
-
-  const { data: niches, isLoading: loadingNiches } = useQuery<TrendingNiche[]>({
-    queryKey: ["/api/home/trending-niches"],
-  });
-
-  const { data: credits } = useQuery<CreditsInfo>({
-    queryKey: ["/api/credits"],
-  });
+  const { data: hooks } = useQuery<TrendingHook[]>({ queryKey: ["/api/home/trending-hooks"] });
+  const { data: credits } = useQuery<CreditsInfo>({ queryKey: ["/api/credits"] });
 
   const isLoading = loadingPlay || loadingTrending;
 
   return (
     <DashboardLayout>
-      <div className="p-4 md:p-6 max-w-6xl mx-auto space-y-8" data-testid="page-dashboard">
-        <div className="flex items-center justify-between">
+      <div className="p-4 md:p-8 max-w-7xl mx-auto pb-32" data-testid="page-dashboard">
+        <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-2xl font-bold" data-testid="text-page-title">{t.dashboard.title}</h1>
-            <p className="text-sm text-muted-foreground">{t.dashboard.subtitle}</p>
+            <h1 className="text-2xl font-bold text-white" data-testid="text-page-title">{t.dashboard?.title || "Home"}</h1>
+            <p className="text-slate-400 text-sm">{t.dashboard?.subtitle || "Your content creation hub"}</p>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 px-2 py-1 bg-slate-900 rounded-lg border border-slate-800" data-testid="mode-toggle">
+              <button
+                onClick={() => setIntelligenceMode(false)}
+                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${!intelligenceMode ? "bg-purple-600 text-white" : "text-slate-400 hover:text-white"}`}
+                data-testid="button-creator-mode"
+              >
+                <Sparkles className="w-4 h-4 inline mr-1" />
+                {t.dashboard?.creatorMode || "Creator"}
+              </button>
+              <button
+                onClick={() => setIntelligenceMode(true)}
+                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${intelligenceMode ? "bg-purple-600 text-white" : "text-slate-400 hover:text-white"}`}
+                data-testid="button-intelligence-mode"
+              >
+                <BarChart3 className="w-4 h-4 inline mr-1" />
+                {t.dashboard?.intelligenceMode || "Intelligence"}
+              </button>
+            </div>
+
+            {credits && (
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-900 rounded-lg border border-slate-800" data-testid="credits-counter">
+                <Coins className="w-4 h-4 text-yellow-400" />
+                <span className="text-sm font-medium text-white" data-testid="text-credits-count">{credits.credits}</span>
+                <span className="text-xs text-slate-400">/ {credits.maxCredits}</span>
+              </div>
+            )}
           </div>
         </div>
 
         {isLoading ? (
           <LoadingSkeleton />
+        ) : intelligenceMode ? (
+          <IntelligenceLayer />
         ) : (
-          <div className="space-y-8">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2">
-                <ViralPlaySection data={viralPlay ?? null} credits={credits} />
-              </div>
-              <div className="space-y-4">
-                <CreditsCounter credits={credits} />
-                <CreateNextVideoSection />
-              </div>
-            </div>
-
-            <TrendingOpportunitiesSection data={trending} />
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <TrendingHooksSection data={hooks} />
-              <TrendingNichesSection data={niches} />
-            </div>
-          </div>
+          <CreatorLayer
+            viralPlay={viralPlay ?? null}
+            trending={trending}
+            hooks={hooks}
+            credits={credits}
+            onNavigate={navigate}
+          />
         )}
       </div>
+
+      {!intelligenceMode && (
+        <GuidedWorkflow
+          currentStep={workflowStep}
+          onNextAction={() => navigate("/create")}
+          onStepClick={() => navigate("/create")}
+        />
+      )}
     </DashboardLayout>
   );
 }

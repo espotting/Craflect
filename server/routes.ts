@@ -3662,14 +3662,17 @@ ${input.cta ? `CTA: ${input.cta}` : ""}`;
   // ─── AI Credits System ───
 
   const CREDIT_COSTS: Record<string, number> = {
-    idea: 2,
-    script: 3,
-    blueprint: 3,
+    idea: 1,
+    script: 1,
+    blueprint: 1,
+    template_render: 2,
+    avatar: 3,
   };
 
   const PLAN_CREDITS: Record<string, number> = {
-    free: 40,
-    creator: 1000,
+    free: 30,
+    creator: 250,
+    pro: 1500,
   };
 
   function getViewRange(viralityScore: number): string {
@@ -3711,6 +3714,7 @@ ${input.cta ? `CTA: ${input.cta}` : ""}`;
         maxCredits,
         plan,
         costs: CREDIT_COSTS,
+        estimatedVideos: Math.floor(credits / 3),
         resetsAt: resetAt.toISOString(),
       });
     } catch (err: any) {
@@ -3725,7 +3729,8 @@ ${input.cta ? `CTA: ${input.cta}` : ""}`;
     const subResult = await db.execute(sql`SELECT plan, billing_status FROM subscriptions WHERE user_id = ${userId} LIMIT 1`);
     const sub = (subResult as any).rows?.[0] || (subResult as any)[0];
     if (sub && (sub.billing_status === "active" || sub.billing_status === "trialing") && sub.plan) {
-      return sub.plan === "starter" || sub.plan === "pro" || sub.plan === "studio" ? "creator" : "free";
+      if (sub.plan === "pro" || sub.plan === "studio") return "pro";
+      if (sub.plan === "starter" || sub.plan === "creator") return "creator";
     }
     return "free";
   }
