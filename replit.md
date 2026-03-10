@@ -17,6 +17,7 @@ The application uses a React, TypeScript, Tailwind CSS, shadcn/ui, and Framer Mo
 The system employs a dual schema approach:
 - **Legacy tables**: `video_primitives`, `niche_patterns`, `niche_statistics`, `niche_profiles`, `workspace_intelligence` are used by the current frontend. These tables utilize a 4-dimensional taxonomy (VP_HOOK_TYPES, FORMAT_TYPES, ANGLE_CATEGORIES, STRUCTURE_MODELS).
 - **Craflect Taxonomy v1 tables**: `videos`, `viral_patterns`, `patterns`, `saved_ideas`, `content_projects` support the stable pipeline, Pattern Engine, and new features, based on a layered taxonomy. Both schema co-exist.
+- **Geo Intelligence**: Table `geo_zones` (6 zones: US, UK, EU-FR, EU-ES, EU-DE, LATAM). Table `videos` has geo columns: `geo_zone`, `geo_country`, `geo_language`, `target_markets` (text array with GIN index).
 
 The platform features a dual interface layer:
 - **Creator Mode** (default): Focuses on action and creation (Home with Viral Play of the Day + Trending Videos, Opportunities grid, Studio/Create with 5 modes, Workspace).

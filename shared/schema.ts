@@ -1,4 +1,4 @@
-import { pgTable, text, varchar, timestamp, integer, doublePrecision, jsonb, boolean, real, index } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, integer, doublePrecision, jsonb, boolean, real, index, char } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { sql } from "drizzle-orm";
@@ -614,6 +614,12 @@ export const videos = pgTable("videos", {
   classificationStartedAt: timestamp("classification_started_at"),
   patternNotes: text("pattern_notes"),
 
+  // ── Geo Intelligence ──
+  geoZone: varchar("geo_zone", { length: 10 }),
+  geoCountry: char("geo_country", { length: 2 }),
+  geoLanguage: varchar("geo_language", { length: 5 }),
+  targetMarkets: text("target_markets").array(),
+
   // ── Legacy fields (deprecated, kept for transition) ──
   hookMechanism: text("hook_mechanism").array(),
   hookFormat: text("hook_format"),
@@ -644,7 +650,22 @@ export const videos = pgTable("videos", {
   index("idx_videos_hook_mechanism_primary").on(table.hookMechanismPrimary),
   index("idx_videos_creator_niche").on(table.creatorNiche),
   index("idx_videos_taxonomy_version").on(table.taxonomyVersion),
+  index("idx_videos_geo_zone").on(table.geoZone),
+  index("idx_videos_geo_language").on(table.geoLanguage),
 ]);
+
+export const geoZones = pgTable("geo_zones", {
+  zoneCode: varchar("zone_code", { length: 10 }).primaryKey(),
+  zoneName: text("zone_name").notNull(),
+  proxyCountryCode: char("proxy_country_code", { length: 2 }).notNull(),
+  languagesPriority: text("languages_priority").array().notNull(),
+  scrapingHours: integer("scraping_hours").array().notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+});
+
+export const insertGeoZoneSchema = createInsertSchema(geoZones);
+export type InsertGeoZone = z.infer<typeof insertGeoZoneSchema>;
+export type GeoZone = typeof geoZones.$inferSelect;
 
 export const viralPatterns = pgTable("viral_patterns", {
   patternId: varchar("pattern_id").primaryKey().default(sql`gen_random_uuid()`),
