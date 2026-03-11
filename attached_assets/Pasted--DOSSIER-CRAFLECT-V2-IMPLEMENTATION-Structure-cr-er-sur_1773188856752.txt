@@ -1,0 +1,671 @@
+📁 DOSSIER CRAFLECT-V2-IMPLEMENTATION
+Structure à créer sur Replit :
+plain
+Copy
+craflect-v2/
+├── server/
+│   ├── config/
+│   │   ├── redis.ts
+│   │   └── ollama.ts
+│   └── workers/
+│       ├── index.ts
+│       ├── scheduler.ts
+│       ├── ingestion.worker.ts
+│       ├── classification.worker.ts
+│       ├── scoring.worker.ts
+│       └── pattern.worker.ts
+├── migrations/
+│   ├── 0001_cleanup.sql
+│   └── 0002_geo_v2.sql
+├── docker-compose.yml
+└── V2_INSTRUCTIONS.md
+FICHIER 1 : /server/config/redis.ts
+TypeScript
+Copy
+import Redis from 'ioredis';
+
+export const redisConnection = new Redis({
+  host: process.env.REDIS_HOST || 'localhost',
+  port: parseInt(process.env.REDIS_PORT || '6379'),
+  maxRetriesPerRequest: null,
+  enableReadyCheck: false
+});
+FICHIER 2 : /server/config/ollama.ts
+TypeScript
+Copy
+import { Ollama } from 'ollama';
+
+export const ollama = new Ollama({
+  host: process.env.OLLAMA_HOST || 'http://localhost:11434'
+});
+
+export async function checkOllamaHealth(): Promise<boolean> {
+  try {
+    await ollama.list();
+    return true;
+  } catch {
+    return false;
+  }
+}
+FICHIER 3 : /server/workers/scheduler.ts
+TypeScript
+Copy
+import { Queue } from 'bullmq';
+import { redisConnection } from '../config/redis';
+
+export const ingestionQueue = new Queue('ingestion', { connection: redisConnection });
+export const classificationQueue = new Queue('classification', { connection: redisConnection });
+export const scoringQueue = new Queue('scoring', { connection: redisConnection });
+export const patternQueue = new Queue('pattern', { connection: redisConnection });
+
+export async function setupSchedules() {
+  await ingestionQueue.add('cycle-zones', {}, {
+    repeat: { cron: '0 */2 * * *' },
+    jobId: 'scheduled-ingestion'
+  });
+
+  await scoringQueue.add('batch-scoring', {}, {
+    repeat: { every: 15 * 60 * 1000 },
+    jobId: 'scheduled-scoring'
+  });
+
+  await patternQueue.add('detect-patterns', {}, {
+    repeat: { cron: '0 */6 * * *' },
+    jobId: 'scheduled-patterns'
+  });
+
+  console.log('✅ Schedules configurés : Ingestion (2h), Scoring (15min), Patterns (6h)');
+}
+FICHIER 4 : /server/workers/ingestion.worker.ts
+TypeScript
+Copy
+import { Worker } from 'bullmq';
+import { db } from '../db';
+import { videos, geoZones } from '@shared/schema';
+import { eq } from 'drizzle-orm';
+import { redisConnection } from '../config/redis';
+import { classificationQueue } from './scheduler';
+
+const NICHE_KEYWORDS = {
+  'ai_tools': ['ai tools', 'chatgpt', 'midjourney', 'automation'],
+  'online_business': ['online business', 'entrepreneurship', 'digital marketing'],
+  'productivity': ['productivity', 'time management', 'habits'],
+  'finance': ['personal finance', 'investing', 'crypto'],
+  'content_creation': ['content creation', 'viral content', 'youtube growth']
+};
+
+export const ingestionWorker = new Worker('ingestion', async (job) => {
+  const { zoneCode, niche } = job.data;
+  
+  console.log(`[Ingestion] Zone: ${zoneCode}, Niche: ${niche}`);
+  
+  const zone = await db.query.geoZones.findFirst({
+    where: eq(geoZones.zoneCode, zoneCode)
+  });
+  
+  if (!zone?.isActive) {
+    console.log(`[Ingestion] Zone ${zoneCode} inactive`);
+    return;
+  }
+
+  // TODO: Implémenter appels API (Lobstr, Apify, yt-dlp)
+  const scrapedVideos = await scrapeVideosStub(zone, niche);
+  
+  let created = 0, filtered = 0, duplicates = 0;
+
+  for (const videoData of scrapedVideos) {
+    // DEDUPLICATION
+    const existing = await db.query.videos.findFirst({
+      where: eq(videos.platformVideoId, videoData.platformVideoId)
+    });
+    if (existing) { 
+      duplicates++; 
+      continue; 
+    }
+
+    // QUALITY FILTER: views > 1000 OU views/hour > 100
+    const ageHours = Math.max(1, (Date.now() - new Date(videoData.publishedAt).getTime()) / 3600000);
+    const viewVelocity = (videoData.views || 0) / ageHours;
+    
+    if ((videoData.views || 0) < 1000 && viewVelocity < 100) {
+      filtered++;
+      continue;
+    }
+
+    // Insertion avec géo-data
+    const [inserted] = await db.insert(videos).values({
+      ...videoData,
+      geoZone: zoneCode,
+      geoCountry: zone.proxyCountryCode,
+      geoLanguage: zone.languagesPriority[0],
+      targetMarkets: calculateTargetMarkets(zoneCode, zone.languagesPriority[0]),
+      classificationStatus: 'pending',
+      isArchived: false
+    }).returning();
+
+    created++;
+    
+    // Queue classification immédiate
+    await classificationQueue.add('classify', { 
+      videoId: inserted.id 
+    }, { 
+      priority: viewVelocity > 500 ? 1 : 2 
+    });
+  }
+
+  console.log(`[Ingestion] ${zoneCode}/${niche}: ${created} créées, ${filtered} filtrées, ${duplicates} doublons`);
+  return { created, filtered, duplicates, zone: zoneCode };
+
+}, { 
+  connection: redisConnection, 
+  concurrency: 2,
+  limiter: { max: 50, duration: 60000 }
+});
+
+function calculateTargetMarkets(zoneCode: string, language: string): string[] {
+  const markets: Record<string, string[]> = {
+    'FR': ['FR', 'BE', 'CH', 'LU', 'CA-QC', 'DZ', 'MA', 'TN'],
+    'ES': ['ES', 'MX', 'AR', 'CO', 'CL', 'PE', 'VE'],
+    'DE': ['DE', 'AT', 'CH', 'LI'],
+    'EN': ['US', 'UK', 'CA', 'AU', 'NZ', 'IE', 'ZA', 'NG'],
+    'PT': ['BR', 'PT', 'AO', 'MZ']
+  };
+  
+  const base = markets[language] || ['US'];
+  const country = zoneCode.split('-')[0];
+  return [country, ...base.filter(m => m !== country)];
+}
+
+// STUB - Remplacer par implémentation réelle
+async function scrapeVideosStub(zone: any, niche: string) {
+  // Appels API à implémenter : Lobstr (Instagram), Apify (TikTok), yt-dlp (YouTube)
+  return [];
+}
+FICHIER 5 : /server/workers/classification.worker.ts
+TypeScript
+Copy
+import { Worker } from 'bullmq';
+import { db } from '../db';
+import { videos } from '@shared/schema';
+import { eq } from 'drizzle-orm';
+import { redisConnection } from '../config/redis';
+import { ollama } from '../config/ollama';
+import OpenAI from 'openai';
+
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+const DNA_PROMPT = `Analyse cette vidéo short-form et extrais son Content DNA au format JSON strict.
+
+CONTENU:
+Titre: {caption}
+Transcript: {transcript}
+Hashtags: {hashtags}
+Durée: {duration}s
+Vues: {views}
+
+Réponds UNIQUEMENT avec ce JSON:
+{
+  "hook_mechanism_primary": "contrarian|question|statistic|story|curiosity_gap|warning|mistake|list",
+  "structure_type": "hook_value_cta|problem_solution|story_lesson|list_format|tutorial_step|before_after",
+  "topic_cluster": "ai_tools|online_business|productivity|finance|content_creation|fitness|lifestyle|education|tech",
+  "emotion_primary": "curiosity|fear|excitement|empathy|urgency|novelty|status",
+  "visual_style": ["cinematic","raw","polished","lofi"],
+  "cut_frequency": "low|medium|high",
+  "cta_type": "follow|comment|share|link|save|subscribe|none",
+  "confidence": 0.0-1.0
+}`;
+
+export const classificationWorker = new Worker('classification', async (job) => {
+  const { videoId } = job.data;
+  
+  const video = await db.query.videos.findFirst({
+    where: eq(videos.id, videoId)
+  });
+  
+  if (!video || video.classificationStatus !== 'pending') return;
+
+  await db.update(videos).set({ 
+    classificationStatus: 'processing',
+    classificationStartedAt: new Date()
+  }).where(eq(videos.id, videoId));
+
+  try {
+    const prompt = DNA_PROMPT
+      .replace('{caption}', video.caption || 'N/A')
+      .replace('{transcript}', video.transcript || 'N/A')
+      .replace('{hashtags}', (video.hashtags || []).join(', '))
+      .replace('{duration}', String(video.durationSeconds || 0))
+      .replace('{views}', String(video.views || 0));
+
+    let dna: any;
+    let source = 'ollama';
+
+    // Tentative Ollama Local
+    try {
+      const response = await ollama.generate({
+        model: 'llama3.1:8b',
+        prompt,
+        format: 'json',
+        options: { temperature: 0.3, num_predict: 500 }
+      });
+      
+      dna = JSON.parse(response.response);
+      
+      if (dna.confidence < 0.7 || !dna.hook_mechanism_primary) {
+        throw new Error('Low confidence local');
+      }
+    } catch (err) {
+      // Fallback OpenAI
+      console.log(`[Fallback OpenAI] Video ${videoId}`);
+      const completion = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: 'Expert Content DNA. Réponse JSON uniquement.' },
+          { role: 'user', content: prompt }
+        ],
+        response_format: { type: 'json_object' },
+        temperature: 0.3
+      });
+      
+      dna = JSON.parse(completion.choices[0].message.content || '{}');
+      source = 'openai';
+    }
+
+    // Mise à jour Content DNA complet
+    await db.update(videos).set({
+      hookMechanismPrimary: dna.hook_mechanism_primary,
+      structureType: dna.structure_type,
+      topicCluster: dna.topic_cluster,
+      emotionPrimary: dna.emotion_primary,
+      visualStyle: dna.visual_style,
+      cutFrequency: dna.cut_frequency,
+      ctaType: dna.cta_type,
+      durationBucket: calculateBucket(video.durationSeconds),
+      classificationStatus: 'completed',
+      classifiedAt: new Date(),
+      classifiedBy: source,
+      taxonomyVersion: '2.0',
+      confidence: dna.confidence
+    }).where(eq(videos.id, videoId));
+
+    console.log(`[Classified] ${videoId} via ${source}`);
+
+  } catch (error) {
+    const attempts = (video.classificationAttempts || 0) + 1;
+    await db.update(videos).set({
+      classificationStatus: attempts >= 3 ? 'failed' : 'pending',
+      classificationAttempts: attempts,
+      patternNotes: `Error: ${error.message}`
+    }).where(eq(videos.id, videoId));
+    
+    if (attempts >= 3) throw error;
+  }
+}, {
+  connection: redisConnection,
+  concurrency: 3,
+  limiter: { max: 60, duration: 60000 }
+});
+
+function calculateBucket(seconds: number | null): string {
+  if (!seconds) return '30-60s';
+  if (seconds <= 15) return '0-15s';
+  if (seconds <= 30) return '15-30s';
+  if (seconds <= 60) return '30-60s';
+  if (seconds <= 90) return '60-90s';
+  if (seconds <= 180) return '90-180s';
+  return '180s+';
+}
+FICHIER 6 : /server/workers/scoring.worker.ts
+TypeScript
+Copy
+import { Worker } from 'bullmq';
+import { db } from '../db';
+import { videos } from '@shared/schema';
+import { sql } from 'drizzle-orm';
+import { redisConnection } from '../config/redis';
+
+export const scoringWorker = new Worker('scoring', async () => {
+  console.log('[Scoring] Calcul metrics en cours...');
+  
+  // Calcul view_velocity et engagement_rate
+  await db.execute(sql`
+    UPDATE videos 
+    SET 
+      view_velocity = CASE 
+        WHEN EXTRACT(EPOCH FROM (NOW() - COALESCE(published_at, collected_at))) > 3600 
+        THEN views / (EXTRACT(EPOCH FROM (NOW() - COALESCE(published_at, collected_at))) / 3600)
+        ELSE views 
+      END,
+      engagement_rate = CASE 
+        WHEN views > 0 
+        THEN (COALESCE(likes, 0) + COALESCE(comments, 0) + COALESCE(shares, 0))::float / views 
+        ELSE 0 
+      END
+    WHERE classification_status = 'completed'
+      AND (view_velocity IS NULL OR engagement_rate IS NULL)
+  `);
+
+  // Calcul virality_score pondéré
+  await db.execute(sql`
+    UPDATE videos 
+    SET 
+      virality_score = LEAST(100, GREATEST(0, (
+        (COALESCE(view_velocity, 0) * 0.4) + 
+        (COALESCE(engagement_rate, 0) * 1000 * 0.25) + 
+        (LN(GREATEST(views, 1)) * 3 * 0.2) +
+        (CASE 
+          WHEN collected_at > NOW() - INTERVAL '24 hours' THEN 15 
+          WHEN collected_at > NOW() - INTERVAL '7 days' THEN 5 
+          ELSE 10 
+        END * 0.15)
+      ))),
+      trend_score_processed_at = NOW()
+    WHERE classification_status = 'completed'
+      AND virality_score IS NULL
+      AND views IS NOT NULL
+  `);
+
+  console.log('[Scoring] Batch terminé');
+}, {
+  connection: redisConnection,
+  concurrency: 1
+});
+FICHIER 7 : /server/workers/pattern.worker.ts
+TypeScript
+Copy
+import { Worker } from 'bullmq';
+import { db } from '../db';
+import { videos, patterns, videoPatterns } from '@shared/schema';
+import { sql } from 'drizzle-orm';
+import { redisConnection } from '../config/redis';
+
+export const patternWorker = new Worker('pattern', async () => {
+  console.log('[Pattern Engine] Détection patterns...');
+  
+  const result = await db.execute(sql`
+    INSERT INTO patterns (
+      dimension_keys, hook_type, structure_type, topic_cluster, geo_zone,
+      video_count, avg_virality_score, avg_engagement_rate, pattern_score,
+      velocity_mid, trend_classification, last_updated
+    )
+    SELECT 
+      ARRAY[v.hook_mechanism_primary, v.structure_type, v.topic_cluster],
+      v.hook_mechanism_primary,
+      v.structure_type,
+      v.topic_cluster,
+      v.geo_zone,
+      COUNT(*),
+      ROUND(AVG(v.virality_score)::numeric, 2),
+      ROUND(AVG(v.engagement_rate)::numeric, 4),
+      LEAST(100, (COUNT(*) * 2) + (AVG(v.virality_score) * 0.3)),
+      (COUNT(*) FILTER (WHERE v.collected_at > NOW() - INTERVAL '24 hours'))::float / 
+        GREATEST(1, COUNT(*) FILTER (WHERE v.collected_at > NOW() - INTERVAL '7 days')),
+      CASE 
+        WHEN (COUNT(*) FILTER (WHERE v.collected_at > NOW() - INTERVAL '24 hours'))::float / 
+             GREATEST(1, COUNT(*) FILTER (WHERE v.collected_at > NOW() - INTERVAL '7 days')) > 0.3 
+        THEN 'rising' 
+        ELSE 'stable'
+      END,
+      NOW()
+    FROM videos v
+    WHERE v.classification_status = 'completed'
+      AND v.is_archived = false
+      AND v.hook_mechanism_primary IS NOT NULL
+      AND v.structure_type IS NOT NULL
+      AND v.topic_cluster IS NOT NULL
+    GROUP BY v.hook_mechanism_primary, v.structure_type, v.topic_cluster, v.geo_zone
+    HAVING COUNT(*) >= 3
+    ON CONFLICT (dimension_keys) DO UPDATE SET
+      video_count = EXCLUDED.video_count,
+      avg_virality_score = EXCLUDED.avg_virality_score,
+      pattern_score = EXCLUDED.pattern_score,
+      velocity_mid = EXCLUDED.velocity_mid,
+      trend_classification = EXCLUDED.trend_classification,
+      last_updated = NOW()
+    RETURNING pattern_id, dimension_keys, geo_zone
+  `);
+
+  // Association vidéos <-> patterns
+  for (const pattern of result.rows) {
+    const dims = pattern.dimension_keys as string[];
+    await db.execute(sql`
+      INSERT INTO video_patterns (video_id, pattern_id, match_score)
+      SELECT v.id, ${pattern.pattern_id}, 0.95
+      FROM videos v
+      WHERE v.hook_mechanism_primary = ${dims[0]}
+        AND v.structure_type = ${dims[1]}
+        AND v.topic_cluster = ${dims[2]}
+        AND v.geo_zone = ${pattern.geo_zone}
+        AND v.classification_status = 'completed'
+        AND v.is_archived = false
+      ON CONFLICT DO NOTHING
+    `);
+  }
+
+  console.log(`[Pattern Engine] ${result.rows.length} patterns mis à jour`);
+}, {
+  connection: redisConnection,
+  concurrency: 1
+});
+FICHIER 8 : /server/workers/index.ts
+TypeScript
+Copy
+import { setupSchedules } from './scheduler';
+import { ingestionWorker } from './ingestion.worker';
+import { classificationWorker } from './classification.worker';
+import { scoringWorker } from './scoring.worker';
+import { patternWorker } from './pattern.worker';
+import { checkOllamaHealth } from '../config/ollama';
+
+async function startWorkers() {
+  console.log('🚀 Démarrage Craflect v2.0 Workers...');
+  
+  const ollamaReady = await checkOllamaHealth();
+  console.log(`[Ollama] ${ollamaReady ? '✅ OK' : '⚠️ HORS LIGNE (fallback OpenAI)'}`);
+  
+  await setupSchedules();
+  
+  console.log('✅ Workers actifs :');
+  console.log('  • Ingestion (toutes les 2h)');
+  console.log('  • Classification (continu)');
+  console.log('  • Scoring (toutes les 15min)');
+  console.log('  • Pattern Engine (toutes les 6h)');
+  
+  process.on('SIGTERM', async () => {
+    console.log('Arrêt des workers...');
+    await ingestionWorker.close();
+    await classificationWorker.close();
+    await scoringWorker.close();
+    await patternWorker.close();
+    process.exit(0);
+  });
+}
+
+startWorkers().catch(console.error);
+FICHIER 9 : /migrations/0001_cleanup.sql
+sql
+Copy
+-- SUPPRESSION DATASET LEGACY (740 vidéos Twin)
+-- ATTENTION : Irréversible
+
+TRUNCATE TABLE videos CASCADE;
+TRUNCATE TABLE patterns CASCADE;
+TRUNCATE TABLE video_patterns CASCADE;
+TRUNCATE TABLE viral_patterns CASCADE;
+TRUNCATE TABLE niche_patterns CASCADE;
+TRUNCATE TABLE niche_statistics CASCADE;
+
+DELETE FROM intelligence_events WHERE event_type = 'TWIN_LEGACY';
+DELETE FROM creators WHERE seed_score IS NULL;
+
+-- Reset séquences
+ALTER SEQUENCE IF EXISTS videos_id_seq RESTART WITH 1;
+FICHIER 10 : /migrations/0002_geo_v2.sql
+sql
+Copy
+-- MIGRATION V2.0 : Géolocalisation et nouvelle architecture
+
+-- 1. Ajout colonnes géo à la table videos existante
+ALTER TABLE videos 
+ADD COLUMN IF NOT EXISTS geo_zone VARCHAR(10),
+ADD COLUMN IF NOT EXISTS geo_country CHAR(2),
+ADD COLUMN IF NOT EXISTS geo_language VARCHAR(5),
+ADD COLUMN IF NOT EXISTS target_markets TEXT[],
+ADD COLUMN IF NOT EXISTS is_archived BOOLEAN DEFAULT false,
+ADD COLUMN IF NOT EXISTS confidence REAL;
+
+-- 2. Index performance
+CREATE INDEX IF NOT EXISTS idx_videos_geo_zone ON videos(geo_zone);
+CREATE INDEX IF NOT EXISTS idx_videos_geo_language ON videos(geo_language);
+CREATE INDEX IF NOT EXISTS idx_videos_target_markets ON videos USING GIN(target_markets);
+CREATE INDEX IF NOT EXISTS idx_videos_active ON videos(is_archived) WHERE is_archived = false;
+
+-- 3. Création table des zones géographiques
+CREATE TABLE IF NOT EXISTS geo_zones (
+    zone_code VARCHAR(10) PRIMARY KEY,
+    zone_name VARCHAR(100) NOT NULL,
+    proxy_country_code CHAR(2) NOT NULL,
+    languages_priority TEXT[] NOT NULL,
+    scraping_hours INT[] NOT NULL,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- 4. Insertion des 6 zones de scraping
+INSERT INTO geo_zones (zone_code, zone_name, proxy_country_code, languages_priority, scraping_hours) 
+VALUES 
+('US', 'United States', 'US', ARRAY['EN'], ARRAY[13,14,15,16,17,18,19,20,21,22]),
+('UK', 'United Kingdom', 'GB', ARRAY['EN'], ARRAY[9,10,11,12,13,14,15,16,17,18]),
+('EU-FR', 'Europe Francophone', 'FR', ARRAY['FR', 'EN'], ARRAY[7,8,9,10,11,12,13,14,15,16]),
+('EU-ES', 'Europe Hispanophone', 'ES', ARRAY['ES', 'EN'], ARRAY[7,8,9,10,11,12,13,14,15,16]),
+('EU-DE', 'Europe Germanophone', 'DE', ARRAY['DE', 'EN'], ARRAY[7,8,9,10,11,12,13,14,15,16]),
+('LATAM', 'Latin America', 'BR', ARRAY['ES', 'PT'], ARRAY[17,18,19,20,21,22,23,0,1,2])
+ON CONFLICT (zone_code) DO NOTHING;
+FICHIER 11 : /docker-compose.yml
+yaml
+Copy
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://craflect:${DB_PASSWORD}@postgres:5432/craflect
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - OLLAMA_HOST=http://ollama:11434
+    depends_on:
+      - postgres
+      - redis
+      - ollama
+
+  workers:
+    build: .
+    command: npm run workers
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://craflect:${DB_PASSWORD}@postgres:5432/craflect
+      - REDIS_HOST=redis
+      - OLLAMA_HOST=http://ollama:11434
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - LOBSTR_API_KEY=${LOBSTR_API_KEY}
+      - APIFY_API_KEY=${APIFY_API_KEY}
+    depends_on:
+      - postgres
+      - redis
+      - ollama
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=craflect
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=craflect
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+
+  ollama:
+    image: ollama/ollama:latest
+    volumes:
+      - ollama_data:/root/.ollama
+    ports:
+      - "11434:11434"
+
+volumes:
+  postgres_data:
+  redis_data:
+  ollama_data:
+FICHIER 12 : Modification package.json
+Ajouter dans la section "scripts" existante :
+JSON
+Copy
+{
+  "scripts": {
+    "dev": "tsx server/index.ts",
+    "build": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
+    "start": "NODE_ENV=production node dist/index.js",
+    "check": "tsc",
+    "db:push": "drizzle-kit push",
+    "db:migrate": "drizzle-kit migrate",
+    "workers": "tsx server/workers/index.ts",
+    "workers:dev": "tsx watch server/workers/index.ts"
+  }
+}
+Et dans "dependencies" :
+JSON
+Copy
+{
+  "dependencies": {
+    "bullmq": "^5.1.0",
+    "ioredis": "^5.3.2",
+    "ollama": "^0.5.0"
+  }
+}
+FICHIER 13 : /V2_INSTRUCTIONS.md (Pour l'agent Replit)
+Markdown
+Copy
+Code
+Preview
+# INSTRUCTIONS IMPLEMENTATION CRAFLECT V2.0
+
+## ÉTAPES À SUIVRE :
+
+### 1. Installation dépendances
+Dans le shell Replit :
+npm install bullmq ioredis ollama
+
+### 2. Création arborescence
+Créer les dossiers :
+- /server/config/
+- /server/workers/
+- /migrations/ (si inexistant)
+
+### 3. Copie des fichiers
+Copier chaque fichier fourni dans son chemin exact.
+
+### 4. Mise à jour schema.ts
+Ajouter dans /shared/schema.ts si manquant :
+- Export geoZones
+- Colonnes geo dans videos (geoZone, geoCountry, geoLanguage, targetMarkets, isArchived, confidence)
+
+### 5. Exécution migrations
+Dans l'outil Database de Replit :
+1. Exécuter 0001_cleanup.sql (supprime les 740 vidéos legacy)
+2. Exécuter 0002_geo_v2.sql (crée structure v2)
+
+### 6. Test local
+npm run workers:dev
+Vérifier démarrage sans erreur.
+
+### 7. Export
+Préparer zip pour Hetzner (inclure docker-compose.yml à la racine).

@@ -1,6 +1,7 @@
--- Ajout géolocalisation v2.0
+-- MIGRATION V2.0 : Géolocalisation et nouvelle architecture
 -- ⚠️ Déjà exécuté sur Replit — Ce fichier est pour référence Hetzner
 
+-- 1. Ajout colonnes géo à la table videos existante
 ALTER TABLE videos
 ADD COLUMN IF NOT EXISTS geo_zone VARCHAR(10),
 ADD COLUMN IF NOT EXISTS geo_country CHAR(2),
@@ -9,16 +10,19 @@ ADD COLUMN IF NOT EXISTS target_markets TEXT[],
 ADD COLUMN IF NOT EXISTS is_archived BOOLEAN DEFAULT false,
 ADD COLUMN IF NOT EXISTS confidence REAL;
 
+-- 2. Index performance
 CREATE INDEX IF NOT EXISTS idx_videos_geo_zone ON videos(geo_zone);
 CREATE INDEX IF NOT EXISTS idx_videos_geo_language ON videos(geo_language);
 CREATE INDEX IF NOT EXISTS idx_videos_target_markets ON videos USING GIN(target_markets);
 CREATE INDEX IF NOT EXISTS idx_videos_active ON videos(is_archived) WHERE is_archived = false;
 
+-- 3. Ajout geo_zone à patterns
 ALTER TABLE patterns
 ADD COLUMN IF NOT EXISTS geo_zone VARCHAR(10);
 
 CREATE INDEX IF NOT EXISTS idx_patterns_geo_zone ON patterns(geo_zone);
 
+-- 4. Création table des zones géographiques
 CREATE TABLE IF NOT EXISTS geo_zones (
     zone_code VARCHAR(10) PRIMARY KEY,
     zone_name VARCHAR(100) NOT NULL,
@@ -29,7 +33,9 @@ CREATE TABLE IF NOT EXISTS geo_zones (
     created_at TIMESTAMP DEFAULT NOW()
 );
 
-INSERT INTO geo_zones VALUES
+-- 5. Insertion des 6 zones de scraping
+INSERT INTO geo_zones (zone_code, zone_name, proxy_country_code, languages_priority, scraping_hours)
+VALUES
 ('US', 'United States', 'US', ARRAY['EN'], ARRAY[13,14,15,16,17,18,19,20,21,22]),
 ('UK', 'United Kingdom', 'GB', ARRAY['EN'], ARRAY[9,10,11,12,13,14,15,16,17,18]),
 ('EU-FR', 'Europe Francophone', 'FR', ARRAY['FR', 'EN'], ARRAY[7,8,9,10,11,12,13,14,15,16]),

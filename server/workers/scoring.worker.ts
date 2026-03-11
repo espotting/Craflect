@@ -4,7 +4,7 @@ import { sql } from 'drizzle-orm';
 import { redisConnection } from '../config/redis';
 
 export const scoringWorker = new Worker('scoring', async () => {
-  console.log('[Scoring] Calcul metrics...');
+  console.log('[Scoring] Calcul metrics en cours...');
 
   await db.execute(sql`
     UPDATE videos
@@ -26,7 +26,7 @@ export const scoringWorker = new Worker('scoring', async () => {
   await db.execute(sql`
     UPDATE videos
     SET
-      virality_score = LEAST(100, (
+      virality_score = LEAST(100, GREATEST(0, (
         (COALESCE(view_velocity, 0) * 0.4) +
         (COALESCE(engagement_rate, 0) * 1000 * 0.25) +
         (LN(GREATEST(views, 1)) * 3 * 0.2) +
@@ -35,12 +35,15 @@ export const scoringWorker = new Worker('scoring', async () => {
           WHEN collected_at > NOW() - INTERVAL '7 days' THEN 5
           ELSE 10
         END * 0.15)
-      )),
+      ))),
       trend_score_processed_at = NOW()
     WHERE classification_status = 'completed'
       AND virality_score IS NULL
       AND views IS NOT NULL
   `);
 
-  console.log('[Scoring] Terminé');
-}, { connection: redisConnection, concurrency: 1 });
+  console.log('[Scoring] Batch terminé');
+}, {
+  connection: redisConnection,
+  concurrency: 1
+});

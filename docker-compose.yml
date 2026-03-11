@@ -9,10 +9,12 @@ services:
       - NODE_ENV=production
       - DATABASE_URL=postgresql://craflect:${DB_PASSWORD}@postgres:5432/craflect
       - REDIS_HOST=redis
+      - REDIS_PORT=6379
       - OLLAMA_HOST=http://ollama:11434
     depends_on:
       - postgres
       - redis
+      - ollama
 
   workers:
     build: .
@@ -23,6 +25,8 @@ services:
       - REDIS_HOST=redis
       - OLLAMA_HOST=http://ollama:11434
       - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - LOBSTR_API_KEY=${LOBSTR_API_KEY}
+      - APIFY_API_KEY=${APIFY_API_KEY}
     depends_on:
       - postgres
       - redis
@@ -36,15 +40,22 @@ services:
       - POSTGRES_DB=craflect
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
 
   redis:
     image: redis:7-alpine
+    volumes:
+      - redis_data:/data
 
   ollama:
     image: ollama/ollama:latest
     volumes:
       - ollama_data:/root/.ollama
+    ports:
+      - "11434:11434"
 
 volumes:
   postgres_data:
+  redis_data:
   ollama_data:

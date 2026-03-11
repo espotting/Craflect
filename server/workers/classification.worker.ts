@@ -8,7 +8,7 @@ import OpenAI from 'openai';
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-const DNA_PROMPT = `Analyse cette vidéo et extrais le Content DNA au format JSON strict.
+const DNA_PROMPT = `Analyse cette vidéo short-form et extrais son Content DNA au format JSON strict.
 
 CONTENU:
 Titre: {caption}
@@ -21,17 +21,21 @@ Réponds UNIQUEMENT avec ce JSON:
 {
   "hook_mechanism_primary": "contrarian|question|statistic|story|curiosity_gap|warning|mistake|list",
   "structure_type": "hook_value_cta|problem_solution|story_lesson|list_format|tutorial_step|before_after",
-  "topic_cluster": "ai_tools|online_business|productivity|finance|content_creation|fitness|lifestyle|education",
-  "emotion_primary": "curiosity|fear|excitement|empathy|urgency|novelty",
-  "visual_style": ["cinematic","raw","polished"],
+  "topic_cluster": "ai_tools|online_business|productivity|finance|content_creation|fitness|lifestyle|education|tech",
+  "emotion_primary": "curiosity|fear|excitement|empathy|urgency|novelty|status",
+  "visual_style": ["cinematic","raw","polished","lofi"],
   "cut_frequency": "low|medium|high",
-  "cta_type": "follow|comment|share|link|save|none",
+  "cta_type": "follow|comment|share|link|save|subscribe|none",
   "confidence": 0.0-1.0
 }`;
 
 export const classificationWorker = new Worker('classification', async (job) => {
   const { videoId } = job.data;
-  const video = await db.query.videos.findFirst({ where: eq(videos.id, videoId) });
+
+  const video = await db.query.videos.findFirst({
+    where: eq(videos.id, videoId)
+  });
+
   if (!video || video.classificationStatus !== 'pending') return;
 
   await db.update(videos).set({
@@ -55,21 +59,26 @@ export const classificationWorker = new Worker('classification', async (job) => 
         model: 'llama3.1:8b',
         prompt,
         format: 'json',
-        options: { temperature: 0.3 }
+        options: { temperature: 0.3, num_predict: 500 }
       });
+
       dna = JSON.parse(response.response);
-      if (dna.confidence < 0.7) throw new Error('Low confidence');
+
+      if (dna.confidence < 0.7 || !dna.hook_mechanism_primary) {
+        throw new Error('Low confidence local');
+      }
     } catch {
       console.log(`[Fallback OpenAI] Video ${videoId}`);
       const completion = await openai.chat.completions.create({
         model: 'gpt-4o-mini',
         messages: [
-          { role: 'system', content: 'Expert Content DNA. JSON uniquement.' },
+          { role: 'system', content: 'Expert Content DNA. Réponse JSON uniquement.' },
           { role: 'user', content: prompt }
         ],
         response_format: { type: 'json_object' },
         temperature: 0.3
       });
+
       dna = JSON.parse(completion.choices[0].message.content || '{}');
       source = 'openai';
     }
@@ -92,15 +101,21 @@ export const classificationWorker = new Worker('classification', async (job) => 
 
     console.log(`[Classified] ${videoId} via ${source}`);
 
-  } catch (error) {
+  } catch (error: any) {
     const attempts = (video.classificationAttempts || 0) + 1;
     await db.update(videos).set({
       classificationStatus: attempts >= 3 ? 'failed' : 'pending',
-      classificationAttempts: attempts
+      classificationAttempts: attempts,
+      patternNotes: `Error: ${error.message}`
     }).where(eq(videos.id, videoId));
-    throw error;
+
+    if (attempts >= 3) throw error;
   }
-}, { connection: redisConnection, concurrency: 3 });
+}, {
+  connection: redisConnection,
+  concurrency: 3,
+  limiter: { max: 60, duration: 60000 }
+});
 
 function calculateBucket(seconds: number | null): string {
   if (!seconds) return '30-60s';

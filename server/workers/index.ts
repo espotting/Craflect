@@ -9,13 +9,18 @@ async function startWorkers() {
   console.log('🚀 Démarrage Craflect v2.0 Workers...');
 
   const ollamaReady = await checkOllamaHealth();
-  console.log(`[Ollama] ${ollamaReady ? 'OK' : 'HORS LIGNE'}`);
+  console.log(`[Ollama] ${ollamaReady ? '✅ OK' : '⚠️ HORS LIGNE (fallback OpenAI)'}`);
 
   await setupSchedules();
 
-  console.log('✅ Workers actifs');
+  console.log('✅ Workers actifs :');
+  console.log('  • Ingestion (toutes les 2h)');
+  console.log('  • Classification (continu)');
+  console.log('  • Scoring (toutes les 15min)');
+  console.log('  • Pattern Engine (toutes les 6h)');
 
   process.on('SIGTERM', async () => {
+    console.log('Arrêt des workers...');
     await ingestionWorker.close();
     await classificationWorker.close();
     await scoringWorker.close();

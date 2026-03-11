@@ -22,7 +22,10 @@ export const ingestionWorker = new Worker('ingestion', async (job) => {
     where: eq(geoZones.zoneCode, zoneCode)
   });
 
-  if (!zone?.isActive) return;
+  if (!zone?.isActive) {
+    console.log(`[Ingestion] Zone ${zoneCode} inactive`);
+    return;
+  }
 
   const scrapedVideos = await scrapeVideosStub(zone, niche);
 
@@ -32,7 +35,10 @@ export const ingestionWorker = new Worker('ingestion', async (job) => {
     const existing = await db.query.videos.findFirst({
       where: eq(videos.platformVideoId, videoData.platformVideoId)
     });
-    if (existing) { duplicates++; continue; }
+    if (existing) {
+      duplicates++;
+      continue;
+    }
 
     const ageHours = Math.max(1, (Date.now() - new Date(videoData.publishedAt).getTime()) / 3600000);
     const viewVelocity = (videoData.views || 0) / ageHours;
@@ -56,22 +62,29 @@ export const ingestionWorker = new Worker('ingestion', async (job) => {
 
     await classificationQueue.add('classify', {
       videoId: inserted.id
-    }, { priority: viewVelocity > 500 ? 1 : 2 });
+    }, {
+      priority: viewVelocity > 500 ? 1 : 2
+    });
   }
 
-  console.log(`[Ingestion] ${zoneCode}: ${created} créées, ${filtered} filtrées, ${duplicates} doublons`);
-  return { created, filtered, duplicates };
+  console.log(`[Ingestion] ${zoneCode}/${niche}: ${created} créées, ${filtered} filtrées, ${duplicates} doublons`);
+  return { created, filtered, duplicates, zone: zoneCode };
 
-}, { connection: redisConnection, concurrency: 2 });
+}, {
+  connection: redisConnection,
+  concurrency: 2,
+  limiter: { max: 50, duration: 60000 }
+});
 
 function calculateTargetMarkets(zoneCode: string, language: string): string[] {
   const markets: Record<string, string[]> = {
     'FR': ['FR', 'BE', 'CH', 'LU', 'CA-QC', 'DZ', 'MA', 'TN'],
-    'ES': ['ES', 'MX', 'AR', 'CO', 'CL', 'PE'],
+    'ES': ['ES', 'MX', 'AR', 'CO', 'CL', 'PE', 'VE'],
     'DE': ['DE', 'AT', 'CH', 'LI'],
     'EN': ['US', 'UK', 'CA', 'AU', 'NZ', 'IE', 'ZA', 'NG'],
     'PT': ['BR', 'PT', 'AO', 'MZ']
   };
+
   const base = markets[language] || ['US'];
   const country = zoneCode.split('-')[0];
   return [country, ...base.filter(m => m !== country)];

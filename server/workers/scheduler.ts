@@ -22,5 +22,5 @@ export async function setupSchedules() {
     jobId: 'scheduled-patterns'
   });
 
-  console.log('✅ Schedules configurés');
+  console.log('✅ Schedules configurés : Ingestion (2h), Scoring (15min), Patterns (6h)');
 }

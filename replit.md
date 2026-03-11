@@ -55,11 +55,27 @@ An internal Twin API allows external agents to interact with the platform for vi
 
 Admin functionalities include a Founder Dashboard, logs, and system settings, with distinct navigation and route protection. Admin login requires a 6-digit code verification.
 
+## Craflect v2.0 Workers (Hetzner only)
+Workers infrastructure prepared for Hetzner deployment (not runnable on Replit — requires Redis + Ollama):
+- `server/config/redis.ts` — Redis/BullMQ connection
+- `server/config/ollama.ts` — Ollama LLM connection + health check
+- `server/workers/ingestion.worker.ts` — Scrapes videos per geo zone, deduplication, quality filter
+- `server/workers/classification.worker.ts` — Content DNA extraction (Ollama local → OpenAI fallback)
+- `server/workers/scoring.worker.ts` — Virality score, engagement rate, view velocity
+- `server/workers/pattern.worker.ts` — Pattern detection + video↔pattern association
+- `server/workers/scheduler.ts` — BullMQ schedules (ingestion 2h, scoring 15min, patterns 6h)
+- `server/workers/index.ts` — Worker bootstrap
+- `docker-compose.yml` — Full stack: app, workers, postgres, redis, ollama
+- `migrations/0001_cleanup.sql` — TRUNCATE legacy data (⚠️ Hetzner only, NOT executed on Replit)
+- `migrations/0002_geo_v2.sql` — Geo columns + zones (already applied on Replit)
+
 ## External Dependencies
 - OpenAI (gpt-4.1-mini)
 - PostgreSQL
 - Google OAuth
 - Stripe (@stripe/react-stripe-js)
+- BullMQ + ioredis (workers only, Hetzner)
+- Ollama (workers only, Hetzner)
 - bcryptjs
 - connect-pg-simple
 - wouter
