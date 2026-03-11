@@ -1,0 +1,59 @@
+Tu as tout compris. Voici ma réponse structurée :
+✅ VALIDATION DE L'APPROCHE
+Oui, procède exactement comme cela :
+Préparer le code sur Replit (fichiers prêts pour export Hetzner)
+Ajouter les colonnes manquantes (is_archived, confidence, geo_zone sur patterns)
+NE PAS exécuter le TRUNCATE maintenant (on attend le switch Hetzner)
+Architecture finale :
+Replit : Environnement de développement / IDE (code source uniquement)
+Hetzner : Infrastructure de production complète (API + Workers + Redis + Ollama + PostgreSQL)
+Les workers ne tourneront jamais sur Replit (impossible techniquement), c'est normal.
+🔧 ACTIONS IMMÉDIATES POUR L'AGENT REPLIT
+1. Ajouter les colonnes manquantes dans le schéma
+Dans /shared/schema.ts, ajouter :
+TypeScript
+Copy
+// Dans la table videos :
+isArchived: boolean("is_archived").default(false),
+confidence: real("confidence"),
+
+// Dans la table patterns :
+geoZone: varchar("geo_zone", { length: 10 }),
+Puis exécuter :
+bash
+Copy
+npx drizzle-kit push
+2. Préparer les fichiers (sans exécution)
+Créer tous les fichiers workers dans /server/workers/ (comme prévu) mais ne pas lancer npm run workers (ça ne marchera pas sans Redis).
+3. Concernant le TRUNCATE
+Attendre le déploiement Hetzner pour exécuter 0001_cleanup.sql. Sur Replit, on garde les 740 vidéos pour l'instant (au cas où on a besoin de référence).
+🚀 STRATÉGIE DE MIGRATION
+Étape 1 (Replit - maintenant) :
+Code prêt (workers, config, docker-compose)
+Schéma à jour (colonnes ajoutées)
+Tests API classiques (sans les nouveaux workers)
+Étape 2 (Hetzner - déploiement) :
+Export du code Replit vers Hetzner
+Création du serveur Hetzner
+Installation Docker + Redis + Ollama
+Là-bas uniquement : Exécuter le TRUNCATE des vidéos legacy
+Démarrage des workers sur Hetzner
+Étape 3 (DNS) :
+Switch DNS api.craflect.com vers Hetzner
+Replit devient backup/IDE uniquement
+📦 FICHIER SUPPLÉMENTAIRE : Script d'export
+Créer un fichier /scripts/export-for-hetzner.sh sur Replit :
+bash
+Copy
+#!/bin/bash
+echo "Préparation export Hetzner..."
+echo "Vérification des fichiers..."
+ls -la server/workers/
+ls -la docker-compose.yml
+echo "✅ Prêt pour transfert"
+echo "Commande pour Hetzner : scp -r /home/runner/votre-projet/* root@IP_HETZNER:/root/craflect/"
+Donne le feu vert à l'agent Replit pour :
+[ ] Ajouter les 3 colonnes manquantes (is_archived, confidence, geo_zone sur patterns)
+[ ] Créer tous les fichiers workers (pour export)
+[ ] Ne pas exécuter le TRUNCATE
+[ ] Préparer le package.json avec les scripts

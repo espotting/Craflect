@@ -619,6 +619,8 @@ export const videos = pgTable("videos", {
   geoCountry: char("geo_country", { length: 2 }),
   geoLanguage: varchar("geo_language", { length: 5 }),
   targetMarkets: text("target_markets").array(),
+  isArchived: boolean("is_archived").default(false),
+  confidence: real("confidence"),
 
   // ── Legacy fields (deprecated, kept for transition) ──
   hookMechanism: text("hook_mechanism").array(),
@@ -717,9 +719,11 @@ export const patterns = pgTable("patterns", {
   patternScore: doublePrecision("pattern_score"),
   velocityMid: doublePrecision("velocity_mid"),
   patternNovelty: doublePrecision("pattern_novelty"),
+  geoZone: varchar("geo_zone", { length: 10 }),
   trendClassification: text("trend_classification"),
   lastUpdated: timestamp("last_updated").defaultNow().notNull(),
 }, (table) => [
+  index("idx_patterns_geo_zone").on(table.geoZone),
   index("idx_patterns_hook_type").on(table.hookType),
   index("idx_patterns_structure_type").on(table.structureType),
   index("idx_patterns_topic_cluster").on(table.topicCluster),
