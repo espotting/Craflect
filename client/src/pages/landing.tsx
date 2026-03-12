@@ -155,14 +155,14 @@ export default function Landing() {
               </button>
 
               <div className="flex items-center gap-1.5">
-                <LanguageSwitcher variant="icon" className="!bg-slate-800/80 !border-slate-700 !text-slate-400 hover:!bg-purple-600/30 hover:!border-purple-500/40 hover:!text-purple-300" />
+                <LanguageSwitcher variant="icon" className="!bg-slate-800/80 !border-slate-700 !text-slate-400 hover:!bg-slate-700 hover:!border-slate-600 hover:!text-white" />
 
                 <button
                   onClick={handleSignIn}
-                  className="w-9 h-9 rounded-full bg-slate-800/80 border border-slate-700 flex items-center justify-center hover:bg-purple-600/30 hover:border-purple-500/40 transition-colors"
+                  className="w-9 h-9 rounded-full bg-slate-800/80 border border-slate-700 flex items-center justify-center hover:bg-slate-700 hover:border-slate-600 transition-colors group"
                   data-testid="button-login-nav"
                 >
-                  <UserCircle2 className="w-4 h-4 text-slate-400 hover:text-purple-300" />
+                  <UserCircle2 className="w-4 h-4 text-slate-400 group-hover:text-white transition-colors" />
                 </button>
               </div>
 
