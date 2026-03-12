@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useLanguage } from "@/hooks/use-language";
 import { LanguageSwitcher } from "@/components/language-switcher";
+import { SiTiktok, SiInstagram, SiYoutube } from "react-icons/si";
 import logoTransparent from "@/assets/logo-transparent.png";
 
 function SectionReveal({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
@@ -233,9 +234,20 @@ export default function Landing() {
                 <span className="block">{t.landing.heroLine3}</span>
               </h1>
 
-              <p className="text-xl text-slate-400 mb-8 max-w-2xl mx-auto" data-testid="text-hero-subtitle">
+              <p className="text-xl text-slate-400 mb-6 max-w-2xl mx-auto" data-testid="text-hero-subtitle">
                 {t.landing.subtitle}
               </p>
+
+              <div className="flex items-center justify-center gap-2 text-slate-500 text-sm mb-4" data-testid="platforms-row">
+                <SiTiktok className="w-4 h-4" />
+                <span>TikTok</span>
+                <span className="mx-1">·</span>
+                <SiInstagram className="w-4 h-4" />
+                <span>Instagram Reels</span>
+                <span className="mx-1">·</span>
+                <SiYoutube className="w-4 h-4" />
+                <span>YouTube Shorts</span>
+              </div>
 
               <p className="text-slate-500 text-sm mb-8" data-testid="text-proof-line">
                 {t.landing.proofLine}
