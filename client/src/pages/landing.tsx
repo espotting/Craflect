@@ -432,7 +432,7 @@ export default function Landing() {
 
             <div className="grid md:grid-cols-3 gap-6 mb-12 items-stretch">
               <SectionReveal delay={0.1} className="flex">
-                <div className="bg-slate-900/50 rounded-2xl p-6 border border-slate-800 flex flex-col flex-1">
+                <div className="bg-slate-900/50 rounded-2xl p-6 border border-slate-800 hover:border-purple-500/30 hover:shadow-lg hover:shadow-purple-500/20 transition-all flex flex-col flex-1">
                   <div className="flex items-center gap-2 mb-6">
                     <BarChart3 className="w-5 h-5 text-purple-400" />
                     <span className="text-purple-400 font-semibold text-sm uppercase tracking-wider">{t.landing.card1Title}</span>
@@ -463,7 +463,7 @@ export default function Landing() {
               </SectionReveal>
 
               <SectionReveal delay={0.2} className="flex">
-                <div className="bg-slate-900/50 rounded-2xl p-6 border border-slate-800 flex flex-col flex-1">
+                <div className="bg-slate-900/50 rounded-2xl p-6 border border-slate-800 hover:border-purple-500/30 hover:shadow-lg hover:shadow-purple-500/20 transition-all flex flex-col flex-1">
                   <div className="flex items-center gap-2 mb-6">
                     <Target className="w-5 h-5 text-purple-400" />
                     <span className="text-purple-400 font-semibold text-sm uppercase tracking-wider">{t.landing.card2Title}</span>
@@ -482,7 +482,7 @@ export default function Landing() {
               </SectionReveal>
 
               <SectionReveal delay={0.3} className="flex">
-                <div className="bg-slate-900/50 rounded-2xl p-6 border border-slate-800 flex flex-col flex-1">
+                <div className="bg-slate-900/50 rounded-2xl p-6 border border-slate-800 hover:border-purple-500/30 hover:shadow-lg hover:shadow-purple-500/20 transition-all flex flex-col flex-1">
                   <div className="flex items-center gap-2 mb-6">
                     <FileText className="w-5 h-5 text-purple-400" />
                     <span className="text-purple-400 font-semibold text-sm uppercase tracking-wider">{t.landing.card3Title}</span>
@@ -544,15 +544,15 @@ export default function Landing() {
               </div>
             </SectionReveal>
 
-            <div className="grid md:grid-cols-2 gap-6">
+            <div className="grid md:grid-cols-2 gap-6 items-stretch">
               {[
                 { icon: BarChart3, title: t.landing.pillar1, desc: t.landing.pillar1Desc },
                 { icon: Target, title: t.landing.pillar2, desc: t.landing.pillar2Desc },
                 { icon: TrendingUp, title: t.landing.pillar3, desc: t.landing.pillar3Desc },
                 { icon: Video, title: t.landing.pillar4, desc: t.landing.pillar4Desc },
               ].map((item, i) => (
-                <SectionReveal key={i} delay={i * 0.08}>
-                  <div className="bg-slate-900/50 rounded-2xl p-6 border border-slate-800 hover:border-purple-500/30 transition-all group" data-testid={`card-pillar-${i}`}>
+                <SectionReveal key={i} delay={i * 0.08} className="flex">
+                  <div className="bg-slate-900/50 rounded-2xl p-6 border border-slate-800 hover:border-purple-500/30 hover:shadow-lg hover:shadow-purple-500/20 transition-all group flex flex-col flex-1" data-testid={`card-pillar-${i}`}>
                     <div className="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                       <item.icon className="w-6 h-6 text-purple-400" />
                     </div>
