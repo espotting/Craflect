@@ -26,7 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useLanguage } from "@/hooks/use-language";
 import { LanguageSwitcher } from "@/components/language-switcher";
-import logoColor from "@/assets/logo-color.png";
+import logoTransparent from "@/assets/logo-transparent.png";
 
 function SectionReveal({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
   return (
@@ -140,12 +140,11 @@ export default function Landing() {
       }`}>
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <a href="#" className="flex items-center gap-2" data-testid="logo-landing">
-              <img src={logoColor} alt="Craflect" className="h-9 w-auto" />
-              <span className="text-xl font-bold text-white">Craflect</span>
+            <a href="#" className="flex items-center" data-testid="logo-landing">
+              <img src={logoTransparent} alt="Craflect" className="h-10 w-auto" />
             </a>
 
-            <div className="hidden md:flex items-center gap-6">
+            <div className="hidden md:flex items-center gap-4">
               <button
                 onClick={scrollToPricing}
                 className="text-slate-400 hover:text-white transition-colors text-sm font-medium"
@@ -154,23 +153,24 @@ export default function Landing() {
                 {t.nav.pricing}
               </button>
 
-              <LanguageSwitcher variant="icon" className="!bg-slate-800/50 !border-slate-700 !text-slate-400 hover:!bg-slate-800" />
+              <div className="flex items-center gap-1.5">
+                <LanguageSwitcher variant="icon" className="!bg-slate-800/80 !border-slate-700 !text-slate-400 hover:!bg-purple-600/30 hover:!border-purple-500/40 hover:!text-purple-300" />
 
-              <button
-                onClick={handleSignIn}
-                className="w-9 h-9 rounded-full bg-slate-800/50 flex items-center justify-center hover:bg-slate-800 transition-colors"
-                data-testid="button-login-nav"
-              >
-                <UserCircle2 className="w-4 h-4 text-slate-400" />
-              </button>
+                <button
+                  onClick={handleSignIn}
+                  className="w-9 h-9 rounded-full bg-slate-800/80 border border-slate-700 flex items-center justify-center hover:bg-purple-600/30 hover:border-purple-500/40 transition-colors"
+                  data-testid="button-login-nav"
+                >
+                  <UserCircle2 className="w-4 h-4 text-slate-400 hover:text-purple-300" />
+                </button>
+              </div>
 
               <Button
                 onClick={handleGetStarted}
-                className="bg-purple-600 hover:bg-purple-700 text-white rounded-full px-5"
+                className="bg-purple-600 hover:bg-purple-700 text-white rounded-full px-6 h-10"
                 data-testid="button-signin-nav"
               >
-                {t.landing.ctaPrimary}
-                <ArrowRight className="w-4 h-4 ml-2" />
+                {t.landing.ctaHeader}
               </Button>
             </div>
 
@@ -197,8 +197,7 @@ export default function Landing() {
                   onClick={handleGetStarted}
                   className="bg-purple-600 hover:bg-purple-700 text-white rounded-full w-full"
                 >
-                  {t.landing.ctaPrimary}
-                  <ArrowRight className="w-4 h-4 ml-2" />
+                  {t.landing.ctaHeader}
                 </Button>
               </div>
             </div>
@@ -419,9 +418,9 @@ export default function Landing() {
               </div>
             </SectionReveal>
 
-            <div className="grid md:grid-cols-3 gap-6 mb-12">
-              <SectionReveal delay={0.1}>
-                <div className="bg-slate-900/50 rounded-2xl p-6 border border-slate-800">
+            <div className="grid md:grid-cols-3 gap-6 mb-12 items-stretch">
+              <SectionReveal delay={0.1} className="flex">
+                <div className="bg-slate-900/50 rounded-2xl p-6 border border-slate-800 flex flex-col flex-1">
                   <div className="flex items-center gap-2 mb-6">
                     <BarChart3 className="w-5 h-5 text-purple-400" />
                     <span className="text-purple-400 font-semibold text-sm uppercase tracking-wider">{t.landing.card1Title}</span>
@@ -451,8 +450,8 @@ export default function Landing() {
                 </div>
               </SectionReveal>
 
-              <SectionReveal delay={0.2}>
-                <div className="bg-slate-900/50 rounded-2xl p-6 border border-slate-800">
+              <SectionReveal delay={0.2} className="flex">
+                <div className="bg-slate-900/50 rounded-2xl p-6 border border-slate-800 flex flex-col flex-1">
                   <div className="flex items-center gap-2 mb-6">
                     <Target className="w-5 h-5 text-purple-400" />
                     <span className="text-purple-400 font-semibold text-sm uppercase tracking-wider">{t.landing.card2Title}</span>
@@ -470,8 +469,8 @@ export default function Landing() {
                 </div>
               </SectionReveal>
 
-              <SectionReveal delay={0.3}>
-                <div className="bg-slate-900/50 rounded-2xl p-6 border border-slate-800">
+              <SectionReveal delay={0.3} className="flex">
+                <div className="bg-slate-900/50 rounded-2xl p-6 border border-slate-800 flex flex-col flex-1">
                   <div className="flex items-center gap-2 mb-6">
                     <FileText className="w-5 h-5 text-purple-400" />
                     <span className="text-purple-400 font-semibold text-sm uppercase tracking-wider">{t.landing.card3Title}</span>
@@ -521,10 +520,10 @@ export default function Landing() {
           <div className="max-w-6xl mx-auto px-6">
             <SectionReveal>
               <div className="text-center mb-16">
-                <h2 className="text-4xl font-bold text-white mb-4" data-testid="text-positioning-title">
+                <h2 className="text-4xl font-bold text-white mb-1" data-testid="text-positioning-title">
                   {t.landing.notAnotherTitle}
                 </h2>
-                <p className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-fuchsia-400 bg-clip-text text-transparent mb-4">
+                <p className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-fuchsia-400 bg-clip-text text-transparent mb-4">
                   {t.landing.notAnotherTitle2}
                 </p>
                 <p className="text-slate-400 text-lg max-w-2xl mx-auto">
@@ -759,9 +758,8 @@ export default function Landing() {
         <div className="max-w-6xl mx-auto px-6">
           <div className="grid md:grid-cols-5 gap-12 mb-12">
             <div className="md:col-span-2">
-              <div className="flex items-center gap-2 mb-4">
-                <img src={logoColor} alt="Craflect" className="h-10 w-auto" />
-                <span className="text-xl font-bold text-white">Craflect</span>
+              <div className="flex items-center mb-4">
+                <img src={logoTransparent} alt="Craflect" className="h-12 w-auto" />
               </div>
               <p className="text-slate-400 text-sm mb-4">{t.landing.footer}</p>
               <div className="flex gap-4">

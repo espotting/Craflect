@@ -82,6 +82,7 @@ const fr: Translations = {
     subtitle: "Craflect analyse ce qui performe déjà dans votre niche et le transforme en idées de contenu prêtes à poster avec scripts, blueprints et outils de création IA.",
     proofLine: "Plus de 50 000 vidéos virales analysées chaque semaine",
     ctaPrimary: "Voir les opportunités virales du jour",
+    ctaHeader: "Commencer",
     ctaSecondary: "Découvrir comment ça marche",
     previewLabel: "Exemple d'idée générée par Craflect",
     clarityTitle: "Comment ça marche",
