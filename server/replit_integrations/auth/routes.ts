@@ -4,7 +4,7 @@ import { authStorage } from "./storage";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
-import { sendAdminVerificationCode } from "../../email";
+import { sendAdminVerificationCode, sendVerificationCode } from "../../email";
 
 const adminChallengeTokens = new Map<string, { email: string; expiresAt: number }>();
 
@@ -99,6 +99,12 @@ export function registerAuthRoutes(app: Express): void {
 
       const code = await authStorage.createVerificationCode(email);
       console.log(`[AUTH] Verification code for ${email}: ${code}`);
+
+      try {
+        await sendVerificationCode(email, code);
+      } catch (emailErr) {
+        console.error(`[EMAIL] Failed to send verification code to ${email}:`, emailErr);
+      }
 
       res.json({ message: "Verification code sent", needsVerification: true });
     } catch (err) {
@@ -287,6 +293,13 @@ export function registerAuthRoutes(app: Express): void {
       const { email } = z.object({ email: z.string().email() }).parse(req.body);
       const code = await authStorage.createVerificationCode(email);
       console.log(`[AUTH] Resend verification code for ${email}: ${code}`);
+
+      try {
+        await sendVerificationCode(email, code);
+      } catch (emailErr) {
+        console.error(`[EMAIL] Failed to resend verification code to ${email}:`, emailErr);
+      }
+
       res.json({ message: "New code sent" });
     } catch (err) {
       if (err instanceof z.ZodError) {
