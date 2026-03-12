@@ -11,6 +11,14 @@ Craflect is an AI-powered content intelligence and creation platform focused on 
 - Dark-first aesthetic, neon purple (#7C5CFF)
 - Ne pas modifier `replit_integrations/auth/` et `replit_integrations/chat/` sans approbation
 
+## Landing Page (v2 - March 2026)
+- Dark-only design (bg-slate-950), no light/dark toggle in header
+- Sections: Hero (with dashboard mockup) → How it Works → See it/Understand it/Use it → Features → Pricing (integrated, yearly default) → FAQ → CTA → Footer
+- Header: Logo color + "Craflect" white text, Pricing link (scrolls to #pricing), Language switcher, Sign-in icon, CTA button
+- Footer: Product, Company, Legal columns + social icons (Twitter/LinkedIn)
+- Pricing integrated in landing page, no dedicated /pricing page (route redirects to /)
+- i18n: All strings translated EN + FR
+
 ## System Architecture
 The application uses a React, TypeScript, Tailwind CSS, shadcn/ui, and Framer Motion frontend. The backend is built with Express/Node.js, using PostgreSQL with Drizzle ORM for data persistence. Authentication is handled via Google OAuth and Email/Password. OpenAI (gpt-4.1-mini) is integrated for AI functionalities.
 

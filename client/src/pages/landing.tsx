@@ -5,29 +5,28 @@ import { useEffect, useState } from "react";
 import {
   Sparkles,
   ArrowRight,
-  Sun,
-  Moon,
   UserCircle2,
   Zap,
   TrendingUp,
   BarChart3,
   FileText,
-  Layers,
-  Search,
   Target,
-  Brain,
-  RefreshCw,
   Video,
+  Compass,
+  Play,
+  Flame,
+  Check,
+  CheckCircle2,
+  Lightbulb,
+  ChevronRight,
+  Menu,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import { useTheme } from "@/hooks/use-theme";
+import { Separator } from "@/components/ui/separator";
 import { useLanguage } from "@/hooks/use-language";
 import { LanguageSwitcher } from "@/components/language-switcher";
-import { SiTiktok, SiInstagram, SiYoutube } from "react-icons/si";
-import logoLight from "@/assets/logo-light.png";
-import logoTransparent from "@/assets/logo-transparent.png";
+import logoColor from "@/assets/logo-color.png";
 
 function SectionReveal({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
   return (
@@ -46,9 +45,11 @@ function SectionReveal({ children, className = "", delay = 0 }: { children: Reac
 export default function Landing() {
   const { isAuthenticated, isLoading } = useAuth();
   const [, setLocation] = useLocation();
-  const { isDark, toggleTheme } = useTheme();
-  const { t, language } = useLanguage();
-  const [showSticky, setShowSticky] = useState(false);
+  const { t } = useLanguage();
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [yearly, setYearly] = useState(true);
+  const [faqOpen, setFaqOpen] = useState<number | null>(null);
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
@@ -57,213 +58,348 @@ export default function Landing() {
   }, [isLoading, isAuthenticated, setLocation]);
 
   useEffect(() => {
-    const onScroll = () => setShowSticky(window.scrollY > 500);
+    const onScroll = () => setIsScrolled(window.scrollY > 50);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
   if (isLoading || isAuthenticated) return null;
 
+  const handleGetStarted = () => setLocation("/auth");
+  const handleSignIn = () => setLocation("/auth?mode=login");
+  const scrollToPricing = () => {
+    document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" });
+    setMobileMenuOpen(false);
+  };
+  const scrollToHowItWorks = () => {
+    document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const plans = [
+    {
+      name: t.landing.pricingFreeName,
+      price: 0,
+      yearlyPrice: undefined,
+      credits: 30,
+      videos: "~10",
+      rollover: 0,
+      description: t.landing.pricingFreeDesc,
+      features: t.landing.pricingFreeFeatures.split(","),
+      cta: t.landing.pricingFreeCta,
+      highlighted: false,
+      badge: undefined as string | undefined,
+    },
+    {
+      name: t.landing.pricingCreatorName,
+      price: 24,
+      yearlyPrice: 19,
+      credits: 250,
+      videos: "~80",
+      rollover: 500,
+      description: t.landing.pricingCreatorDesc,
+      features: t.landing.pricingCreatorFeatures.split(","),
+      cta: t.landing.pricingCreatorCta,
+      highlighted: true,
+      badge: t.landing.pricingCreatorBadge,
+    },
+    {
+      name: t.landing.pricingProName,
+      price: 109,
+      yearlyPrice: 99,
+      credits: 1500,
+      videos: "~500",
+      rollover: 3000,
+      description: t.landing.pricingProDesc,
+      features: t.landing.pricingProFeatures.split(","),
+      cta: t.landing.pricingProCta,
+      highlighted: false,
+      badge: undefined as string | undefined,
+    },
+  ];
+
+  const faqs = [
+    { q: t.landing.faq1Q, a: t.landing.faq1A },
+    { q: t.landing.faq2Q, a: t.landing.faq2A },
+    { q: t.landing.faq3Q, a: t.landing.faq3A },
+    { q: t.landing.faq4Q, a: t.landing.faq4A },
+  ];
+
+  const trendingVideos = [
+    { score: 94, hook: "I tested every AI writing tool..." },
+    { score: 88, hook: "The one mistake killing..." },
+    { score: 91, hook: "Stop doing this in your hooks..." },
+    { score: 96, hook: "This format got me 1M views..." },
+  ];
+
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden flex flex-col">
+    <div className="min-h-screen bg-slate-950 text-slate-200">
 
-      <motion.div
-        initial={{ y: -60 }}
-        animate={{ y: showSticky ? 0 : -60 }}
-        transition={{ duration: 0.25, ease: "easeOut" }}
-        className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border"
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
-          <img src={isDark ? logoTransparent : logoLight} alt="Craflect" className="h-8 w-auto" />
-          <div className="flex items-center gap-3">
+      {/* ═══ NAVBAR ═══ */}
+      <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        isScrolled ? "bg-slate-950/90 backdrop-blur-xl border-b border-slate-800" : "bg-transparent"
+      }`}>
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <a href="#" className="flex items-center gap-2" data-testid="logo-landing">
+              <img src={logoColor} alt="Craflect" className="h-9 w-auto" />
+              <span className="text-xl font-bold text-white">Craflect</span>
+            </a>
+
+            <div className="hidden md:flex items-center gap-6">
+              <button
+                onClick={scrollToPricing}
+                className="text-slate-400 hover:text-white transition-colors text-sm font-medium"
+                data-testid="nav-pricing"
+              >
+                {t.nav.pricing}
+              </button>
+
+              <LanguageSwitcher variant="icon" className="!bg-slate-800/50 !border-slate-700 !text-slate-400 hover:!bg-slate-800" />
+
+              <button
+                onClick={handleSignIn}
+                className="w-9 h-9 rounded-full bg-slate-800/50 flex items-center justify-center hover:bg-slate-800 transition-colors"
+                data-testid="button-login-nav"
+              >
+                <UserCircle2 className="w-4 h-4 text-slate-400" />
+              </button>
+
+              <Button
+                onClick={handleGetStarted}
+                className="bg-purple-600 hover:bg-purple-700 text-white rounded-full px-5"
+                data-testid="button-signin-nav"
+              >
+                {t.landing.ctaPrimary}
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            </div>
+
             <button
-              onClick={() => setLocation("/pricing")}
-              className="hidden sm:inline-flex text-sm font-medium text-muted-foreground hover:text-primary px-2 py-1 rounded-lg transition-colors"
-              data-testid="nav-pricing-sticky"
+              className="md:hidden text-white"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              data-testid="button-mobile-menu"
             >
-              {t.nav.pricing}
+              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
-            <Button
-              className="rounded-full px-6 h-9 bg-primary hover:bg-primary/90 text-white text-sm font-medium shadow-md shadow-primary/20 gap-2"
-              onClick={() => setLocation("/auth")}
-              data-testid="button-sticky-cta"
-            >
-              {t.landing.ctaPrimary}
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Button>
           </div>
-        </div>
-      </motion.div>
 
-      <nav className="relative z-10 w-full px-4 sm:px-6 py-5 flex items-center justify-between max-w-7xl mx-auto">
-        <div className="flex items-center gap-3">
-          <img src={isDark ? logoTransparent : logoLight} alt="Craflect" className="h-10 w-auto object-contain" data-testid="logo-landing" />
-        </div>
-        <div className="flex items-center gap-2 sm:gap-3">
-          <button
-            onClick={() => setLocation("/pricing")}
-            className="hidden sm:inline-flex text-sm font-medium text-muted-foreground hover:text-primary px-3 py-1.5 rounded-lg transition-colors"
-            data-testid="nav-pricing"
-          >
-            {t.nav.pricing}
-          </button>
-          <LanguageSwitcher variant="icon" />
-          <button
-            onClick={toggleTheme}
-            className="p-2.5 rounded-full bg-muted hover:bg-primary/10 hover:text-primary text-foreground transition-all border border-border hover:border-primary/30"
-            title={isDark ? "Switch to light mode" : "Switch to dark mode"}
-            data-testid="button-theme-toggle-landing"
-          >
-            {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-          </button>
-          <button
-            onClick={() => setLocation("/auth?mode=login")}
-            className="p-2.5 rounded-full bg-muted hover:bg-primary/10 hover:text-primary text-foreground transition-all border border-border hover:border-primary/30"
-            title="Log in"
-            data-testid="button-login-nav"
-          >
-            <UserCircle2 className="w-5 h-5" />
-          </button>
-          <Button
-            className="rounded-full px-6 sm:px-8 bg-primary hover:bg-primary/90 text-white border-0 shadow-lg shadow-primary/20 transition-all hover:scale-105 font-medium"
-            onClick={() => setLocation("/auth")}
-            data-testid="button-signin-nav"
-          >
-            {t.nav.signUp}
-          </Button>
+          {mobileMenuOpen && (
+            <div className="md:hidden mt-4 pb-4 border-t border-slate-800 pt-4">
+              <div className="flex flex-col gap-4">
+                <button
+                  onClick={scrollToPricing}
+                  className="text-slate-400 hover:text-white transition-colors text-sm font-medium text-left"
+                >
+                  {t.nav.pricing}
+                </button>
+                <Separator className="bg-slate-800" />
+                <Button
+                  onClick={handleGetStarted}
+                  className="bg-purple-600 hover:bg-purple-700 text-white rounded-full w-full"
+                >
+                  {t.landing.ctaPrimary}
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </nav>
 
-      <main className="relative z-10 flex-1 flex flex-col">
+      <main>
 
         {/* ═══ HERO ═══ */}
-        <section className="relative flex flex-col items-center justify-center px-4 text-center pt-10 sm:pt-16 pb-10 sm:pb-14">
-          <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-            <div
-              className="absolute left-1/2 -translate-x-1/2"
-              style={{
-                top: "-200px",
-                width: "900px",
-                height: "500px",
-                background: isDark
-                  ? "radial-gradient(circle, rgba(124,92,255,0.22), transparent 70%)"
-                  : "radial-gradient(circle, rgba(124,92,255,0.12), transparent 70%)",
-                filter: "blur(80px)",
-              }}
-            />
-            <div
-              className="absolute inset-0 opacity-[0.015] dark:opacity-[0.025]"
-              style={{
-                backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
-                backgroundRepeat: "repeat",
-              }}
-            />
+        <section className="relative min-h-screen flex items-center justify-center pt-20 overflow-hidden">
+          <div className="absolute inset-0 pointer-events-none">
+            <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-600/20 rounded-full blur-3xl" />
+            <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-fuchsia-600/10 rounded-full blur-3xl" />
           </div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, ease: "easeOut" }}
-            className="max-w-4xl mx-auto relative z-10"
-          >
-            <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary/5 dark:bg-primary/10 border border-primary/20 dark:border-primary/30 text-base font-semibold text-primary mb-8">
-              <Sparkles className="w-4 h-4" />
-              <span data-testid="text-hero-badge">{t.landing.badge}</span>
-            </div>
+          <div className="relative z-10 max-w-5xl mx-auto px-6 text-center">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, ease: "easeOut" }}
+            >
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-500/10 border border-purple-500/20 rounded-full mb-8">
+                <Sparkles className="w-4 h-4 text-purple-400" />
+                <span className="text-purple-300 text-sm font-medium" data-testid="text-hero-badge">{t.landing.badge}</span>
+              </div>
 
-            <h1 className="font-display text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight text-foreground mb-6 leading-tight" data-testid="text-hero-headline">
-              <span className="block">{t.landing.heroLine1}</span>
-              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-primary via-[#8b5cf6] to-secondary">
-                {t.landing.heroLine2}
-              </span>
-              <span className="block">{t.landing.heroLine3}</span>
-            </h1>
+              <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 leading-tight" data-testid="text-hero-headline">
+                <span className="block">{t.landing.heroLine1}</span>
+                <span className="block bg-gradient-to-r from-purple-400 to-fuchsia-400 bg-clip-text text-transparent">
+                  {t.landing.heroLine2}
+                </span>
+                <span className="block">{t.landing.heroLine3}</span>
+              </h1>
 
-            <p className="text-base sm:text-lg md:text-xl text-muted-foreground mb-6 max-w-2xl mx-auto leading-relaxed" data-testid="text-hero-subtitle">
-              {t.landing.subtitle}
-            </p>
+              <p className="text-xl text-slate-400 mb-8 max-w-2xl mx-auto" data-testid="text-hero-subtitle">
+                {t.landing.subtitle}
+              </p>
 
-            <div className="flex flex-col items-center gap-2 mb-4" data-testid="platforms-bar">
-              <div className="flex items-center gap-0">
-                <span className="flex items-center gap-1.5 text-xs font-medium text-foreground/50">
-                  <SiTiktok className="w-3.5 h-3.5" />
-                  TikTok
-                </span>
-                <span className="mx-3 text-lg text-foreground/30 font-bold select-none">·</span>
-                <span className="flex items-center gap-1.5 text-xs font-medium text-foreground/50">
-                  <SiInstagram className="w-3.5 h-3.5" />
-                  Instagram Reels
-                </span>
-                <span className="mx-3 text-lg text-foreground/30 font-bold select-none">·</span>
-                <span className="flex items-center gap-1.5 text-xs font-medium text-foreground/50">
-                  <SiYoutube className="w-3.5 h-3.5" />
-                  YouTube Shorts
-                </span>
+              <p className="text-slate-500 text-sm mb-8" data-testid="text-proof-line">
+                {t.landing.proofLine}
+              </p>
+
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                <Button
+                  size="lg"
+                  onClick={handleGetStarted}
+                  className="bg-purple-600 hover:bg-purple-700 text-white px-8 h-14 text-lg rounded-full shadow-lg shadow-purple-500/25"
+                  data-testid="button-hero-cta"
+                >
+                  {t.landing.ctaPrimary}
+                  <ArrowRight className="w-5 h-5 ml-2" />
+                </Button>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  onClick={scrollToHowItWorks}
+                  className="border-slate-700 text-slate-300 hover:bg-slate-800 px-8 h-14 text-lg rounded-full"
+                  data-testid="button-hero-secondary"
+                >
+                  <Play className="w-5 h-5 mr-2" />
+                  {t.landing.ctaSecondary}
+                </Button>
+              </div>
+            </motion.div>
+
+            {/* Dashboard Preview */}
+            <div className="mt-16 relative">
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent z-10 pointer-events-none" />
+              <div className="bg-slate-900/80 backdrop-blur rounded-2xl border border-slate-800 p-2 shadow-2xl shadow-purple-500/10">
+                <div className="bg-slate-950 rounded-xl overflow-hidden">
+                  <div className="flex items-center gap-2 px-4 py-3 bg-slate-900 border-b border-slate-800">
+                    <div className="flex gap-1.5">
+                      <div className="w-3 h-3 rounded-full bg-red-500/50" />
+                      <div className="w-3 h-3 rounded-full bg-yellow-500/50" />
+                      <div className="w-3 h-3 rounded-full bg-green-500/50" />
+                    </div>
+                    <div className="flex-1 text-center text-xs text-slate-500">{t.landing.dashboardPreviewUrl}</div>
+                  </div>
+
+                  <div className="p-6">
+                    <div className="flex gap-6">
+                      <div className="w-48 space-y-1 hidden md:block">
+                        <div className="flex items-center gap-3 px-3 py-2 bg-purple-500/20 rounded-lg border border-purple-500/30">
+                          <div className="w-5 h-5 rounded bg-purple-500 flex items-center justify-center">
+                            <Sparkles className="w-3 h-3 text-white" />
+                          </div>
+                          <span className="text-purple-300 text-sm">Home</span>
+                        </div>
+                        {["Opportunities", "Create", "Workspace", "Insights"].map((item, i) => (
+                          <div key={i} className="flex items-center gap-3 px-3 py-2">
+                            <div className="w-5 h-5 rounded bg-slate-800" />
+                            <span className="text-slate-500 text-sm">{item}</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="flex-1 space-y-4">
+                        <div className="bg-gradient-to-br from-purple-900/50 via-slate-900/50 to-slate-900/50 rounded-xl p-4 border border-purple-500/30 relative overflow-hidden">
+                          <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-2xl" />
+                          <div className="relative">
+                            <div className="flex items-center gap-2 mb-3">
+                              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-fuchsia-500 flex items-center justify-center">
+                                <Flame className="w-4 h-4 text-white" />
+                              </div>
+                              <span className="text-purple-300 text-xs font-medium uppercase tracking-wider">{t.landing.heroViralPlay}</span>
+                            </div>
+                            <p className="text-white font-semibold text-lg mb-2">
+                              {t.landing.heroViralHook}
+                            </p>
+                            <div className="flex gap-4 mb-3 flex-wrap">
+                              <span className="text-slate-400 text-xs">{t.landing.heroViralFormat}</span>
+                              <span className="text-green-400 text-xs">{t.landing.heroViralViews}</span>
+                              <span className="text-purple-400 text-xs">{t.landing.heroViralConfidence}</span>
+                            </div>
+                            <div className="flex gap-2">
+                              <button className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm rounded-lg flex items-center gap-2">
+                                <Sparkles className="w-4 h-4" />
+                                {t.landing.heroCreateBtn}
+                              </button>
+                              <button className="px-4 py-2 bg-slate-800 text-slate-300 text-sm rounded-lg">
+                                {t.landing.heroSeeSimilar}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="hidden sm:block">
+                          <div className="flex items-center gap-2 mb-3">
+                            <TrendingUp className="w-4 h-4 text-orange-400" />
+                            <span className="text-white text-sm font-medium">{t.landing.heroTrending}</span>
+                          </div>
+                          <div className="grid grid-cols-4 gap-3">
+                            {trendingVideos.map((video, i) => (
+                              <div key={i} className="relative aspect-[9/16] rounded-lg overflow-hidden group cursor-pointer">
+                                <div className={`absolute inset-0 bg-gradient-to-br ${
+                                  i === 0 ? "from-violet-600 via-purple-600 to-fuchsia-600" :
+                                  i === 1 ? "from-blue-600 via-cyan-600 to-teal-600" :
+                                  i === 2 ? "from-orange-600 via-amber-600 to-yellow-600" :
+                                  "from-rose-600 via-pink-600 to-purple-600"
+                                }`} />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                                <div className="absolute top-2 right-2">
+                                  <span className={`px-1.5 py-0.5 text-[10px] font-bold rounded ${
+                                    video.score >= 90 ? "bg-red-500/20 text-red-400" :
+                                    video.score >= 80 ? "bg-orange-500/20 text-orange-400" :
+                                    "bg-yellow-500/20 text-yellow-400"
+                                  }`}>
+                                    <Flame className="w-2 h-2 inline mr-0.5" />
+                                    {video.score}
+                                  </span>
+                                </div>
+                                <div className="absolute bottom-0 left-0 right-0 p-2">
+                                  <p className="text-white text-[10px] line-clamp-2">{video.hook}</p>
+                                </div>
+                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/50">
+                                  <button className="px-3 py-1.5 bg-purple-600 text-white text-xs rounded-lg">
+                                    {t.landing.heroCreateSimilar}
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
-
-            <p className="text-xs text-muted-foreground/70 font-medium mb-8" data-testid="text-proof-line">
-              {t.landing.proofLine}
-            </p>
-
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-0">
-              <Button
-                size="lg"
-                className="rounded-full px-10 h-14 bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-white font-semibold text-lg transition-all hover:-translate-y-1 gap-3"
-                style={{ boxShadow: "0 0 40px rgba(124, 92, 255, 0.35), 0 10px 25px rgba(124, 92, 255, 0.25)" }}
-                onClick={() => setLocation("/auth")}
-                data-testid="button-hero-cta"
-              >
-                {t.landing.ctaPrimary}
-                <ArrowRight className="w-5 h-5" />
-              </Button>
-              <button
-                onClick={() => {
-                  const el = document.getElementById("section-clarity");
-                  el?.scrollIntoView({ behavior: "smooth" });
-                }}
-                className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors flex items-center gap-1.5"
-                data-testid="button-hero-secondary"
-              >
-                {t.landing.ctaSecondary}
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </motion.div>
+          </div>
         </section>
 
         {/* ═══ HOW IT WORKS ═══ */}
-        <section id="section-clarity" className="px-4 py-20 sm:py-28">
-          <div className="max-w-4xl mx-auto w-full">
+        <section id="how-it-works" className="py-24 relative">
+          <div className="max-w-6xl mx-auto px-6">
             <SectionReveal>
-              <div className="text-center mb-14 sm:mb-18">
-                <h2 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-3" data-testid="text-clarity-title">
-                  {t.landing.clarityTitle}
-                </h2>
-                <p className="text-sm sm:text-base text-muted-foreground max-w-xl mx-auto">
-                  {t.landing.claritySubtitle}
-                </p>
+              <div className="text-center mb-16">
+                <h2 className="text-4xl font-bold text-white mb-4" data-testid="text-clarity-title">{t.landing.clarityTitle}</h2>
+                <p className="text-slate-400 text-lg">{t.landing.claritySubtitle}</p>
               </div>
             </SectionReveal>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-10 sm:gap-14">
+            <div className="grid md:grid-cols-3 gap-8">
               {[
-                { step: "1", icon: Layers, title: t.landing.clarityStep1, desc: t.landing.clarityStep1Desc },
-                { step: "2", icon: Search, title: t.landing.clarityStep2, desc: t.landing.clarityStep2Desc },
-                { step: "3", icon: Target, title: t.landing.clarityStep3, desc: t.landing.clarityStep3Desc },
-              ].map((item, i) => (
+                { icon: Compass, title: t.landing.clarityStep1, desc: t.landing.clarityStep1Desc },
+                { icon: FileText, title: t.landing.clarityStep2, desc: t.landing.clarityStep2Desc },
+                { icon: Video, title: t.landing.clarityStep3, desc: t.landing.clarityStep3Desc },
+              ].map((step, i) => (
                 <SectionReveal key={i} delay={i * 0.12}>
-                  <div className="flex flex-col items-center text-center" data-testid={`card-clarity-${i}`}>
+                  <div className="bg-slate-900/50 rounded-2xl p-8 border border-slate-800 hover:border-purple-500/30 transition-all group" data-testid={`card-clarity-${i}`}>
                     <div className="relative mb-6">
-                      <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center">
-                        <item.icon className="w-7 h-7 text-primary" />
+                      <div className="w-16 h-16 rounded-2xl bg-purple-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <step.icon className="w-8 h-8 text-purple-400" />
                       </div>
-                      <span className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center shadow-lg shadow-primary/30">
-                        {item.step}
-                      </span>
+                      <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center text-white font-bold text-sm">
+                        {i + 1}
+                      </div>
                     </div>
-                    <h3 className="text-base font-display font-bold text-foreground mb-1">{item.title}</h3>
-                    <p className="text-sm text-muted-foreground max-w-[220px]">{item.desc}</p>
+                    <h3 className="text-xl font-semibold text-white mb-3">{step.title}</h3>
+                    <p className="text-slate-400">{step.desc}</p>
                   </div>
                 </SectionReveal>
               ))}
@@ -272,127 +408,108 @@ export default function Landing() {
         </section>
 
         {/* ═══ SEE IT. UNDERSTAND IT. USE IT. ═══ */}
-        <section className="px-4 py-20 sm:py-28 relative">
-          <div className="absolute inset-0 bg-muted/30 dark:bg-[hsl(var(--card)/0.5)] border-y border-border/50 pointer-events-none" />
-          <div className="absolute inset-0 pointer-events-none">
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[700px] bg-primary/3 dark:bg-primary/5 rounded-full blur-[200px]" />
-          </div>
-
-          <div className="max-w-6xl mx-auto w-full relative z-10">
+        <section className="py-24 relative">
+          <div className="max-w-6xl mx-auto px-6">
             <SectionReveal>
-              <div className="text-center mb-12 sm:mb-16">
-                <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-bold text-foreground mb-3" data-testid="text-inside-title">
+              <div className="text-center mb-16">
+                <h2 className="text-4xl md:text-5xl font-bold text-white mb-4" data-testid="text-inside-title">
                   {t.landing.insideTitle}
                 </h2>
-                <p className="text-muted-foreground text-sm max-w-md mx-auto">
-                  {t.landing.insideSubtitle}
-                </p>
+                <p className="text-slate-400 text-lg">{t.landing.insideSubtitle}</p>
               </div>
             </SectionReveal>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 sm:gap-6">
-
-              <SectionReveal delay={0.1} className="lg:col-span-1">
-                <Card className="border-border/60 bg-card shadow-lg dark:shadow-primary/5 h-full hover:shadow-xl transition-shadow">
-                  <CardContent className="p-5 sm:p-6 space-y-4">
-                    <div className="flex items-center gap-2">
-                      <BarChart3 className="w-4 h-4 text-primary" />
-                      <h3 className="text-xs font-bold uppercase tracking-widest text-primary">{t.landing.card1Title}</h3>
+            <div className="grid md:grid-cols-3 gap-6 mb-12">
+              <SectionReveal delay={0.1}>
+                <div className="bg-slate-900/50 rounded-2xl p-6 border border-slate-800">
+                  <div className="flex items-center gap-2 mb-6">
+                    <BarChart3 className="w-5 h-5 text-purple-400" />
+                    <span className="text-purple-400 font-semibold text-sm uppercase tracking-wider">{t.landing.card1Title}</span>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-400 text-sm">{t.landing.card1Confidence}</span>
+                      <span className="text-purple-400 font-bold">87%</span>
                     </div>
-                    <div className="space-y-2">
-                      {[
-                        { label: t.landing.card1Confidence, value: "78%", highlight: true },
-                        { label: t.landing.card1Signal, value: "Strong" },
-                        { label: t.landing.card1Videos, value: "642" },
-                      ].map((row) => (
-                        <div key={row.label} className="flex items-center justify-between p-2.5 rounded-md bg-muted/40 dark:bg-muted/20">
-                          <span className="text-[11px] text-muted-foreground">{row.label}</span>
-                          <span className={`text-xs sm:text-sm font-semibold ${row.highlight ? "text-primary" : "text-foreground"}`}>{row.value}</span>
-                        </div>
-                      ))}
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-400 text-sm">{t.landing.card1Signal}</span>
+                      <span className="text-white font-medium">Strong</span>
                     </div>
-                    <div className="border-t border-border/40 pt-3 space-y-1.5">
-                      {[
-                        { label: t.landing.card1TopHook, value: "Question (42%)" },
-                        { label: t.landing.card1TopFormat, value: "Talking Head (38%)" },
-                        { label: t.landing.card1TopAngle, value: "Tactical (31%)" },
-                      ].map((row) => (
-                        <div key={row.label} className="flex items-center justify-between px-1">
-                          <span className="text-[11px] text-muted-foreground">{row.label}</span>
-                          <span className="text-xs font-medium text-foreground">{row.value}</span>
-                        </div>
-                      ))}
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-400 text-sm">{t.landing.card1Videos}</span>
+                      <span className="text-white font-medium">2,847</span>
                     </div>
-                  </CardContent>
-                </Card>
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-400 text-sm">{t.landing.card1TopHook}</span>
+                      <span className="text-white font-medium">Question (42%)</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-400 text-sm">{t.landing.card1TopFormat}</span>
+                      <span className="text-white font-medium">Listicle (38%)</span>
+                    </div>
+                  </div>
+                </div>
               </SectionReveal>
 
-              <SectionReveal delay={0.2} className="lg:col-span-1">
-                <Card className="border-border/60 bg-card shadow-lg dark:shadow-primary/5 h-full hover:shadow-xl transition-shadow">
-                  <CardContent className="p-5 sm:p-6 space-y-4">
-                    <div className="flex items-center gap-2">
-                      <Target className="w-4 h-4 text-primary" />
-                      <h3 className="text-xs font-bold uppercase tracking-widest text-primary">{t.landing.card2Title}</h3>
-                    </div>
-                    <div className="space-y-2">
-                      {[t.landing.card2Rec1, t.landing.card2Rec2, t.landing.card2Rec3].map((rec, i) => (
-                        <motion.div
-                          key={i}
-                          initial={{ opacity: 0, x: -10 }}
-                          whileInView={{ opacity: 1, x: 0 }}
-                          viewport={{ once: true }}
-                          transition={{ duration: 0.3, delay: 0.3 + i * 0.1 }}
-                          className="flex items-start gap-2.5 p-3 rounded-md bg-muted/40 dark:bg-muted/20"
-                          data-testid={`text-rec-${i}`}
-                        >
-                          <span className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold flex-shrink-0 mt-0.5">
-                            {i + 1}
-                          </span>
-                          <p className="text-xs sm:text-sm text-foreground leading-snug">{rec}</p>
-                        </motion.div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
+              <SectionReveal delay={0.2}>
+                <div className="bg-slate-900/50 rounded-2xl p-6 border border-slate-800">
+                  <div className="flex items-center gap-2 mb-6">
+                    <Target className="w-5 h-5 text-purple-400" />
+                    <span className="text-purple-400 font-semibold text-sm uppercase tracking-wider">{t.landing.card2Title}</span>
+                  </div>
+                  <div className="space-y-4">
+                    {[t.landing.card2Rec1, t.landing.card2Rec2, t.landing.card2Rec3, t.landing.card2Rec4].map((tip, i) => (
+                      <div key={i} className="flex items-start gap-3">
+                        <div className="w-5 h-5 rounded-full bg-purple-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <span className="text-purple-400 text-xs font-bold">{i + 1}</span>
+                        </div>
+                        <p className="text-slate-300 text-sm">{tip}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </SectionReveal>
 
-              <SectionReveal delay={0.3} className="lg:col-span-1">
-                <Card className="border-primary/20 bg-card shadow-lg shadow-primary/5 dark:shadow-primary/10 h-full relative overflow-hidden hover:shadow-xl hover:shadow-primary/10 transition-shadow">
-                  <div className="absolute top-0 right-0 w-40 h-40 bg-primary/5 dark:bg-primary/10 rounded-full blur-[60px] -translate-y-1/2 translate-x-1/2 pointer-events-none" />
-                  <CardContent className="p-5 sm:p-6 space-y-4 relative z-10">
-                    <div className="flex items-center gap-2">
-                      <FileText className="w-4 h-4 text-primary" />
-                      <h3 className="text-xs font-bold uppercase tracking-widest text-primary">{t.landing.card3Title}</h3>
+              <SectionReveal delay={0.3}>
+                <div className="bg-slate-900/50 rounded-2xl p-6 border border-slate-800">
+                  <div className="flex items-center gap-2 mb-6">
+                    <FileText className="w-5 h-5 text-purple-400" />
+                    <span className="text-purple-400 font-semibold text-sm uppercase tracking-wider">{t.landing.card3Title}</span>
+                  </div>
+                  <div className="space-y-4">
+                    <div>
+                      <span className="text-slate-500 text-xs uppercase tracking-wider">{t.landing.card3Hook}</span>
+                      <p className="text-white text-sm mt-1 italic" data-testid="text-brief-hook">
+                        "I almost gave up on content creation until I discovered this one pattern..."
+                      </p>
                     </div>
-                    <div className="space-y-3">
-                      <div>
-                        <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{t.landing.card3Hook}</span>
-                        <p className="text-sm text-foreground/80 italic mt-0.5" data-testid="text-brief-hook">"I almost gave up on content creation until I discovered this one pattern..."</p>
-                      </div>
-                      <div>
-                        <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{t.landing.card3Flow}</span>
-                        <p className="text-sm text-foreground/80 mt-0.5" data-testid="text-brief-flow">Hook → Personal story → Pattern reveal → CTA</p>
-                      </div>
-                      <div>
-                        <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{t.landing.card3Cta}</span>
-                        <p className="text-sm text-foreground/80 italic mt-0.5" data-testid="text-brief-cta">Comment "PATTERN" and I'll send you the full breakdown.</p>
-                      </div>
+                    <div>
+                      <span className="text-slate-500 text-xs uppercase tracking-wider">{t.landing.card3Flow}</span>
+                      <p className="text-slate-300 text-sm mt-1" data-testid="text-brief-flow">
+                        Hook → Personal story → Pattern reveal → CTA
+                      </p>
                     </div>
-                  </CardContent>
-                </Card>
+                    <div>
+                      <span className="text-slate-500 text-xs uppercase tracking-wider">{t.landing.card3Cta}</span>
+                      <p className="text-slate-300 text-sm mt-1" data-testid="text-brief-cta">
+                        Comment "PATTERN" and I'll send you the full breakdown.
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </SectionReveal>
             </div>
 
             <SectionReveal delay={0.4}>
-              <div className="flex justify-center mt-12 sm:mt-14">
+              <div className="text-center">
                 <Button
                   size="lg"
-                  className="rounded-full px-8 h-12 bg-primary hover:bg-primary/90 text-white font-semibold text-base shadow-lg shadow-primary/20 transition-all hover:-translate-y-0.5 gap-2"
-                  onClick={() => setLocation("/auth")}
+                  onClick={handleGetStarted}
+                  className="bg-purple-600 hover:bg-purple-700 text-white px-8 h-14 text-lg rounded-full"
                   data-testid="button-generate-brief"
                 >
                   {t.landing.generateBrief}
-                  <ArrowRight className="w-4 h-4" />
+                  <ArrowRight className="w-5 h-5 ml-2" />
                 </Button>
               </div>
             </SectionReveal>
@@ -400,42 +517,212 @@ export default function Landing() {
         </section>
 
         {/* ═══ NOT ANOTHER AI CONTENT GENERATOR ═══ */}
-        <section className="px-4 py-20 sm:py-28">
-          <div className="max-w-[1100px] mx-auto w-full">
+        <section className="py-24 relative">
+          <div className="max-w-6xl mx-auto px-6">
             <SectionReveal>
-              <div className="text-center mb-12 sm:mb-16">
-                <h2 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-3" data-testid="text-positioning-title">
+              <div className="text-center mb-16">
+                <h2 className="text-4xl font-bold text-white mb-4" data-testid="text-positioning-title">
                   {t.landing.notAnotherTitle}
-                  <br />
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">
-                    {t.landing.notAnotherTitle2}
-                  </span>
                 </h2>
-                <p className="text-sm sm:text-base text-muted-foreground max-w-lg mx-auto">
+                <p className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-fuchsia-400 bg-clip-text text-transparent mb-4">
+                  {t.landing.notAnotherTitle2}
+                </p>
+                <p className="text-slate-400 text-lg max-w-2xl mx-auto">
                   {t.landing.notAnotherSubtitle}
                 </p>
               </div>
             </SectionReveal>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div className="grid md:grid-cols-2 gap-6">
               {[
-                { icon: Brain, title: t.landing.pillar1, desc: t.landing.pillar1Desc },
-                { icon: TrendingUp, title: t.landing.pillar2, desc: t.landing.pillar2Desc },
-                { icon: RefreshCw, title: t.landing.pillar3, desc: t.landing.pillar3Desc },
+                { icon: BarChart3, title: t.landing.pillar1, desc: t.landing.pillar1Desc },
+                { icon: Target, title: t.landing.pillar2, desc: t.landing.pillar2Desc },
+                { icon: TrendingUp, title: t.landing.pillar3, desc: t.landing.pillar3Desc },
                 { icon: Video, title: t.landing.pillar4, desc: t.landing.pillar4Desc },
               ].map((item, i) => (
                 <SectionReveal key={i} delay={i * 0.08}>
-                  <div
-                    className="flex items-start gap-4 p-5 rounded-xl bg-card border border-border/60 hover:border-primary/20 transition-colors h-full"
-                    data-testid={`card-pillar-${i}`}
+                  <div className="bg-slate-900/50 rounded-2xl p-6 border border-slate-800 hover:border-purple-500/30 transition-all group" data-testid={`card-pillar-${i}`}>
+                    <div className="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                      <item.icon className="w-6 h-6 text-purple-400" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-white mb-2">{item.title}</h3>
+                    <p className="text-slate-400">{item.desc}</p>
+                  </div>
+                </SectionReveal>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ═══ PRICING ═══ */}
+        <section id="pricing" className="py-24 relative">
+          <div className="max-w-6xl mx-auto px-6">
+            <SectionReveal>
+              <div className="text-center mb-12">
+                <h2 className="text-4xl font-bold text-white mb-4">{t.landing.pricingTitle}</h2>
+                <p className="text-slate-400 text-lg mb-8">{t.landing.pricingSubtitle}</p>
+
+                <div className="inline-flex items-center gap-4 p-1 bg-slate-900 rounded-full border border-slate-800">
+                  <button
+                    onClick={() => setYearly(false)}
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                      !yearly ? "bg-purple-600 text-white" : "text-slate-400 hover:text-white"
+                    }`}
+                    data-testid="toggle-monthly"
                   >
-                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      <item.icon className="w-5 h-5 text-primary" />
+                    {t.landing.pricingMonthly}
+                  </button>
+                  <button
+                    onClick={() => setYearly(true)}
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all flex items-center gap-2 ${
+                      yearly ? "bg-purple-600 text-white" : "text-slate-400 hover:text-white"
+                    }`}
+                    data-testid="toggle-yearly"
+                  >
+                    {t.landing.pricingYearly}
+                    <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded-full">
+                      {t.landing.pricingSave}
+                    </span>
+                  </button>
+                </div>
+              </div>
+            </SectionReveal>
+
+            <SectionReveal delay={0.1}>
+              <div className="flex items-center justify-center gap-4 mb-12 flex-wrap">
+                {[t.landing.pricingFreeTrial, t.landing.pricingNoCard, t.landing.pricingCancelAnytime].map((badge, i) => (
+                  <div key={i} className="flex items-center gap-2 px-4 py-2 bg-slate-900 rounded-full border border-slate-800">
+                    <CheckCircle2 className="w-4 h-4 text-purple-400" />
+                    <span className="text-slate-400 text-sm">{badge}</span>
+                  </div>
+                ))}
+              </div>
+            </SectionReveal>
+
+            <div className="grid md:grid-cols-3 gap-6">
+              {plans.map((plan, index) => (
+                <SectionReveal key={index} delay={0.1 + index * 0.1}>
+                  <div className={`relative rounded-2xl p-6 border h-full ${
+                    plan.highlighted
+                      ? "bg-slate-900 border-purple-500/50"
+                      : "bg-slate-900/50 border-slate-800"
+                  }`}>
+                    {plan.badge && (
+                      <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                        <span className="px-3 py-1 bg-purple-600 text-white text-xs font-medium rounded-full">
+                          {plan.badge}
+                        </span>
+                      </div>
+                    )}
+
+                    <div className="mb-6">
+                      <h3 className="text-xl font-semibold text-white mb-1">{plan.name}</h3>
+                      <p className="text-slate-400 text-sm">{plan.description}</p>
+                    </div>
+
+                    <div className="mb-6">
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-4xl font-bold text-white">
+                          ${yearly && plan.yearlyPrice ? plan.yearlyPrice : plan.price}
+                        </span>
+                        <span className="text-slate-400">{t.landing.pricingPerMonth}</span>
+                      </div>
+                      {yearly && plan.yearlyPrice && (
+                        <p className="text-slate-500 text-sm mt-1">
+                          {t.landing.pricingBilledAnnually.replace("${amount}", String(plan.yearlyPrice * 12))}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="mb-6 p-3 bg-slate-800/50 rounded-lg">
+                      <div className="flex items-center gap-2 text-sm mb-1">
+                        <Zap className="w-4 h-4 text-yellow-400" />
+                        <span className="text-white font-medium">{plan.credits}</span>
+                        <span className="text-slate-400">{t.landing.pricingCreditsPerMonth}</span>
+                      </div>
+                      <p className="text-green-400 text-sm font-medium">
+                        {t.landing.pricingVideosPerMonth.replace("{count}", plan.videos)}
+                      </p>
+                      <p className="text-slate-500 text-xs mt-1">
+                        {t.landing.pricingMaxRollover.replace("{count}", String(plan.rollover))}
+                      </p>
+                    </div>
+
+                    <ul className="space-y-3 mb-6">
+                      {plan.features.map((feature, i) => (
+                        <li key={i} className="flex items-start gap-3">
+                          <Check className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
+                          <span className="text-slate-300 text-sm">{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+
+                    <Button
+                      onClick={handleGetStarted}
+                      className={`w-full ${
+                        plan.highlighted
+                          ? "bg-purple-600 hover:bg-purple-700 text-white"
+                          : "bg-slate-800 hover:bg-slate-700 text-white"
+                      }`}
+                      data-testid={`button-plan-${plan.name.toLowerCase()}`}
+                    >
+                      {plan.cta}
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </Button>
+                  </div>
+                </SectionReveal>
+              ))}
+            </div>
+
+            <SectionReveal delay={0.4}>
+              <div className="mt-12 max-w-2xl mx-auto">
+                <div className="bg-slate-900/50 rounded-xl p-6 border border-slate-800">
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center flex-shrink-0">
+                      <Lightbulb className="w-5 h-5 text-purple-400" />
                     </div>
                     <div>
-                      <h3 className="text-sm font-display font-bold text-foreground mb-1">{item.title}</h3>
-                      <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                      <h4 className="text-white font-semibold mb-2">{t.landing.pricingCreditsTitle}</h4>
+                      <p className="text-slate-400 text-sm">{t.landing.pricingCreditsDesc}</p>
                     </div>
+                  </div>
+                </div>
+              </div>
+            </SectionReveal>
+          </div>
+        </section>
+
+        {/* ═══ FAQ ═══ */}
+        <section className="py-24 relative">
+          <div className="max-w-3xl mx-auto px-6">
+            <SectionReveal>
+              <div className="text-center mb-12">
+                <h2 className="text-4xl font-bold text-white mb-4">{t.landing.faqTitle}</h2>
+                <p className="text-slate-400">{t.landing.faqSubtitle}</p>
+              </div>
+            </SectionReveal>
+
+            <div className="space-y-4">
+              {faqs.map((faq, index) => (
+                <SectionReveal key={index} delay={index * 0.05}>
+                  <div className="bg-slate-900/50 rounded-xl border border-slate-800 overflow-hidden">
+                    <button
+                      onClick={() => setFaqOpen(faqOpen === index ? null : index)}
+                      className="w-full flex items-center justify-between p-5 text-left"
+                      data-testid={`faq-toggle-${index}`}
+                    >
+                      <span className="text-white font-medium">{faq.q}</span>
+                      <div className={`w-6 h-6 rounded-full bg-slate-800 flex items-center justify-center transition-transform ${
+                        faqOpen === index ? "rotate-180" : ""
+                      }`}>
+                        <ChevronRight className="w-4 h-4 text-slate-400 rotate-90" />
+                      </div>
+                    </button>
+                    {faqOpen === index && (
+                      <div className="px-5 pb-5">
+                        <p className="text-slate-400">{faq.a}</p>
+                      </div>
+                    )}
                   </div>
                 </SectionReveal>
               ))}
@@ -444,73 +731,101 @@ export default function Landing() {
         </section>
 
         {/* ═══ FINAL CTA ═══ */}
-        <section className="px-4 py-20 sm:py-24 relative">
+        <section className="py-24 relative">
           <div className="absolute inset-0 pointer-events-none">
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-primary/5 dark:bg-primary/8 rounded-full blur-[150px]" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-purple-600/10 rounded-full blur-3xl" />
           </div>
-          <div className="max-w-2xl mx-auto text-center relative z-10">
+          <div className="relative z-10 max-w-2xl mx-auto px-6 text-center">
             <SectionReveal>
-              <h2 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-4" data-testid="text-final-title">
-                {t.landing.finalTitle}
-              </h2>
-              <p className="text-sm sm:text-base text-muted-foreground mb-8 max-w-md mx-auto">
-                {t.landing.finalSubtitle}
-              </p>
+              <h2 className="text-4xl font-bold text-white mb-4" data-testid="text-final-title">{t.landing.finalTitle}</h2>
+              <p className="text-slate-400 text-lg mb-8">{t.landing.finalSubtitle}</p>
               <Button
                 size="lg"
-                className="rounded-full px-10 h-14 bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-white font-semibold text-lg transition-all hover:-translate-y-1 gap-3"
-                style={{ boxShadow: "0 0 40px rgba(124, 92, 255, 0.35), 0 10px 25px rgba(124, 92, 255, 0.25)" }}
-                onClick={() => setLocation("/auth")}
+                onClick={handleGetStarted}
+                className="bg-purple-600 hover:bg-purple-700 text-white px-8 h-14 text-lg rounded-full shadow-lg shadow-purple-500/25"
                 data-testid="button-final-cta"
               >
                 {t.landing.finalCta}
-                <ArrowRight className="w-5 h-5" />
+                <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
+              <p className="text-slate-500 text-sm mt-4">{t.landing.finalProof}</p>
             </SectionReveal>
           </div>
         </section>
+      </main>
 
-        {/* ═══ FOOTER ═══ */}
-        <footer className="px-4 py-12 border-t border-border/50">
-          <div className="max-w-5xl mx-auto">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10">
-              <div className="col-span-2 md:col-span-1">
-                <img src={isDark ? logoTransparent : logoLight} alt="Craflect" className="h-10 w-auto mb-3" />
-                <p className="text-xs text-muted-foreground">{t.landing.footer}</p>
+      {/* ═══ FOOTER ═══ */}
+      <footer className="border-t border-slate-800 py-16">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="grid md:grid-cols-5 gap-12 mb-12">
+            <div className="md:col-span-2">
+              <div className="flex items-center gap-2 mb-4">
+                <img src={logoColor} alt="Craflect" className="h-10 w-auto" />
+                <span className="text-xl font-bold text-white">Craflect</span>
               </div>
-
-              <div>
-                <h4 className="text-xs font-bold uppercase tracking-widest text-foreground mb-4">{t.landing.footerProduct}</h4>
-                <ul className="space-y-2.5">
-                  <li><button onClick={() => setLocation("/pricing")} className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-footer-pricing">{t.nav.pricing}</button></li>
-                  <li><button onClick={() => setLocation("/faq")} className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-footer-faq">FAQ</button></li>
-                </ul>
-              </div>
-              <div>
-                <h4 className="text-xs font-bold uppercase tracking-widest text-foreground mb-4">{t.landing.footerLegal}</h4>
-                <ul className="space-y-2.5">
-                  <li><Link href="/legal/terms" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-footer-terms">{t.landing.footerTerms}</Link></li>
-                  <li><Link href="/legal/privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-footer-privacy">{t.landing.footerPrivacy}</Link></li>
-                </ul>
-              </div>
-              <div>
-                <h4 className="text-xs font-bold uppercase tracking-widest text-foreground mb-4">{t.landing.footerAccount}</h4>
-                <ul className="space-y-2.5">
-                  <li><button onClick={() => setLocation("/auth?mode=login")} className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-footer-login">{t.auth.logIn}</button></li>
-                  <li><button onClick={() => setLocation("/auth")} className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-footer-signup">{t.nav.signUp}</button></li>
-                </ul>
+              <p className="text-slate-400 text-sm mb-4">{t.landing.footer}</p>
+              <div className="flex gap-4">
+                <a href="#" className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-slate-700 transition-colors">
+                  <span className="sr-only">Twitter</span>
+                  <svg className="w-5 h-5 text-slate-400" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                  </svg>
+                </a>
+                <a href="#" className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-slate-700 transition-colors">
+                  <span className="sr-only">LinkedIn</span>
+                  <svg className="w-5 h-5 text-slate-400" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+                  </svg>
+                </a>
               </div>
             </div>
 
-            <div className="pt-8 border-t border-border/50">
-              <p className="text-xs text-muted-foreground text-center">
-                {t.landing.copyright.replace("{year}", new Date().getFullYear().toString())}
-              </p>
+            <div>
+              <h4 className="text-white font-semibold mb-4">{t.landing.footerProduct}</h4>
+              <ul className="space-y-2">
+                <li><a href="#" className="text-slate-400 hover:text-white transition-colors text-sm">{t.landing.footerFeatures}</a></li>
+                <li><button onClick={scrollToPricing} className="text-slate-400 hover:text-white transition-colors text-sm" data-testid="link-footer-pricing">{t.nav.pricing}</button></li>
+                <li><a href="#" className="text-slate-400 hover:text-white transition-colors text-sm">{t.landing.footerChangelog}</a></li>
+                <li><a href="#" className="text-slate-400 hover:text-white transition-colors text-sm">{t.landing.footerRoadmap}</a></li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="text-white font-semibold mb-4">{t.landing.footerCompany}</h4>
+              <ul className="space-y-2">
+                <li><a href="#" className="text-slate-400 hover:text-white transition-colors text-sm">{t.landing.footerAbout}</a></li>
+                <li><a href="#" className="text-slate-400 hover:text-white transition-colors text-sm">{t.landing.footerBlog}</a></li>
+                <li><a href="#" className="text-slate-400 hover:text-white transition-colors text-sm">{t.landing.footerContact}</a></li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="text-white font-semibold mb-4">{t.landing.footerLegal}</h4>
+              <ul className="space-y-2">
+                <li><Link href="/terms" className="text-slate-400 hover:text-white transition-colors text-sm" data-testid="link-footer-terms">{t.landing.footerTerms}</Link></li>
+                <li><Link href="/privacy" className="text-slate-400 hover:text-white transition-colors text-sm" data-testid="link-footer-privacy">{t.landing.footerPrivacy}</Link></li>
+                <li><Link href="/cookies" className="text-slate-400 hover:text-white transition-colors text-sm" data-testid="link-footer-cookies">{t.landing.footerCookies}</Link></li>
+              </ul>
             </div>
           </div>
-        </footer>
 
-      </main>
+          <Separator className="bg-slate-800 mb-8" />
+
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <p className="text-slate-500 text-sm">
+              {t.landing.copyright.replace("{year}", new Date().getFullYear().toString())}
+            </p>
+            <div className="flex items-center gap-6">
+              <Link href="/privacy" className="text-slate-500 hover:text-white transition-colors text-sm">
+                {t.landing.footerPrivacy}
+              </Link>
+              <Link href="/terms" className="text-slate-500 hover:text-white transition-colors text-sm">
+                {t.landing.footerTerms}
+              </Link>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

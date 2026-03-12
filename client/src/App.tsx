@@ -20,7 +20,6 @@ import Welcome from "@/pages/welcome";
 import FounderDashboard from "@/pages/founder-dashboard";
 import SystemLogs from "@/pages/system-logs";
 import SystemSettings from "@/pages/system-settings";
-import Pricing from "@/pages/pricing";
 import PlanBilling from "@/pages/plan-billing";
 import { TermsPage, BillingPage, PrivacyPage, CookiesPage, DpaPage, SecurityPage } from "@/pages/legal";
 import FaqPage from "@/pages/faq";
@@ -30,7 +29,7 @@ function Router() {
     <Switch>
       <Route path="/" component={Landing} />
       <Route path="/auth" component={Auth} />
-      <Route path="/pricing" component={Pricing} />
+      <Route path="/pricing">{() => <Redirect to="/" />}</Route>
       <Route path="/welcome" component={Welcome} />
       <Route path="/home" component={Dashboard} />
       <Route path="/dashboard">{() => <Redirect to="/home" />}</Route>
