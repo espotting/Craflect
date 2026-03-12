@@ -6,8 +6,6 @@ import {
   BarChart3,
   Settings, 
   LogOut,
-  Sun,
-  Moon,
   CreditCard,
   Crown,
   ScrollText,
@@ -37,7 +35,7 @@ import logoLight from "@/assets/logo-light.png";
 export function AppSidebar() {
   const [location, setLocation] = useLocation();
   const { user, logout } = useAuth();
-  const { theme, toggleTheme, isDark } = useTheme();
+  const { isDark } = useTheme();
   const { t } = useLanguage();
 
   const isAdmin = (user as any)?.isAdmin === true;
@@ -72,14 +70,6 @@ export function AppSidebar() {
           className="h-10 w-auto object-contain"
           data-testid="logo-sidebar" 
         />
-        <button
-          onClick={toggleTheme}
-          className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-          title={isDark ? t.common.switchLight : t.common.switchDark}
-          data-testid="button-theme-toggle"
-        >
-          {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-        </button>
       </SidebarHeader>
 
       <SidebarContent>

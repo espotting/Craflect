@@ -1,19 +1,17 @@
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/use-auth";
-import { useTheme } from "@/hooks/use-theme";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Mail, Loader2, Sun, Moon, CheckCircle2, Eye, EyeOff, Check, X, AlertCircle, Shield } from "lucide-react";
+import { ArrowLeft, Mail, Loader2, CheckCircle2, Eye, EyeOff, Check, X, AlertCircle, Shield } from "lucide-react";
 import { FcGoogle } from "react-icons/fc";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/hooks/use-language";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
-import logoLight from "@/assets/logo-light.png";
 import logoTransparent from "@/assets/logo-transparent.png";
 
 type AuthStep = "choose" | "email-form" | "login-form" | "verify-code" | "admin-verify";
@@ -49,7 +47,6 @@ function InlineError({ message }: { message: string }) {
 export default function Auth() {
   const { isAuthenticated, isLoading, user } = useAuth();
   const [, setLocation] = useLocation();
-  const { isDark, toggleTheme } = useTheme();
   const { toast } = useToast();
   const { t } = useLanguage();
 
@@ -239,17 +236,10 @@ export default function Auth() {
     <div className="min-h-screen bg-background flex flex-col">
       <nav className="w-full px-6 py-6 flex items-center justify-between max-w-7xl mx-auto">
         <button onClick={() => setLocation("/")} className="flex items-center gap-3 hover:opacity-80 transition-opacity" data-testid="link-back-home">
-          <img src={isDark ? logoTransparent : logoLight} alt="Craflect" className="h-10 w-auto object-contain" />
+          <img src={logoTransparent} alt="Craflect" className="h-10 w-auto object-contain" />
         </button>
         <div className="flex items-center gap-2">
           <LanguageSwitcher />
-          <button
-            onClick={toggleTheme}
-            className="p-2.5 rounded-full bg-muted hover:bg-accent text-foreground transition-all border border-border"
-            data-testid="button-theme-toggle-auth"
-          >
-            {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-          </button>
         </div>
       </nav>
 
