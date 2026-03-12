@@ -27,8 +27,7 @@ import { Separator } from "@/components/ui/separator";
 import { useLanguage } from "@/hooks/use-language";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { SiTiktok, SiInstagram, SiYoutube } from "react-icons/si";
-import logoIcon from "@assets/C_Logo_Colored_withoutBG_1773349066420.png";
-import logoText from "@assets/Creflect_TextLogo_transparent_1773349066421.png";
+import logoTransparent from "@/assets/logo-transparent.png";
 
 function SectionReveal({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
   return (
@@ -142,9 +141,8 @@ export default function Landing() {
       }`}>
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <a href="#" className="flex items-center gap-2" data-testid="logo-landing">
-              <img src={logoIcon} alt="" className="h-9 w-auto" />
-              <img src={logoText} alt="Craflect" className="h-5 w-auto" />
+            <a href="#" className="flex items-center" data-testid="logo-landing">
+              <img src={logoTransparent} alt="Craflect" className="h-10 w-auto" />
             </a>
 
             <div className="hidden md:flex items-center gap-4">
@@ -772,9 +770,8 @@ export default function Landing() {
         <div className="max-w-6xl mx-auto px-6">
           <div className="grid md:grid-cols-5 gap-12 mb-12">
             <div className="md:col-span-2">
-              <div className="flex items-center gap-2 mb-4">
-                <img src={logoIcon} alt="" className="h-10 w-auto" />
-                <img src={logoText} alt="Craflect" className="h-5 w-auto" />
+              <div className="flex items-center mb-4">
+                <img src={logoTransparent} alt="Craflect" className="h-12 w-auto" />
               </div>
               <p className="text-slate-400 text-sm mb-4">{t.landing.footer}</p>
               <div className="flex gap-4">
