@@ -10,6 +10,7 @@ import {
   Crown,
   ScrollText,
   Wrench,
+  Users,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import {
@@ -52,8 +53,10 @@ export function AppSidebar() {
 
   const adminItems = [
     { title: t.sidebar.founderDashboard, url: "/system/founder", icon: Crown },
-    { title: t.sidebar.logs, url: "/system/logs", icon: ScrollText },
-    { title: t.sidebar.systemSettings, url: "/system/settings", icon: Wrench },
+    { title: "Users", url: "/system/founder/users", icon: Users },
+    { title: "Subscriptions", url: "/system/founder/subscriptions", icon: CreditCard },
+    { title: t.sidebar.logs, url: "/system/founder/logs", icon: ScrollText },
+    { title: t.sidebar.systemSettings, url: "/system/founder/settings", icon: Wrench },
   ];
 
   const mainItems = isAdmin ? adminItems : userItems;

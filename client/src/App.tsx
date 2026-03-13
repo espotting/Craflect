@@ -17,9 +17,11 @@ import Create from "@/pages/create";
 import Workspace from "@/pages/workspace";
 import Settings from "@/pages/settings";
 import Welcome from "@/pages/welcome";
-import FounderDashboard from "@/pages/founder-dashboard";
-import SystemLogs from "@/pages/system-logs";
-import SystemSettings from "@/pages/system-settings";
+import FounderOverview from "@/pages/founder-overview";
+import FounderUsers from "@/pages/founder-users";
+import FounderSubscriptions from "@/pages/founder-subscriptions";
+import FounderLogs from "@/pages/founder-logs";
+import FounderSettings from "@/pages/founder-settings";
 import PlanBilling from "@/pages/plan-billing";
 import { TermsPage, BillingPage, PrivacyPage, CookiesPage, DpaPage, SecurityPage } from "@/pages/legal";
 import FaqPage from "@/pages/faq";
@@ -39,9 +41,13 @@ function Router() {
       <Route path="/create" component={Create} />
       <Route path="/workspace" component={Workspace} />
       <Route path="/settings" component={Settings} />
-      <Route path="/system/founder" component={FounderDashboard} />
-      <Route path="/system/logs" component={SystemLogs} />
-      <Route path="/system/settings" component={SystemSettings} />
+      <Route path="/system/founder" component={FounderOverview} />
+      <Route path="/system/founder/users" component={FounderUsers} />
+      <Route path="/system/founder/subscriptions" component={FounderSubscriptions} />
+      <Route path="/system/founder/logs" component={FounderLogs} />
+      <Route path="/system/founder/settings" component={FounderSettings} />
+      <Route path="/system/logs">{() => <Redirect to="/system/founder/logs" />}</Route>
+      <Route path="/system/settings">{() => <Redirect to="/system/founder/settings" />}</Route>
       <Route path="/plan-billing" component={PlanBilling} />
 
       <Route path="/trend-radar">{() => <Redirect to="/opportunities" />}</Route>

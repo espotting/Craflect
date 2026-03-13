@@ -61,7 +61,16 @@ API endpoints are designed for aggregated dashboard data, viral opportunity engi
 
 An internal Twin API allows external agents to interact with the platform for video ingestion, classification, trend scoring, and pattern detection.
 
-Admin functionalities include a Founder Dashboard, logs, and system settings, with distinct navigation and route protection. Admin login requires a 6-digit code verification.
+Admin functionalities include a Founder Dashboard v2 with 5 pages under `/system/founder/*`:
+- **Overview** (`/system/founder`) — KPI priority bar, Platform Health, Product Usage, SaaS Metrics, Growth Metrics (recharts)
+- **Users** (`/system/founder/users`) — User table with search, plan/status badges, actions dropdown
+- **Subscriptions** (`/system/founder/subscriptions`) — Subscription table with MRR, billing info, actions
+- **System Logs** (`/system/founder/logs`) — Log table with level filters (info/warning/error/success), export
+- **Settings** (`/system/founder/settings`) — 4 tabs (General/API/Notifications/Security) with toggles
+
+Dashboard components in `client/src/components/dashboard/`: KPICard, KPIPriorityBar, PlatformHealthSection, ProductUsageSection, SaaSMetricsSection, GrowthMetricsSection.
+
+Old routes `/system/logs` and `/system/settings` redirect to new founder routes. Admin sidebar shows all 5 admin pages. Admin login requires a 6-digit code verification.
 
 ## Craflect v2.0 Workers (Hetzner only)
 Workers infrastructure prepared for Hetzner deployment (not runnable on Replit — requires Redis + Ollama):
