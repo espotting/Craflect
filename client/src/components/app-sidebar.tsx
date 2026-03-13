@@ -25,17 +25,14 @@ import {
   SidebarHeader,
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/hooks/use-auth";
-import { useTheme } from "@/hooks/use-theme";
 import { useLanguage } from "@/hooks/use-language";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { Progress } from "@/components/ui/progress";
 import logoTransparent from "@/assets/logo-transparent.png";
-import logoLight from "@/assets/logo-light.png";
 
 export function AppSidebar() {
   const [location, setLocation] = useLocation();
   const { user, logout } = useAuth();
-  const { isDark } = useTheme();
   const { t } = useLanguage();
 
   const isAdmin = (user as any)?.isAdmin === true;
@@ -65,7 +62,7 @@ export function AppSidebar() {
     <Sidebar variant="inset" className="border-r border-border bg-sidebar">
       <SidebarHeader className="p-4 flex flex-row items-center justify-between gap-2">
         <img 
-          src={isDark ? logoTransparent : logoLight} 
+          src={logoTransparent} 
           alt="Craflect" 
           className="h-10 w-auto object-contain"
           data-testid="logo-sidebar" 

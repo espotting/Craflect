@@ -3,9 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { User, Bell, Shield, Key, Sun, Moon, Loader2, Eye, EyeOff, Copy, RefreshCw } from "lucide-react";
+import { User, Bell, Shield, Key, Loader2, Eye, EyeOff, Copy, RefreshCw } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
-import { useTheme } from "@/hooks/use-theme";
 import { useState, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -14,7 +13,6 @@ import { apiRequest } from "@/lib/queryClient";
 
 export default function Settings() {
   const { user } = useAuth();
-  const { theme, toggleTheme, isDark } = useTheme();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { t } = useLanguage();
@@ -195,19 +193,6 @@ export default function Settings() {
                     data-testid="input-email"
                   />
                   <p className="text-xs text-muted-foreground mt-1">{t.settings.emailManaged}</p>
-                </div>
-
-                <div className="grid gap-2">
-                  <label className="text-sm font-medium text-muted-foreground">{t.settings.appearance}</label>
-                  <Button 
-                    variant="outline" 
-                    onClick={toggleTheme}
-                    className="w-fit border-border text-foreground hover:bg-accent gap-2"
-                    data-testid="button-toggle-theme"
-                  >
-                    {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-                    {isDark ? t.settings.switchLight : t.settings.switchDark}
-                  </Button>
                 </div>
 
                 <div className="pt-6">

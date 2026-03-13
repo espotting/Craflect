@@ -40,6 +40,8 @@ export async function setupAuth(app: Express) {
       ? `https://${process.env.REPLIT_DOMAINS.split(",")[0]}/api/auth/google/callback`
       : "http://localhost:5000/api/auth/google/callback";
 
+  console.log(`[AUTH] Google OAuth callback URL: ${callbackURL}`);
+
   passport.use(
     new GoogleStrategy(
       {
