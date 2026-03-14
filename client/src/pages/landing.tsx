@@ -766,7 +766,7 @@ export default function Landing() {
       </main>
 
       {/* ═══ FOOTER ═══ */}
-      <footer className="border-t border-slate-800 py-16" data-testid="footer">
+      <footer id="footer" className="border-t border-slate-800 py-16" data-testid="footer">
         <div className="max-w-6xl mx-auto px-6">
           <div className="grid md:grid-cols-5 gap-12 mb-12">
             <div className="md:col-span-2">
@@ -793,8 +793,8 @@ export default function Landing() {
             <div>
               <h4 className="text-white font-semibold mb-4" data-testid="text-footer-product">{t.landing.footerProduct}</h4>
               <ul className="space-y-2">
-                <li><a href="#pricing" className="text-slate-400 hover:text-white transition-colors text-sm" data-testid="link-footer-pricing">{t.nav.pricing}</a></li>
-                <li><a href="#faq" className="text-slate-400 hover:text-white transition-colors text-sm" data-testid="link-footer-faq">{t.landing.footerFaq}</a></li>
+                <li><a href="/#pricing" className="text-slate-400 hover:text-white transition-colors text-sm" data-testid="link-footer-pricing">{t.nav.pricing}</a></li>
+                <li><a href="/#faq" className="text-slate-400 hover:text-white transition-colors text-sm" data-testid="link-footer-faq">{t.landing.footerFaq}</a></li>
                 <li><Link href="/security" className="text-slate-400 hover:text-white transition-colors text-sm" data-testid="link-footer-security">{t.landing.footerSecurity}</Link></li>
               </ul>
             </div>

@@ -23,21 +23,21 @@ function LegalPage({ page }: { page: LegalPageType }) {
   return (
     <div className="min-h-screen bg-background">
       <header className="flex justify-between items-center gap-4 px-4 py-4">
-        <Link href="/" data-testid="link-logo-home">
+        <a href="/#footer" data-testid="link-logo-home">
           <img
             src={isDark ? logoTransparent : logoLight}
             alt="Craflect"
             className="h-10"
           />
-        </Link>
-        <Link
-          href="/"
+        </a>
+        <a
+          href="/#footer"
           className="flex items-center gap-2 text-sm text-muted-foreground hover-elevate rounded-md px-2 py-1"
           data-testid="link-back-home"
         >
           <ArrowLeft className="w-4 h-4" />
           {t.legal.backToHome}
-        </Link>
+        </a>
       </header>
 
       <main className="max-w-3xl mx-auto px-4 py-16">
