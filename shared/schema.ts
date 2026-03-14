@@ -343,6 +343,55 @@ export const TOPIC_CLUSTERS = [
   "food", "travel", "relationships", "entertainment", "gaming",
 ] as const;
 
+export const NICHE_CLUSTERS = [
+  "tech_business",
+  "creator_economy",
+  "productivity",
+  "marketing_growth",
+  "lifestyle",
+] as const;
+
+export const NICHE_CLUSTER_LABELS: Record<string, string> = {
+  tech_business: "Tech & Business",
+  creator_economy: "Creator Economy",
+  productivity: "Productivity",
+  marketing_growth: "Marketing & Growth",
+  lifestyle: "Lifestyle",
+};
+
+export const TOPIC_TO_NICHE_CLUSTER: Record<string, string> = {
+  ai_tools: "tech_business",
+  ai_automation: "tech_business",
+  tech: "tech_business",
+  saas: "tech_business",
+  online_business: "tech_business",
+  entrepreneurship: "tech_business",
+  ecommerce: "tech_business",
+  finance: "tech_business",
+  crypto: "tech_business",
+  real_estate: "tech_business",
+  personal_branding: "creator_economy",
+  coaching: "creator_economy",
+  education: "creator_economy",
+  entertainment: "creator_economy",
+  gaming: "creator_economy",
+  productivity: "productivity",
+  motivation: "productivity",
+  digital_marketing: "marketing_growth",
+  lifestyle: "lifestyle",
+  fitness: "lifestyle",
+  health: "lifestyle",
+  beauty: "lifestyle",
+  food: "lifestyle",
+  travel: "lifestyle",
+  relationships: "lifestyle",
+};
+
+export function resolveNicheCluster(topicCluster: string | null | undefined): string | null {
+  if (!topicCluster) return null;
+  return TOPIC_TO_NICHE_CLUSTER[topicCluster] ?? null;
+}
+
 export const TOPIC_CLUSTER_LABELS: Record<string, string> = {
   ai_tools: "AI tools",
   ai_automation: "AI automation",
@@ -584,10 +633,11 @@ export const videos = pgTable("videos", {
   emotionPrimary: text("emotion_primary"),
   emotionSecondary: text("emotion_secondary"),
 
-  // ── Topic Classification (3 levels) ──
+  // ── Topic Classification (3 levels + macro niche) ──
   topicCategory: text("topic_category"),
   topicCluster: text("topic_cluster"),
   topicSubcluster: text("topic_subcluster"),
+  nicheCluster: text("niche_cluster"),
 
   // ── Performance Metrics ──
   views: integer("views"),
@@ -654,6 +704,7 @@ export const videos = pgTable("videos", {
   index("idx_videos_taxonomy_version").on(table.taxonomyVersion),
   index("idx_videos_geo_zone").on(table.geoZone),
   index("idx_videos_geo_language").on(table.geoLanguage),
+  index("idx_videos_niche_cluster").on(table.nicheCluster),
 ]);
 
 export const geoZones = pgTable("geo_zones", {
@@ -839,6 +890,125 @@ export const insertVideoSchema = createInsertSchema(videos).omit({ id: true, col
 export const insertViralPatternSchema = createInsertSchema(viralPatterns).omit({ patternId: true, lastUpdated: true });
 export const insertPatternSchema = createInsertSchema(patterns).omit({ patternId: true, lastUpdated: true });
 
+// ═══════════════════════════════════════════════════════════
+// Pipeline Data — Video Classification (Content DNA separate table)
+// ═══════════════════════════════════════════════════════════
+
+export const videoClassification = pgTable("video_classification", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  videoId: varchar("video_id").notNull(),
+  hookType: text("hook_type"),
+  structureType: text("structure_type"),
+  topicCluster: text("topic_cluster"),
+  emotionValue: text("emotion_value"),
+  formatType: text("format_type"),
+  ctaType: text("cta_type"),
+  visualStyle: text("visual_style"),
+  cutFrequency: text("cut_frequency"),
+  nicheCluster: text("niche_cluster"),
+  classifiedAt: timestamp("classified_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_video_classification_video_id").on(table.videoId),
+  index("idx_video_classification_hook_type").on(table.hookType),
+  index("idx_video_classification_topic_cluster").on(table.topicCluster),
+  index("idx_video_classification_niche_cluster").on(table.nicheCluster),
+]);
+
+export const insertVideoClassificationSchema = createInsertSchema(videoClassification).omit({ id: true, classifiedAt: true });
+
+// ═══════════════════════════════════════════════════════════
+// Pipeline Patterns — Detected by Pattern Engine
+// ═══════════════════════════════════════════════════════════
+
+export const pipelinePatterns = pgTable("pipeline_patterns", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  patternType: text("pattern_type"),
+  nicheCluster: text("niche_cluster"),
+  description: text("description"),
+  frequency: doublePrecision("frequency"),
+  engagementAvg: doublePrecision("engagement_avg"),
+  creatorDiversity: doublePrecision("creator_diversity"),
+  stabilityScore: doublePrecision("stability_score"),
+  patternScore: doublePrecision("pattern_score"),
+  trendVelocity: doublePrecision("trend_velocity"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_pipeline_patterns_niche_cluster").on(table.nicheCluster),
+  index("idx_pipeline_patterns_pattern_score").on(table.patternScore),
+  index("idx_pipeline_patterns_pattern_type").on(table.patternType),
+]);
+
+export const insertPipelinePatternSchema = createInsertSchema(pipelinePatterns).omit({ id: true, createdAt: true });
+
+// ═══════════════════════════════════════════════════════════
+// Pattern Templates — Reusable templates from patterns
+// ═══════════════════════════════════════════════════════════
+
+export const patternTemplates = pgTable("pattern_templates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  patternId: varchar("pattern_id").notNull(),
+  templateStructure: jsonb("template_structure"),
+  exampleVideo: text("example_video"),
+  confidenceScore: doublePrecision("confidence_score"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_pattern_templates_pattern_id").on(table.patternId),
+]);
+
+export const insertPatternTemplateSchema = createInsertSchema(patternTemplates).omit({ id: true, createdAt: true });
+
+// ═══════════════════════════════════════════════════════════
+// Opportunities — Generated by Opportunity Engine
+// ═══════════════════════════════════════════════════════════
+
+export const opportunities = pgTable("opportunities", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  patternTemplateId: varchar("pattern_template_id").notNull(),
+  hook: text("hook"),
+  topic: text("topic"),
+  structure: text("structure"),
+  format: text("format"),
+  generatedAt: timestamp("generated_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_opportunities_pattern_template_id").on(table.patternTemplateId),
+]);
+
+export const insertOpportunitySchema = createInsertSchema(opportunities).omit({ id: true, generatedAt: true });
+
+// ═══════════════════════════════════════════════════════════
+// Pipeline Logs — Job monitoring
+// ═══════════════════════════════════════════════════════════
+
+export const pipelineLogs = pgTable("pipeline_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  jobType: text("job_type").notNull(),
+  status: text("status").notNull(),
+  errorMessage: text("error_message"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_pipeline_logs_job_type").on(table.jobType),
+  index("idx_pipeline_logs_status").on(table.status),
+  index("idx_pipeline_logs_created_at").on(table.createdAt),
+]);
+
+export const insertPipelineLogSchema = createInsertSchema(pipelineLogs).omit({ id: true, createdAt: true });
+
+// ═══════════════════════════════════════════════════════════
+// Dataset Batches — Tracking ingested datasets
+// ═══════════════════════════════════════════════════════════
+
+export const datasetBatches = pgTable("dataset_batches", {
+  batchId: varchar("batch_id").primaryKey().default(sql`gen_random_uuid()`),
+  source: text("source"),
+  videosIngested: integer("videos_ingested").default(0).notNull(),
+  videosClassified: integer("videos_classified").default(0).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_dataset_batches_source").on(table.source),
+])
+
+export const insertDatasetBatchSchema = createInsertSchema(datasetBatches).omit({ batchId: true, createdAt: true });
+
 export type Niche = typeof niches.$inferSelect;
 export type InsertNiche = z.infer<typeof insertNicheSchema>;
 export type Creator = typeof creators.$inferSelect;
@@ -865,3 +1035,15 @@ export type ViralTemplate = typeof viralTemplates.$inferSelect;
 export type InsertViralTemplate = z.infer<typeof insertViralTemplateSchema>;
 export type IntelligenceEvent = typeof intelligenceEvents.$inferSelect;
 export type InsertIntelligenceEvent = z.infer<typeof insertIntelligenceEventSchema>;
+export type VideoClassification = typeof videoClassification.$inferSelect;
+export type InsertVideoClassification = z.infer<typeof insertVideoClassificationSchema>;
+export type PipelinePattern = typeof pipelinePatterns.$inferSelect;
+export type InsertPipelinePattern = z.infer<typeof insertPipelinePatternSchema>;
+export type PatternTemplate = typeof patternTemplates.$inferSelect;
+export type InsertPatternTemplate = z.infer<typeof insertPatternTemplateSchema>;
+export type Opportunity = typeof opportunities.$inferSelect;
+export type InsertOpportunity = z.infer<typeof insertOpportunitySchema>;
+export type PipelineLog = typeof pipelineLogs.$inferSelect;
+export type InsertPipelineLog = z.infer<typeof insertPipelineLogSchema>;
+export type DatasetBatch = typeof datasetBatches.$inferSelect;
+export type InsertDatasetBatch = z.infer<typeof insertDatasetBatchSchema>;

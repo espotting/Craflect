@@ -1,0 +1,139 @@
+Merci pour tes observations, elles sont très pertinentes. Voici les décisions à appliquer pour l’implémentation.
+
+1. Table videos
+
+La table videos existe déjà et contient la plupart des champs nécessaires.
+
+Ajoute simplement le champ :
+
+niche_cluster
+
+Concernant le champ status, vérifie la logique existante et conserve-la. Si nécessaire, ajoute les statuts suivants pour le pipeline :
+
+scraped
+transcribed
+classified
+processed
+
+Ne modifie pas la structure existante autrement.
+
+---
+
+2. Table video_classification
+
+Actuellement la classification Content DNA est stockée directement dans la table videos.
+
+Nous voulons créer une table séparée video_classification pour préparer le pipeline data et le Pattern Engine.
+
+Important : ne pas migrer ni supprimer les colonnes existantes dans videos pour l’instant.
+
+Les deux systèmes doivent coexister :
+
+videos → utilisé par le frontend actuel
+video_classification → utilisé par le pipeline data et les workers Hetzner
+
+Structure de la nouvelle table :
+
+video_id
+hook_type
+structure_type
+topic_cluster
+emotion_value
+format_type
+cta_type
+visual_style
+cut_frequency
+niche_cluster
+
+La table videos restera intacte pour éviter de casser le frontend.
+
+---
+
+3. Tables patterns existantes
+
+Il existe déjà des tables viral_patterns et patterns.
+
+Ne les remplace pas.
+
+Crée une nouvelle table dédiée au pipeline data :
+
+pipeline_patterns
+
+Cela évite tout conflit avec la logique actuelle.
+
+Structure :
+
+id
+pattern_type
+niche_cluster
+description
+frequency
+engagement_avg
+creator_diversity
+stability_score
+pattern_score
+trend_velocity
+created_at
+
+---
+
+4. niche_cluster
+
+Utiliser une liste fixe et non un champ libre.
+
+Liste :
+
+tech_business
+creator_economy
+productivity
+marketing_growth
+lifestyle
+
+Les topic clusters existants seront mappés vers ces macro niches.
+
+---
+
+5. Table opportunities
+
+La nouvelle table opportunities est utilisée uniquement par le pipeline et le Pattern Engine.
+
+Elle est distincte du système existant saved_ideas côté frontend.
+
+Pipeline :
+
+pipeline_patterns
+→ pattern_templates
+→ opportunities
+→ saved_ideas
+
+---
+
+6. Pipeline logs
+
+Créer une table pipeline_logs pour suivre les jobs.
+
+Champs :
+
+id
+job_type
+status
+error_message
+created_at
+
+---
+
+7. Dataset batches
+
+Ajouter une table dataset_batches pour suivre les datasets ingérés.
+
+Champs :
+
+batch_id
+source
+videos_ingested
+videos_classified
+created_at
+
+---
+
+Toutes les modifications doivent rester additives et ne doivent pas casser la logique actuelle du produit.
