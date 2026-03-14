@@ -1,0 +1,165 @@
+CRAFLECT – MISE À JOUR BASE DE DONNÉES POUR PIPELINE DATA
+
+OBJECTIF
+
+Préparer la base de données de Craflect pour supporter le pipeline d’ingestion vidéo, la classification Content DNA, la détection de patterns et la génération d’opportunités.
+
+La taxonomie existante "Content DNA v1" reste la taxonomie principale utilisée par les workers (Hetzner).
+
+La taxonomie Legacy reste utilisée uniquement pour le frontend.
+
+Les modifications doivent être additives et ne doivent pas casser l’architecture existante.
+
+---
+
+TAXONOMIE OFFICIELLE
+
+La taxonomie utilisée pour le Pattern Engine est Content DNA v1 :
+
+Hook Types
+Structure Types
+Topic Clusters
+Emotion Values
+CTA Types
+Visual Styles
+Cut Frequency
+
+Cette taxonomie est déjà implémentée et doit rester la base du système d’analyse.
+
+---
+
+NOUVEAU CHAMP À AJOUTER
+
+Ajouter un champ supplémentaire dans la classification :
+
+niche_cluster
+
+Objectif
+
+Regrouper les topics dans des macro-niches afin d’éviter le bruit lors de la détection de patterns.
+
+Exemples
+
+tech_business
+creator_economy
+productivity
+marketing
+lifestyle
+
+---
+
+TABLE VIDEOS
+
+Vérifier que la table videos contient au minimum :
+
+id
+platform
+video_url
+creator
+title
+publish_date
+views
+likes
+comments
+topic_cluster
+niche_cluster
+status
+
+Le champ status permettra de suivre le pipeline :
+
+scraped
+transcribed
+classified
+processed
+
+---
+
+TABLE VIDEO_CLASSIFICATION
+
+Créer ou vérifier une table séparée pour la classification.
+
+Champs :
+
+video_id
+hook_type
+structure_type
+topic_cluster
+emotion_value
+format_type
+cta_type
+visual_style
+cut_frequency
+
+---
+
+TABLE PATTERNS
+
+Créer une table dédiée aux patterns détectés.
+
+Champs :
+
+id
+pattern_type
+niche_cluster
+description
+frequency
+engagement_avg
+creator_diversity
+stability_score
+pattern_score
+trend_velocity
+created_at
+
+---
+
+TABLE PATTERN_TEMPLATES
+
+Créer une table pour les templates réutilisables.
+
+Champs :
+
+id
+pattern_id
+template_structure
+example_video
+confidence_score
+
+Ces templates seront utilisés par l’Opportunity Engine.
+
+---
+
+TABLE OPPORTUNITIES
+
+Créer une table pour les opportunités générées.
+
+Champs :
+
+id
+pattern_template_id
+hook
+topic
+structure
+format
+generated_at
+
+---
+
+TABLE PIPELINE_LOGS
+
+Créer une table simple de monitoring.
+
+Champs :
+
+id
+job_type
+status
+error_message
+created_at
+
+---
+
+OBJECTIF
+
+Ces ajustements permettent d’intégrer le pipeline data et le Pattern Engine sans modifier la logique existante du produit.
+
+Toutes les modifications doivent être compatibles avec la taxonomie Content DNA actuelle.
