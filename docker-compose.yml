@@ -5,6 +5,7 @@ services:
     build: .
     ports:
       - "3000:3000"
+    env_file: .env
     environment:
       - NODE_ENV=production
       - DATABASE_URL=postgresql://craflect:${DB_PASSWORD}@postgres:5432/craflect
@@ -19,6 +20,7 @@ services:
   workers:
     build: .
     command: npm run workers
+    env_file: .env
     environment:
       - NODE_ENV=production
       - DATABASE_URL=postgresql://craflect:${DB_PASSWORD}@postgres:5432/craflect
