@@ -1,0 +1,417 @@
+📋 SPÉCIFICATIONS TECHNIQUES POUR REPLIT
+Copie-colle ce qui suit à l'agent Replit :
+PARTIE 1 : Schéma SQL Additif
+sql
+Copy
+-- ============================================
+-- PARTIE 1 : AJOUTS AU SCHÉMA EXISTANT
+-- ============================================
+
+-- 1.1 Colonnes additives à la table videos (sans casser l'existant)
+ALTER TABLE videos ADD COLUMN IF NOT EXISTS niche_cluster VARCHAR(100);
+ALTER TABLE videos ADD COLUMN IF NOT EXISTS content_hash VARCHAR(64);
+ALTER TABLE videos ADD COLUMN IF NOT EXISTS virality_score DECIMAL(5,2) DEFAULT 0;
+ALTER TABLE videos ADD COLUMN IF NOT EXISTS views_per_hour DECIMAL(10,2) DEFAULT 0;
+ALTER TABLE videos ADD COLUMN IF NOT EXISTS is_deep_selected BOOLEAN DEFAULT FALSE;
+ALTER TABLE videos ADD COLUMN IF NOT EXISTS deep_selection_reason VARCHAR(50);
+ALTER TABLE videos ADD COLUMN IF NOT EXISTS transcription_status VARCHAR(20) DEFAULT 'pending';
+ALTER TABLE videos ADD COLUMN IF NOT EXISTS transcript TEXT;
+ALTER TABLE videos ADD COLUMN IF NOT EXISTS audio_url VARCHAR(500);
+ALTER TABLE videos ADD COLUMN IF NOT EXISTS classification_status VARCHAR(20) DEFAULT 'pending';
+
+-- Index pour performance
+CREATE INDEX IF NOT EXISTS idx_videos_niche_cluster ON videos(niche_cluster);
+CREATE INDEX IF NOT EXISTS idx_videos_virality_score ON videos(virality_score DESC);
+CREATE INDEX IF NOT EXISTS idx_videos_deep_selected ON videos(is_deep_selected) WHERE is_deep_selected = TRUE;
+CREATE INDEX IF NOT EXISTS idx_videos_classification ON videos(classification_status);
+
+-- 1.2 Table pour suivre l'état du Pattern Engine (NOUVELLE)
+CREATE TABLE IF NOT EXISTS pattern_engine_state (
+  id SERIAL PRIMARY KEY,
+  current_phase INTEGER DEFAULT 1 CHECK (current_phase IN (1, 2, 3)),
+  phase_1_activated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  phase_2_activated_at TIMESTAMP,
+  phase_3_activated_at TIMESTAMP,
+  total_deep_videos INTEGER DEFAULT 0,
+  total_classified_videos INTEGER DEFAULT 0,
+  cluster_count INTEGER DEFAULT 0,
+  last_transition_at TIMESTAMP,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Initialiser l'état
+INSERT INTO pattern_engine_state (id, current_phase) VALUES (1, 1) ON CONFLICT DO NOTHING;
+
+-- 1.3 Ajouts à la table pipeline_patterns (colonnes additives)
+ALTER TABLE pipeline_patterns ADD COLUMN IF NOT EXISTS pattern_confidence_score DECIMAL(4,3) DEFAULT 0.000;
+ALTER TABLE pipeline_patterns ADD COLUMN IF NOT EXISTS human_validation_flag BOOLEAN DEFAULT NULL;
+ALTER TABLE pipeline_patterns ADD COLUMN IF NOT EXISTS detected_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE pipeline_patterns ADD COLUMN IF NOT EXISTS video_count INTEGER DEFAULT 0;
+
+-- 1.4 Table pour les embeddings pgvector (NOUVELLE)
+-- Nécessite l'extension pgvector déjà installée
+CREATE TABLE IF NOT EXISTS video_embeddings (
+  id SERIAL PRIMARY KEY,
+  video_id INTEGER NOT NULL REFERENCES videos(id) ON DELETE CASCADE,
+  embedding VECTOR(1536), -- Dimension pour OpenAI embeddings
+  model_used VARCHAR(50) DEFAULT 'text-embedding-3-small',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(video_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_video_embeddings_vector ON video_embeddings USING ivfflat (embedding vector_cosine_ops);
+
+-- 1.5 Table pour les clusters de contenu (NOUVELLE)
+CREATE TABLE IF NOT EXISTS content_clusters (
+  id SERIAL PRIMARY KEY,
+  cluster_label VARCHAR(100) NOT NULL,
+  cluster_description TEXT,
+  video_ids INTEGER[], -- Array des IDs de vidéos
+  centroid VECTOR(1536),
+  pattern_detected TEXT,
+  confidence_score DECIMAL(4,3),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  analyzed_by_llm BOOLEAN DEFAULT FALSE
+);
+
+CREATE INDEX IF NOT EXISTS idx_content_clusters_analyzed ON content_clusters(analyzed_by_llm) WHERE analyzed_by_llm = FALSE;
+PARTIE 2 : Worker de Transition des Phases
+Créer le fichier : server/workers/phase-transition.worker.ts
+TypeScript
+Copy
+import { db } from '../db';
+import { patternEngineState, videos, videoClassification } from '@shared/schema';
+import { eq, sql, count } from 'drizzle-orm';
+import { generateEmbeddings } from '../services/embeddings';
+import { clusterVideos } from '../services/clustering';
+import { analyzeClustersWithLLM } from '../services/llm-analysis';
+
+const PHASE_THRESHOLDS = {
+  PHASE_1: 200,   // Rule Based
+  PHASE_2: 500,   // Clustering pgvector
+  PHASE_3: 2000   // LLM Synthesis
+};
+
+export class PhaseTransitionWorker {
+  private isRunning = false;
+
+  async checkAndTransition(): Promise<void> {
+    if (this.isRunning) return;
+    this.isRunning = true;
+
+    try {
+      // Récupérer l'état actuel
+      const state = await db.query.patternEngineState.findFirst();
+      if (!state) return;
+
+      // Compter les vidéos deep classifiées
+      const stats = await db.select({
+        deepCount: count(videos.id),
+        classifiedCount: sql<number>`count(case when ${videos.classification_status} = 'completed' then 1 end)`
+      })
+      .from(videos)
+      .where(eq(videos.is_deep_selected, true));
+
+      const deepCount = stats[0]?.deepCount || 0;
+      const classifiedCount = stats[0]?.classifiedCount || 0;
+
+      // Mettre à jour les compteurs
+      await db.update(patternEngineState)
+        .set({ 
+          total_deep_videos: deepCount,
+          total_classified_videos: classifiedCount,
+          updated_at: new Date()
+        })
+        .where(eq(patternEngineState.id, 1));
+
+      console.log(`[PhaseTransition] Phase: ${state.current_phase}, Deep: ${deepCount}, Classified: ${classifiedCount}`);
+
+      // Transition 1 → 2 (Rule Based → Clustering)
+      if (state.current_phase === 1 && classifiedCount >= PHASE_THRESHOLDS.PHASE_2) {
+        console.log('🚀 Transition vers Phase 2: Clustering');
+        await this.activatePhase2();
+        await db.update(patternEngineState)
+          .set({ 
+            current_phase: 2, 
+            phase_2_activated_at: new Date(),
+            last_transition_at: new Date()
+          })
+          .where(eq(patternEngineState.id, 1));
+      }
+
+      // Transition 2 → 3 (Clustering → LLM Synthesis)
+      if (state.current_phase === 2 && classifiedCount >= PHASE_THRESHOLDS.PHASE_3) {
+        console.log('🚀 Transition vers Phase 3: LLM Synthesis');
+        await this.activatePhase3();
+        await db.update(patternEngineState)
+          .set({ 
+            current_phase: 3, 
+            phase_3_activated_at: new Date(),
+            last_transition_at: new Date()
+          })
+          .where(eq(patternEngineState.id, 1));
+      }
+
+    } catch (error) {
+      console.error('[PhaseTransition] Erreur:', error);
+    } finally {
+      this.isRunning = false;
+    }
+  }
+
+  private async activatePhase2(): Promise<void> {
+    // Générer les embeddings pour toutes les vidéos classifiées
+    console.log('[Phase 2] Génération des embeddings...');
+    await generateEmbeddings();
+    
+    // Créer les clusters
+    console.log('[Phase 2] Clustering...');
+    const clusterCount = await clusterVideos();
+    
+    await db.update(patternEngineState)
+      .set({ cluster_count: clusterCount })
+      .where(eq(patternEngineState.id, 1));
+    
+    console.log(`✅ Phase 2 activée: ${clusterCount} clusters créés`);
+  }
+
+  private async activatePhase3(): Promise<void> {
+    // Analyser les clusters avec LLM (pas les vidéos individuelles)
+    console.log('[Phase 3] Analyse LLM des clusters...');
+    await analyzeClustersWithLLM();
+    console.log('✅ Phase 3 activée: Patterns générés');
+  }
+}
+
+export const phaseTransitionWorker = new PhaseTransitionWorker();
+PARTIE 3 : Services Complémentaires
+server/services/embeddings.ts :
+TypeScript
+Copy
+import { db } from '../db';
+import { videos, video_embeddings } from '@shared/schema';
+import { eq, and, isNull } from 'drizzle-orm';
+import OpenAI from 'openai';
+
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+export async function generateEmbeddings(): Promise<void> {
+  // Récupérer les vidéos classifiées sans embedding
+  const unprocessedVideos = await db.query.videos.findMany({
+    where: and(
+      eq(videos.classification_status, 'completed'),
+      isNull(video_embeddings.id) // Sous-requête implicite via join
+    ),
+    limit: 100
+  });
+
+  for (const video of unprocessedVideos) {
+    try {
+      const textToEmbed = `${video.title || ''} ${video.description || ''} ${video.transcript || ''}`;
+      
+      const response = await openai.embeddings.create({
+        model: 'text-embedding-3-small',
+        input: textToEmbed.substring(0, 8000), // Limite tokens
+        encoding_format: 'float'
+      });
+
+      await db.insert(video_embeddings).values({
+        video_id: video.id,
+        embedding: response.data[0].embedding,
+        model_used: 'text-embedding-3-small'
+      }).onConflictDoNothing();
+
+    } catch (error) {
+      console.error(`[Embeddings] Erreur vidéo ${video.id}:`, error);
+    }
+  }
+}
+server/services/clustering.ts :
+TypeScript
+Copy
+import { db } from '../db';
+import { video_embeddings, content_clusters, videos } from '@shared/schema';
+import { sql } from 'drizzle-orm';
+
+export async function clusterVideos(): Promise<number> {
+  // Récupérer tous les embeddings
+  const embeddings = await db.query.video_embeddings.findMany({
+    with: { video: true }
+  });
+
+  if (embeddings.length < 10) return 0;
+
+  // Clustering simple par similarité cosinus > 0.85
+  const clusters: Map<number, number[]> = new Map();
+  const assigned = new Set<number>();
+
+  for (let i = 0; i < embeddings.length; i++) {
+    if (assigned.has(embeddings[i].video_id)) continue;
+    
+    const cluster = [embeddings[i].video_id];
+    assigned.add(embeddings[i].video_id);
+
+    for (let j = i + 1; j < embeddings.length; j++) {
+      if (assigned.has(embeddings[j].video_id)) continue;
+      
+      const similarity = cosineSimilarity(
+        embeddings[i].embedding,
+        embeddings[j].embedding
+      );
+      
+      if (similarity > 0.85) {
+        cluster.push(embeddings[j].video_id);
+        assigned.add(embeddings[j].video_id);
+      }
+    }
+
+    if (cluster.length >= 3) { // Cluster significatif
+      clusters.set(i, cluster);
+    }
+  }
+
+  // Sauvegarder les clusters
+  for (const [_, videoIds] of clusters) {
+    await db.insert(content_clusters).values({
+      cluster_label: `cluster_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+      video_ids: videoIds,
+      confidence_score: 0.85,
+      analyzed_by_llm: false
+    });
+  }
+
+  return clusters.size;
+}
+
+function cosineSimilarity(a: number[], b: number[]): number {
+  let dotProduct = 0;
+  let normA = 0;
+  let normB = 0;
+  for (let i = 0; i < a.length; i++) {
+    dotProduct += a[i] * b[i];
+    normA += a[i] * a[i];
+    normB += b[i] * b[i];
+  }
+  return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+}
+server/services/llm-analysis.ts :
+TypeScript
+Copy
+import { db } from '../db';
+import { content_clusters, pattern_templates } from '@shared/schema';
+import { eq } from 'drizzle-orm';
+import OpenAI from 'openai';
+
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+export async function analyzeClustersWithLLM(): Promise<void> {
+  // Récupérer les clusters non analysés
+  const clusters = await db.query.content_clusters.findMany({
+    where: eq(content_clusters.analyzed_by_llm, false),
+    limit: 50 // Batch de 50 clusters max par run
+  });
+
+  for (const cluster of clusters) {
+    try {
+      // Récupérer les détails des vidéos du cluster
+      const videos = await db.query.videos.findMany({
+        where: (v, { inArray }) => inArray(v.id, cluster.video_ids || [])
+      });
+
+      const prompt = `Analyse ce cluster de ${videos.length} vidéos et identifie le pattern commun:
+      
+${videos.map(v => `- Titre: ${v.title}\n  Hook: ${v.transcript?.substring(0, 200)}...`).join('\n')}
+
+Extrais:
+1. Le type de hook dominant
+2. La structure narrative
+3. Le format visuel
+4. Un template réutilisable (avec variables [audience], [topic], etc.)`;
+
+      const response = await openai.chat.completions.create({
+        model: 'gpt-4-turbo-preview',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.7
+      });
+
+      const analysis = response.choices[0].message.content;
+
+      // Créer un template
+      await db.insert(pattern_templates).values({
+        template_name: `Pattern_${cluster.id}`,
+        template_description: analysis?.substring(0, 500),
+        hook_type: extractHookType(analysis),
+        structure_type: extractStructureType(analysis),
+        format_type: extractFormatType(analysis),
+        template_formula: extractTemplateFormula(analysis),
+        confidence_score: 0.85,
+        usage_count: 0,
+        niche_id: null // Ou déduire de la niche dominante
+      });
+
+      // Marquer le cluster comme analysé
+      await db.update(content_clusters)
+        .set({ analyzed_by_llm: true, pattern_detected: analysis?.substring(0, 200) })
+        .where(eq(content_clusters.id, cluster.id));
+
+    } catch (error) {
+      console.error(`[LLM Analysis] Erreur cluster ${cluster.id}:`, error);
+    }
+  }
+}
+
+// Helpers d'extraction (à affiner selon tes besoins)
+function extractHookType(analysis: string | undefined): string {
+  if (!analysis) return 'unknown';
+  if (analysis.includes('mistake')) return 'mistake_framing';
+  if (analysis.includes('story')) return 'storytelling';
+  if (analysis.includes('question')) return 'question';
+  return 'other';
+}
+
+function extractStructureType(analysis: string | undefined): string {
+  if (!analysis) return 'unknown';
+  if (analysis.includes('hook → problem → solution')) return 'problem_solution';
+  return 'standard';
+}
+
+function extractFormatType(analysis: string | undefined): string {
+  return 'talking_head'; // Simplifié
+}
+
+function extractTemplateFormula(analysis: string | undefined): string {
+  if (!analysis) return '[Hook] about [Topic]';
+  // Extraction simple entre guillemets ou première phrase
+  const match = analysis.match(/template[`"']?:?\s*([^\n]+)/i);
+  return match ? match[1].trim() : '[Hook] about [Topic]';
+}
+PARTIE 4 : Modification du Scheduler
+Dans server/workers/scheduler.ts, ajouter :
+TypeScript
+Copy
+import { phaseTransitionWorker } from './phase-transition.worker';
+
+// Dans setupSchedules(), ajouter :
+Queue('phase-transition', async () => {
+  await phaseTransitionWorker.checkAndTransition();
+}, { repeat: { every: 30 * 60 * 1000 } }); // Toutes les 30 minutes
+PARTIE 5 : Dépendances NPM à ajouter
+bash
+Copy
+npm install pgvector @types/pg
+Ou si pgvector est déjà inclus via Drizzle, vérifier que l'extension est activée dans PostgreSQL.
+✅ CHECKLIST POUR REPLIT
+Table
+Tâche	Fichier/Commande	Priorité
+1. Ajouter colonnes à videos	Migration SQL	🔴 Haute
+2. Créer pattern_engine_state	Migration SQL	🔴 Haute
+3. Créer video_embeddings	Migration SQL	🔴 Haute
+4. Créer content_clusters	Migration SQL	🔴 Haute
+5. Créer phase-transition.worker.ts	Nouveau fichier	🔴 Haute
+6. Créer services/embeddings.ts	Nouveau fichier	🟡 Moyenne
+7. Créer services/clustering.ts	Nouveau fichier	🟡 Moyenne
+8. Créer services/llm-analysis.ts	Nouveau fichier	🟡 Moyenne
+9. Modifier scheduler.ts	Ajouter cron	🟡 Moyenne
+10. Push sur GitHub	git push	🟢 Basse
+Copie-colle ces spécifications à l'agent Replit et il pourra implémenter étape par étape. Tu veux que je détaille une partie en particulier ? 🚀
