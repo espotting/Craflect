@@ -288,15 +288,14 @@ export default function SignUp() {
             </div>
           </div>
 
-          <Button
-            variant="outline"
-            className="w-full h-14 bg-white hover:bg-gray-100 text-gray-900 font-medium rounded-xl border-0 transition-all"
-            onClick={() => window.location.href = "/api/login"}
+          <a
+            href="/api/login"
+            className="w-full h-14 bg-white hover:bg-gray-100 text-gray-900 font-medium rounded-xl border-0 transition-all flex items-center justify-center"
             data-testid="button-google-signup"
           >
             <FcGoogle className="w-5 h-5 mr-3" />
             Continue with Google
-          </Button>
+          </a>
 
           <p className="mt-8 text-center text-gray-400">
             Already have an account?{" "}

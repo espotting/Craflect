@@ -55,15 +55,14 @@ export default function AuthWelcome() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
           >
-            <Button
-              variant="outline"
-              className="w-full h-14 bg-white hover:bg-gray-100 text-gray-900 font-medium rounded-xl border-0 transition-all mb-4"
-              onClick={() => window.location.href = "/api/login"}
+            <a
+              href="/api/login"
+              className="w-full h-14 bg-white hover:bg-gray-100 text-gray-900 font-medium rounded-xl border-0 transition-all mb-4 flex items-center justify-center"
               data-testid="button-google-auth"
             >
               <FcGoogle className="w-5 h-5 mr-3" />
               Continue with Google
-            </Button>
+            </a>
           </motion.div>
 
           <motion.div
