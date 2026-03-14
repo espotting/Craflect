@@ -55,6 +55,20 @@ Key UI components include:
 - Creator: $24/mo ($19/mo yearly), 250 credits
 - Pro: $109/mo ($99/mo yearly), 1500 credits
 
+## Auth Flow (v2 - March 2026)
+Auth pages split into individual routes under `client/src/pages/auth/`:
+- `/welcome` → Auth Welcome (Google + Email options)
+- `/signin` → Sign In (email/password)
+- `/signup` → Sign Up (with password rules, terms checkbox)
+- `/forgot-password` → Forgot Password (email input)
+- `/email-confirmation?email=X&flow=signup|login` → 6-digit code verification
+- `/admin-verification?email=X` → Admin 2FA (challengeToken in sessionStorage)
+- `/auth` → Legacy redirect to `/welcome`
+- `/onboarding` → 5-step onboarding funnel (Role → Topics → Profile → AI Analysis → First Idea)
+
+Logo: `logo-transparent.png` (white) used in auth pages + sidebar. `logo-color.png` for emails only.
+All auth pages are dark-only (#0a0a0f) with Framer Motion animations.
+
 The user onboarding process involves 5 steps: intro, niche selection, creator profile setup, AI analysis, and initial viral idea generation.
 
 API endpoints are designed for aggregated dashboard data, viral opportunity engine, idea management, AI credit system, AI generation (script, blueprint, viral idea), aggregated home and opportunities data, intelligence feed, viral templates, content remixing, predicted views, and projects CRUD operations.

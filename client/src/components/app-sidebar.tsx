@@ -105,7 +105,7 @@ export function AppSidebar() {
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <button
-                onClick={() => setLocation("/welcome")}
+                onClick={() => setLocation("/onboarding")}
                 className="w-full p-3 rounded-md bg-primary/5 border border-primary/20 space-y-2 text-left hover-elevate"
                 data-testid="button-onboarding-progress"
               >

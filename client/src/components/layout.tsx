@@ -7,7 +7,7 @@ import { Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useLanguage } from "@/hooks/use-language";
 
-const userRoutes = ["/home", "/opportunities", "/create", "/workspace", "/insights", "/settings", "/plan-billing", "/welcome"];
+const userRoutes = ["/home", "/opportunities", "/create", "/workspace", "/insights", "/settings", "/plan-billing", "/onboarding"];
 const adminRoutes = ["/system/founder", "/system/logs", "/system/settings"];
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -33,8 +33,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         setLocation("/home");
         return;
       }
-      if (!isAdmin && !user.onboardingCompleted && location !== "/welcome") {
-        setLocation("/welcome");
+      if (!isAdmin && !user.onboardingCompleted && location !== "/onboarding") {
+        setLocation("/onboarding");
       }
     }
   }, [isLoading, isAuthenticated, user, location, setLocation, isAdmin]);

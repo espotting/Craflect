@@ -34,10 +34,10 @@ const NICHES = [
 ];
 
 const CREATOR_TYPES = [
-  { value: "content_creator", label: "Créateur de contenu", icon: Sparkles },
-  { value: "marketer", label: "Marketeur", icon: Megaphone },
-  { value: "entrepreneur", label: "Entrepreneur", icon: Briefcase },
-  { value: "trend_explorer", label: "Explorateur de tendances", icon: Compass },
+  { value: "content_creator", label: "Créateur de contenu", icon: Sparkles, emoji: "✨" },
+  { value: "marketer", label: "Marketeur", icon: Megaphone, emoji: "📢" },
+  { value: "entrepreneur", label: "Entrepreneur", icon: Briefcase, emoji: "💼" },
+  { value: "trend_explorer", label: "Explorateur de tendances", icon: Compass, emoji: "🔍" },
 ];
 
 const ANALYSIS_STEPS = [
@@ -46,12 +46,6 @@ const ANALYSIS_STEPS = [
   "analyse de l'engagement dans la niche",
   "calcul du score de viralité",
 ];
-
-const slideVariants = {
-  enter: { opacity: 0, x: 60 },
-  center: { opacity: 1, x: 0 },
-  exit: { opacity: 0, x: -60 },
-};
 
 function formatLabel(s: string | null | undefined): string {
   if (!s) return "";
@@ -91,7 +85,7 @@ function AnimatedScore({ target }: { target: number }) {
   return <span>{current}</span>;
 }
 
-export default function Welcome() {
+export default function Onboarding() {
   const [, setLocation] = useLocation();
   const [step, setStep] = useState(0);
   const [selectedNiches, setSelectedNiches] = useState<string[]>([]);
@@ -117,14 +111,14 @@ export default function Welcome() {
     });
   };
 
-  const handleProfileSelect = async (type: string) => {
-    setCreatorType(type);
+  const handleTopicsSubmit = async () => {
+    if (selectedNiches.length === 0) return;
     setIsSubmitting(true);
 
     try {
       await apiRequest("PATCH", "/api/user/preferences", {
         selectedNiches,
-        userGoal: type,
+        userGoal: creatorType || "content_creator",
         onboardingCompleted: true,
       });
     } catch {
@@ -213,308 +207,274 @@ export default function Welcome() {
   };
 
   const totalSteps = 5;
+  const progress = ((step + 1) / totalSteps) * 100;
+
+  const slideVariants = {
+    enter: { opacity: 0, x: 60 },
+    center: { opacity: 1, x: 0 },
+    exit: { opacity: 0, x: -60 },
+  };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] text-white relative flex flex-col items-center justify-center px-4 overflow-hidden">
+    <div className="min-h-screen bg-[#0a0a0f] text-white relative flex flex-col overflow-hidden">
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-[#7C5CFF]/8 rounded-full blur-[160px] pointer-events-none" />
       <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-[#7C5CFF]/5 rounded-full blur-[120px] pointer-events-none" />
 
-      <div className="w-full max-w-lg relative z-10">
-        <div className="flex justify-center mb-8 gap-2">
-          {Array.from({ length: totalSteps }).map((_, i) => (
-            <div
-              key={i}
-              className={`h-1 rounded-full transition-all duration-500 ${
-                i <= step ? "w-10 bg-[#7C5CFF]" : "w-10 bg-white/10"
-              }`}
-              data-testid={`progress-indicator-${i}`}
-            />
-          ))}
-        </div>
-
-        <AnimatePresence mode="wait">
-          {step === 0 && (
-            <motion.div
-              key="step-0"
-              variants={slideVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{ duration: 0.35, ease: "easeInOut" }}
-              className="flex flex-col items-center text-center"
-              data-testid="step-welcome"
-            >
-              <div className="w-16 h-16 rounded-2xl bg-[#7C5CFF]/10 border border-[#7C5CFF]/20 flex items-center justify-center mb-8">
-                <Sparkles className="w-8 h-8 text-[#7C5CFF]" />
-              </div>
-              <h1
-                className="text-3xl md:text-4xl font-bold tracking-tight mb-4"
-                data-testid="text-welcome-heading"
-              >
-                Créer des vidéos virales avec l'IA
-              </h1>
-              <p
-                className="text-white/50 text-lg mb-10 max-w-md"
-                data-testid="text-welcome-subtitle"
-              >
-                Répondez à 3 questions rapides et obtenez votre première idée de vidéo virale.
-              </p>
-              <Button
-                onClick={() => setStep(1)}
-                className="bg-[#7C5CFF] hover:bg-[#6B4FE0] text-white px-8"
-                data-testid="button-get-started"
-              >
-                Commencer
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
-            </motion.div>
-          )}
-
-          {step === 1 && (
-            <motion.div
-              key="step-1"
-              variants={slideVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{ duration: 0.35, ease: "easeInOut" }}
-              data-testid="step-niches"
-            >
-              <h2
-                className="text-2xl font-bold mb-2 text-center"
-                data-testid="text-niches-heading"
-              >
-                Quels sujets de contenu créez-vous ?
-              </h2>
-              <p
-                className="text-white/50 text-sm mb-6 text-center"
-                data-testid="text-niches-subtitle"
-              >
-                Sélectionnez jusqu'à 3 niches pour que nous puissions trouver des idées virales pour vous.
-              </p>
-
-              <div className="flex flex-wrap gap-3 justify-center mb-8">
-                {NICHES.map((niche) => {
-                  const selected = selectedNiches.includes(niche.value);
-                  return (
-                    <button
-                      key={niche.value}
-                      onClick={() => toggleNiche(niche.value)}
-                      className={`px-4 py-2.5 rounded-md text-sm font-medium transition-all border ${
-                        selected
-                          ? "bg-[#7C5CFF]/15 border-[#7C5CFF] text-white"
-                          : "bg-white/5 border-white/10 text-white/70 hover:border-white/25 hover:text-white"
-                      }`}
-                      data-testid={`chip-niche-${niche.value}`}
-                    >
-                      {selected && (
-                        <Check className="w-3.5 h-3.5 inline mr-1.5" />
-                      )}
-                      {niche.label}
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div className="flex justify-center">
-                <Button
-                  onClick={() => setStep(2)}
-                  disabled={selectedNiches.length === 0}
-                  className="bg-[#7C5CFF] hover:bg-[#6B4FE0] text-white px-8"
-                  data-testid="button-niches-continue"
-                >
-                  Continue
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </Button>
-              </div>
-            </motion.div>
-          )}
-
-          {step === 2 && (
-            <motion.div
-              key="step-2"
-              variants={slideVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{ duration: 0.35, ease: "easeInOut" }}
-              data-testid="step-profile"
-            >
-              <h2
-                className="text-2xl font-bold mb-2 text-center"
-                data-testid="text-profile-heading"
-              >
-                Comment créez-vous du contenu ?
-              </h2>
-              <p
-                className="text-white/50 text-sm mb-6 text-center"
-                data-testid="text-profile-subtitle"
-              >
-                Cela nous aide à personnaliser vos recommandations.
-              </p>
-
-              <div className="grid grid-cols-2 gap-3 mb-8">
-                {CREATOR_TYPES.map((ct) => {
-                  const Icon = ct.icon;
-                  const selected = creatorType === ct.value;
-                  return (
-                    <button
-                      key={ct.value}
-                      onClick={() => setCreatorType(ct.value)}
-                      className={`flex flex-col items-center gap-3 p-6 rounded-md border transition-all ${
-                        selected
-                          ? "bg-[#7C5CFF]/15 border-[#7C5CFF] text-white"
-                          : "bg-white/5 border-white/10 text-white/70 hover:border-white/25 hover:text-white"
-                      }`}
-                      data-testid={`card-profile-${ct.value}`}
-                    >
-                      <Icon className="w-7 h-7" />
-                      <span className="text-sm font-medium">{ct.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div className="flex justify-center">
-                <Button
-                  onClick={() =>
-                    creatorType && handleProfileSelect(creatorType)
-                  }
-                  disabled={!creatorType || isSubmitting}
-                  className="bg-[#7C5CFF] hover:bg-[#6B4FE0] text-white px-8"
-                  data-testid="button-profile-continue"
-                >
-                  {isSubmitting ? (
-                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                  ) : null}
-                  Continue
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </Button>
-              </div>
-            </motion.div>
-          )}
-
-          {step === 3 && (
-            <motion.div
-              key="step-3"
-              variants={slideVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{ duration: 0.35, ease: "easeInOut" }}
-              className="flex flex-col items-center text-center"
-              data-testid="step-analysis"
-            >
-              <div className="w-16 h-16 rounded-2xl bg-[#7C5CFF]/10 border border-[#7C5CFF]/20 flex items-center justify-center mb-8">
-                <TrendingUp className="w-8 h-8 text-[#7C5CFF] animate-pulse" />
-              </div>
-              <h2
-                className="text-2xl font-bold mb-8"
-                data-testid="text-analysis-heading"
-              >
-                Analyse des patterns viraux dans votre niche...
-              </h2>
-
-              <div className="space-y-4 w-full max-w-sm text-left">
-                {ANALYSIS_STEPS.map((label, idx) => (
-                  <motion.div
-                    key={idx}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={
-                      analysisStep >= idx
-                        ? { opacity: 1, x: 0 }
-                        : { opacity: 0.2, x: -20 }
-                    }
-                    transition={{ duration: 0.4, ease: "easeOut" }}
-                    className="flex items-center gap-3"
-                    data-testid={`analysis-step-${idx}`}
-                  >
-                    {analysisStep >= idx ? (
-                      <div className="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
-                        <Check className="w-4 h-4 text-emerald-400" />
-                      </div>
-                    ) : (
-                      <div className="w-6 h-6 rounded-full bg-white/5 flex items-center justify-center flex-shrink-0">
-                        <Loader2 className="w-4 h-4 text-white/30 animate-spin" />
-                      </div>
-                    )}
-                    <span
-                      className={`text-sm ${
-                        analysisStep >= idx
-                          ? "text-white"
-                          : "text-white/30"
-                      }`}
-                    >
-                      {analysisStep >= idx ? "✓" : "○"} {label}
-                    </span>
-                  </motion.div>
-                ))}
-              </div>
-            </motion.div>
-          )}
-
-          {step === 4 && (
-            <motion.div
-              key="step-4"
-              variants={slideVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{ duration: 0.35, ease: "easeInOut" }}
-              className="flex flex-col items-center text-center"
-              data-testid="step-viral-idea"
-            >
-              <h2
-                className="text-2xl font-bold mb-6 flex items-center gap-2"
-                data-testid="text-viral-idea-heading"
-              >
-                <Flame className="w-6 h-6 text-orange-500" />
-                Votre première idée de vidéo virale
-              </h2>
-
-              {!viralIdea && !ideaError && (
-                <div className="flex flex-col items-center gap-4 py-8">
-                  <Loader2 className="w-8 h-8 text-[#7C5CFF] animate-spin" />
-                  <p className="text-white/50 text-sm">Génération en cours...</p>
-                </div>
-              )}
-
-              {ideaError && (
-                <div className="flex flex-col items-center gap-4 py-8">
-                  <p className="text-white/50 text-sm">
-                    Une erreur est survenue. Voici une idée par défaut :
-                  </p>
-                  <IdeaCard
-                    idea={{
-                      topic: selectedNiches[0] || "ai_tools",
-                      hook: "3 outils IA dont personne ne parle",
-                      format: "listicle",
-                      structure: "Hook → Montrer les outils → Démo → CTA",
-                      viralityScore: 78,
-                    }}
-                    onCreateClick={handleCreateViralVideo}
-                  />
-                </div>
-              )}
-
-              {viralIdea && !ideaError && (
-                <IdeaCard
-                  idea={viralIdea}
-                  onCreateClick={handleCreateViralVideo}
-                />
-              )}
-
-              <button
-                onClick={() => setLocation("/home")}
-                className="mt-4 text-white/40 text-xs hover:text-white/60 transition-colors"
-                data-testid="button-skip-to-home"
-              >
-                Passer et aller au tableau de bord →
-              </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
+      <div className="w-full h-1 bg-gray-800">
+        <motion.div
+          className="h-full bg-gradient-to-r from-violet-600 to-fuchsia-600"
+          initial={{ width: 0 }}
+          animate={{ width: `${progress}%` }}
+          transition={{ duration: 0.5 }}
+          data-testid="progress-bar"
+        />
       </div>
+
+      <main className="flex-1 flex items-center justify-center px-4 py-12">
+        <div className="w-full max-w-lg relative z-10">
+          <AnimatePresence mode="wait">
+            {step === 0 && (
+              <motion.div
+                key="step-0"
+                variants={slideVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: 0.35, ease: "easeInOut" }}
+                className="flex flex-col items-center text-center"
+                data-testid="step-welcome"
+              >
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.2, type: "spring" }}
+                  className="w-20 h-20 bg-violet-500/10 rounded-2xl flex items-center justify-center mb-8"
+                >
+                  <Sparkles className="w-10 h-10 text-violet-500" />
+                </motion.div>
+                <h1 className="text-4xl font-bold mb-4" data-testid="text-welcome-heading">
+                  Créer des vidéos virales avec l'IA
+                </h1>
+                <p className="text-white/50 text-lg mb-10 max-w-md" data-testid="text-welcome-subtitle">
+                  Répondez à 3 questions rapides et obtenez votre première idée de vidéo virale.
+                </p>
+                <Button
+                  onClick={() => setStep(1)}
+                  className="h-14 px-8 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white font-semibold rounded-xl transition-all"
+                  data-testid="button-get-started"
+                >
+                  Commencer
+                  <ArrowRight className="w-5 h-5 ml-2" />
+                </Button>
+              </motion.div>
+            )}
+
+            {step === 1 && (
+              <motion.div
+                key="step-1"
+                variants={slideVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: 0.35, ease: "easeInOut" }}
+                data-testid="step-role"
+              >
+                <h2 className="text-2xl font-bold mb-2 text-center" data-testid="text-role-heading">
+                  Comment créez-vous du contenu ?
+                </h2>
+                <p className="text-white/50 text-sm mb-6 text-center" data-testid="text-role-subtitle">
+                  Cela nous aide à personnaliser vos recommandations.
+                </p>
+
+                <div className="grid grid-cols-2 gap-3 mb-8">
+                  {CREATOR_TYPES.map((ct) => {
+                    const selected = creatorType === ct.value;
+                    return (
+                      <button
+                        key={ct.value}
+                        onClick={() => setCreatorType(ct.value)}
+                        className={`flex flex-col items-center gap-3 p-6 rounded-xl border transition-all ${
+                          selected
+                            ? "bg-[#7C5CFF]/15 border-[#7C5CFF] text-white"
+                            : "bg-white/5 border-white/10 text-white/70 hover:border-white/25 hover:text-white"
+                        }`}
+                        data-testid={`card-role-${ct.value}`}
+                      >
+                        <span className="text-2xl">{ct.emoji}</span>
+                        <span className="text-sm font-medium">{ct.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="flex justify-center">
+                  <Button
+                    onClick={() => setStep(2)}
+                    disabled={!creatorType}
+                    className="bg-[#7C5CFF] hover:bg-[#6B4FE0] text-white px-8"
+                    data-testid="button-role-continue"
+                  >
+                    Continue
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+
+            {step === 2 && (
+              <motion.div
+                key="step-2"
+                variants={slideVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: 0.35, ease: "easeInOut" }}
+                data-testid="step-topics"
+              >
+                <h2 className="text-2xl font-bold mb-2 text-center" data-testid="text-topics-heading">
+                  Quels sujets de contenu créez-vous ?
+                </h2>
+                <p className="text-white/50 text-sm mb-6 text-center" data-testid="text-topics-subtitle">
+                  Sélectionnez jusqu'à 3 niches pour que nous puissions trouver des idées virales pour vous.
+                </p>
+
+                <div className="flex flex-wrap gap-3 justify-center mb-8">
+                  {NICHES.map((niche) => {
+                    const selected = selectedNiches.includes(niche.value);
+                    return (
+                      <button
+                        key={niche.value}
+                        onClick={() => toggleNiche(niche.value)}
+                        className={`px-4 py-2.5 rounded-md text-sm font-medium transition-all border ${
+                          selected
+                            ? "bg-[#7C5CFF]/15 border-[#7C5CFF] text-white"
+                            : "bg-white/5 border-white/10 text-white/70 hover:border-white/25 hover:text-white"
+                        }`}
+                        data-testid={`chip-niche-${niche.value}`}
+                      >
+                        {selected && <Check className="w-3.5 h-3.5 inline mr-1.5" />}
+                        {niche.label}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="flex justify-center">
+                  <Button
+                    onClick={handleTopicsSubmit}
+                    disabled={selectedNiches.length === 0 || isSubmitting}
+                    className="bg-[#7C5CFF] hover:bg-[#6B4FE0] text-white px-8"
+                    data-testid="button-topics-continue"
+                  >
+                    {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                    Continue
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+
+            {step === 3 && (
+              <motion.div
+                key="step-3"
+                variants={slideVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: 0.35, ease: "easeInOut" }}
+                className="flex flex-col items-center text-center"
+                data-testid="step-analysis"
+              >
+                <div className="w-16 h-16 rounded-2xl bg-[#7C5CFF]/10 border border-[#7C5CFF]/20 flex items-center justify-center mb-8">
+                  <TrendingUp className="w-8 h-8 text-[#7C5CFF] animate-pulse" />
+                </div>
+                <h2 className="text-2xl font-bold mb-8" data-testid="text-analysis-heading">
+                  Analyse des patterns viraux dans votre niche...
+                </h2>
+
+                <div className="space-y-4 w-full max-w-sm text-left">
+                  {ANALYSIS_STEPS.map((label, idx) => (
+                    <motion.div
+                      key={idx}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={analysisStep >= idx ? { opacity: 1, x: 0 } : { opacity: 0.2, x: -20 }}
+                      transition={{ duration: 0.4, ease: "easeOut" }}
+                      className="flex items-center gap-3"
+                      data-testid={`analysis-step-${idx}`}
+                    >
+                      {analysisStep >= idx ? (
+                        <div className="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
+                          <Check className="w-4 h-4 text-emerald-400" />
+                        </div>
+                      ) : (
+                        <div className="w-6 h-6 rounded-full bg-white/5 flex items-center justify-center flex-shrink-0">
+                          <Loader2 className="w-4 h-4 text-white/30 animate-spin" />
+                        </div>
+                      )}
+                      <span className={`text-sm ${analysisStep >= idx ? "text-white" : "text-white/30"}`}>
+                        {analysisStep >= idx ? "✓" : "○"} {label}
+                      </span>
+                    </motion.div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+
+            {step === 4 && (
+              <motion.div
+                key="step-4"
+                variants={slideVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: 0.35, ease: "easeInOut" }}
+                className="flex flex-col items-center text-center"
+                data-testid="step-viral-idea"
+              >
+                <h2 className="text-2xl font-bold mb-6 flex items-center gap-2" data-testid="text-viral-idea-heading">
+                  <Flame className="w-6 h-6 text-orange-500" />
+                  Votre première idée de vidéo virale
+                </h2>
+
+                {!viralIdea && !ideaError && (
+                  <div className="flex flex-col items-center gap-4 py-8">
+                    <Loader2 className="w-8 h-8 text-[#7C5CFF] animate-spin" />
+                    <p className="text-white/50 text-sm">Génération en cours...</p>
+                  </div>
+                )}
+
+                {ideaError && (
+                  <div className="flex flex-col items-center gap-4 py-8">
+                    <p className="text-white/50 text-sm">Une erreur est survenue. Voici une idée par défaut :</p>
+                    <IdeaCard
+                      idea={{
+                        topic: selectedNiches[0] || "ai_tools",
+                        hook: "3 outils IA dont personne ne parle",
+                        format: "listicle",
+                        structure: "Hook → Montrer les outils → Démo → CTA",
+                        viralityScore: 78,
+                      }}
+                      onCreateClick={handleCreateViralVideo}
+                    />
+                  </div>
+                )}
+
+                {viralIdea && !ideaError && (
+                  <IdeaCard idea={viralIdea} onCreateClick={handleCreateViralVideo} />
+                )}
+
+                <button
+                  onClick={() => setLocation("/home")}
+                  className="mt-4 text-white/40 text-xs hover:text-white/60 transition-colors"
+                  data-testid="button-skip-to-home"
+                >
+                  Passer et aller au tableau de bord →
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </main>
     </div>
   );
 }
@@ -536,30 +496,21 @@ function IdeaCard({
     >
       <div className="p-6 space-y-5">
         <div className="space-y-1">
-          <span className="text-[11px] uppercase tracking-wider text-white/40 font-medium">
-            Topic
-          </span>
+          <span className="text-[11px] uppercase tracking-wider text-white/40 font-medium">Topic</span>
           <p className="text-sm text-[#7C5CFF] font-semibold" data-testid="text-idea-topic">
             {formatLabel(idea.topic)}
           </p>
         </div>
 
         <div className="space-y-1">
-          <span className="text-[11px] uppercase tracking-wider text-white/40 font-medium">
-            Hook
-          </span>
-          <p
-            className="text-lg font-bold text-white leading-snug"
-            data-testid="text-idea-hook"
-          >
+          <span className="text-[11px] uppercase tracking-wider text-white/40 font-medium">Hook</span>
+          <p className="text-lg font-bold text-white leading-snug" data-testid="text-idea-hook">
             "{idea.hook}"
           </p>
         </div>
 
         <div className="space-y-1">
-          <span className="text-[11px] uppercase tracking-wider text-white/40 font-medium">
-            Format
-          </span>
+          <span className="text-[11px] uppercase tracking-wider text-white/40 font-medium">Format</span>
           <p className="text-sm text-white/80" data-testid="text-idea-format">
             {formatLabel(idea.format)}
           </p>
@@ -567,22 +518,15 @@ function IdeaCard({
 
         <div className="flex items-center justify-between pt-2 border-t border-white/10">
           <div className="space-y-1">
-            <span className="text-[11px] uppercase tracking-wider text-white/40 font-medium">
-              Score de viralité
-            </span>
+            <span className="text-[11px] uppercase tracking-wider text-white/40 font-medium">Score de viralité</span>
             <div className={`text-2xl font-bold ${viralityColorClass}`} data-testid="text-idea-score">
               <AnimatedScore target={idea.viralityScore} />
             </div>
           </div>
 
           <div className="space-y-1 text-right">
-            <span className="text-[11px] uppercase tracking-wider text-white/40 font-medium">
-              Vues prédites
-            </span>
-            <p
-              className="text-sm font-semibold text-white/80 flex items-center gap-1 justify-end"
-              data-testid="text-idea-predicted"
-            >
+            <span className="text-[11px] uppercase tracking-wider text-white/40 font-medium">Vues prédites</span>
+            <p className="text-sm font-semibold text-white/80 flex items-center gap-1 justify-end" data-testid="text-idea-predicted">
               <Eye className="w-4 h-4" />
               {predicted.label}
             </p>

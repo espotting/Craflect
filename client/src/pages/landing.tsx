@@ -66,8 +66,8 @@ export default function Landing() {
 
   if (isLoading || isAuthenticated) return null;
 
-  const handleGetStarted = () => setLocation("/auth");
-  const handleSignIn = () => setLocation("/auth?mode=login");
+  const handleGetStarted = () => setLocation("/welcome");
+  const handleSignIn = () => setLocation("/signin");
   const scrollToPricing = () => {
     document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" });
     setMobileMenuOpen(false);

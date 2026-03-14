@@ -8,7 +8,12 @@ import { useTheme } from "@/hooks/use-theme";
 import { LanguageProvider } from "@/hooks/use-language";
 
 import Landing from "@/pages/landing";
-import Auth from "@/pages/auth";
+import AuthWelcome from "@/pages/auth/welcome";
+import SignIn from "@/pages/auth/sign-in";
+import SignUp from "@/pages/auth/sign-up";
+import ForgotPassword from "@/pages/auth/forgot-password";
+import EmailConfirmation from "@/pages/auth/email-confirmation";
+import AdminVerification from "@/pages/auth/admin-verification";
 import Dashboard from "@/pages/dashboard";
 import Discover from "@/pages/discover";
 import Opportunities from "@/pages/opportunities";
@@ -16,7 +21,7 @@ import Insights from "@/pages/insights";
 import Create from "@/pages/create";
 import Workspace from "@/pages/workspace";
 import Settings from "@/pages/settings";
-import Welcome from "@/pages/welcome";
+import Onboarding from "@/pages/welcome";
 import FounderOverview from "@/pages/founder-overview";
 import FounderUsers from "@/pages/founder-users";
 import FounderSubscriptions from "@/pages/founder-subscriptions";
@@ -30,9 +35,15 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Landing} />
-      <Route path="/auth" component={Auth} />
+      <Route path="/welcome" component={AuthWelcome} />
+      <Route path="/signin" component={SignIn} />
+      <Route path="/signup" component={SignUp} />
+      <Route path="/forgot-password" component={ForgotPassword} />
+      <Route path="/email-confirmation" component={EmailConfirmation} />
+      <Route path="/admin-verification" component={AdminVerification} />
+      <Route path="/auth">{() => <Redirect to="/welcome" />}</Route>
       <Route path="/pricing">{() => <Redirect to="/" />}</Route>
-      <Route path="/welcome" component={Welcome} />
+      <Route path="/onboarding" component={Onboarding} />
       <Route path="/home" component={Dashboard} />
       <Route path="/dashboard">{() => <Redirect to="/home" />}</Route>
       <Route path="/opportunities" component={Opportunities} />
