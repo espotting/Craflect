@@ -1,9 +1,9 @@
-import { useEffect } from "react";
+import { useEffect, useCallback } from "react";
 import { useLanguage } from "@/hooks/use-language";
 import { useTheme } from "@/hooks/use-theme";
 import logoTransparent from "@/assets/logo-transparent.png";
 import logoLight from "@/assets/logo-light.png";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { ArrowLeft } from "lucide-react";
 
 type LegalPageType = "terms" | "billing" | "privacy" | "cookies" | "dpa" | "security" | "contact";
@@ -11,10 +11,25 @@ type LegalPageType = "terms" | "billing" | "privacy" | "cookies" | "dpa" | "secu
 function LegalPage({ page }: { page: LegalPageType }) {
   const { t } = useLanguage();
   const { isDark } = useTheme();
+  const [, setLocation] = useLocation();
 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [page]);
+
+  const handleBackToFooter = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setLocation("/");
+    const tryScroll = (attempts: number) => {
+      const footer = document.getElementById("footer");
+      if (footer) {
+        footer.scrollIntoView({ behavior: "smooth" });
+      } else if (attempts > 0) {
+        requestAnimationFrame(() => tryScroll(attempts - 1));
+      }
+    };
+    requestAnimationFrame(() => tryScroll(30));
+  }, [setLocation]);
 
   const pageData = t.legal[page] as any;
   const sections: { title: string; text: string }[] = [];
@@ -35,14 +50,14 @@ function LegalPage({ page }: { page: LegalPageType }) {
             className="h-10"
           />
         </Link>
-        <a
-          href="/#footer"
+        <button
+          onClick={handleBackToFooter}
           className="flex items-center gap-2 text-sm text-muted-foreground hover-elevate rounded-md px-2 py-1"
           data-testid="link-back-home"
         >
           <ArrowLeft className="w-4 h-4" />
           {t.legal.backToHome}
-        </a>
+        </button>
       </header>
 
       <main className="max-w-3xl mx-auto px-4 py-16">
