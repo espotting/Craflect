@@ -664,6 +664,14 @@ export const videos = pgTable("videos", {
   classificationStartedAt: timestamp("classification_started_at"),
   patternNotes: text("pattern_notes"),
 
+  // ── Deep Selection & Transcription Pipeline ──
+  contentHash: varchar("content_hash", { length: 64 }),
+  viewsPerHour: doublePrecision("views_per_hour").default(0),
+  isDeepSelected: boolean("is_deep_selected").default(false),
+  deepSelectionReason: varchar("deep_selection_reason", { length: 50 }),
+  transcriptionStatus: text("transcription_status").default("pending"),
+  audioUrl: text("audio_url"),
+
   // ── Geo Intelligence ──
   geoZone: varchar("geo_zone", { length: 10 }),
   geoCountry: char("geo_country", { length: 2 }),
@@ -705,6 +713,8 @@ export const videos = pgTable("videos", {
   index("idx_videos_geo_zone").on(table.geoZone),
   index("idx_videos_geo_language").on(table.geoLanguage),
   index("idx_videos_niche_cluster").on(table.nicheCluster),
+  index("idx_videos_deep_selected").on(table.isDeepSelected),
+  index("idx_videos_transcription_status").on(table.transcriptionStatus),
 ]);
 
 export const geoZones = pgTable("geo_zones", {
@@ -931,6 +941,10 @@ export const pipelinePatterns = pgTable("pipeline_patterns", {
   stabilityScore: doublePrecision("stability_score"),
   patternScore: doublePrecision("pattern_score"),
   trendVelocity: doublePrecision("trend_velocity"),
+  patternConfidenceScore: doublePrecision("pattern_confidence_score").default(0),
+  humanValidationFlag: boolean("human_validation_flag"),
+  detectedAt: timestamp("detected_at").defaultNow(),
+  videoCount: integer("video_count").default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
   index("idx_pipeline_patterns_niche_cluster").on(table.nicheCluster),
@@ -947,12 +961,21 @@ export const insertPipelinePatternSchema = createInsertSchema(pipelinePatterns).
 export const patternTemplates = pgTable("pattern_templates", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   patternId: varchar("pattern_id").notNull(),
+  templateName: text("template_name"),
+  templateDescription: text("template_description"),
   templateStructure: jsonb("template_structure"),
+  templateFormula: text("template_formula"),
+  hookType: text("hook_type"),
+  structureType: text("structure_type"),
+  formatType: text("format_type"),
   exampleVideo: text("example_video"),
   confidenceScore: doublePrecision("confidence_score"),
+  usageCount: integer("usage_count").default(0),
+  nicheId: varchar("niche_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
   index("idx_pattern_templates_pattern_id").on(table.patternId),
+  index("idx_pattern_templates_niche_id").on(table.nicheId),
 ]);
 
 export const insertPatternTemplateSchema = createInsertSchema(patternTemplates).omit({ id: true, createdAt: true });
@@ -1009,6 +1032,60 @@ export const datasetBatches = pgTable("dataset_batches", {
 
 export const insertDatasetBatchSchema = createInsertSchema(datasetBatches).omit({ batchId: true, createdAt: true });
 
+// ═══════════════════════════════════════════════════════════
+// Pattern Engine State — Phase tracking (1→2→3)
+// ═══════════════════════════════════════════════════════════
+
+export const patternEngineState = pgTable("pattern_engine_state", {
+  id: integer("id").primaryKey(),
+  currentPhase: integer("current_phase").default(1).notNull(),
+  phase1ActivatedAt: timestamp("phase_1_activated_at").defaultNow(),
+  phase2ActivatedAt: timestamp("phase_2_activated_at"),
+  phase3ActivatedAt: timestamp("phase_3_activated_at"),
+  totalDeepVideos: integer("total_deep_videos").default(0),
+  totalClassifiedVideos: integer("total_classified_videos").default(0),
+  clusterCount: integer("cluster_count").default(0),
+  lastTransitionAt: timestamp("last_transition_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// ═══════════════════════════════════════════════════════════
+// Video Embeddings — JSONB on Replit, pgvector on Hetzner
+// ═══════════════════════════════════════════════════════════
+
+export const videoEmbeddings = pgTable("video_embeddings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  videoId: varchar("video_id").notNull().unique(),
+  embedding: jsonb("embedding"),
+  modelUsed: varchar("model_used", { length: 50 }).default("text-embedding-3-small"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_video_embeddings_video_id").on(table.videoId),
+]);
+
+export const insertVideoEmbeddingSchema = createInsertSchema(videoEmbeddings).omit({ id: true, createdAt: true });
+
+// ═══════════════════════════════════════════════════════════
+// Content Clusters — Grouped by similarity
+// ═══════════════════════════════════════════════════════════
+
+export const contentClusters = pgTable("content_clusters", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  clusterLabel: varchar("cluster_label", { length: 100 }).notNull(),
+  clusterDescription: text("cluster_description"),
+  videoIds: text("video_ids").array(),
+  centroid: jsonb("centroid"),
+  patternDetected: text("pattern_detected"),
+  confidenceScore: doublePrecision("confidence_score"),
+  analyzedByLlm: boolean("analyzed_by_llm").default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_content_clusters_analyzed").on(table.analyzedByLlm),
+]);
+
+export const insertContentClusterSchema = createInsertSchema(contentClusters).omit({ id: true, createdAt: true });
+
 export type Niche = typeof niches.$inferSelect;
 export type InsertNiche = z.infer<typeof insertNicheSchema>;
 export type Creator = typeof creators.$inferSelect;
@@ -1047,3 +1124,8 @@ export type PipelineLog = typeof pipelineLogs.$inferSelect;
 export type InsertPipelineLog = z.infer<typeof insertPipelineLogSchema>;
 export type DatasetBatch = typeof datasetBatches.$inferSelect;
 export type InsertDatasetBatch = z.infer<typeof insertDatasetBatchSchema>;
+export type PatternEngineState = typeof patternEngineState.$inferSelect;
+export type VideoEmbedding = typeof videoEmbeddings.$inferSelect;
+export type InsertVideoEmbedding = z.infer<typeof insertVideoEmbeddingSchema>;
+export type ContentCluster = typeof contentClusters.$inferSelect;
+export type InsertContentCluster = z.infer<typeof insertContentClusterSchema>;

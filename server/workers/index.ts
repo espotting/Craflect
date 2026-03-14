@@ -3,7 +3,14 @@ import { ingestionWorker } from './ingestion.worker';
 import { classificationWorker } from './classification.worker';
 import { scoringWorker } from './scoring.worker';
 import { patternWorker } from './pattern.worker';
+import { phaseTransitionWorker } from './phase-transition.worker';
 import { checkOllamaHealth } from '../config/ollama';
+import { Worker } from 'bullmq';
+import { redisConnection } from '../config/redis';
+
+const phaseTransitionBullWorker = new Worker('phase-transition', async () => {
+  await phaseTransitionWorker.checkAndTransition();
+}, { connection: redisConnection, concurrency: 1 });
 
 async function startWorkers() {
   console.log('🚀 Démarrage Craflect v2.0 Workers...');
@@ -18,6 +25,7 @@ async function startWorkers() {
   console.log('  • Classification (continu)');
   console.log('  • Scoring (toutes les 15min)');
   console.log('  • Pattern Engine (toutes les 6h)');
+  console.log('  • Phase Transition (toutes les 30min)');
 
   process.on('SIGTERM', async () => {
     console.log('Arrêt des workers...');
@@ -25,6 +33,7 @@ async function startWorkers() {
     await classificationWorker.close();
     await scoringWorker.close();
     await patternWorker.close();
+    await phaseTransitionBullWorker.close();
     process.exit(0);
   });
 }
