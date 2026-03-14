@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useLanguage } from "@/hooks/use-language";
 import { useTheme } from "@/hooks/use-theme";
 import logoTransparent from "@/assets/logo-transparent.png";
@@ -11,6 +12,10 @@ function LegalPage({ page }: { page: LegalPageType }) {
   const { t } = useLanguage();
   const { isDark } = useTheme();
 
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [page]);
+
   const pageData = t.legal[page] as any;
   const sections: { title: string; text: string }[] = [];
   for (let i = 1; i <= 20; i++) {
@@ -23,13 +28,13 @@ function LegalPage({ page }: { page: LegalPageType }) {
   return (
     <div className="min-h-screen bg-background">
       <header className="flex justify-between items-center gap-4 px-4 py-4">
-        <a href="/#footer" data-testid="link-logo-home">
+        <Link href="/" data-testid="link-logo-home">
           <img
             src={isDark ? logoTransparent : logoLight}
             alt="Craflect"
             className="h-10"
           />
-        </a>
+        </Link>
         <a
           href="/#footer"
           className="flex items-center gap-2 text-sm text-muted-foreground hover-elevate rounded-md px-2 py-1"
