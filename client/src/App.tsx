@@ -28,7 +28,7 @@ import FounderSubscriptions from "@/pages/founder-subscriptions";
 import FounderLogs from "@/pages/founder-logs";
 import FounderSettings from "@/pages/founder-settings";
 import PlanBilling from "@/pages/plan-billing";
-import { TermsPage, BillingPage, PrivacyPage, CookiesPage, DpaPage, SecurityPage } from "@/pages/legal";
+import { TermsPage, BillingPage, PrivacyPage, CookiesPage, DpaPage, SecurityPage, ContactPage } from "@/pages/legal";
 import FaqPage from "@/pages/faq";
 
 function Router() {
@@ -78,6 +78,7 @@ function Router() {
       <Route path="/dpa" component={DpaPage} />
       <Route path="/faq" component={FaqPage} />
       <Route path="/security" component={SecurityPage} />
+      <Route path="/contact" component={ContactPage} />
       <Route component={NotFound} />
     </Switch>
   );

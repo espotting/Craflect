@@ -1,0 +1,416 @@
+CRAFLECT – FOOTER STRUCTURE + LEGAL PAGES + BILLING PAGE
+
+OBJECTIVE
+
+Implement the complete footer structure for the Craflect website and create the required legal and informational pages.
+
+The goal is to:
+
+• keep the footer simple and structured
+• redirect some links to landing page sections instead of creating duplicate pages
+• provide the legal pages required for transparency and integrations such as Google OAuth
+• provide a clear billing explanation for users
+
+All pages must follow the existing design system of the Craflect website.
+
+---
+
+FOOTER STRUCTURE
+
+The footer must contain three sections.
+
+Product
+Legal
+Company
+
+---
+
+PRODUCT LINKS
+
+Some links must redirect to landing page sections.
+
+Do NOT create dedicated pages for these.
+
+1. Pricing
+
+Link target
+
+/#pricing
+
+This link should scroll to the pricing section of the landing page.
+
+---
+
+2. FAQ
+
+Link target
+
+/#faq
+
+This link should scroll to the FAQ section of the landing page.
+
+---
+
+3. Security
+
+Create a dedicated page.
+
+URL
+
+/security
+
+Title
+
+Security
+
+Content
+
+Security
+
+Craflect takes the security of its users and platform seriously.
+
+The platform implements modern security practices to ensure data protection and service reliability.
+
+Infrastructure Security
+
+Craflect runs on secure cloud infrastructure designed to provide reliability and protect user data.
+
+Authentication
+
+User accounts are protected using secure authentication systems including third-party authentication providers such as Google.
+
+Data Protection
+
+Industry-standard practices are applied to safeguard user data and maintain platform integrity.
+
+Service Monitoring
+
+The platform is continuously monitored to detect technical issues and maintain uptime.
+
+---
+
+LEGAL PAGES
+
+4. Terms of Service
+
+URL
+
+/terms
+
+Title
+
+Terms of Service
+
+Content
+
+Terms of Service
+
+Last updated: 2026
+
+These Terms govern the use of the Craflect platform.
+
+Description of the Service
+
+Craflect is an AI-powered platform that analyzes social media trends and provides insights and creative opportunities to help creators generate content.
+
+User Accounts
+
+Users are responsible for maintaining the security of their account and all activity occurring under their account.
+
+Acceptable Use
+
+Users agree not to use the platform for illegal activities, spam, abuse, or attempts to exploit the service.
+
+Third-Party Content
+
+Craflect may analyze publicly available content from platforms such as:
+
+YouTube
+TikTok
+Instagram
+
+All rights to this content remain with the original creators and platforms.
+
+Craflect does not host or redistribute third-party videos.
+
+Subscriptions
+
+Some features of the platform may require a paid subscription.
+
+Service Availability
+
+The platform may occasionally undergo maintenance or updates.
+
+Limitation of Liability
+
+The platform is provided "as is" without warranties of any kind.
+
+Contact
+
+[support@craflect.com](mailto:support@craflect.com)
+
+---
+
+5. Privacy Policy
+
+URL
+
+/privacy
+
+Title
+
+Privacy Policy
+
+Content
+
+Privacy Policy
+
+Last updated: 2026
+
+Craflect collects certain information in order to provide and improve the platform.
+
+Information collected may include:
+
+• name and email address
+• authentication data when signing in with Google
+• usage data within the platform
+• technical logs and device information
+
+Authentication
+
+Users may sign in using third-party authentication providers such as Google.
+
+Usage Data
+
+The platform may collect usage information such as pages visited, features used, and interactions with generated scripts or opportunities.
+
+Content Analysis
+
+Craflect analyzes publicly available content from platforms including:
+
+YouTube
+TikTok
+Instagram
+
+This analysis helps identify trends and generate creative opportunities.
+
+Craflect does not host or claim ownership of this third-party content.
+
+Security
+
+Appropriate security measures are implemented to protect user information.
+
+Contact
+
+[support@craflect.com](mailto:support@craflect.com)
+
+---
+
+6. Cookies Policy
+
+URL
+
+/cookies
+
+Title
+
+Cookies Policy
+
+Content
+
+Craflect uses cookies and similar technologies to improve user experience and maintain platform functionality.
+
+Cookies may be used for:
+
+• authentication sessions
+• user preferences
+• analytics and performance monitoring
+
+Users may disable cookies in their browser settings, although some features of the platform may not function properly.
+
+---
+
+7. Data Processing Agreement
+
+URL
+
+/dpa
+
+Title
+
+Data Processing Agreement
+
+Content
+
+This page explains how Craflect processes data according to privacy and data protection standards.
+
+Craflect processes data only for the purpose of operating and improving the platform.
+
+Appropriate technical and organizational measures are implemented to protect processed data.
+
+---
+
+BILLING PAGE
+
+8. Billing & AI Credits
+
+URL
+
+/billing
+
+Title
+
+Billing & AI Credits
+
+Content
+
+Overview
+
+Craflect operates using a subscription model combined with AI usage credits.
+
+Each subscription plan provides access to the platform along with a monthly allocation of AI credits used to power advanced features.
+
+Subscription Plans
+
+Craflect offers three main subscription tiers designed for creators and teams.
+
+Starter
+
+Designed for individual creators exploring the platform.
+
+Includes platform access and a monthly allocation of AI credits for basic usage.
+
+Pro
+
+Designed for active creators who frequently generate scripts and analyze content trends.
+
+Includes higher AI credit limits and extended platform capabilities.
+
+Scale
+
+Designed for professional creators, teams, or agencies with higher usage requirements.
+
+Includes larger credit allocations and advanced usage capacity.
+
+Full plan comparisons are available on the Pricing section of the website.
+
+AI Credits
+
+AI credits power the core AI features of Craflect.
+
+Credits may be used for actions such as:
+
+• generating scripts
+• analyzing content trends
+• generating creative opportunities
+• creating video blueprints or concepts
+
+Credits are deducted from the user's available balance whenever AI features are used.
+
+Credit Reset
+
+AI credits reset at the beginning of each billing cycle.
+
+Unused credits may expire at the end of the billing cycle depending on the subscription plan.
+
+Usage Transparency
+
+Users can monitor their credit usage from their dashboard.
+
+The dashboard shows:
+
+• credits remaining
+• credits used during the billing period
+• next credit reset date
+
+Billing Cycle
+
+Subscriptions are billed on a recurring basis depending on the plan selected.
+
+Billing may occur:
+
+• monthly
+• annually
+
+Invoices are generated automatically after successful payment.
+
+Payments
+
+Craflect accepts standard online payment methods supported by its payment provider.
+
+Payment information is processed securely.
+
+Plan Changes
+
+Users may upgrade or downgrade their plan at any time.
+
+Changes may take effect immediately or at the next billing cycle.
+
+Cancellation
+
+Users may cancel their subscription at any time from their account settings.
+
+Access to paid features remains active until the end of the billing period.
+
+Support
+
+For any billing questions, contact:
+
+[support@craflect.com](mailto:support@craflect.com)
+
+---
+
+COMPANY PAGE
+
+9. Contact
+
+URL
+
+/contact
+
+Title
+
+Contact
+
+Content
+
+If you have questions about Craflect or need assistance, please contact our support team.
+
+Support Email
+
+[support@craflect.com](mailto:support@craflect.com)
+
+---
+
+FOOTER IMPLEMENTATION
+
+Display the following structure in the website footer.
+
+Product
+
+Pricing → /#pricing
+FAQ → /#faq
+Security → /security
+
+Legal
+
+Terms → /terms
+Privacy → /privacy
+Cookies → /cookies
+DPA → /dpa
+Billing → /billing
+
+Company
+
+Contact → /contact
+
+---
+
+GOAL
+
+Provide a clean, professional footer that:
+
+• avoids duplicate pages
+• improves platform credibility
+• ensures transparency for users
+• enables integrations such as Google OAuth authentication

@@ -5,7 +5,7 @@ import logoLight from "@/assets/logo-light.png";
 import { Link } from "wouter";
 import { ArrowLeft } from "lucide-react";
 
-type LegalPageType = "terms" | "billing" | "privacy" | "cookies" | "dpa" | "security";
+type LegalPageType = "terms" | "billing" | "privacy" | "cookies" | "dpa" | "security" | "contact";
 
 function LegalPage({ page }: { page: LegalPageType }) {
   const { t } = useLanguage();
@@ -87,4 +87,5 @@ export function PrivacyPage() { return <LegalPage page="privacy" />; }
 export function CookiesPage() { return <LegalPage page="cookies" />; }
 export function DpaPage() { return <LegalPage page="dpa" />; }
 export function SecurityPage() { return <LegalPage page="security" />; }
+export function ContactPage() { return <LegalPage page="contact" />; }
 export default LegalPage;
