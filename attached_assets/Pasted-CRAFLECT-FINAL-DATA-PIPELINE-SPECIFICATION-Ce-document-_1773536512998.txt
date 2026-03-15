@@ -1,0 +1,153 @@
+CRAFLECT – FINAL DATA PIPELINE SPECIFICATION
+
+Ce document confirme les dernières règles avant le lancement de l’ingestion et de la classification.
+
+L’architecture existante reste inchangée.
+Les modifications sont uniquement additives.
+
+OBJECTIF
+
+Construire un dataset initial de 3000 vidéos pour entraîner le Pattern Engine.
+
+Le pipeline reste :
+
+Ingestion → Deduplication → Quality Filter → Classification → Embeddings → Clustering → Pattern Engine → Opportunity Engine
+
+---
+
+DATASET INITIAL
+
+Volume cible :
+
+3000 vidéos
+
+Répartition par niche :
+
+tech_business
+creator_economy
+productivity
+marketing_growth
+personal_branding
+
+Distribution :
+
+≈ 600 vidéos par niche
+
+Ces niches sont stockées dans le champ :
+
+niche_cluster
+
+---
+
+DATASET QUALITY RULES
+
+Afin d’éviter un dataset biaisé, appliquer les règles suivantes lors de l’ingestion.
+
+Maximum vidéos par créateur :
+
+max_videos_per_creator = 3
+
+Maximum vidéos par topic cluster :
+
+max_videos_per_topic_cluster = 120
+
+Objectif :
+
+éviter la domination d’un créateur ou d’un seul sujet dans le dataset.
+
+---
+
+INGESTION WORKFLOW
+
+Apify scraping :
+
+1. récupérer les vidéos selon les niches ciblées
+2. vérifier creator_id
+3. vérifier topic_cluster
+4. appliquer les limites dataset
+
+Pseudo logique :
+
+if creator_video_count > 3 → skip
+
+if topic_cluster_count > 120 → skip
+
+---
+
+PATTERN ENGINE PHASES
+
+Les transitions restent automatiques.
+
+Phase 1 – Rule Based
+activation ≥ 200 vidéos deep classifiées
+
+Phase 2 – Clustering
+activation ≥ 500 vidéos classifiées
+
+Phase 3 – LLM synthesis
+activation ≥ 2000 vidéos classifiées
+
+Ces transitions sont gérées par :
+
+pattern_engine_state
+phase-transition.worker.ts
+
+---
+
+CLUSTER QUALITY FILTER
+
+Avant l’analyse LLM, appliquer un filtre de densité sur les clusters.
+
+Ajouter le champ :
+
+density_score
+
+Calcul :
+
+density_score =
+nombre de vidéos dans le cluster
+× nombre de créateurs uniques
+× nombre de niches représentées
+
+Seuls les clusters avec :
+
+density_score > 50
+
+sont envoyés au LLM pour analyse.
+
+---
+
+LLM ANALYSIS
+
+L’analyse LLM doit s’effectuer sur les clusters, pas sur les vidéos individuelles.
+
+Workflow :
+
+clusters → LLM analysis → pattern_templates → opportunities
+
+Cela réduit les coûts LLM et améliore la qualité des patterns.
+
+---
+
+TRANSCRIPTION PIPELINE
+
+Audio lifecycle :
+
+audio extraction
+→ transcription faster-whisper
+→ classification
+→ suppression du fichier audio
+
+Les fichiers audio restent temporaires.
+
+---
+
+OBJECTIF FINAL
+
+Obtenir :
+
+20 à 30 patterns solides
+pattern_templates réutilisables
+opportunities générées pour les utilisateurs
+
+Ce dataset constitue la base du Pattern Engine Craflect.
