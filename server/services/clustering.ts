@@ -1,6 +1,8 @@
 import { db } from '../db';
-import { videoEmbeddings, contentClusters } from '@shared/schema';
-import { sql } from 'drizzle-orm';
+import { videoEmbeddings, contentClusters, videos } from '@shared/schema';
+import { sql, inArray } from 'drizzle-orm';
+
+const DENSITY_THRESHOLD = 50;
 
 export async function clusterVideos(): Promise<number> {
   const rows = await db.execute(sql`
@@ -43,17 +45,45 @@ export async function clusterVideos(): Promise<number> {
     }
   }
 
+  let created = 0;
+
   for (const [idx, videoIds] of clusters) {
+    const densityScore = await calculateDensityScore(videoIds);
+
     await db.insert(contentClusters).values({
       clusterLabel: `cluster_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
       videoIds: videoIds,
       confidenceScore: 0.85,
+      densityScore,
       analyzedByLlm: false
     });
+
+    created++;
   }
 
-  console.log(`[Clustering] ${clusters.size} clusters créés`);
-  return clusters.size;
+  console.log(`[Clustering] ${created} clusters créés`);
+  return created;
+}
+
+async function calculateDensityScore(videoIds: string[]): Promise<number> {
+  if (videoIds.length === 0) return 0;
+
+  const clusterVideos = await db.select({
+    creatorPlatformId: videos.creatorPlatformId,
+    nicheCluster: videos.nicheCluster,
+  })
+    .from(videos)
+    .where(inArray(videos.id, videoIds));
+
+  const uniqueCreators = new Set(clusterVideos.map(v => v.creatorPlatformId).filter(Boolean));
+  const uniqueNiches = new Set(clusterVideos.map(v => v.nicheCluster).filter(Boolean));
+
+  const score = videoIds.length * uniqueCreators.size * Math.max(1, uniqueNiches.size);
+  return score;
+}
+
+export function isDenseEnough(densityScore: number | null): boolean {
+  return (densityScore ?? 0) > DENSITY_THRESHOLD;
 }
 
 function cosineSimilarity(a: number[], b: number[]): number {

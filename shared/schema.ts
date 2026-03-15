@@ -1078,6 +1078,7 @@ export const contentClusters = pgTable("content_clusters", {
   centroid: jsonb("centroid"),
   patternDetected: text("pattern_detected"),
   confidenceScore: doublePrecision("confidence_score"),
+  densityScore: doublePrecision("density_score"),
   analyzedByLlm: boolean("analyzed_by_llm").default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [

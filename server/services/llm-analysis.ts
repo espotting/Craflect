@@ -1,14 +1,22 @@
 import { db } from '../db';
 import { contentClusters, patternTemplates, videos } from '@shared/schema';
-import { eq, sql, inArray } from 'drizzle-orm';
+import { eq, sql, inArray, and, gt } from 'drizzle-orm';
 import OpenAI from 'openai';
+import { isDenseEnough } from './clustering';
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+const DENSITY_THRESHOLD = 50;
 
 export async function analyzeClustersWithLLM(): Promise<number> {
   const clusters = await db.select()
     .from(contentClusters)
-    .where(eq(contentClusters.analyzedByLlm, false))
+    .where(
+      and(
+        eq(contentClusters.analyzedByLlm, false),
+        gt(contentClusters.densityScore, DENSITY_THRESHOLD)
+      )
+    )
     .limit(50);
 
   let analyzed = 0;
@@ -16,6 +24,11 @@ export async function analyzeClustersWithLLM(): Promise<number> {
   for (const cluster of clusters) {
     try {
       if (!cluster.videoIds || cluster.videoIds.length === 0) continue;
+
+      if (!isDenseEnough(cluster.densityScore)) {
+        console.log(`[LLM Analysis] Cluster ${cluster.id} skipped (density: ${cluster.densityScore})`);
+        continue;
+      }
 
       const clusterVideos = await db.select()
         .from(videos)

@@ -1,9 +1,14 @@
 import { Worker } from 'bullmq';
 import { db } from '../db';
-import { videos, geoZones } from '@shared/schema';
-import { eq } from 'drizzle-orm';
+import { videos, geoZones, resolveNicheCluster } from '@shared/schema';
+import { eq, sql } from 'drizzle-orm';
 import { redisConnection } from '../config/redis';
 import { classificationQueue } from './scheduler';
+
+const DATASET_LIMITS = {
+  MAX_VIDEOS_PER_CREATOR: 3,
+  MAX_VIDEOS_PER_TOPIC_CLUSTER: 120,
+};
 
 const NICHE_KEYWORDS: Record<string, string[]> = {
   'ai_tools': ['ai tools', 'chatgpt', 'midjourney', 'automation'],
@@ -12,6 +17,20 @@ const NICHE_KEYWORDS: Record<string, string[]> = {
   'finance': ['personal finance', 'investing', 'crypto'],
   'content_creation': ['content creation', 'viral content', 'youtube growth']
 };
+
+async function getCreatorVideoCount(creatorId: string): Promise<number> {
+  const result = await db.execute(sql`
+    SELECT COUNT(*)::int AS cnt FROM videos WHERE creator_platform_id = ${creatorId}
+  `);
+  return Number(result.rows[0]?.cnt || 0);
+}
+
+async function getTopicClusterCount(topicCluster: string): Promise<number> {
+  const result = await db.execute(sql`
+    SELECT COUNT(*)::int AS cnt FROM videos WHERE topic_cluster = ${topicCluster}
+  `);
+  return Number(result.rows[0]?.cnt || 0);
+}
 
 export const ingestionWorker = new Worker('ingestion', async (job) => {
   const { zoneCode, niche } = job.data;
@@ -29,7 +48,7 @@ export const ingestionWorker = new Worker('ingestion', async (job) => {
 
   const scrapedVideos = await scrapeVideosStub(zone, niche);
 
-  let created = 0, filtered = 0, duplicates = 0;
+  let created = 0, filtered = 0, duplicates = 0, skippedCreatorLimit = 0, skippedTopicLimit = 0;
 
   for (const videoData of scrapedVideos) {
     const existing = await db.query.videos.findFirst({
@@ -40,6 +59,22 @@ export const ingestionWorker = new Worker('ingestion', async (job) => {
       continue;
     }
 
+    if (videoData.creatorPlatformId) {
+      const creatorCount = await getCreatorVideoCount(videoData.creatorPlatformId);
+      if (creatorCount >= DATASET_LIMITS.MAX_VIDEOS_PER_CREATOR) {
+        skippedCreatorLimit++;
+        continue;
+      }
+    }
+
+    if (videoData.topicCluster) {
+      const topicCount = await getTopicClusterCount(videoData.topicCluster);
+      if (topicCount >= DATASET_LIMITS.MAX_VIDEOS_PER_TOPIC_CLUSTER) {
+        skippedTopicLimit++;
+        continue;
+      }
+    }
+
     const ageHours = Math.max(1, (Date.now() - new Date(videoData.publishedAt).getTime()) / 3600000);
     const viewVelocity = (videoData.views || 0) / ageHours;
 
@@ -48,8 +83,12 @@ export const ingestionWorker = new Worker('ingestion', async (job) => {
       continue;
     }
 
+    const nicheCluster = resolveNicheCluster(videoData.topicCluster);
+
     const [inserted] = await db.insert(videos).values({
       ...videoData,
+      nicheCluster,
+      viewsPerHour: viewVelocity,
       geoZone: zoneCode,
       geoCountry: zone.proxyCountryCode,
       geoLanguage: zone.languagesPriority[0],
@@ -67,8 +106,8 @@ export const ingestionWorker = new Worker('ingestion', async (job) => {
     });
   }
 
-  console.log(`[Ingestion] ${zoneCode}/${niche}: ${created} créées, ${filtered} filtrées, ${duplicates} doublons`);
-  return { created, filtered, duplicates, zone: zoneCode };
+  console.log(`[Ingestion] ${zoneCode}/${niche}: ${created} créées, ${filtered} filtrées, ${duplicates} doublons, ${skippedCreatorLimit} skip créateur, ${skippedTopicLimit} skip topic`);
+  return { created, filtered, duplicates, skippedCreatorLimit, skippedTopicLimit, zone: zoneCode };
 
 }, {
   connection: redisConnection,
