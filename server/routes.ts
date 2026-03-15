@@ -708,7 +708,8 @@ The content should directly apply the recommendations from the insight report. W
         intelEventsToday, intelPatternRuns,
         videosOverTime, patternsOverTime, crossPlatformOverTime,
         videosTotal, creatorsKnown, creatorsUnknown, avgViewVelocity,
-        lastIngestion, lastClassification, lastPatternRun
+        lastIngestion, lastClassification, lastPatternRun,
+        reproduciblePatterns, totalContentClusters
       ] = await Promise.all([
         db.execute(sql`SELECT COUNT(*) as v FROM users`),
         db.execute(sql`SELECT COUNT(*) as v FROM users WHERE created_at >= NOW() - INTERVAL '7 days'`),
@@ -771,6 +772,14 @@ The content should directly apply the recommendations from the insight report. W
         db.execute(sql`SELECT MAX(collected_at) as v FROM videos`),
         db.execute(sql`SELECT MAX(classified_at) as v FROM videos WHERE classification_status = 'completed'`),
         db.execute(sql`SELECT MAX(last_updated) as v FROM patterns`),
+        db.execute(sql`
+          SELECT COUNT(*) as v FROM content_clusters
+          WHERE analyzed_by_llm = true
+            AND array_length(video_ids, 1) >= 6
+            AND density_score IS NOT NULL
+            AND density_score > 50
+        `),
+        db.execute(sql`SELECT COUNT(*) as v FROM content_clusters WHERE analyzed_by_llm = true`),
       ]);
 
       const v = (r: any) => parseInt((r.rows[0] as any)?.v || '0');
@@ -861,6 +870,11 @@ The content should directly apply the recommendations from the insight report. W
           creator_coverage: totalCompleted > 0 ? Math.round((v(creatorsKnown) / totalCompleted) * 10000) / 10000 : 0,
           unknown_creators: totalCompleted > 0 ? Math.round((v(creatorsUnknown) / totalCompleted) * 10000) / 10000 : 0,
           avg_view_velocity: vf(avgViewVelocity),
+          reproducible_patterns: v(reproduciblePatterns),
+          total_analyzed_clusters: v(totalContentClusters),
+          reproducibility_rate: v(totalContentClusters) > 0
+            ? Math.round((v(reproduciblePatterns) / v(totalContentClusters)) * 10000) / 10000
+            : 0,
         },
         pipeline_status: {
           last_ingestion_run: (lastIngestion.rows[0] as any)?.v || null,
