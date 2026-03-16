@@ -1,0 +1,150 @@
+Peux-tu me faire un état technique complet de ce qui est actuellement implémenté dans Craflect ?
+
+Objectif : permettre à l’architecture du Video Studio d’être conçue en cohérence avec ce qui existe déjà.
+
+Merci de répondre point par point.
+
+1️⃣ ARCHITECTURE GLOBALE
+Quels sont les services actuellement en place ?
+
+ex :
+
+* ingestion
+* classification
+* pattern engine
+* trend detection
+* script generation
+* API backend
+* workers
+
+Quels services tournent sur Hetzner ?
+
+---
+
+2️⃣ PIPELINE DATA ACTUEL
+
+Peux-tu décrire le pipeline complet ?
+
+exemple attendu :
+
+scraping → transcription → classification → pattern engine → dashboard
+
+Préciser :
+
+* où intervient Whisper
+* où intervient le classifier
+* où sont calculés les virality scores
+
+---
+
+3️⃣ STRUCTURE DATABASE
+
+Quelles sont les tables principales ?
+
+exemple :
+
+videos
+patterns
+hooks
+formats
+opportunities
+users
+workspace_videos
+
+Merci de donner la structure des tables principales.
+
+---
+
+4️⃣ DASHBOARD USER (HOME)
+
+Quels blocs sont déjà implémentés dans le dashboard ?
+
+Par exemple :
+
+* Daily Viral Play
+* Viral Opportunities
+* Trending Hooks
+* Trending Formats
+* Intelligence Feed
+
+Merci de préciser quelles métriques sont affichées.
+
+---
+
+5️⃣ WORKSPACE
+
+Comment fonctionne actuellement le Workspace ?
+
+Est-ce qu’il y a déjà :
+
+* des cartes vidéo
+* un stockage de scripts
+* un système de projets
+* un tracking de performance
+
+---
+
+6️⃣ SCRIPT GENERATION
+
+Est-ce que le script generator est déjà implémenté ?
+
+Si oui :
+
+* comment fonctionne-t-il
+* quelles données du Pattern Engine utilise-t-il
+* où les scripts sont stockés
+
+---
+
+7️⃣ STORAGE
+
+Où sont actuellement stockés :
+
+* les vidéos ingérées
+* les thumbnails
+* les assets
+
+Est-ce que vous utilisez :
+
+* stockage local
+* object storage
+* CDN
+
+---
+
+8️⃣ WORKERS
+
+Quels workers existent actuellement ?
+
+exemple :
+
+ingestion worker
+transcription worker
+classification worker
+
+---
+
+9️⃣ APIs
+
+Quelles routes API existent déjà pour :
+
+* ingestion
+* patterns
+* trends
+* scripts
+* workspace
+
+---
+
+🔟 VIDEO GENERATION
+
+Est-ce qu’un module de génération vidéo existe déjà (même partiellement) ?
+
+Si oui :
+
+* quelle technologie
+* où se situe le code
+
+---
+
+Merci de donner une réponse structurée pour que l’architecture du Video Studio puisse être conçue sans casser l’existant.
