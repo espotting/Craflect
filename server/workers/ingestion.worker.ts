@@ -3,7 +3,7 @@ import { db } from '../db';
 import { videos, geoZones, resolveNicheCluster } from '@shared/schema';
 import { eq, sql } from 'drizzle-orm';
 import { redisConnection } from '../config/redis';
-import { classificationQueue } from './scheduler';
+import { transcriptionQueue } from './scheduler';
 
 const DATASET_LIMITS = {
   MAX_VIDEOS_PER_CREATOR: 3,
@@ -99,7 +99,7 @@ export const ingestionWorker = new Worker('ingestion', async (job) => {
 
     created++;
 
-    await classificationQueue.add('classify', {
+    await transcriptionQueue.add('transcribe', {
       videoId: inserted.id
     }, {
       priority: viewVelocity > 500 ? 1 : 2

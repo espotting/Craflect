@@ -1,8 +1,8 @@
-// webhook test
 import { Queue } from 'bullmq';
 import { redisConnection } from '../config/redis';
 
 export const ingestionQueue = new Queue('ingestion', { connection: redisConnection });
+export const transcriptionQueue = new Queue('transcription', { connection: redisConnection });
 export const classificationQueue = new Queue('classification', { connection: redisConnection });
 export const scoringQueue = new Queue('scoring', { connection: redisConnection });
 export const patternQueue = new Queue('pattern', { connection: redisConnection });

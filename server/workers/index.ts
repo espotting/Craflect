@@ -1,5 +1,6 @@
 import { setupSchedules } from './scheduler';
 import { ingestionWorker } from './ingestion.worker';
+import { transcriptionWorker } from './transcription.worker';
 import { classificationWorker } from './classification.worker';
 import { scoringWorker } from './scoring.worker';
 import { patternWorker } from './pattern.worker';
@@ -22,6 +23,7 @@ async function startWorkers() {
 
   console.log('✅ Workers actifs :');
   console.log('  • Ingestion (toutes les 2h)');
+  console.log('  • Transcription (continu, concurrency: 2)');
   console.log('  • Classification (continu)');
   console.log('  • Scoring (toutes les 15min)');
   console.log('  • Pattern Engine (toutes les 6h)');
@@ -30,6 +32,7 @@ async function startWorkers() {
   process.on('SIGTERM', async () => {
     console.log('Arrêt des workers...');
     await ingestionWorker.close();
+    await transcriptionWorker.close();
     await classificationWorker.close();
     await scoringWorker.close();
     await patternWorker.close();

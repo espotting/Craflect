@@ -670,6 +670,8 @@ export const videos = pgTable("videos", {
   isDeepSelected: boolean("is_deep_selected").default(false),
   deepSelectionReason: varchar("deep_selection_reason", { length: 50 }),
   transcriptionStatus: text("transcription_status").default("pending"),
+  transcriptLanguage: varchar("transcript_language", { length: 10 }),
+  transcriptGenerated: boolean("transcript_generated").default(false),
   audioUrl: text("audio_url"),
 
   // ── Geo Intelligence ──
