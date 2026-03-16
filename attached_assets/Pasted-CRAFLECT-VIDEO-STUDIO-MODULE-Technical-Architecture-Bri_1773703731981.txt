@@ -1,0 +1,287 @@
+CRAFLECT — VIDEO STUDIO MODULE
+Technical Architecture Brief
+
+OBJECTIF
+
+Ajouter un module Video Studio dans Craflect afin de transformer automatiquement une opportunité virale détectée par le moteur d’intelligence en vidéo prête à publier.
+
+Workflow produit cible :
+
+Opportunity → Script → Blueprint → Video → Export → Workspace
+
+Le studio doit rester simple (type Canva) et template-driven.
+
+Pas d’éditeur vidéo complexe.
+
+---
+
+ARCHITECTURE ACTUELLE
+
+Pipeline actuel :
+
+Scraping (Apify)
+→ Ingestion Worker
+→ Transcription Worker (Whisper)
+→ Classification Worker
+→ Scoring Worker
+→ Pattern Engine
+→ Opportunity Engine
+→ Dashboard
+
+Script Generator et Blueprint Generator existent déjà.
+
+Le Video Studio doit être inséré après le Blueprint Generator.
+
+Pipeline final :
+
+Opportunity
+→ Script Generator
+→ Blueprint Generator
+→ Video Studio
+→ Workspace
+
+---
+
+PHASE 1 — VIDEO STUDIO CORE
+
+Objectif : permettre aux utilisateurs de transformer un script en vidéo.
+
+Modules :
+
+video-studio service
+
+Sous-modules :
+
+storyboard builder
+template engine
+caption engine
+video renderer
+avatar provider (optionnel)
+
+VIDEO RENDERING
+
+Technologie recommandée : Remotion.
+
+Pipeline :
+
+Blueprint JSON
+→ Template Engine
+→ React Components
+→ Remotion Renderer
+→ MP4
+
+VIDEO MODES
+
+Le studio doit supporter plusieurs modes :
+
+Avatar Video
+photo upload → avatar talking head
+
+Template Video
+captions animées + b-roll + slides
+
+Les avatars doivent rester optionnels.
+
+TEMPLATES
+
+Les templates doivent être générés à partir des patterns détectés.
+
+hook_type
+structure_type
+niche_cluster
+
+Template JSON exemple :
+
+{
+"template": "3_tips",
+"platform": "tiktok",
+"scenes":[
+{"type":"hook","duration":2},
+{"type":"tip","duration":4},
+{"type":"tip","duration":4},
+{"type":"tip","duration":4},
+{"type":"cta","duration":2}
+]
+}
+
+---
+
+PLATFORM PROFILES
+
+Créer une table platform_profiles :
+
+TikTok
+ratio 9:16
+duration 7–18s
+captions animated
+
+Instagram Reels
+ratio 9:16
+duration 12–20s
+
+YouTube Shorts
+ratio 9:16
+duration 15–30s
+
+Les templates doivent s’adapter automatiquement.
+
+---
+
+STORAGE
+
+Les vidéos et assets doivent être stockés dans un Object Storage.
+
+Solution recommandée :
+
+Cloudflare R2
+
+Buckets :
+
+craflect-assets
+craflect-videos
+
+Structure :
+
+craflect-assets
+templates
+avatars
+broll
+sounds
+
+craflect-videos
+user_id
+video_id
+video.mp4
+thumbnail.jpg
+
+La base PostgreSQL stocke uniquement les métadonnées.
+
+---
+
+DATABASE
+
+Créer une table :
+
+rendered_videos
+
+id
+project_id
+user_id
+template_id
+platform
+video_url
+thumbnail_url
+duration
+status
+created_at
+
+content_projects doit référencer video_id.
+
+---
+
+API ROUTES
+
+POST /api/video/generate
+POST /api/video/avatar
+GET /api/video/status
+
+---
+
+WORKERS
+
+Ajouter worker :
+
+video-renderer-worker
+
+BullMQ queue :
+
+video_render
+
+Pipeline :
+
+generate_video_job
+→ renderer
+→ upload storage
+→ update DB
+
+---
+
+PHASE 2 — CLIP GENERATOR
+
+Objectif : transformer une vidéo longue en shorts.
+
+Pipeline :
+
+upload video
+→ Whisper transcript
+→ segment detection
+→ generate 3–5 clips
+
+Sortie :
+
+MP4 + thumbnail.
+
+Les clips doivent être compatibles TikTok / Reels / Shorts.
+
+---
+
+PHASE 3 — CONTENT GAP ENGINE
+
+Objectif : détecter automatiquement les opportunités de contenu sous-exploitées.
+
+Principe :
+
+patterns avec forte viralité
+mais faible nombre de vidéos.
+
+Pipeline :
+
+Pattern Engine
+→ Low Competition Detection
+→ Opportunity Alert
+
+Affichage dans le Dashboard :
+
+Content Gap Detected
+
+Topic
+Format
+Hook
+Virality score
+Competition level
+
+Bouton :
+
+Create Video
+
+---
+
+UX WORKFLOW
+
+Dashboard :
+
+Daily Viral Play
+→ Create Video
+
+Script Generator
+→ Blueprint Generator
+
+Video Studio :
+
+choose template
+customize avatar / voice
+generate video
+
+Workspace :
+
+video preview
+predicted views
+tracking
+
+---
+
+OBJECTIF UX
+
+Idea → Video en moins de 60 secondes.
+
+Le studio doit rester template-driven.
