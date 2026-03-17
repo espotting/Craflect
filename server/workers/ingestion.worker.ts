@@ -4,6 +4,9 @@ import { videos, geoZones, resolveNicheCluster } from '@shared/schema';
 import { eq, sql } from 'drizzle-orm';
 import { redisConnection } from '../config/redis';
 import { transcriptionQueue } from './scheduler';
+import { ApifyClient } from 'apify-client';
+
+const apify = new ApifyClient({ token: process.env.APIFY_API_KEY });
 
 const DATASET_LIMITS = {
   MAX_VIDEOS_PER_CREATOR: 3,
@@ -32,6 +35,66 @@ async function getTopicClusterCount(topicCluster: string): Promise<number> {
   return Number(result.rows[0]?.cnt || 0);
 }
 
+async function scrapeVideos(zone: any, niche: string): Promise<any[]> {
+  const keywords = NICHE_KEYWORDS[niche] || [];
+
+  if (keywords.length === 0) {
+    console.log(`[scrapeVideos] No keywords for niche: ${niche}`);
+    return [];
+  }
+
+  const language = zone.languagesPriority?.[0] || 'en';
+  const country = zone.proxyCountryCode || 'US';
+
+  console.log(`[scrapeVideos] Starting Apify scrape — niche: ${niche}, keywords: ${keywords.join(', ')}, lang: ${language}, country: ${country}`);
+
+  try {
+    const run = await apify.actor('clockworks/tiktok-scraper').call({
+      searchQueries: keywords,
+      resultsPerPage: 50,
+      maxItems: 200,
+      language,
+      country,
+    }, {
+      timeout: 300,
+    });
+
+    console.log(`[scrapeVideos] Apify run completed — runId: ${run.id}, status: ${run.status}`);
+
+    const { items } = await apify.dataset(run.defaultDatasetId).listItems();
+
+    console.log(`[scrapeVideos] Retrieved ${items.length} items from dataset`);
+
+    return items.map((item: any) => ({
+      platform: 'tiktok',
+      platformVideoId: item.id || item.videoId || `tiktok_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
+      videoUrl: item.videoUrl || item.video?.playAddr || null,
+      thumbnailUrl: item.coverUrl || item.covers?.default || null,
+      caption: item.text || item.desc || '',
+      hashtags: (item.hashtags || item.challenges || []).map((h: any) => typeof h === 'string' ? h : h.name || h.title || ''),
+      durationSeconds: item.videoMeta?.duration || item.video?.duration || 0,
+      views: item.playCount || item.stats?.playCount || 0,
+      likes: item.diggCount || item.stats?.diggCount || 0,
+      comments: item.commentCount || item.stats?.commentCount || 0,
+      shares: item.shareCount || item.stats?.shareCount || 0,
+      creatorName: item.authorMeta?.name || item.author?.uniqueId || 'unknown',
+      creatorPlatformId: item.authorMeta?.id || item.author?.id || null,
+      creatorUrl: item.authorMeta?.name
+        ? `https://tiktok.com/@${item.authorMeta.name}`
+        : item.author?.uniqueId
+          ? `https://tiktok.com/@${item.author.uniqueId}`
+          : null,
+      publishedAt: item.createTime
+        ? new Date(item.createTime * 1000)
+        : new Date(),
+      topicCluster: niche,
+    }));
+  } catch (error: any) {
+    console.error(`[scrapeVideos] Apify error for niche ${niche}:`, error.message || error);
+    return [];
+  }
+}
+
 export const ingestionWorker = new Worker('ingestion', async (job) => {
   const { zoneCode, niche } = job.data;
 
@@ -46,7 +109,7 @@ export const ingestionWorker = new Worker('ingestion', async (job) => {
     return;
   }
 
-  const scrapedVideos = await scrapeVideosStub(zone, niche);
+  const scrapedVideos = await scrapeVideos(zone, niche);
 
   let created = 0, filtered = 0, duplicates = 0, skippedCreatorLimit = 0, skippedTopicLimit = 0;
 
@@ -127,8 +190,4 @@ function calculateTargetMarkets(zoneCode: string, language: string): string[] {
   const base = markets[language] || ['US'];
   const country = zoneCode.split('-')[0];
   return [country, ...base.filter(m => m !== country)];
-}
-
-async function scrapeVideosStub(_zone: any, _niche: string) {
-  return [];
 }
