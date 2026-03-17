@@ -3,7 +3,7 @@ import { db } from '../db';
 import { videos, geoZones, resolveNicheCluster } from '@shared/schema';
 import { eq, sql } from 'drizzle-orm';
 import { redisConnection } from '../config/redis';
-import { transcriptionQueue } from './scheduler';
+import { ingestionQueue, transcriptionQueue } from './scheduler';
 import { ApifyClient } from 'apify-client';
 
 const apify = new ApifyClient({ token: process.env.APIFY_API_KEY });
@@ -20,6 +20,8 @@ const NICHE_KEYWORDS: Record<string, string[]> = {
   'finance': ['personal finance', 'investing', 'crypto'],
   'content_creation': ['content creation', 'viral content', 'youtube growth']
 };
+
+const ALL_NICHES = Object.keys(NICHE_KEYWORDS);
 
 async function getCreatorVideoCount(creatorId: string): Promise<number> {
   const result = await db.execute(sql`
@@ -96,16 +98,49 @@ async function scrapeVideos(zone: any, niche: string): Promise<any[]> {
 }
 
 export const ingestionWorker = new Worker('ingestion', async (job) => {
+  if (job.name === 'cycle-zones') {
+    console.log(`[Ingestion] 🔄 cycle-zones triggered — dispatching zone+niche jobs...`);
+
+    const zones = await db.execute(sql`
+      SELECT zone_code FROM geo_zones WHERE is_active = true
+    `);
+
+    const activeZones = zones.rows.map((r: any) => r.zone_code);
+    let dispatched = 0;
+
+    for (const zoneCode of activeZones) {
+      for (const niche of ALL_NICHES) {
+        await ingestionQueue.add('scrape-zone-niche', {
+          zoneCode,
+          niche,
+        }, {
+          priority: 2,
+          removeOnComplete: 100,
+          removeOnFail: 50,
+        });
+        dispatched++;
+      }
+    }
+
+    console.log(`[Ingestion] ✅ Dispatched ${dispatched} jobs (${activeZones.length} zones × ${ALL_NICHES.length} niches)`);
+    return { dispatched, zones: activeZones, niches: ALL_NICHES };
+  }
+
   const { zoneCode, niche } = job.data;
 
-  console.log(`[Ingestion] Zone: ${zoneCode}, Niche: ${niche}`);
+  if (!zoneCode || !niche) {
+    console.warn(`[Ingestion] ⚠️ Missing zoneCode or niche in job data:`, job.data);
+    return;
+  }
+
+  console.log(`[Ingestion] Processing — Zone: ${zoneCode}, Niche: ${niche}`);
 
   const zone = await db.query.geoZones.findFirst({
     where: eq(geoZones.zoneCode, zoneCode)
   });
 
   if (!zone?.isActive) {
-    console.log(`[Ingestion] Zone ${zoneCode} inactive`);
+    console.log(`[Ingestion] Zone ${zoneCode} inactive, skipping`);
     return;
   }
 
