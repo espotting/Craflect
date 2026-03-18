@@ -100,11 +100,20 @@ export const ingestionWorker = new Worker('ingestion', async (job) => {
   if (job.name === 'cycle-zones') {
     console.log(`[Ingestion] 🔄 cycle-zones triggered — dispatching zone+niche jobs...`);
 
+    const US_ONLY_MODE = true;
+
     const zones = await db.execute(sql`
       SELECT zone_code FROM geo_zones WHERE is_active = true
     `);
 
-    const activeZones = zones.rows.map((r: any) => r.zone_code);
+    const allActiveZones = zones.rows.map((r: any) => r.zone_code);
+    const activeZones = US_ONLY_MODE
+      ? allActiveZones.filter((z: string) => z === 'US')
+      : allActiveZones;
+
+    if (US_ONLY_MODE) {
+      console.log(`[Ingestion] 🇺🇸 US-ONLY mode — ${allActiveZones.length - activeZones.length} zones paused (${allActiveZones.filter((z: string) => z !== 'US').join(', ')})`);
+    }
     let dispatched = 0;
 
     for (const zoneCode of activeZones) {
