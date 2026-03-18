@@ -1,0 +1,194 @@
+CRAFLECT — BACKEND & PIPELINE (ALIGNEMENT + UPGRADE)
+
+---
+
+1. CONTEXTE
+
+Le système est déjà en production :
+
+* workers (ingestion, transcription, classification, scoring, pattern)
+* DB existante
+* API existante
+
+OBJECTIF :
+
+Améliorer et structurer sans refactor complet.
+
+---
+
+2. SCRAPING (APIFY)
+
+Garder existant MAIS ajouter contrainte :
+
+* langue = anglais
+* priorité contenu US
+
+---
+
+3. FILTRAGE (À AJOUTER)
+
+Dans ingestion worker :
+
+Ne garder que :
+
+* views >= 10000
+* duration <= 120
+* caption non vide
+
+---
+
+4. GEO TAGGING (CRITIQUE)
+
+Ajouter dans table videos :
+
+geo_zone
+is_us_content
+country_detected
+
+LOGIQUE :
+
+* langue = en
+* heuristique hashtags / creator
+  → geo_zone = US
+
+---
+
+5. PIPELINE (INCHANGÉ)
+
+Scraping
+→ Transcription (Whisper)
+→ Classification (prompt mis à jour)
+→ Scoring
+→ Pattern Engine
+
+NE PAS MODIFIER STRUCTURE
+
+---
+
+6. PROMPTS (INTÉGRATION)
+
+Replit doit :
+
+* appeler Kimi avec prompts fournis
+* stocker JSON tel quel
+* ne pas transformer les outputs
+
+---
+
+7. PATTERN ENGINE (AJOUT RÈGLES)
+
+Ajouter côté worker :
+
+* filter geo_zone = US
+* minimum 5 vidéos par pattern
+* seuil virality_score
+
+---
+
+8. DATABASE (AJOUTS UNIQUEMENT)
+
+Dans videos :
+
+* geo_zone
+* is_us_content
+* country_detected
+
+Nouvelle table :
+
+video_performance
+
+---
+
+9. PERFORMANCE TRACKING (À AJOUTER)
+
+Créer :
+
+POST /video/track
+
+Flow :
+
+* user colle URL
+* récupération metrics publiques
+* stockage :
+
+predicted_views
+actual_views
+accuracy_score
+
+---
+
+10. CONTENT LIBRARY (IMPORTANT)
+
+Ne pas créer nouvelle table.
+
+Adapter existant :
+
+generated_content → devient library
+
+Ajouter :
+
+* status (draft, rendering, ready, published)
+* preview_url
+* duplication possible
+
+---
+
+11. VIDEO STUDIO (BACKEND SUPPORT)
+
+Fournir :
+
+* pattern_templates
+* script
+* blueprint
+
+---
+
+12. AVATAR (HEYGEN — PRÉPARATION)
+
+Ne pas implémenter full.
+
+Créer :
+
+video_generation_service.ts
+
+avec :
+
+* placeholder avatar
+* future API HeyGen
+
+---
+
+13. B-ROLL
+
+Intégration simple :
+
+Pexels API
+
+---
+
+14. INGESTION STRATEGY
+
+Jour 1–3 :
+500–1000 vidéos / jour
+
+Puis :
+2000–3000 / jour
+
+---
+
+IMPORTANT
+
+* ne pas refactor global
+* ne pas casser workers
+* ajouter progressivement
+
+---
+
+OBJECTIF FINAL
+
+Un système capable de :
+
+* ingérer contenu US propre
+* détecter patterns fiables
+* alimenter Studio automatiquement
+* apprendre via performance réelle
