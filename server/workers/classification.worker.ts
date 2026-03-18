@@ -8,26 +8,55 @@ import OpenAI from 'openai';
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-const DNA_PROMPT = `Analyse cette vidéo short-form et extrais son Content DNA au format JSON strict.
+const DNA_PROMPT = `Tu es un analyste de contenu viral spécialisé dans les vidéos courtes (TikTok, Reels, Shorts).
 
-CONTENU:
-Titre: {caption}
-Transcript: {transcript}
-Hashtags: {hashtags}
-Durée: {duration}s
-Vues: {views}
+Analyse la vidéo et retourne un JSON structuré.
 
-Réponds UNIQUEMENT avec ce JSON:
+INPUT :
+
+* Caption : {caption}
+* Transcript : {transcript}
+
+RÈGLES :
+
+* JSON uniquement
+* aucune explication
+* ne rien inventer
+* null si incertain
+
+FORMAT :
+
 {
-  "hook_mechanism_primary": "contrarian|question|statistic|story|curiosity_gap|warning|mistake|list",
-  "structure_type": "hook_value_cta|problem_solution|story_lesson|list_format|tutorial_step|before_after",
-  "topic_cluster": "ai_tools|online_business|productivity|finance|content_creation|fitness|lifestyle|education|tech",
-  "emotion_primary": "curiosity|fear|excitement|empathy|urgency|novelty|status",
-  "visual_style": ["cinematic","raw","polished","lofi"],
-  "cut_frequency": "low|medium|high",
-  "cta_type": "follow|comment|share|link|save|subscribe|none",
-  "confidence": 0.0-1.0
-}`;
+  "hook_text": "...",
+  "hook_type": "...",
+  "structure_type": "...",
+  "format_type": "...",
+  "topic_level_1": "...",
+  "topic_level_2": "...",
+  "emotion_primary": "...",
+  "confidence": 0.0
+}
+
+VALEURS :
+
+hook_type :
+curiosity, list, shock, question, statement
+
+structure_type :
+listicle, storytelling, tutorial, reaction, before_after
+
+format_type :
+facecam, broll, captions, mixed
+
+topic_level_1 :
+business, ai, money, productivity, marketing, lifestyle
+
+emotion_primary :
+curiosity, urgency, fear, excitement, surprise
+
+IMPORTANT :
+hook_text = première phrase forte
+confidence = score de confiance entre 0.0 et 1.0`;
 
 export const classificationWorker = new Worker('classification', async (job) => {
   const { videoId } = job.data;
@@ -46,10 +75,7 @@ export const classificationWorker = new Worker('classification', async (job) => 
   try {
     const prompt = DNA_PROMPT
       .replace('{caption}', video.caption || 'N/A')
-      .replace('{transcript}', video.transcript || 'N/A')
-      .replace('{hashtags}', (video.hashtags || []).join(', '))
-      .replace('{duration}', String(video.durationSeconds || 0))
-      .replace('{views}', String(video.views || 0));
+      .replace('{transcript}', video.transcript || 'N/A');
 
     let dna: any;
     let source = 'ollama';
@@ -64,15 +90,15 @@ export const classificationWorker = new Worker('classification', async (job) => 
 
       dna = JSON.parse(response.response);
 
-      if (dna.confidence < 0.7 || !dna.hook_mechanism_primary) {
+      if (dna.confidence < 0.7 || !dna.hook_type) {
         throw new Error('Low confidence local');
       }
     } catch {
       console.log(`[Fallback OpenAI] Video ${videoId}`);
       const completion = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4.1-mini',
         messages: [
-          { role: 'system', content: 'Expert Content DNA. Réponse JSON uniquement.' },
+          { role: 'system', content: 'Expert Content DNA analyst. Réponse JSON uniquement.' },
           { role: 'user', content: prompt }
         ],
         response_format: { type: 'json_object' },
@@ -84,19 +110,18 @@ export const classificationWorker = new Worker('classification', async (job) => 
     }
 
     await db.update(videos).set({
-      hookMechanismPrimary: dna.hook_mechanism_primary,
-      structureType: dna.structure_type,
-      topicCluster: dna.topic_cluster,
-      emotionPrimary: dna.emotion_primary,
-      visualStyle: dna.visual_style,
-      cutFrequency: dna.cut_frequency,
-      ctaType: dna.cta_type,
+      hookText: dna.hook_text || null,
+      hookMechanismPrimary: dna.hook_type || null,
+      structureType: dna.structure_type || null,
+      topicCategory: dna.topic_level_1 || null,
+      topicCluster: dna.topic_level_2 || null,
+      emotionPrimary: dna.emotion_primary || null,
       durationBucket: calculateBucket(video.durationSeconds),
       classificationStatus: 'completed',
       classifiedAt: new Date(),
       classifiedBy: source,
-      taxonomyVersion: '2.0',
-      confidence: dna.confidence
+      taxonomyVersion: '3.0',
+      confidence: dna.confidence || 0.5
     }).where(eq(videos.id, videoId));
 
     console.log(`[Classified] ${videoId} via ${source}`);

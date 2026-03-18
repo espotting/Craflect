@@ -1,0 +1,133 @@
+Merci pour tes questions, voici les clarifications :
+
+---
+
+1. CLASSIFICATION (LLM)
+
+On ne change pas de provider pour le moment.
+
+👉 On reste sur gpt-4.1-mini.
+
+👉 L’objectif est simplement de remplacer le prompt actuel par un prompt structuré (JSON strict).
+
+Utiliser le prompt suivant pour le worker de classification :
+
+---
+
+Tu es un analyste de contenu viral spécialisé dans les vidéos courtes (TikTok, Reels, Shorts).
+
+Analyse la vidéo et retourne un JSON structuré.
+
+INPUT :
+
+* Caption : {{caption}}
+* Transcript : {{transcript}}
+
+RÈGLES :
+
+* JSON uniquement
+* aucune explication
+* ne rien inventer
+* null si incertain
+
+FORMAT :
+
+{
+"hook_text": "...",
+"hook_type": "...",
+"structure_type": "...",
+"format_type": "...",
+"topic_level_1": "...",
+"topic_level_2": "...",
+"emotion_primary": "..."
+}
+
+VALEURS :
+
+hook_type :
+curiosity, list, shock, question, statement
+
+structure_type :
+listicle, storytelling, tutorial, reaction, before_after
+
+format_type :
+facecam, broll, captions, mixed
+
+topic_level_1 :
+business, ai, money, productivity, marketing, lifestyle
+
+emotion_primary :
+curiosity, urgency, fear, excitement, surprise
+
+IMPORTANT :
+hook_text = première phrase forte
+
+---
+
+2. PERFORMANCE TRACKING
+
+Pour récupérer les métriques publiques :
+
+👉 utiliser Apify (même stack que le scraping).
+
+Créer un actor dédié ou réutiliser un actor existant pour :
+
+* récupérer views
+* likes
+* comments
+
+Flow :
+
+User colle URL
+→ appel Apify actor
+→ récupération metrics
+→ stockage dans video_performance
+
+Pas d’intégration API officielle TikTok.
+
+---
+
+3. B-ROLL (PEXELS)
+
+Oui, il faut ajouter une clé API Pexels.
+
+👉 À configurer via variable d’environnement :
+
+PEXELS_API_KEY
+
+Usage simple :
+
+* rechercher clips vidéo via keyword (topic)
+* récupérer 1–3 vidéos max par projet
+
+Pas de stockage massif, uniquement à la volée.
+
+---
+
+4. CONFIRMATION DU PLAN
+
+Ton résumé est correct, validé :
+
+✔ Filtrage ingestion
+✔ Geo tagging
+✔ Scraping EN / US
+✔ Pattern Engine (rules ajoutées)
+✔ Table video_performance
+✔ Adaptation generated_content → library
+✔ video_generation_service.ts (placeholder)
+
+---
+
+IMPORTANT
+
+Tout doit rester :
+
+* additif
+* modulaire
+* sans refactor global
+
+On améliore l’existant, on ne reconstruit pas.
+
+---
+
+Tu peux lancer l’implémentation.

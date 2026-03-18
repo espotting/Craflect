@@ -33,8 +33,12 @@ export const patternWorker = new Worker('pattern', async () => {
       AND v.hook_mechanism_primary IS NOT NULL
       AND v.structure_type IS NOT NULL
       AND v.topic_cluster IS NOT NULL
+      AND (v.is_us_content = true OR v.geo_zone IN ('US', 'UK'))
+      AND v.virality_score IS NOT NULL
+      AND v.virality_score > 0
     GROUP BY v.hook_mechanism_primary, v.structure_type, v.topic_cluster, v.geo_zone
-    HAVING COUNT(*) >= 3
+    HAVING COUNT(*) >= 5
+      AND AVG(v.virality_score) >= 20
     ON CONFLICT (dimension_keys) DO UPDATE SET
       video_count = EXCLUDED.video_count,
       avg_virality_score = EXCLUDED.avg_virality_score,
@@ -61,5 +65,5 @@ export const patternWorker = new Worker('pattern', async () => {
     `);
   }
 
-  console.log(`[Pattern Engine] ${result.rows.length} patterns mis à jour`);
+  console.log(`[Pattern Engine] ${result.rows.length} patterns mis à jour (filtres: US content, min 5 vidéos, virality > 20)`);
 }, { connection: redisConnection, concurrency: 1 });

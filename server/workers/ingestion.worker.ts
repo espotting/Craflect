@@ -45,18 +45,17 @@ async function scrapeVideos(zone: any, niche: string): Promise<any[]> {
     return [];
   }
 
-  const language = zone.languagesPriority?.[0] || 'en';
   const country = zone.proxyCountryCode || 'US';
 
-  console.log(`[scrapeVideos] Starting Apify scrape — niche: ${niche}, keywords: ${keywords.join(', ')}, lang: ${language}, country: ${country}`);
+  console.log(`[scrapeVideos] Starting Apify scrape — niche: ${niche}, keywords: ${keywords.join(', ')}, lang: en, country: ${country}`);
 
   try {
     const run = await apify.actor('clockworks/tiktok-scraper').call({
       searchQueries: keywords,
       resultsPerPage: 50,
       maxItems: 200,
-      language,
-      country,
+      language: 'en',
+      country: 'US',
     }, {
       timeout: 300,
     });
@@ -173,15 +172,27 @@ export const ingestionWorker = new Worker('ingestion', async (job) => {
       }
     }
 
-    const ageHours = Math.max(1, (Date.now() - new Date(videoData.publishedAt).getTime()) / 3600000);
-    const viewVelocity = (videoData.views || 0) / ageHours;
-
-    if ((videoData.views || 0) < 1000 && viewVelocity < 100) {
+    if (!videoData.caption || videoData.caption.trim().length === 0) {
       filtered++;
       continue;
     }
 
+    if ((videoData.views || 0) < 10000) {
+      filtered++;
+      continue;
+    }
+
+    if ((videoData.durationSeconds || 0) > 120) {
+      filtered++;
+      continue;
+    }
+
+    const ageHours = Math.max(1, (Date.now() - new Date(videoData.publishedAt).getTime()) / 3600000);
+    const viewVelocity = (videoData.views || 0) / ageHours;
+
     const nicheCluster = resolveNicheCluster(videoData.topicCluster);
+
+    const geoInfo = detectGeo(videoData, zone);
 
     const [inserted] = await db.insert(videos).values({
       ...videoData,
@@ -191,6 +202,8 @@ export const ingestionWorker = new Worker('ingestion', async (job) => {
       geoCountry: zone.proxyCountryCode,
       geoLanguage: zone.languagesPriority[0],
       targetMarkets: calculateTargetMarkets(zoneCode, zone.languagesPriority[0]),
+      isUsContent: geoInfo.isUs,
+      countryDetected: geoInfo.country,
       classificationStatus: 'pending',
       isArchived: false
     }).returning();
@@ -212,6 +225,28 @@ export const ingestionWorker = new Worker('ingestion', async (job) => {
   concurrency: 2,
   limiter: { max: 50, duration: 60000 }
 });
+
+const US_HASHTAGS = ['fyp', 'foryou', 'foryoupage', 'viral', 'trending', 'usa', 'america', 'american'];
+
+function detectGeo(videoData: any, zone: any): { isUs: boolean; country: string } {
+  const language = zone.languagesPriority?.[0] || 'en';
+  const country = zone.proxyCountryCode || 'US';
+
+  if (country === 'US' || country === 'GB') {
+    return { isUs: country === 'US', country };
+  }
+
+  if (language.toLowerCase() === 'en') {
+    const hashtags = (videoData.hashtags || []).map((h: string) => h.toLowerCase());
+    const hasUsIndicators = hashtags.some((h: string) => US_HASHTAGS.includes(h));
+    if (hasUsIndicators) {
+      return { isUs: true, country: 'US' };
+    }
+    return { isUs: false, country: country || 'EN' };
+  }
+
+  return { isUs: false, country };
+}
 
 function calculateTargetMarkets(zoneCode: string, language: string): string[] {
   const markets: Record<string, string[]> = {

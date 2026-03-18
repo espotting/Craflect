@@ -4114,6 +4114,65 @@ ${input.cta ? `CTA: ${input.cta}` : ""}`;
     }
   });
 
+  // ─── Performance Tracking ──────────────────────────────────
+  app.post("/api/performance/track", isAuthenticated, async (req: any, res) => {
+    try {
+      const input = z.object({
+        videoUrl: z.string().url(),
+        predictedViews: z.number().optional(),
+      }).parse(req.body);
+
+      const { trackVideoPerformance } = await import('./services/performance-tracking.service');
+      const entry = await trackVideoPerformance(req.user.id, input.videoUrl, input.predictedViews);
+      res.json(entry);
+    } catch (err: any) {
+      console.error("Performance track error:", err);
+      res.status(500).json({ message: "Failed to track video performance" });
+    }
+  });
+
+  app.get("/api/performance", isAuthenticated, async (req: any, res) => {
+    try {
+      const result = await db.execute(sql`
+        SELECT * FROM video_performance
+        WHERE user_id = ${req.user.id}
+        ORDER BY created_at DESC
+        LIMIT 50
+      `);
+      res.json(result.rows);
+    } catch (err: any) {
+      console.error("Performance list error:", err);
+      res.status(500).json({ message: "Failed to fetch performance data" });
+    }
+  });
+
+  app.post("/api/performance/:id/refresh", isAuthenticated, async (req: any, res) => {
+    try {
+      const { refreshVideoMetrics } = await import('./services/performance-tracking.service');
+      const updated = await refreshVideoMetrics(req.params.id);
+      if (!updated) return res.status(404).json({ message: "Not found" });
+      res.json(updated);
+    } catch (err: any) {
+      console.error("Performance refresh error:", err);
+      res.status(500).json({ message: "Failed to refresh metrics" });
+    }
+  });
+
+  // ─── B-Roll Search ──────────────────────────────────────
+  app.get("/api/broll/search", isAuthenticated, async (req: any, res) => {
+    try {
+      const keyword = z.string().min(1).parse(req.query.keyword);
+      const maxResults = parseInt(req.query.maxResults as string) || 3;
+
+      const { searchBrollClips } = await import('./services/broll.service');
+      const clips = await searchBrollClips(keyword, maxResults);
+      res.json(clips);
+    } catch (err: any) {
+      console.error("B-Roll search error:", err);
+      res.status(500).json({ message: "Failed to search b-roll" });
+    }
+  });
+
   return httpServer;
 }
 

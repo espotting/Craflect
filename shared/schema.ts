@@ -87,8 +87,26 @@ export const generatedContent = pgTable("generated_content", {
   status: text("status").default("draft").notNull(),
   scheduledAt: timestamp("scheduled_at"),
   videoUrl: text("video_url"),
+  previewUrl: text("preview_url"),
+  duplicatedFrom: varchar("duplicated_from"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+export const videoPerformance = pgTable("video_performance", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  platformVideoUrl: text("platform_video_url").notNull(),
+  platform: text("platform").default("tiktok"),
+  predictedViews: integer("predicted_views"),
+  actualViews: integer("actual_views"),
+  actualLikes: integer("actual_likes"),
+  actualComments: integer("actual_comments"),
+  accuracyScore: doublePrecision("accuracy_score"),
+  lastFetchedAt: timestamp("last_fetched_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_video_performance_user").on(table.userId),
+]);
 
 export const briefs = pgTable("briefs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -154,6 +172,10 @@ export type InsertContentSource = z.infer<typeof insertContentSourceSchema>;
 
 export type GeneratedContent = typeof generatedContent.$inferSelect;
 export type InsertGeneratedContent = z.infer<typeof insertGeneratedContentSchema>;
+
+export const insertVideoPerformanceSchema = createInsertSchema(videoPerformance).omit({ id: true, createdAt: true });
+export type VideoPerformance = typeof videoPerformance.$inferSelect;
+export type InsertVideoPerformance = z.infer<typeof insertVideoPerformanceSchema>;
 
 export type Brief = typeof briefs.$inferSelect;
 export type InsertBrief = z.infer<typeof insertBriefSchema>;
@@ -679,6 +701,8 @@ export const videos = pgTable("videos", {
   geoCountry: char("geo_country", { length: 2 }),
   geoLanguage: varchar("geo_language", { length: 5 }),
   targetMarkets: text("target_markets").array(),
+  isUsContent: boolean("is_us_content").default(false),
+  countryDetected: varchar("country_detected", { length: 10 }),
   isArchived: boolean("is_archived").default(false),
   confidence: real("confidence"),
 
