@@ -203,27 +203,51 @@ export const ingestionWorker = new Worker('ingestion', async (job) => {
 
     const geoInfo = detectGeo(videoData, zone);
 
-    const [inserted] = await db.insert(videos).values({
-      ...videoData,
-      nicheCluster,
-      viewsPerHour: viewVelocity,
-      geoZone: zoneCode,
-      geoCountry: zone.proxyCountryCode,
-      geoLanguage: zone.languagesPriority[0],
-      targetMarkets: calculateTargetMarkets(zoneCode, zone.languagesPriority[0]),
-      isUsContent: geoInfo.isUs,
-      countryDetected: geoInfo.country,
-      classificationStatus: 'pending',
-      isArchived: false
-    }).returning();
+    const publishDate = videoData.publishedAt instanceof Date && !isNaN(videoData.publishedAt.getTime())
+      ? videoData.publishedAt
+      : new Date();
 
-    created++;
+    try {
+      const [inserted] = await db.insert(videos).values({
+        platform: videoData.platform || 'tiktok',
+        platformVideoId: videoData.platformVideoId,
+        videoUrl: videoData.videoUrl || null,
+        thumbnailUrl: videoData.thumbnailUrl || null,
+        caption: videoData.caption || '',
+        hashtags: videoData.hashtags || [],
+        durationSeconds: videoData.durationSeconds || 0,
+        views: videoData.views || 0,
+        likes: videoData.likes || 0,
+        comments: videoData.comments || 0,
+        shares: videoData.shares || 0,
+        creatorName: videoData.creatorName || 'unknown',
+        creatorPlatformId: videoData.creatorPlatformId || null,
+        creatorUrl: videoData.creatorUrl || null,
+        publishedAt: publishDate,
+        topicCluster: videoData.topicCluster || niche,
+        nicheCluster,
+        viewsPerHour: viewVelocity,
+        geoZone: zoneCode,
+        geoCountry: zone.proxyCountryCode,
+        geoLanguage: zone.languagesPriority[0],
+        targetMarkets: calculateTargetMarkets(zoneCode, zone.languagesPriority[0]),
+        isUsContent: geoInfo.isUs,
+        countryDetected: geoInfo.country,
+        classificationStatus: 'pending',
+        isArchived: false
+      }).returning();
 
-    await transcriptionQueue.add('transcribe', {
-      videoId: inserted.id
-    }, {
-      priority: viewVelocity > 500 ? 1 : 2
-    });
+      created++;
+
+      await transcriptionQueue.add('transcribe', {
+        videoId: inserted.id
+      }, {
+        priority: viewVelocity > 500 ? 1 : 2
+      });
+    } catch (insertError: any) {
+      console.error(`[Ingestion] ❌ Insert failed for ${videoData.platformVideoId}: ${insertError.message}`);
+      filtered++;
+    }
   }
 
   console.log(`[Ingestion] ${zoneCode}/${niche}: ${created} créées, ${filtered} filtrées, ${duplicates} doublons, ${skippedCreatorLimit} skip créateur, ${skippedTopicLimit} skip topic`);
