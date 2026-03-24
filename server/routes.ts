@@ -17,6 +17,7 @@ import { registerImageRoutes } from "./replit_integrations/image";
 import { z } from "zod";
 import OpenAI from "openai";
 import { scrapePublicMetadata, detectPlatform, extractCreatorHandle } from "./utils/scraper";
+import { registerSyncRoutes } from "./sync-routes";
 import { ingestVideoForNiche } from "./intelligence/ingestion-pipeline";
 import { updateNichePatterns, updateNicheStatistics } from "./intelligence/pattern-aggregator";
 import { generateNicheProfile } from "./intelligence/profile-generator";
@@ -65,6 +66,7 @@ export async function registerRoutes(
   registerAuthRoutes(app);
   registerChatRoutes(app);
   registerImageRoutes(app);
+  registerSyncRoutes(app);
 
   // ─── Workspaces ───
   app.get("/api/workspaces", isAuthenticated, async (req: any, res) => {

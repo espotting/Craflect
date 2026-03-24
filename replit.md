@@ -111,6 +111,19 @@ Workers infrastructure prepared for Hetzner deployment (not runnable on Replit �
 - `migrations/0001_cleanup.sql` — TRUNCATE legacy data (⚠️ Hetzner only, NOT executed on Replit)
 - `migrations/0002_geo_v2.sql` — Geo columns + zones (already applied on Replit)
 
+## Hetzner ↔ Replit Sync
+- **Architecture**: Hetzner (workers + local DB) → periodic push → Replit (app + DB)
+- **Sync endpoints** (secured by `SYNC_API_KEY` Bearer token):
+  - `POST /api/sync/videos` — Upsert videos (batch, ON CONFLICT by id)
+  - `POST /api/sync/classifications` — Upsert video_classification records
+  - `POST /api/sync/patterns` — Upsert patterns (ON CONFLICT by pattern_id)
+  - `POST /api/sync/video-patterns` — Upsert video↔pattern associations
+  - `POST /api/sync/opportunities` — Upsert opportunities
+  - `GET /api/sync/status` — Current sync state (counts + last sync timestamps)
+- **Sync worker** (Hetzner side): `server/workers/sync-to-replit.worker.ts` — Cron every 15min, incremental sync, batch size 100
+- **Config Hetzner** `.env`: `REPLIT_SYNC_URL=https://craflect.com`, `SYNC_API_KEY=<shared key>`, `SYNC_BATCH_SIZE=100`, `SYNC_INTERVAL_MS=900000`
+- **Routes file**: `server/sync-routes.ts`
+
 ## Services
 - `server/services/video-generation.service.ts` — Placeholder for HeyGen video generation (avatar + composition)
 - `server/services/broll.service.ts` — B-Roll search via Pexels API (requires PEXELS_API_KEY)
