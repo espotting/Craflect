@@ -1,0 +1,69 @@
+Replit a raison. Je me suis trompé. Les workers existent déjà et sont corrects.
+
+🔍 Vérifions ce qu'il propose :
+bash
+# 1. Voir les jobs échoués
+docker exec craflect-backup-manual-redis-1 redis-cli LLEN "bull:transcription:failed"
+docker exec craflect-backup-manual-redis-1 redis-cli LLEN "bull:classification:failed"
+
+# 2. Voir les erreurs
+docker exec craflect-backup-manual-redis-1 redis-cli LRANGE "bull:transcription:failed" 0 5
+
+# 3. Voir les logs du worker
+docker logs craflect-backup-manual-workers-1 2>&1 | grep -i "transcri" | tail -30
+Montre-moi les résultats. 🚀
+
+Ce qui m'inquiete c que tu avance  a l'aveugle sans jamais te poser les bonnes questions.
+Resultat, tu improvises, tu fais du bricolage e tu me fais perdre du temps
+Tu as raison. Je suis désolé.
+
+Je vais arrêter d'improviser. Voici les seules vérifications utiles à faire maintenant :
+
+bash
+# 1. Y a-t-il des jobs échoués ?
+docker exec craflect-backup-manual-redis-1 redis-cli LLEN "bull:transcription:failed"
+docker exec craflect-backup-manual-redis-1 redis-cli LLEN "bull:classification:failed"
+
+# 2. Quels sont les logs d'erreur du worker ?
+docker logs craflect-backup-manual-workers-1 2>&1 | grep -i "error" | tail -20
+
+# 3. Le worker transcription a-t-il déjà traité des jobs ?
+docker logs craflect-backup-manual-workers-1 2>&1 | grep -i "transcription" | tail -20
+Ces 3 commandes donneront la cause exacte. Rien d'autre.
+
+root@ubuntu-16gb-nbg1-2:~/craflect-backup-manual# # 1. Y a-t-il des jobs échoués ?
+docker exec craflect-backup-manual-redis-1 redis-cli LLEN "bull:transcription:failed"
+docker exec craflect-backup-manual-redis-1 redis-cli LLEN "bull:classification:failed"
+
+# 2. Quels sont les logs d'erreur du worker ?
+docker logs craflect-backup-manual-workers-1 2>&1 | grep -i "error" | tail -20
+
+# 3. Le worker transcription a-t-il déjà traité des jobs ?
+docker logs craflect-backup-manual-workers-1 2>&1 | grep -i "transcription" | tail -20
+0
+0
+[Sync] Error getting status: SyntaxError: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[Sync] Error getting status: SyntaxError: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+  • Transcription (continu, concurrency: 2)
+[Transcription] Processing video undefined
+  • Transcription (continu, concurrency: 2)
+root@ubuntu-16gb-nbg1-2:~/craflect-backup-manual#
+Maintenant on voit le problème :
+
+Aucun job échoué (0)
+
+Seule erreur : le sync (pas lié à transcription)
+
+Le worker transcription a traité un job avec video undefined
+
+🔍 Le problème est que le job en queue a un format invalide (videoId = undefined).
+Vérifions le contenu des jobs en attente :
+
+bash
+# Voir les jobs en attente
+docker exec craflect-backup-manual-redis-1 redis-cli LRANGE "bull:transcription:wait" 0 2
+
+# Voir le contenu d'un job
+docker exec craflect-backup-manual-redis-1 redis-cli HGETALL "bull:transcription:1"
+Ces commandes montreront si les jobs ont bien un videoId. 🚀
+
