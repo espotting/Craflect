@@ -46,10 +46,43 @@ function getTmpPath(videoId: string, ext: string): string {
   return path.join('/tmp', `craflect_${hash}.${ext}`);
 }
 
-async function downloadVideo(videoUrl: string, outputPath: string): Promise<void> {
-  execSync(`curl -sL -o "${outputPath}" "${videoUrl}"`, { timeout: 60000 });
-  if (!fs.existsSync(outputPath)) {
-    throw new Error(`Download failed: ${videoUrl}`);
+async function downloadVideo(
+  outputPath: string,
+  downloadUrl: string | null,
+  videoUrl: string | null
+): Promise<string> {
+  if (downloadUrl) {
+    try {
+      execSync(`curl -sL -o "${outputPath}" "${downloadUrl}"`, { timeout: 60000 });
+      const stat = fs.statSync(outputPath);
+      if (stat.size > 10000) {
+        console.log(`[Transcription] ✅ Downloaded via curl (direct URL, ${(stat.size / 1024).toFixed(0)}KB)`);
+        return 'curl_direct';
+      }
+      fs.unlinkSync(outputPath);
+    } catch {
+      console.log(`[Transcription] curl direct failed, trying yt-dlp...`);
+      if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
+    }
+  }
+
+  const targetUrl = videoUrl || downloadUrl;
+  if (!targetUrl) {
+    throw new Error('No URL available for download');
+  }
+
+  try {
+    execSync(
+      `yt-dlp -f "best[ext=mp4]/best" --no-warnings --no-playlist -o "${outputPath}" "${targetUrl}"`,
+      { timeout: 120000, stdio: 'pipe' }
+    );
+    if (fs.existsSync(outputPath) && fs.statSync(outputPath).size > 10000) {
+      console.log(`[Transcription] ✅ Downloaded via yt-dlp (${(fs.statSync(outputPath).size / 1024).toFixed(0)}KB)`);
+      return 'yt-dlp';
+    }
+    throw new Error('yt-dlp output too small or missing');
+  } catch (err: any) {
+    throw new Error(`Download failed for ${targetUrl}: ${err.message}`);
   }
 }
 
@@ -103,7 +136,7 @@ export const transcriptionWorker = new Worker('transcription', async (job) => {
   console.log(`[Transcription] Processing video ${videoId}`);
 
   const video = await db.execute(sql`
-    SELECT id, video_url, duration_seconds
+    SELECT id, video_url, download_url, duration_seconds
     FROM videos WHERE id = ${videoId}
   `);
 
@@ -114,7 +147,7 @@ export const transcriptionWorker = new Worker('transcription', async (job) => {
 
   const row = video.rows[0] as any;
 
-  if (!row.video_url) {
+  if (!row.video_url && !row.download_url) {
     console.warn(`[Transcription] No video URL for ${videoId}`);
     await db.update(videos)
       .set({ transcriptGenerated: false, transcriptionStatus: 'skipped' })
@@ -140,7 +173,8 @@ export const transcriptionWorker = new Worker('transcription', async (job) => {
       .set({ transcriptionStatus: 'downloading' })
       .where(eq(videos.id, videoId));
 
-    await downloadVideo(row.video_url, videoPath);
+    const downloadMethod = await downloadVideo(videoPath, row.download_url, row.video_url);
+    console.log(`[Transcription] Video ${videoId} downloaded via ${downloadMethod}`);
 
     await db.update(videos)
       .set({ transcriptionStatus: 'extracting' })

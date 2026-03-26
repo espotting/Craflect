@@ -108,8 +108,10 @@ Workers infrastructure prepared for Hetzner deployment (not runnable on Replit �
 - `server/workers/scheduler.ts` — BullMQ schedules (ingestion 2h, scoring 15min, patterns 6h, phase transition 30min)
 - `server/workers/index.ts` — Worker bootstrap
 - `docker-compose.yml` — Full stack: app, workers, postgres, redis, ollama
+- `Dockerfile` — Alpine + Node 20 + python3 + yt-dlp + ffmpeg + faster-whisper
 - `migrations/0001_cleanup.sql` — TRUNCATE legacy data (⚠️ Hetzner only, NOT executed on Replit)
 - `migrations/0002_geo_v2.sql` — Geo columns + zones (already applied on Replit)
+- **Transcription worker**: curl (download_url direct) → yt-dlp fallback (video_url). Videos table has `download_url` (Apify playAddr) + `video_url` (web page).
 
 ## Hetzner ↔ Replit Sync
 - **Architecture**: Hetzner (workers + local DB) → periodic push → Replit (app + DB)

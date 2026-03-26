@@ -69,7 +69,8 @@ async function scrapeVideos(zone: any, niche: string): Promise<any[]> {
     return items.map((item: any) => ({
       platform: 'tiktok',
       platformVideoId: item.id || item.videoId || `tiktok_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
-      videoUrl: item.videoUrl || item.video?.playAddr || null,
+      videoUrl: item.webVideoUrl || `https://www.tiktok.com/@${item.authorMeta?.name || item.author?.uniqueId || 'unknown'}/video/${item.id || item.videoId || ''}`,
+      downloadUrl: item.videoUrl || item.video?.playAddr || null,
       thumbnailUrl: item.coverUrl || item.covers?.default || null,
       caption: item.text || item.desc || '',
       hashtags: (item.hashtags || item.challenges || []).map((h: any) => typeof h === 'string' ? h : h.name || h.title || ''),
@@ -212,6 +213,7 @@ export const ingestionWorker = new Worker('ingestion', async (job) => {
         platform: videoData.platform || 'tiktok',
         platformVideoId: videoData.platformVideoId,
         videoUrl: videoData.videoUrl || null,
+        downloadUrl: videoData.downloadUrl || null,
         thumbnailUrl: videoData.thumbnailUrl || null,
         caption: videoData.caption || '',
         hashtags: videoData.hashtags || [],

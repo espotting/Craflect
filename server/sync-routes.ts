@@ -34,7 +34,7 @@ export function registerSyncRoutes(app: Express) {
         try {
           await pool.query(`
             INSERT INTO videos (
-              id, platform, video_url, caption, transcript, hashtags,
+              id, platform, video_url, download_url, caption, transcript, hashtags,
               duration_seconds, duration_bucket, views, likes, comments, shares,
               creator_name, creator_niche, collected_at,
               hook_mechanism, hook_format, hook_text, emotional_trigger,
@@ -71,7 +71,7 @@ export function registerSyncRoutes(app: Express) {
               $51,$52,$53,$54,$55,$56,$57,$58,$59,$60,
               $61,$62,$63,$64,$65,$66,$67,$68,$69,$70,
               $71,$72,$73,$74,$75,$76,$77,$78,$79,$80,
-              $81,$82,$83,$84,$85,$86,$87,$88,$89,$90
+              $81,$82,$83,$84,$85,$86,$87,$88,$89,$90,$91
             )
             ON CONFLICT (id) DO UPDATE SET
               transcript = COALESCE(EXCLUDED.transcript, videos.transcript),
@@ -93,7 +93,7 @@ export function registerSyncRoutes(app: Express) {
               transcription_status = COALESCE(EXCLUDED.transcription_status, videos.transcription_status),
               updated_at = now()
           `, [
-            v.id, n(v.platform), n(v.video_url), n(v.caption), n(v.transcript),
+            v.id, n(v.platform), n(v.video_url), n(v.download_url), n(v.caption), n(v.transcript),
             n(v.hashtags), n(v.duration_seconds), n(v.duration_bucket), n(v.views), n(v.likes),
             n(v.comments), n(v.shares), n(v.creator_name), n(v.creator_niche),
             v.collected_at || new Date().toISOString(),

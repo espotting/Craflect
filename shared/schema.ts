@@ -695,6 +695,7 @@ export const videos = pgTable("videos", {
   transcriptLanguage: varchar("transcript_language", { length: 10 }),
   transcriptGenerated: boolean("transcript_generated").default(false),
   audioUrl: text("audio_url"),
+  downloadUrl: text("download_url"),
 
   // ── Geo Intelligence ──
   geoZone: varchar("geo_zone", { length: 10 }),

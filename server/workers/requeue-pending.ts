@@ -8,8 +8,23 @@ const transcriptionQueue = new Queue("transcription", { connection: redisConnect
 async function main() {
   console.log("[Requeue] Fetching videos with transcription_status = 'pending'...");
 
+  const status = process.argv[2] || 'pending';
+  const validStatuses = ['pending', 'failed', 'all'];
+  if (!validStatuses.includes(status)) {
+    console.error(`[Requeue] Invalid status: ${status}. Use: pending, failed, or all`);
+    process.exit(1);
+  }
+
+  const whereClause = status === 'all'
+    ? `WHERE transcription_status IN ('pending', 'failed') OR transcription_status IS NULL`
+    : status === 'failed'
+      ? `WHERE transcription_status = 'failed'`
+      : `WHERE transcription_status = 'pending' OR transcription_status IS NULL`;
+
+  console.log(`[Requeue] Filtering by status: ${status}`);
+
   const { rows } = await pool.query(
-    `SELECT id FROM videos WHERE transcription_status = 'pending' OR transcription_status IS NULL ORDER BY collected_at ASC`
+    `SELECT id FROM videos ${whereClause} ORDER BY collected_at ASC`
   );
 
   console.log(`[Requeue] Found ${rows.length} videos to requeue`);
