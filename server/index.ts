@@ -15,13 +15,21 @@ declare module "http" {
   }
 }
 
-app.use(
-  express.json({
+app.use((req, res, next) => {
+  if (req.path.startsWith("/api/sync")) {
+    return express.json({
+      limit: "20mb",
+      verify: (req, _res, buf) => {
+        req.rawBody = buf;
+      },
+    })(req, res, next);
+  }
+  return express.json({
     verify: (req, _res, buf) => {
       req.rawBody = buf;
     },
-  }),
-);
+  })(req, res, next);
+});
 
 app.use(express.urlencoded({ extended: false }));
 

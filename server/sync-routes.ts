@@ -1,7 +1,9 @@
 import type { Express, Request, Response, NextFunction } from "express";
+import express from "express";
 import { pool } from "./db";
 
 const SYNC_API_KEY = process.env.SYNC_API_KEY;
+const syncBodyParser = express.json({ limit: "20mb" });
 
 function syncAuth(req: Request, res: Response, next: NextFunction) {
   const authHeader = req.headers.authorization;
@@ -20,7 +22,7 @@ function n(v: any): any {
 
 export function registerSyncRoutes(app: Express) {
 
-  app.post("/api/sync/videos", syncAuth, async (req: Request, res: Response) => {
+  app.post("/api/sync/videos", syncBodyParser, syncAuth, async (req: Request, res: Response) => {
     try {
       const { videos } = req.body;
       if (!Array.isArray(videos) || videos.length === 0) {
@@ -140,7 +142,7 @@ export function registerSyncRoutes(app: Express) {
     }
   });
 
-  app.post("/api/sync/classifications", syncAuth, async (req: Request, res: Response) => {
+  app.post("/api/sync/classifications", syncBodyParser, syncAuth, async (req: Request, res: Response) => {
     try {
       const { classifications } = req.body;
       if (!Array.isArray(classifications) || classifications.length === 0) {
@@ -185,7 +187,7 @@ export function registerSyncRoutes(app: Express) {
     }
   });
 
-  app.post("/api/sync/patterns", syncAuth, async (req: Request, res: Response) => {
+  app.post("/api/sync/patterns", syncBodyParser, syncAuth, async (req: Request, res: Response) => {
     try {
       const { patterns } = req.body;
       if (!Array.isArray(patterns) || patterns.length === 0) {
@@ -248,7 +250,7 @@ export function registerSyncRoutes(app: Express) {
     }
   });
 
-  app.post("/api/sync/video-patterns", syncAuth, async (req: Request, res: Response) => {
+  app.post("/api/sync/video-patterns", syncBodyParser, syncAuth, async (req: Request, res: Response) => {
     try {
       const { videoPatterns } = req.body;
       if (!Array.isArray(videoPatterns) || videoPatterns.length === 0) {
@@ -283,7 +285,7 @@ export function registerSyncRoutes(app: Express) {
     }
   });
 
-  app.post("/api/sync/opportunities", syncAuth, async (req: Request, res: Response) => {
+  app.post("/api/sync/opportunities", syncBodyParser, syncAuth, async (req: Request, res: Response) => {
     try {
       const { opportunities } = req.body;
       if (!Array.isArray(opportunities) || opportunities.length === 0) {
