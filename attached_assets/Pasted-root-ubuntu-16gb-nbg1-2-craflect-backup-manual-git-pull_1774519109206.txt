@@ -1,0 +1,96 @@
+root@ubuntu-16gb-nbg1-2:~/craflect-backup-manual# git pull
+remote: Enumerating objects: 27, done.
+remote: Counting objects: 100% (27/27), done.
+remote: Compressing objects: 100% (4/4), done.
+remote: Total 20 (delta 16), reused 20 (delta 16), pack-reused 0 (from 0)
+Unpacking objects: 100% (20/20), 75.11 KiB | 854.00 KiB/s, done.
+From https://github.com/espotting/Craflect
+   e60fdfb..acd6feb  main       -> origin/main
+Updating e60fdfb..acd6feb
+error: Your local changes to the following files would be overwritten by merge:
+        server/index.ts
+        server/sync-routes.ts
+Please commit your changes or stash them before you merge.
+Aborting
+root@ubuntu-16gb-nbg1-2:~/craflect-backup-manual#
+
+Parfait, situation classique 👇 (et facile à gérer)
+
+🚨 Ce qui se passe
+
+👉 Git te dit :
+
+Your local changes would be overwritten
+
+👉 donc :
+
+tu as modifié des fichiers directement sur Hetzner
+Git refuse d’écraser ces changements
+🎯 Les 2 fichiers concernés
+server/index.ts
+server/sync-routes.ts
+
+👉 pile ceux que vous avez modifiés pour le body parser
+
+🧠 Choix à faire (important)
+OPTION A — propre (recommandé)
+
+👉 tu gardes les modifs → tu les commits
+
+OPTION B — rapide (on écrase tout)
+
+👉 on reset → on prend GitHub comme source de vérité
+
+🚀 Je te recommande : OPTION B
+
+👉 pourquoi ?
+
+💥 tu viens de push depuis Replit
+👉 donc GitHub = version propre
+
+🔥 COMMANDE SIMPLE
+git reset --hard
+git pull
+⚠️ Attention
+
+👉 ça supprime :
+
+toutes les modifs locales
+sans retour possible
+
+👉 MAIS dans ton cas :
+
+✔ safe (tout est sur GitHub)
+
+🚀 Ensuite
+docker-compose down
+docker-compose build --no-cache
+docker-compose up -d
+🎯 Puis relancer sync
+docker exec -it craflect-backup-manual-workers-1 \
+npx tsx server/workers/sync-to-replit.worker.ts
+🧪 Résultat attendu
+
+👉 plus de :
+
+413 request entity too large ❌
+
+👉 mais :
+
+[Sync] Success ✅
+🧠 Petit warning pro
+
+👉 évite de modifier directement sur Hetzner
+
+👉 workflow clean :
+
+Replit → GitHub → Hetzner
+
+🏆 Résumé
+
+👉 fais :
+
+git reset --hard
+git pull
+docker-compose build --no-cache
+docker-compose up -d
