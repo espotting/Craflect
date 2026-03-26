@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "Slj6CLDikctXOFgIDXNMb"
+uri = "file://CRAFLECT_ARCHITECTURE.md"
+type = "text"
+title = "Craflect — Architecture Technique Complète"
