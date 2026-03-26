@@ -1,0 +1,121 @@
+
+-------
+   264
+(1 row)
+
+ transcription_status | count
+----------------------+-------
+ failed               |   226
+ skipped              |    38
+(2 rows)
+
+ classification_status | count
+-----------------------+-------
+ completed             |   264
+(1 row)
+
+  niche_cluster   | count
+------------------+-------
+ online_business  |    66
+ finance          |    55
+ ai_tools         |    50
+ content_creation |    47
+ productivity     |    46
+(5 rows)
+La transcription a échoué pour 226 vidéos (failed). C'est un problème.
+
+🔍 Pourquoi ?
+Le service de transcription (faster-whisper ou équivalent) n'est pas accessible ou mal configuré.
+
+🔧 Diagnostic rapide :
+bash
+# 1. Voir les logs d'erreur de transcription
+docker logs craflect-backup-manual-workers-1 2>&1 | grep -i "transcription.*error" | tail -20
+
+# 2. Voir si faster-whisper tourne
+docker ps | grep whisper
+
+# 3. Vérifier le service de transcription
+docker exec craflect-backup-manual-workers-1 curl -s http://localhost:8000/health 2>&1 || echo "Service non accessible"
+Montre-moi les résultats. 🚨
+
+Je suis deconnecte
+bash
+ssh root@178.104.52.64
+cd /root/craflect-backup-manual
+docker logs craflect-backup-manual-workers-1 2>&1 | grep -i "transcription.*error" | tail -20
+root@ubuntu-16gb-nbg1-2:~/craflect-backup-manual# docker logs craflect-backup-manual-workers-1 2>&1 | grep -i "transcription.*error" | tail -20
+[Transcription] ❌ Video fae00d18-a97b-421e-9539-77d33f9c07b1 failed: Error: Command failed: curl -sL -o "/tmp/craflect_21ff5a9e.mp4" "https://www.tiktok.com/@weddingsbytamanna/video/7480538345139965206"
+[Transcription] ❌ Video b6fb4293-3c2f-493d-9a84-fbe820c11bad failed: Error: Command failed: curl -sL -o "/tmp/craflect_10e397ca.mp4" "https://www.tiktok.com/@aydanalsaad/video/7521384701219687702"
+[Transcription] ❌ Video fdf3fc1d-129d-4f27-85a3-947a15ad5f1a failed: Error: Command failed: curl -sL -o "/tmp/craflect_c25c1245.mp4" "https://www.tiktok.com/@elena.mih11/video/7617155794961779990"
+[Transcription] ❌ Video 8347860f-d0e9-4a1a-90b5-92ace4b8452b failed: Error: Command failed: curl -sL -o "/tmp/craflect_515cc15c.mp4" "https://www.tiktok.com/@chloemaguirescakes/video/7620541230010649878"
+[Transcription] ❌ Video 6d7a67a6-761b-4d6b-b90c-b5f4a765c55c failed: Error: Command failed: curl -sL -o "/tmp/craflect_5b8cb0f8.mp4" "https://www.tiktok.com/@janelleinherworld/video/7620460936675085581"
+[Transcription] ❌ Video 1d8f8c77-6f25-40a0-bf51-bcfe594ae10d failed: Error: Command failed: curl -sL -o "/tmp/craflect_0da0e02f.mp4" "https://www.tiktok.com/@thebeautycontentcreatorr/video/7578111365605330198"
+[Transcription] ❌ Video 3d6b8653-9dca-445e-bf09-bcac31a48c6a failed: Error: Command failed: curl -sL -o "/tmp/craflect_772a58dc.mp4" "https://www.tiktok.com/@thesevenfingeredchef/video/7509978612611747094"
+[Transcription] ❌ Video c45f31e9-e91c-4d33-b024-9dab039aa8ad failed: Error: Command failed: curl -sL -o "/tmp/craflect_71f6d284.mp4" "https://www.tiktok.com/@concreteandpalm/video/7620428872919649550"
+[Transcription] ❌ Video 358adf11-5a25-4508-89b0-f9edafd2fb75 failed: Error: Command failed: curl -sL -o "/tmp/craflect_9ba62be7.mp4" "https://www.tiktok.com/@beauty_official08/video/7523688503113239839"
+[Transcription] ❌ Video 497ee9a1-8206-4098-aa17-905c24f0c184 failed: Error: Command failed: curl -sL -o "/tmp/craflect_0ebd3803.mp4" "https://www.tiktok.com/@secretcabin5/video/7613501426639129886"
+[Transcription] ❌ Video 94e9a8aa-000e-43fc-9e7f-3dec2598564f failed: Error: Command failed: curl -sL -o "/tmp/craflect_5ea90fde.mp4" "https://www.tiktok.com/@that.six.figure.m07/video/7613101593482939678"
+[Transcription] ❌ Video 0fd9df4e-04e7-4dd2-b8b7-650758b7a0b5 failed: Error: Command failed: curl -sL -o "/tmp/craflect_cf881af3.mp4" "https://www.tiktok.com/@mario.prawira/video/7536364425146600726"
+[Transcription] ❌ Video 6d63253a-1855-4766-abeb-384615d383e3 failed: Error: Command failed: curl -sL -o "/tmp/craflect_f4f9eecb.mp4" "https://www.tiktok.com/@isabella.lauren/video/7609973771394436366"
+[Transcription] ❌ Video 20831164-408d-47ee-85f1-d1bd93472167 failed: Error: Command failed: curl -sL -o "/tmp/craflect_6849e75e.mp4" "https://www.tiktok.com/@sabrina_ramonov/video/7620430540331699469"
+[Transcription] ❌ Video 9e79d012-f148-4abd-a601-0ef50142678a failed: Error: Command failed: curl -sL -o "/tmp/craflect_9b4b4f33.mp4" "https://www.tiktok.com/@dianamishc/video/7620484428669701389"
+[Transcription] ❌ Video 82f3f080-afbe-42c9-818c-509ae1636dd6 failed: Error: Command failed: curl -sL -o "/tmp/craflect_341a7a1a.mp4" "https://www.tiktok.com/@itserinconfortini/video/7604152528342617375"
+[Transcription] ❌ Video e2f3cdc8-e706-4e2f-a57b-7ab5407fe769 failed: Error: Command failed: curl -sL -o "/tmp/craflect_b3cc6df9.mp4" "https://www.tiktok.com/@alisonxflores/video/7508038217724218655"
+[Transcription] ❌ Video 0e8cbf35-5b53-4605-803c-de41d6bdd2d2 failed: Error: Command failed: curl -sL -o "/tmp/craflect_bc10e66e.mp4" "https://www.tiktok.com/@mafeanzures/video/7615657866065710367"
+[Transcription] ❌ Video 15fb3909-82ce-46f8-bf6c-2870f20af74a failed: Error: Command failed: curl -sL -o "/tmp/craflect_95be2ae9.mp4" "https://www.tiktok.com/@sheridan___taylor/video/7466514906611764511"
+[Transcription] ❌ Video 0ab31cfe-c34f-44c2-8e4a-84d23f7f979d failed: Error: Command failed: curl -sL -o "/tmp/craflect_3a7b0873.mp4" "https://www.tiktok.com/@kienobimedia/video/7591904924653456671"
+root@ubuntu-16gb-nbg1-2:~/craflect-backup-manual#
+Le problème est clair : la transcription échoue car les vidéos ne sont pas accessibles. Le worker essaie de télécharger les vidéos TikTok via curl, mais les URLs expirent ou sont invalides.
+
+🔍 Explication :
+Les URLs des vidéos TikTok (https://www.tiktok.com/@.../video/...) sont des pages web, pas des fichiers vidéo directs. Le worker devrait utiliser un service comme yt-dlp ou Apify pour extraire l'URL de la vidéo, mais le code actuel essaie de télécharger directement la page web avec curl.
+
+🚨 Solution :
+Il faut modifier le worker de transcription pour utiliser yt-dlp (déjà installé dans le conteneur) pour extraire l'URL vidéo.
+
+bash
+# Vérifier que yt-dlp est installé
+docker exec craflect-backup-manual-workers-1 yt-dlp --version
+Si c'est installé, le code doit être corrigé sur Replit pour utiliser yt-dlp au lieu de curl.
+
+Dis à Replit que la transcription échoue parce que le code utilise curl sur des URLs TikTok qui ne sont pas des vidéos directes. Il faut remplacer par yt-dlp -g pour obtenir l'URL directe de la vidéo.
+
+peut etre car je n'ai plus de credit sur Apify? ca pourrai expliquer le pb?
+Non, ce n'est pas lié aux crédits Apify. La transcription n'utilise pas Apify, elle utilise yt-dlp pour télécharger les vidéos et faster-whisper pour la transcription.
+
+🔍 Le problème est que le code essaie de télécharger la vidéo avec curl sur une URL TikTok qui est une page web, pas un fichier vidéo.
+Regarde l'erreur :
+
+text
+curl -sL -o "/tmp/..." "https://www.tiktok.com/@.../video/..."
+Cette URL est une page HTML, pas une vidéo. Il faut utiliser yt-dlp pour extraire l'URL réelle de la vidéo.
+
+🔧 Vérifions si yt-dlp est installé :
+bash
+docker exec craflect-backup-manual-workers-1 which yt-dlp
+docker exec craflect-backup-manual-workers-1 yt-dlp --version
+Montre-moi le résultat. Si yt-dlp est installé, le fix est simple : modifier le code sur Replit pour utiliser yt-dlp -g au lieu de curl. 🚀
+
+OCI runtime exec failed: exec failed: unable to start container process: exec: "yt-dlp": executable file not found in $PATH: unknown
+root@ubuntu-16gb-nbg1-2:~/craflect-backup-manual#
+Bingo ! yt-dlp n'est pas installé dans le conteneur. C'est pour ça que la transcription échoue.
+
+🔧 Solution immédiate : Installer yt-dlp
+bash
+# 1. Installer yt-dlp dans le conteneur
+docker exec -it craflect-backup-manual-workers-1 sh -c "apk add --no-cache py3-pip && pip3 install yt-dlp"
+
+# 2. Vérifier l'installation
+docker exec craflect-backup-manual-workers-1 yt-dlp --version
+🚀 Puis relancer les jobs de transcription qui ont échoué :
+bash
+# Ré-enqueuer les 226 vidéos qui ont échoué
+docker exec craflect-backup-manual-postgres-1 psql -U craflect -d craflect -t -A -c "SELECT id FROM videos WHERE transcription_status = 'failed'" | while read video_id; do
+  docker exec craflect-backup-manual-redis-1 redis-cli LPUSH "bull:transcription:wait" "{\"name\":\"transcribe\",\"data\":{\"videoId\":\"$video_id\"},\"opts\":{\"jobId\":\"transcribe-$video_id\"}}"
+done
+
+# Vérifier la queue
+docker exec craflect-backup-manual-redis-1 redis-cli LLEN "bull:transcription:wait"
+Mais attention : ce n'est qu'une solution temporaire. Il faut que Replit modifie le code pour que yt-dlp soit inclus dans le Dockerfile. 🚀
+
