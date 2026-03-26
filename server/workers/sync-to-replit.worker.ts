@@ -2,7 +2,7 @@ import { Pool } from "pg";
 
 const REPLIT_SYNC_URL = process.env.REPLIT_SYNC_URL || "https://craflect.com";
 const SYNC_API_KEY = process.env.SYNC_API_KEY;
-const SYNC_BATCH_SIZE = parseInt(process.env.SYNC_BATCH_SIZE || "20");
+const SYNC_BATCH_SIZE = parseInt(process.env.SYNC_BATCH_SIZE || "100");
 const SYNC_INTERVAL_MS = parseInt(process.env.SYNC_INTERVAL_MS || "900000");
 
 const localPool = new Pool({ connectionString: process.env.DATABASE_URL });
