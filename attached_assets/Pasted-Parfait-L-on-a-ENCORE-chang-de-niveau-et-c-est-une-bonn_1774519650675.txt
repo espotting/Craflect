@@ -1,0 +1,230 @@
+Parfait. Là on a ENCORE changé de niveau — et c’est une bonne nouvelle.
+
+🚨 NOUVELLE ERREUR (et la vraie)
+relation "videos" does not exist
+
+👉 ça veut dire :
+
+💥 ta base de données sur Hetzner n’a pas les tables
+
+🧠 Traduction simple
+
+👉 ton code fonctionne
+👉 le worker fonctionne
+👉 le sync démarre
+
+💥 MAIS :
+
+👉 quand il fait :
+
+SELECT * FROM videos
+
+👉 PostgreSQL répond :
+
+❌ “la table n’existe pas”
+
+🎯 Conclusion
+
+👉 ton problème maintenant = DB schema non initialisé
+
+🚀 FIX IMMÉDIAT
+1️⃣ Connecte-toi à Postgres
+docker exec -it craflect-backup-manual-postgres-1 psql -U craflect -d craflect
+2️⃣ Vérifie les tables
+\dt
+
+👉 tu vas voir :
+
+💥 rien / ou tables manquantes
+
+🔥 3️⃣ Solution (selon ton setup)
+
+👉 tu as 2 cas possibles :
+
+🟢 CAS A — tu utilises Prisma / Drizzle / migrations
+
+👉 lance :
+
+npx prisma migrate deploy
+
+ou
+
+npx drizzle-kit push
+🔵 CAS B — SQL manuel
+
+👉 tu dois avoir un fichier type :
+
+schema.sql
+init.sql
+
+👉 exécute :
+
+docker exec -i craflect-backup-manual-postgres-1 psql -U craflect -d craflect < schema.sql
+🧠 Ce qui s’est passé
+
+👉 tu as :
+
+reset container ❌
+rebuild ❌
+
+👉 donc :
+
+💥 volume DB vide
+
+⚠️ IMPORTANT
+
+👉 ton docker-compose :
+
+volumes:
+  postgres_data:
+
+👉 mais si tu fais :
+
+docker-compose down -v
+
+💥 tu wipes la DB
+
+🏆 Après fix
+
+👉 relance sync :
+
+docker exec -it craflect-backup-manual-workers-1 \
+npx tsx server/workers/sync-to-replit.worker.ts
+🧪 Résultat attendu
+
+👉 plus de :
+
+relation "videos" does not exist ❌
+
+👉 mais :
+
+[Sync] Success ✅
+🎯 Résumé
+
+👉 tu as enchaîné :
+
+infra ❌
+build ❌
+API ❌
+payload ❌
+maintenant → DB
+
+💥 c’est NORMAL dans un projet comme le tien
+
+🚀 Next step
+
+👉 fais :
+
+\dt
+
+👉 dis-moi ce que tu vois
+
+💥 on termine ça maintenant (tu es à 1 étape du système complet)
+
+💥 Parfait. Là c’est 100% confirmé :
+
+Did not find any relations.
+
+👉 donc :
+
+💥 ta base Hetzner est totalement vide
+
+🎯 Bonne nouvelle
+
+👉 c’est le DERNIER blocage
+👉 et c’est le plus simple à corriger
+
+🚀 OBJECTIF
+
+👉 recréer le schema DB (tables : videos, classifications, etc.)
+
+🧠 Question clé
+
+👉 ton projet utilise quoi ?
+
+Prisma ?
+Drizzle ?
+SQL pur ?
+🔍 On va identifier vite
+
+👉 fais ça :
+
+ls
+
+👉 puis :
+
+ls -R | grep -E "schema|prisma|drizzle|sql"
+🎯 En attendant (solution rapide)
+
+👉 90% du temps dans ton setup → Drizzle ou SQL
+
+🔥 OPTION 1 — tu as un schema.sql
+
+👉 fais :
+
+docker exec -i craflect-backup-manual-postgres-1 \
+psql -U craflect -d craflect < schema.sql
+🔥 OPTION 2 — tu as Drizzle
+
+👉 dans container app :
+
+docker exec -it craflect-backup-manual-app-1 bash
+
+👉 puis :
+
+npx drizzle-kit push
+🔥 OPTION 3 — fallback (je te débloque direct)
+
+👉 si tu galères, tu peux créer la table minimale :
+
+CREATE TABLE videos (
+  id TEXT PRIMARY KEY,
+  video_url TEXT,
+  download_url TEXT,
+  transcription TEXT,
+  transcription_status TEXT,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+👉 mais ça c’est temporaire (juste pour débloquer)
+
+🧪 Après création
+
+👉 refais :
+
+\dt
+
+👉 tu dois voir :
+
+videos
+...
+🚀 Ensuite
+
+👉 relance sync :
+
+docker exec -it craflect-backup-manual-workers-1 \
+npx tsx server/workers/sync-to-replit.worker.ts
+🏆 Résultat attendu
+
+👉 plus d’erreur DB
+👉 sync fonctionne
+👉 données arrivent sur Replit
+
+🎯 Résumé
+
+👉 ton système est OK à :
+
+infra ✅
+backend ✅
+API ✅
+payload ✅
+
+💥 il manquait juste → DB schema
+
+🔥 Next step
+
+👉 envoie-moi :
+
+ls
+
+👉 et je te donne la commande EXACTE (pas de guess)
