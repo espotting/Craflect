@@ -27,7 +27,7 @@ import { Separator } from "@/components/ui/separator";
 import { useLanguage } from "@/hooks/use-language";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { SiTiktok, SiInstagram, SiYoutube } from "react-icons/si";
-import logoTransparent from "@/assets/logo-transparent.png";
+import logoTransparent from "@assets/Logo_PurpWhite_HD_wBG_1775302281780.png";
 
 function SectionReveal({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
   return (
