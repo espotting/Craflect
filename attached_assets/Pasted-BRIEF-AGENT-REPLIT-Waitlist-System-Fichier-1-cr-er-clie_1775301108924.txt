@@ -1,0 +1,40 @@
+BRIEF AGENT REPLIT — Waitlist System
+Fichier 1 — à créer : client/src/pages/waitlist.tsx (joint)
+Fichier 2 — App.tsx : Ajouter la route /waitlist :
+tsximport WaitlistPage from "@/pages/waitlist";
+<Route path="/waitlist" component={WaitlistPage} />
+Fichier 3 — landing.tsx : Tous les boutons "Get Started" / "Sign Up" / "Start Free" → rediriger vers /waitlist au lieu de /auth ou /register
+Fichier 4 — shared/schema.ts : Ajouter la table waitlist :
+typescriptexport const waitlist = pgTable("waitlist", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  firstName: text("first_name").notNull(),
+  email: text("email").notNull().unique(),
+  niche: text("niche"),
+  why: text("why"),
+  status: text("status").default("pending").notNull(), // pending | approved | rejected
+  inviteToken: text("invite_token"),
+  inviteSentAt: timestamp("invite_sent_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+Fichier 5 — server/routes.ts : Ajouter 3 endpoints :
+typescript// Public — rejoindre la waitlist
+app.post("/api/waitlist/join", async (req, res) => {
+  const { firstName, email, niche, why } = req.body;
+  // INSERT dans waitlist, envoyer email de confirmation
+  // Email: "Tu es sur la liste Craflect !"
+});
+
+// Public — stats pour afficher le compteur
+app.get("/api/waitlist/stats", async (req, res) => {
+  // COUNT(*) FROM waitlist WHERE status = 'pending' OR status = 'approved'
+});
+
+// Admin — approuver un candidat
+app.post("/api/waitlist/:id/approve", isAdmin, async (req, res) => {
+  // Générer un inviteToken unique
+  // UPDATE waitlist SET status='approved', inviteToken=token, inviteSentAt=now()
+  // Envoyer email avec lien: https://craflect.com/register?token=xxx
+});
+Fichier 6 — Founder Dashboard : Ajouter un onglet "Waitlist" qui affiche la liste des inscrits avec bouton "Approve" pour chaque entrée pending.
+Fichier 7 — Page Register/Auth : Vérifier si un token valide est présent dans les query params. Si pas de token et pas de compte existant → rediriger vers /waitlist.
+Action : Implémenter tout ça, push, confirmer.
