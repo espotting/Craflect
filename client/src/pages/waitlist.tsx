@@ -10,10 +10,10 @@ import {
   ArrowRight,
   CheckCircle,
   TrendingUp,
-  Zap,
   BarChart3,
   Lock,
 } from "lucide-react";
+import logoPurpWhite from "@assets/Logo_PurpWhite_HD_1775301898510.png";
 
 interface WaitlistStats {
   count: number;
@@ -123,10 +123,7 @@ export default function WaitlistPage() {
           onClick={() => navigate("/")}
           className="flex items-center gap-2 text-white font-bold text-lg tracking-tight"
         >
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-fuchsia-500 flex items-center justify-center">
-            <Zap className="w-4 h-4 text-white" />
-          </div>
-          Craflect
+          <img src={logoPurpWhite} alt="Craflect" className="h-8 w-auto" />
         </button>
 
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/80 border border-slate-800 text-slate-400 text-xs">
