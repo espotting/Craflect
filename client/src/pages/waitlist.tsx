@@ -118,7 +118,7 @@ export default function WaitlistPage() {
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-purple-600/8 rounded-full blur-[120px] pointer-events-none" />
 
       {/* Header */}
-      <header className="relative z-10 flex items-center justify-between px-6 py-5 max-w-6xl mx-auto w-full">
+      <header className="relative z-10 flex items-center justify-between px-6 py-4 max-w-7xl mx-auto w-full">
         <button
           onClick={() => navigate("/")}
           className="flex items-center gap-2 text-white font-bold text-lg tracking-tight"
