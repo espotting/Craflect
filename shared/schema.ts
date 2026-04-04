@@ -1157,3 +1157,19 @@ export type VideoEmbedding = typeof videoEmbeddings.$inferSelect;
 export type InsertVideoEmbedding = z.infer<typeof insertVideoEmbeddingSchema>;
 export type ContentCluster = typeof contentClusters.$inferSelect;
 export type InsertContentCluster = z.infer<typeof insertContentClusterSchema>;
+
+export const waitlist = pgTable("waitlist", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  firstName: text("first_name").notNull(),
+  email: text("email").notNull().unique(),
+  niche: text("niche"),
+  why: text("why"),
+  status: text("status").default("pending").notNull(),
+  inviteToken: text("invite_token"),
+  inviteSentAt: timestamp("invite_sent_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertWaitlistSchema = createInsertSchema(waitlist).omit({ id: true, createdAt: true });
+export type WaitlistEntry = typeof waitlist.$inferSelect;
+export type InsertWaitlistEntry = z.infer<typeof insertWaitlistSchema>;

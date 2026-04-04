@@ -11,6 +11,7 @@ import {
   ScrollText,
   Wrench,
   Users,
+  ClipboardList,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import {
@@ -55,6 +56,7 @@ export function AppSidebar() {
   const adminItems = [
     { title: t.sidebar?.founderDashboard || "Founder Dashboard", url: "/system/founder", icon: Crown },
     { title: "Users", url: "/system/founder/users", icon: Users },
+    { title: "Waitlist", url: "/system/founder/waitlist", icon: ClipboardList },
     { title: "Subscriptions", url: "/system/founder/subscriptions", icon: CreditCard },
     { title: t.sidebar?.logs || "Logs", url: "/system/founder/logs", icon: ScrollText },
     { title: t.sidebar?.systemSettings || "System Settings", url: "/system/founder/settings", icon: Wrench },

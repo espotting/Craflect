@@ -8,7 +8,7 @@ import { motion } from "framer-motion";
 import { useLanguage } from "@/hooks/use-language";
 
 const userRoutes = ["/home", "/opportunities", "/create", "/workspace", "/insights", "/settings", "/plan-billing", "/onboarding"];
-const adminRoutes = ["/system/founder", "/system/logs", "/system/settings"];
+const adminRoutes = ["/system/founder", "/system/founder/waitlist", "/system/logs", "/system/settings"];
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading, user } = useAuth();

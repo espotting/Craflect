@@ -29,6 +29,8 @@ import FounderLogs from "@/pages/founder-logs";
 import FounderSettings from "@/pages/founder-settings";
 import PlanBilling from "@/pages/plan-billing";
 import PerformancePage from "@/pages/performance";
+import WaitlistPage from "@/pages/waitlist";
+import FounderWaitlist from "@/pages/founder-waitlist";
 import { TermsPage, BillingPage, PrivacyPage, CookiesPage, DpaPage, SecurityPage, ContactPage } from "@/pages/legal";
 import FaqPage from "@/pages/faq";
 
@@ -57,11 +59,13 @@ function Router() {
       <Route path="/system/founder/users" component={FounderUsers} />
       <Route path="/system/founder/subscriptions" component={FounderSubscriptions} />
       <Route path="/system/founder/logs" component={FounderLogs} />
+      <Route path="/system/founder/waitlist" component={FounderWaitlist} />
       <Route path="/system/founder/settings" component={FounderSettings} />
       <Route path="/system/logs">{() => <Redirect to="/system/founder/logs" />}</Route>
       <Route path="/system/settings">{() => <Redirect to="/system/founder/settings" />}</Route>
       <Route path="/plan-billing" component={PlanBilling} />
       <Route path="/performance" component={PerformancePage} />
+      <Route path="/waitlist" component={WaitlistPage} />
 
       <Route path="/trend-radar">{() => <Redirect to="/opportunities" />}</Route>
       <Route path="/library">{() => <Redirect to="/opportunities" />}</Route>

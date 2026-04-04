@@ -66,7 +66,7 @@ export default function Landing() {
 
   if (isLoading || isAuthenticated) return null;
 
-  const handleGetStarted = () => setLocation("/welcome");
+  const handleGetStarted = () => setLocation("/waitlist");
   const handleSignIn = () => setLocation("/signin");
   const scrollToPricing = () => {
     document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" });

@@ -27,6 +27,7 @@ The system employs a dual schema approach:
 - **Craflect Taxonomy v1 tables**: `videos`, `viral_patterns`, `patterns`, `saved_ideas`, `content_projects` support the stable pipeline, Pattern Engine, and new features, based on a layered taxonomy. Both schema co-exist.
 - **Geo Intelligence**: Table `geo_zones` (6 zones: US, UK, EU-FR, EU-ES, EU-DE, LATAM). Table `videos` has geo columns: `geo_zone`, `geo_country`, `geo_language`, `target_markets` (text array with GIN index), `is_us_content` (boolean), `country_detected` (varchar).
 - **Video Performance**: Table `video_performance` tracks published video metrics (predicted vs actual views, accuracy score). API: POST `/api/performance/track`, GET `/api/performance`, POST `/api/performance/:id/refresh`.
+- **Waitlist**: Table `waitlist` (id, first_name, email unique, niche, why, status pending/invited, invite_token, invite_sent_at, created_at). Public API: GET `/api/waitlist/stats`, POST `/api/waitlist/join` (rate-limited 5/min, sanitized input). Admin API: GET `/api/admin/waitlist`, POST `/api/admin/waitlist/:id/invite` (sends email, marks invited only after successful send). Emails: confirmation on join + invite with signup link. Landing CTA → `/waitlist`. Founder Dashboard sidebar: Waitlist tab at `/system/founder/waitlist`.
 
 The platform features a dual interface layer:
 - **Creator Mode** (default): Focuses on action and creation (Home with Viral Play of the Day + Trending Videos, Opportunities grid, Studio/Create with 5 modes, Workspace).

@@ -79,3 +79,61 @@ export async function sendAdminVerificationCode(code: string): Promise<void> {
 
   console.log(`[EMAIL] Admin verification code sent to ${targetEmail}`);
 }
+
+export async function sendWaitlistInvite(email: string, firstName: string, inviteToken: string): Promise<void> {
+  const logo = getLogoAttachment();
+  const signupUrl = `https://craflect.com/signup?invite=${inviteToken}`;
+  const html = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px;">
+      <div style="text-align: center; margin-bottom: 32px;">
+        <img src="cid:craflect-logo" alt="Craflect" style="height: 40px; width: auto;" />
+        <p style="color: #666; font-size: 14px; margin-top: 8px;">You're invited</p>
+      </div>
+      <div style="background: #f8f9fa; border-radius: 12px; padding: 32px; text-align: center; border: 1px solid #e9ecef;">
+        <p style="color: #333; font-size: 18px; font-weight: 600; margin: 0 0 12px;">Hey ${firstName},</p>
+        <p style="color: #555; font-size: 15px; margin: 0 0 24px;">Your spot on Craflect is ready. Create your account now and start discovering what goes viral in your niche.</p>
+        <a href="${signupUrl}" style="display: inline-block; background: linear-gradient(135deg, #7c3aed, #d946ef); color: #fff; padding: 14px 32px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 15px;">Create My Account</a>
+        <p style="color: #999; font-size: 12px; margin-top: 20px;">This invite link is valid for 7 days.</p>
+      </div>
+      <p style="color: #999; font-size: 12px; text-align: center; margin-top: 24px;">If you did not sign up for the Craflect waitlist, please ignore this email.</p>
+    </div>
+  `;
+
+  await transporter.sendMail({
+    from: `"Craflect" <${process.env.SMTP_USER || "admin@craflect.com"}>`,
+    to: email,
+    subject: `${firstName}, your Craflect invite is here`,
+    html,
+    ...(logo ? { attachments: [logo] } : {}),
+  });
+
+  console.log(`[EMAIL] Waitlist invite sent to ${email}`);
+}
+
+export async function sendWaitlistConfirmation(email: string, firstName: string): Promise<void> {
+  const logo = getLogoAttachment();
+  const html = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px;">
+      <div style="text-align: center; margin-bottom: 32px;">
+        <img src="cid:craflect-logo" alt="Craflect" style="height: 40px; width: auto;" />
+        <p style="color: #666; font-size: 14px; margin-top: 8px;">Waitlist Confirmation</p>
+      </div>
+      <div style="background: #f8f9fa; border-radius: 12px; padding: 32px; text-align: center; border: 1px solid #e9ecef;">
+        <p style="color: #333; font-size: 18px; font-weight: 600; margin: 0 0 12px;">Welcome ${firstName},</p>
+        <p style="color: #555; font-size: 15px; margin: 0 0 16px;">You're on the Craflect early access list. We'll review your application and send you an invitation when your spot is ready.</p>
+        <p style="color: #7c3aed; font-size: 14px; font-weight: 500;">Keep creating.</p>
+      </div>
+      <p style="color: #999; font-size: 12px; text-align: center; margin-top: 24px;">If you did not sign up for the Craflect waitlist, please ignore this email.</p>
+    </div>
+  `;
+
+  await transporter.sendMail({
+    from: `"Craflect" <${process.env.SMTP_USER || "admin@craflect.com"}>`,
+    to: email,
+    subject: `You're on the list, ${firstName}`,
+    html,
+    ...(logo ? { attachments: [logo] } : {}),
+  });
+
+  console.log(`[EMAIL] Waitlist confirmation sent to ${email}`);
+}

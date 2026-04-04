@@ -4160,6 +4160,132 @@ ${input.cta ? `CTA: ${input.cta}` : ""}`;
     }
   });
 
+  // ─── Waitlist ──────────────────────────────────────
+  app.get("/api/waitlist/stats", async (_req, res) => {
+    try {
+      const { db } = await import("./db");
+      const { waitlist } = await import("@shared/schema");
+      const { count } = await import("drizzle-orm");
+      const result = await db.select({ count: count() }).from(waitlist);
+      res.json({ count: result[0]?.count || 0 });
+    } catch (err) {
+      res.json({ count: 0 });
+    }
+  });
+
+  const waitlistRateLimit = new Map<string, number[]>();
+  app.post("/api/waitlist/join", async (req, res) => {
+    try {
+      const ip = req.ip || req.socket.remoteAddress || "unknown";
+      const now = Date.now();
+      const window = 60_000;
+      const maxPerWindow = 5;
+      const timestamps = (waitlistRateLimit.get(ip) || []).filter(t => now - t < window);
+      if (timestamps.length >= maxPerWindow) {
+        return res.status(429).json({ message: "Too many requests. Try again later." });
+      }
+      timestamps.push(now);
+      waitlistRateLimit.set(ip, timestamps);
+
+      const schema = z.object({
+        firstName: z.string().min(1).max(100),
+        email: z.string().email().max(255),
+        niche: z.string().max(50).optional(),
+        why: z.string().max(500).optional(),
+      });
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: "Invalid input", errors: parsed.error.flatten().fieldErrors });
+      }
+      const input = parsed.data;
+
+      const { db } = await import("./db");
+      const { waitlist } = await import("@shared/schema");
+      const { eq } = await import("drizzle-orm");
+
+      const existing = await db.select().from(waitlist).where(eq(waitlist.email, input.email.toLowerCase())).limit(1);
+      if (existing.length > 0) {
+        return res.status(409).json({ message: "already" });
+      }
+
+      const safeName = input.firstName.replace(/[<>"'&]/g, "");
+
+      await db.insert(waitlist).values({
+        firstName: safeName,
+        email: input.email.toLowerCase(),
+        niche: input.niche || null,
+        why: input.why || null,
+      });
+
+      try {
+        const { sendWaitlistConfirmation } = await import("./email");
+        await sendWaitlistConfirmation(input.email.toLowerCase(), safeName);
+      } catch (emailErr) {
+        console.error("[WAITLIST] Failed to send confirmation email:", emailErr);
+      }
+
+      res.json({ success: true });
+    } catch (err: any) {
+      if (err?.code === "23505") {
+        return res.status(409).json({ message: "already" });
+      }
+      console.error("Waitlist join error:", err);
+      res.status(500).json({ message: "Failed to join waitlist" });
+    }
+  });
+
+  app.get("/api/admin/waitlist", isAuthenticated, isAdmin, async (_req, res) => {
+    try {
+      const { db } = await import("./db");
+      const { waitlist } = await import("@shared/schema");
+      const { desc } = await import("drizzle-orm");
+      const entries = await db.select().from(waitlist).orderBy(desc(waitlist.createdAt));
+      res.json(entries);
+    } catch (err) {
+      console.error("Admin waitlist error:", err);
+      res.status(500).json({ message: "Failed to fetch waitlist" });
+    }
+  });
+
+  app.post("/api/admin/waitlist/:id/invite", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const { db } = await import("./db");
+      const { waitlist } = await import("@shared/schema");
+      const { eq } = await import("drizzle-orm");
+      const { randomBytes } = await import("crypto");
+
+      const entry = await db.select().from(waitlist).where(eq(waitlist.id, req.params.id)).limit(1);
+      if (!entry.length) return res.status(404).json({ message: "Not found" });
+
+      const record = entry[0];
+      if (record.status === "invited") {
+        return res.status(400).json({ message: "Already invited" });
+      }
+
+      const inviteToken = randomBytes(32).toString("hex");
+      const safeName = record.firstName.replace(/[<>"'&]/g, "");
+
+      try {
+        const { sendWaitlistInvite } = await import("./email");
+        await sendWaitlistInvite(record.email, safeName, inviteToken);
+      } catch (emailErr) {
+        console.error("[WAITLIST] Failed to send invite email:", emailErr);
+        return res.status(500).json({ message: "Failed to send invite email" });
+      }
+
+      await db.update(waitlist).set({
+        status: "invited",
+        inviteToken,
+        inviteSentAt: new Date(),
+      }).where(eq(waitlist.id, req.params.id));
+
+      res.json({ success: true, inviteToken });
+    } catch (err) {
+      console.error("Admin invite error:", err);
+      res.status(500).json({ message: "Failed to send invite" });
+    }
+  });
+
   // ─── B-Roll Search ──────────────────────────────────────
   app.get("/api/broll/search", isAuthenticated, async (req: any, res) => {
     try {
