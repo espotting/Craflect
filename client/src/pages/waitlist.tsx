@@ -13,7 +13,7 @@ import {
   BarChart3,
   Lock,
 } from "lucide-react";
-import logoPurpWhite from "@assets/logo_PurpWhite2_1775302093627.png";
+import logoPurpWhite from "@assets/Logo_PurpWhite_HD_wBG_1775302281780.png";
 
 interface WaitlistStats {
   count: number;
