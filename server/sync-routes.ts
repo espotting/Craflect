@@ -324,6 +324,16 @@ export function registerSyncRoutes(app: Express) {
     }
   });
 
+  app.post("/api/sync/reset-videos", syncAuth, async (_req: Request, res: Response) => {
+    try {
+      const result = await pool.query("DELETE FROM videos");
+      res.json({ deleted: result.rowCount, message: "Videos cleared, cursor reset to null" });
+    } catch (err: any) {
+      console.error("Sync reset error:", err);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   app.get("/api/sync/status", syncAuth, async (_req: Request, res: Response) => {
     try {
       const result = await pool.query(`
