@@ -3786,6 +3786,30 @@ ${input.cta ? `CTA: ${input.cta}` : ""}`;
 
   // ─── Home Page Endpoints ───
 
+  app.get("/api/home/stats", isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const result = await db.execute(sql`
+        SELECT
+          (SELECT COUNT(*) FROM videos WHERE classification_status = 'completed') as total_videos,
+          (SELECT COUNT(*) FROM patterns WHERE avg_virality_score IS NOT NULL) as total_patterns,
+          (SELECT ROUND(AVG(virality_score)::numeric, 1) FROM videos WHERE classification_status = 'completed' AND virality_score IS NOT NULL) as avg_virality,
+          (SELECT COUNT(DISTINCT topic_cluster) FROM videos WHERE classification_status = 'completed' AND topic_cluster IS NOT NULL AND topic_cluster != '' AND topic_cluster != 'null') as active_niches
+      `);
+      const row: any = result.rows[0];
+      res.json({
+        totalVideos: parseInt(row.total_videos) || 0,
+        totalPatterns: parseInt(row.total_patterns) || 0,
+        avgVirality: parseFloat(row.avg_virality) || 0,
+        activeNiches: parseInt(row.active_niches) || 0,
+      });
+    } catch (err: any) {
+      console.error("Home stats error:", err);
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
   app.get("/api/home/viral-play", isAuthenticated, async (req: any, res) => {
     try {
       const { db } = await import("./db");

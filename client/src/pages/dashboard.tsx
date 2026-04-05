@@ -220,44 +220,43 @@ function ViralPlayCard({
 
 // ─── Pipeline Stats ───────────────────────────────────────────────────────────
 
-function PipelineStats({
-  niches,
-  trending,
-}: {
-  niches: TrendingNiche[] | undefined;
-  trending: TrendingOpportunity[] | undefined;
-}) {
-  const totalVideos = niches?.reduce((sum, n) => sum + n.videoCount, 0) || 0;
-  const totalPatterns = trending?.length || 0;
-  const avgVirality = niches && niches.length > 0
-    ? (niches.reduce((sum, n) => sum + n.avgVirality, 0) / niches.length).toFixed(1)
-    : "—";
+interface HomeStats {
+  totalVideos: number;
+  totalPatterns: number;
+  avgVirality: number;
+  activeNiches: number;
+}
 
+function PipelineStats({
+  homeStats,
+}: {
+  homeStats: HomeStats | undefined;
+}) {
   const stats = [
     {
       label: "Videos Analyzed",
-      value: totalVideos > 0 ? totalVideos.toLocaleString() : "—",
+      value: homeStats?.totalVideos ? homeStats.totalVideos.toLocaleString() : "—",
       icon: BarChart3,
       color: "text-blue-400",
       bg: "bg-blue-500/10",
     },
     {
       label: "Patterns Detected",
-      value: totalPatterns > 0 ? totalPatterns.toString() : "—",
+      value: homeStats?.totalPatterns ? homeStats.totalPatterns.toString() : "—",
       icon: Target,
       color: "text-purple-400",
       bg: "bg-purple-500/10",
     },
     {
       label: "Avg Virality Score",
-      value: avgVirality,
+      value: homeStats?.avgVirality ? homeStats.avgVirality.toFixed(1) : "—",
       icon: Zap,
       color: "text-orange-400",
       bg: "bg-orange-500/10",
     },
     {
       label: "Active Niches",
-      value: niches?.length ? String(niches.length) : "—",
+      value: homeStats?.activeNiches ? String(homeStats.activeNiches) : "—",
       icon: TrendingUp,
       color: "text-green-400",
       bg: "bg-green-500/10",
@@ -501,6 +500,9 @@ export default function DashboardPage() {
   const { data: niches } = useQuery<TrendingNiche[]>({
     queryKey: ["/api/home/trending-niches"],
   });
+  const { data: homeStats } = useQuery<HomeStats>({
+    queryKey: ["/api/home/stats"],
+  });
   const { data: credits } = useQuery<CreditsInfo>({
     queryKey: ["/api/credits"],
   });
@@ -543,7 +545,7 @@ export default function DashboardPage() {
             )}
 
             {/* 2 — Pipeline stats */}
-            <PipelineStats niches={niches} trending={trending} />
+            <PipelineStats homeStats={homeStats} />
 
             {/* 3 — Trending patterns */}
             {trending && trending.length > 0 && (
