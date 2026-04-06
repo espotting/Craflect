@@ -333,7 +333,7 @@ export function registerSyncRoutes(app: Express) {
         return res.status(400).json({ error: "thumbnails array required" });
       }
 
-      const dir = path.join(process.cwd(), "public/thumbnails");
+      const dir = path.join(process.cwd(), "thumbnails");
       fs.mkdirSync(dir, { recursive: true });
 
       let saved = 0;

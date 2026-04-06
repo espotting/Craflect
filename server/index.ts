@@ -34,10 +34,7 @@ app.use((req, res, next) => {
 
 app.use(express.urlencoded({ extended: false }));
 
-app.use('/thumbnails', express.static(path.join(process.cwd(), 'public/thumbnails'), {
-  maxAge: '7d',
-  immutable: true,
-}));
+app.use('/thumbnails', express.static(path.join(process.cwd(), 'thumbnails')));
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
