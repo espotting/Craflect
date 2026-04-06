@@ -23,8 +23,6 @@ interface VideoCardV2Props {
   onSave?: (video: VideoCardData) => void;
 }
 
-const THUMBNAIL_BASE = "http://178.104.52.64:3000/thumbnails";
-
 const gradients = [
   "from-violet-600 via-purple-600 to-fuchsia-600",
   "from-blue-600 via-cyan-600 to-teal-600",
@@ -50,13 +48,15 @@ export function VideoCardV2({ video, compact = false, onCreateSimilar, onAnalyze
         data-testid={`video-card-compact-${video.id}`}
       >
         <div className={`relative aspect-[9/16] bg-gradient-to-br ${gradient} overflow-hidden`}>
-          <img
-            src={`${THUMBNAIL_BASE}/${video.id}.jpg`}
-            className="absolute inset-0 w-full h-full object-cover"
-            onError={(e) => { e.currentTarget.style.display = 'none'; }}
-            loading="lazy"
-            alt=""
-          />
+          {video.thumbnail && (
+            <img
+              src={video.thumbnail}
+              className="absolute inset-0 w-full h-full object-cover"
+              onError={(e) => { e.currentTarget.style.display = 'none'; }}
+              loading="lazy"
+              alt=""
+            />
+          )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
           {video.platform && (
             <div className="absolute top-2 left-2">
@@ -84,13 +84,15 @@ export function VideoCardV2({ video, compact = false, onCreateSimilar, onAnalyze
       data-testid={`video-card-${video.id}`}
     >
       <div className={`relative aspect-[9/16] bg-gradient-to-br ${gradient} overflow-hidden`}>
-        <img
-          src={`${THUMBNAIL_BASE}/${video.id}.jpg`}
-          className="absolute inset-0 w-full h-full object-cover"
-          onError={(e) => { e.currentTarget.style.display = 'none'; }}
-          loading="lazy"
-          alt=""
-        />
+        {video.thumbnail && (
+          <img
+            src={video.thumbnail}
+            className="absolute inset-0 w-full h-full object-cover"
+            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+            loading="lazy"
+            alt=""
+          />
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
         {video.platform && (
