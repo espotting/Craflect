@@ -3784,6 +3784,25 @@ ${input.cta ? `CTA: ${input.cta}` : ""}`;
     return { ok: true, remaining: rows[0].ai_credits };
   }
 
+  // ─── Thumbnail Proxy (HTTPS → HTTP Hetzner) ───
+
+  app.get("/api/thumbnails/:videoId.jpg", async (req: any, res) => {
+    try {
+      const { videoId } = req.params;
+      const url = `http://178.104.52.64:3000/thumbnails/${videoId}.jpg`;
+      const response = await fetch(url);
+      if (!response.ok) {
+        return res.status(response.status).end();
+      }
+      res.set("Content-Type", "image/jpeg");
+      res.set("Cache-Control", "public, max-age=604800, immutable");
+      const buffer = Buffer.from(await response.arrayBuffer());
+      res.send(buffer);
+    } catch {
+      res.status(502).end();
+    }
+  });
+
   // ─── Home Page Endpoints ───
 
   app.get("/api/home/stats", isAuthenticated, async (req: any, res) => {
@@ -3901,7 +3920,7 @@ ${input.cta ? `CTA: ${input.cta}` : ""}`;
         viralityScore: Math.round(v.virality_score || 0),
         viewRange: getViewRange(v.virality_score || 0),
         views: v.views,
-        thumbnailUrl: v.thumbnail_url,
+        thumbnailUrl: v.thumbnail_url?.replace(/^http:\/\/178\.104\.52\.64:3000\/thumbnails\//, '/api/thumbnails/') || `/api/thumbnails/${v.id}.jpg`,
       }));
 
       res.json(opportunities);
@@ -4018,7 +4037,7 @@ ${input.cta ? `CTA: ${input.cta}` : ""}`;
         viralityScore: Math.round(v.virality_score || 0),
         viewRange: getViewRange(v.virality_score || 0),
         views: v.views,
-        thumbnailUrl: v.thumbnail_url,
+        thumbnailUrl: v.thumbnail_url?.replace(/^http:\/\/178\.104\.52\.64:3000\/thumbnails\//, '/api/thumbnails/') || `/api/thumbnails/${v.id}.jpg`,
         hookType: v.hook_mechanism_primary,
         emotion: v.emotion_primary,
       }));

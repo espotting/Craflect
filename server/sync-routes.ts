@@ -122,7 +122,7 @@ export function registerSyncRoutes(app: Express) {
             n(v.engagement_rate), n(v.view_velocity), n(v.virality_score),
             n(v.pattern_id_ref), n(v.v2_classified_at), n(v.v2_classified_by),
             v.classification_attempts ?? 0, n(v.hook_mechanism_primary),
-            n(v.trend_score_processed_at), v.thumbnail_url || `http://178.104.52.64:3000/thumbnails/${v.id}.jpg`, n(v.creator_url),
+            n(v.trend_score_processed_at), v.thumbnail_url || `/api/thumbnails/${v.id}.jpg`, n(v.creator_url),
             n(v.creator_platform_id), n(v.geo_zone), n(v.geo_country), n(v.geo_language),
             n(v.target_markets), v.is_archived ?? false, n(v.confidence), n(v.niche_cluster),
             n(v.content_hash), n(v.views_per_hour),
