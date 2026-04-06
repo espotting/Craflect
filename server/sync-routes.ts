@@ -1,5 +1,7 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import express from "express";
+import path from "path";
+import fs from "fs";
 import { pool } from "./db";
 
 const SYNC_API_KEY = process.env.SYNC_API_KEY;
@@ -324,6 +326,38 @@ export function registerSyncRoutes(app: Express) {
     }
   });
 
+  app.post("/api/sync/thumbnails", syncBodyParser, syncAuth, async (req: Request, res: Response) => {
+    try {
+      const { thumbnails } = req.body;
+      if (!Array.isArray(thumbnails) || thumbnails.length === 0) {
+        return res.status(400).json({ error: "thumbnails array required" });
+      }
+
+      const dir = path.join(process.cwd(), "public/thumbnails");
+      fs.mkdirSync(dir, { recursive: true });
+
+      let saved = 0;
+      const errors: string[] = [];
+
+      for (const item of thumbnails) {
+        try {
+          const { videoId, imageBase64 } = item;
+          if (!videoId || !imageBase64) continue;
+          const buffer = Buffer.from(imageBase64, "base64");
+          fs.writeFileSync(path.join(dir, `${videoId}.jpg`), buffer);
+          saved++;
+        } catch (e: any) {
+          errors.push(`${item.videoId}: ${e.message}`);
+        }
+      }
+
+      res.json({ saved, errors, total: thumbnails.length });
+    } catch (err: any) {
+      console.error("Sync thumbnails error:", err);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   app.post("/api/sync/reset-videos", syncAuth, async (_req: Request, res: Response) => {
     try {
       const result = await pool.query("DELETE FROM videos");
@@ -374,5 +408,5 @@ export function registerSyncRoutes(app: Express) {
     }
   });
 
-  console.log("[Sync] Sync endpoints registered: /api/sync/{videos,classifications,patterns,video-patterns,opportunities,status}");
+  console.log("[Sync] Sync endpoints registered: /api/sync/{videos,classifications,patterns,video-patterns,opportunities,thumbnails,status}");
 }

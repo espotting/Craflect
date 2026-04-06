@@ -1,4 +1,5 @@
 import express, { type Request, Response, NextFunction } from "express";
+import path from "path";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
@@ -32,6 +33,11 @@ app.use((req, res, next) => {
 });
 
 app.use(express.urlencoded({ extended: false }));
+
+app.use('/thumbnails', express.static(path.join(process.cwd(), 'public/thumbnails'), {
+  maxAge: '7d',
+  immutable: true,
+}));
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
