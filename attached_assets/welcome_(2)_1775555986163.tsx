@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { Check, Loader2, TrendingUp, RefreshCw, LogOut } from "lucide-react";
+import { Check, Loader2, TrendingUp, RefreshCw } from "lucide-react";
 
 const ALL_NICHES = [
   { value: "ai_tools", label: "AI Tools" },
@@ -95,7 +95,6 @@ function NicheSearchInput({
         <input type="text" placeholder={placeholder} value={query}
           onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
           onFocus={() => setOpen(true)}
-          data-testid="input-niche-search"
           style={{
             width: "100%", padding: "13px 18px 13px 42px", borderRadius: 12,
             border: "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.07)",
@@ -143,13 +142,6 @@ export default function Onboarding() {
   useEffect(() => {
     if ((user as any)?.isAdmin) setLocation("/system/founder");
   }, [user, setLocation]);
-
-  const handleLogout = async () => {
-    try {
-      await apiRequest("POST", "/api/auth/logout");
-    } catch {}
-    window.location.href = "/";
-  };
 
   const TOTAL_STEPS = 5;
   const progress = ((step + 1) / TOTAL_STEPS) * 100;
@@ -211,25 +203,7 @@ export default function Onboarding() {
           initial={{ width: 0 }}
           animate={{ width: `${progress}%` }}
           transition={{ duration: 0.5 }}
-          data-testid="progress-bar"
         />
-      </div>
-
-      <div style={{ position: "absolute" as const, top: 12, right: 20, zIndex: 20 }}>
-        <button
-          onClick={handleLogout}
-          style={{
-            display: "flex", alignItems: "center", gap: 8,
-            padding: "8px 14px", borderRadius: 10,
-            background: "none", border: "none",
-            color: "rgba(255,255,255,0.4)", fontSize: 14,
-            cursor: "pointer",
-          }}
-          data-testid="button-logout-onboarding"
-        >
-          <LogOut size={16} />
-          Sign out
-        </button>
       </div>
 
       <main style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "48px 20px" }}>
@@ -265,7 +239,7 @@ export default function Onboarding() {
                     <div style={{ fontSize: 13, color: "rgba(255,255,255,0.35)" }}>updated</div>
                   </div>
                 </div>
-                <Button onClick={() => setStep(1)} data-testid="button-get-started" style={{
+                <Button onClick={() => setStep(1)} style={{
                   height: 56, padding: "0 40px", background: "linear-gradient(90deg,#7C5CFF,#c026d3)",
                   border: "none", borderRadius: 14, fontSize: 17, fontWeight: 600, cursor: "pointer", color: "#fff",
                 }}>
@@ -294,7 +268,6 @@ export default function Onboarding() {
                 <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 10, marginBottom: 28 }}>
                   {suggestedNiches.map((n) => (
                     <button key={n.value} onClick={() => setPrimaryNiche(n.value === primaryNiche ? null : n.value)}
-                      data-testid={`niche-${n.value}`}
                       style={{
                         padding: "9px 18px", borderRadius: 24, fontSize: 14, cursor: "pointer",
                         border: primaryNiche === n.value ? "1px solid #7C5CFF" : "1px solid rgba(255,255,255,0.15)",
@@ -306,7 +279,7 @@ export default function Onboarding() {
                   ))}
                 </div>
                 <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                  <Button onClick={() => setStep(2)} disabled={!primaryNiche} data-testid="button-continue-step1"
+                  <Button onClick={() => setStep(2)} disabled={!primaryNiche}
                     style={{ background: "#7C5CFF", color: "#fff", border: "none", padding: "13px 28px", borderRadius: 12, fontSize: 16, fontWeight: 600, cursor: primaryNiche ? "pointer" : "not-allowed", opacity: primaryNiche ? 1 : 0.4 }}>
                     Continue →
                   </Button>
@@ -344,7 +317,6 @@ export default function Onboarding() {
                     const disabled = !sel && secondaryNiches.length >= 2;
                     return (
                       <button key={n.value} onClick={() => !disabled && toggleSecondary(n.value)}
-                        data-testid={`secondary-${n.value}`}
                         style={{
                           padding: "9px 18px", borderRadius: 24, fontSize: 14, cursor: disabled ? "not-allowed" : "pointer",
                           border: sel ? "1px solid #7C5CFF" : "1px solid rgba(255,255,255,0.15)",
@@ -358,8 +330,8 @@ export default function Onboarding() {
                   })}
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <button onClick={() => setStep(1)} data-testid="button-back-step2" style={{ background: "none", border: "none", color: "rgba(255,255,255,0.4)", fontSize: 15, cursor: "pointer" }}>← Back</button>
-                  <Button onClick={() => setStep(3)} data-testid="button-continue-step2" style={{ background: "#7C5CFF", color: "#fff", border: "none", padding: "13px 28px", borderRadius: 12, fontSize: 16, fontWeight: 600, cursor: "pointer" }}>
+                  <button onClick={() => setStep(1)} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.4)", fontSize: 15, cursor: "pointer" }}>← Back</button>
+                  <Button onClick={() => setStep(3)} style={{ background: "#7C5CFF", color: "#fff", border: "none", padding: "13px 28px", borderRadius: 12, fontSize: 16, fontWeight: 600, cursor: "pointer" }}>
                     Continue →
                   </Button>
                 </div>
@@ -373,7 +345,6 @@ export default function Onboarding() {
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 28 }}>
                   {CONTENT_STYLES.map((s) => (
                     <button key={s.value} onClick={() => setContentStyle(s.value)}
-                      data-testid={`style-${s.value}`}
                       style={{
                         padding: "20px 16px", borderRadius: 14, textAlign: "left" as const, cursor: "pointer",
                         border: contentStyle === s.value ? "1px solid #7C5CFF" : "1px solid rgba(255,255,255,0.1)",
@@ -386,8 +357,8 @@ export default function Onboarding() {
                   ))}
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <button onClick={() => setStep(2)} data-testid="button-back-step3" style={{ background: "none", border: "none", color: "rgba(255,255,255,0.4)", fontSize: 15, cursor: "pointer" }}>← Back</button>
-                  <Button onClick={handleSubmit} disabled={!contentStyle || isSubmitting} data-testid="button-build-feed"
+                  <button onClick={() => setStep(2)} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.4)", fontSize: 15, cursor: "pointer" }}>← Back</button>
+                  <Button onClick={handleSubmit} disabled={!contentStyle || isSubmitting}
                     style={{ background: "linear-gradient(90deg,#7C5CFF,#c026d3)", color: "#fff", border: "none", padding: "13px 28px", borderRadius: 12, fontSize: 16, fontWeight: 600, cursor: contentStyle ? "pointer" : "not-allowed", opacity: contentStyle ? 1 : 0.4 }}>
                     {isSubmitting && <Loader2 size={16} className="animate-spin" style={{ marginRight: 8 }} />}
                     Build my feed →
@@ -446,20 +417,21 @@ export default function Onboarding() {
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 14, paddingBottom: 14, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
                     <span style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", textTransform: "uppercase" as const, letterSpacing: "0.05em" }}>Content style</span>
                     <span style={{ fontSize: 15, fontWeight: 600, color: "rgba(255,255,255,0.7)" }}>
-                      {CONTENT_STYLES.find((s) => s.value === contentStyle)?.emoji} {CONTENT_STYLES.find((s) => s.value === contentStyle)?.label}
+                      {CONTENT_STYLES.find((s) => s.value === contentStyle)?.label}
                     </span>
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between" }}>
                     <span style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", textTransform: "uppercase" as const, letterSpacing: "0.05em" }}>Status</span>
-                    <span style={{ fontSize: 15, fontWeight: 600, color: "#10b981" }}>Active</span>
+                    <span style={{ fontSize: 15, fontWeight: 600, color: "#10b981" }}>✓ Feed personalized</span>
                   </div>
                 </div>
-                <Button onClick={handleEnterDashboard} data-testid="button-enter-dashboard" style={{
-                  width: "100%", height: 56, background: "linear-gradient(90deg,#7C5CFF,#c026d3)",
-                  border: "none", borderRadius: 14, fontSize: 17, fontWeight: 600, cursor: "pointer", color: "#fff",
-                }}>
-                  Enter Dashboard →
+                <Button onClick={handleEnterDashboard}
+                  style={{ width: "100%", background: "linear-gradient(90deg,#7C5CFF,#c026d3)", color: "#fff", border: "none", padding: "16px 0", borderRadius: 14, fontSize: 17, fontWeight: 600, cursor: "pointer" }}>
+                  Enter my intelligence feed →
                 </Button>
+                <button onClick={() => setStep(1)} style={{ marginTop: 14, background: "none", border: "none", color: "rgba(255,255,255,0.3)", fontSize: 14, cursor: "pointer" }}>
+                  Edit my profile
+                </button>
               </motion.div>
             )}
 

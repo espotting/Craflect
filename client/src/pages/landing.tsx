@@ -44,7 +44,7 @@ function SectionReveal({ children, className = "", delay = 0 }: { children: Reac
 }
 
 export default function Landing() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const [, setLocation] = useLocation();
   const { t } = useLanguage();
   const [isScrolled, setIsScrolled] = useState(false);
@@ -53,7 +53,7 @@ export default function Landing() {
   const [faqOpen, setFaqOpen] = useState<number | null>(null);
 
   useEffect(() => {
-    if (!isLoading && isAuthenticated) {
+    if (!isLoading && isAuthenticated && (user as any)?.onboardingCompleted) {
       setLocation("/home");
     }
   }, [isLoading, isAuthenticated, setLocation]);
@@ -64,7 +64,8 @@ export default function Landing() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  if (isLoading || isAuthenticated) return null;
+  if (isLoading) return null;
+  if (isAuthenticated && (user as any)?.onboardingCompleted) return null;
 
   const handleGetStarted = () => setLocation("/waitlist");
   const handleSignIn = () => setLocation("/signin");
