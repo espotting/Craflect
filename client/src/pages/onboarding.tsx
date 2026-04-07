@@ -138,7 +138,7 @@ export default function Onboarding() {
         primaryNiche,
         secondaryNiches,
         contentStyle: contentStyle || "educational",
-        userGoal: contentStyle || "educational",
+        userGoal: "content_creator",
         onboardingCompleted: true,
       });
       setOnboardingDone(true);
