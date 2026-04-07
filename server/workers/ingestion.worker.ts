@@ -72,6 +72,7 @@ async function scrapeVideos(zone: any, niche: string): Promise<any[]> {
       videoUrl: item.webVideoUrl || `https://www.tiktok.com/@${item.authorMeta?.name || item.author?.uniqueId || 'unknown'}/video/${item.id || item.videoId || ''}`,
       downloadUrl: item.videoUrl || item.video?.playAddr || null,
       thumbnailUrl: item.videoMeta?.coverUrl || item.coverUrl || null,
+      followersCount: item.authorMeta?.fans || item.authorMeta?.followers || null,
       _debug: (() => { if (!item.coverUrl) { console.log("[Debug] Item keys:", Object.keys(item).join(", ")); console.log("[Debug] videoMeta:", JSON.stringify(item.videoMeta)); console.log("[Debug] mediaUrls:", JSON.stringify(item.mediaUrls)); } return undefined; })(),
       caption: item.text || item.desc || '',
       hashtags: (item.hashtags || item.challenges || []).map((h: any) => typeof h === 'string' ? h : h.name || h.title || ''),
@@ -216,6 +217,7 @@ export const ingestionWorker = new Worker('ingestion', async (job) => {
         videoUrl: videoData.videoUrl || null,
         // downloadUrl removed — column does not exist
         thumbnailUrl: videoData.thumbnailUrl || null,
+        followersCount: videoData.followersCount || null,
         caption: videoData.caption || '',
         hashtags: videoData.hashtags || [],
         durationSeconds: videoData.durationSeconds || 0,

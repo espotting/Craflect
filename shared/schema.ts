@@ -55,6 +55,7 @@ export const contentSources = pgTable("content_sources", {
   publishedAt: timestamp("published_at"),
   duration: integer("duration"),
   views: integer("views"),
+  followersCount: integer("followers_count"),
   likes: integer("likes"),
   commentsCount: integer("comments_count"),
   description: text("description"),
@@ -663,6 +664,7 @@ export const videos = pgTable("videos", {
 
   // ── Performance Metrics ──
   views: integer("views"),
+  followersCount: integer("followers_count"),
   likes: integer("likes"),
   comments: integer("comments"),
   shares: integer("shares"),
@@ -809,6 +811,10 @@ export const patterns = pgTable("patterns", {
   patternNovelty: doublePrecision("pattern_novelty"),
   geoZone: varchar("geo_zone", { length: 10 }),
   trendClassification: text("trend_classification"),
+  velocity7d: doublePrecision("velocity_7d").default(0),
+  velocity14d: doublePrecision("velocity_14d").default(0),
+  velocity30d: doublePrecision("velocity_30d").default(0),
+  trendStatus: text("trend_status").default("stable"),
   lastUpdated: timestamp("last_updated").defaultNow().notNull(),
 }, (table) => [
   index("idx_patterns_geo_zone").on(table.geoZone),
