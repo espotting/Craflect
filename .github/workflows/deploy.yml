@@ -1,0 +1,16 @@
+name: Deploy to Hetzner
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Hetzner deployment
+        run: |
+          curl -X POST https://craflect.com/deploy/deploy \
+            -H "X-Deploy-Token: craflect-deploy-2026" \
+            -H "Content-Type: application/json"
