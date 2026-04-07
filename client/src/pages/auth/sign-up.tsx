@@ -117,7 +117,7 @@ export default function SignUp() {
           className="w-full max-w-md"
         >
           <Link
-            to="/auth/welcome"
+            to="/welcome"
             className="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-8"
             data-testid="button-back-welcome"
           >

@@ -57,7 +57,7 @@ export default function Pricing() {
   const { t } = useLanguage();
 
   const handleCta = () => {
-    setLocation(isAuthenticated ? "/home" : "/auth/welcome");
+    setLocation(isAuthenticated ? "/home" : "/welcome");
   };
 
   const plans = [
@@ -177,7 +177,7 @@ export default function Pricing() {
               </button>
               <Button
                 className="rounded-full px-6 sm:px-8 bg-primary hover:bg-primary/90 text-white border-0 shadow-lg shadow-primary/20 font-medium"
-                onClick={() => setLocation("/auth/welcome")}
+                onClick={() => setLocation("/welcome")}
                 data-testid="button-signup-pricing"
               >
                 {t.nav.signUp}

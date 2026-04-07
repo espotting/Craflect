@@ -38,16 +38,15 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Landing} />
-      <Route path="/auth/welcome" component={AuthWelcome} />
+      <Route path="/welcome" component={AuthWelcome} />
       <Route path="/signin" component={SignIn} />
       <Route path="/signup" component={SignUp} />
       <Route path="/forgot-password" component={ForgotPassword} />
       <Route path="/email-confirmation" component={EmailConfirmation} />
       <Route path="/admin-verification" component={AdminVerification} />
-      <Route path="/auth">{() => <Redirect to="/auth/welcome" />}</Route>
+      <Route path="/auth">{() => <Redirect to="/welcome" />}</Route>
       <Route path="/pricing">{() => <Redirect to="/" />}</Route>
-      <Route path="/welcome" component={Onboarding} />
-      <Route path="/onboarding">{() => <Redirect to="/welcome" />}</Route>
+      <Route path="/onboarding" component={Onboarding} />
       <Route path="/home" component={Dashboard} />
       <Route path="/dashboard">{() => <Redirect to="/home" />}</Route>
       <Route path="/opportunities" component={Opportunities} />
