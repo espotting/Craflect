@@ -17,6 +17,7 @@ import {
   Play,
   Eye,
   Flame,
+  LogOut,
 } from "lucide-react";
 import { getPredictedViews, getViralityColor } from "@/lib/predicted-views";
 
@@ -102,6 +103,13 @@ export default function Onboarding() {
       setLocation("/system/founder");
     }
   }, [user, setLocation]);
+
+  const handleLogout = async () => {
+    try {
+      await apiRequest("POST", "/api/auth/logout");
+    } catch {}
+    window.location.href = "/";
+  };
 
   const toggleNiche = (value: string) => {
     setSelectedNiches((prev) => {
@@ -203,7 +211,7 @@ export default function Onboarding() {
     params.set("format", viralIdea.format);
     params.set("topic", viralIdea.topic);
     if (viralIdea.structure) params.set("structure", viralIdea.structure);
-    setLocation(`/create?${params.toString()}`);
+    window.location.href = `/create?${params.toString()}`;
   };
 
   const totalSteps = 5;
@@ -230,6 +238,17 @@ export default function Onboarding() {
         />
       </div>
 
+      <div className="absolute top-4 right-6 z-20">
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-white/40 hover:text-white/70 hover:bg-white/5 transition-all text-sm"
+          data-testid="button-logout-onboarding"
+        >
+          <LogOut className="w-4 h-4" />
+          Sign out
+        </button>
+      </div>
+
       <main className="flex-1 flex items-center justify-center px-4 py-12">
         <div className="w-full max-w-lg relative z-10">
           <AnimatePresence mode="wait">
@@ -252,15 +271,15 @@ export default function Onboarding() {
                 >
                   <Sparkles className="w-10 h-10 text-violet-500" />
                 </motion.div>
-                <h1 className="text-4xl font-bold mb-4" data-testid="text-welcome-heading">
+                <h1 className="text-[34px] font-bold mb-4 leading-tight" data-testid="text-welcome-heading">
                   Créer des vidéos virales avec l'IA
                 </h1>
-                <p className="text-white/50 text-lg mb-10 max-w-md" data-testid="text-welcome-subtitle">
+                <p className="text-white/50 text-[17px] mb-10 max-w-md leading-relaxed" data-testid="text-welcome-subtitle">
                   Répondez à 3 questions rapides et obtenez votre première idée de vidéo virale.
                 </p>
                 <Button
                   onClick={() => setStep(1)}
-                  className="h-14 px-8 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white font-semibold rounded-xl transition-all"
+                  className="h-14 px-8 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white font-semibold text-base rounded-xl transition-all"
                   data-testid="button-get-started"
                 >
                   Commencer
@@ -279,10 +298,10 @@ export default function Onboarding() {
                 transition={{ duration: 0.35, ease: "easeInOut" }}
                 data-testid="step-role"
               >
-                <h2 className="text-2xl font-bold mb-2 text-center" data-testid="text-role-heading">
+                <h2 className="text-[26px] font-bold mb-2 text-center leading-tight" data-testid="text-role-heading">
                   Comment créez-vous du contenu ?
                 </h2>
-                <p className="text-white/50 text-sm mb-6 text-center" data-testid="text-role-subtitle">
+                <p className="text-white/50 text-base mb-6 text-center" data-testid="text-role-subtitle">
                   Cela nous aide à personnaliser vos recommandations.
                 </p>
 
@@ -311,7 +330,7 @@ export default function Onboarding() {
                   <Button
                     onClick={() => setStep(2)}
                     disabled={!creatorType}
-                    className="bg-[#7C5CFF] hover:bg-[#6B4FE0] text-white px-8"
+                    className="bg-[#7C5CFF] hover:bg-[#6B4FE0] text-white px-8 text-base"
                     data-testid="button-role-continue"
                   >
                     Continue
@@ -331,10 +350,10 @@ export default function Onboarding() {
                 transition={{ duration: 0.35, ease: "easeInOut" }}
                 data-testid="step-topics"
               >
-                <h2 className="text-2xl font-bold mb-2 text-center" data-testid="text-topics-heading">
+                <h2 className="text-[26px] font-bold mb-2 text-center leading-tight" data-testid="text-topics-heading">
                   Quels sujets de contenu créez-vous ?
                 </h2>
-                <p className="text-white/50 text-sm mb-6 text-center" data-testid="text-topics-subtitle">
+                <p className="text-white/50 text-base mb-6 text-center" data-testid="text-topics-subtitle">
                   Sélectionnez jusqu'à 3 niches pour que nous puissions trouver des idées virales pour vous.
                 </p>
 
@@ -363,7 +382,7 @@ export default function Onboarding() {
                   <Button
                     onClick={handleTopicsSubmit}
                     disabled={selectedNiches.length === 0 || isSubmitting}
-                    className="bg-[#7C5CFF] hover:bg-[#6B4FE0] text-white px-8"
+                    className="bg-[#7C5CFF] hover:bg-[#6B4FE0] text-white px-8 text-base"
                     data-testid="button-topics-continue"
                   >
                     {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
@@ -388,7 +407,7 @@ export default function Onboarding() {
                 <div className="w-16 h-16 rounded-2xl bg-[#7C5CFF]/10 border border-[#7C5CFF]/20 flex items-center justify-center mb-8">
                   <TrendingUp className="w-8 h-8 text-[#7C5CFF] animate-pulse" />
                 </div>
-                <h2 className="text-2xl font-bold mb-8" data-testid="text-analysis-heading">
+                <h2 className="text-[26px] font-bold mb-8 leading-tight" data-testid="text-analysis-heading">
                   Analyse des patterns viraux dans votre niche...
                 </h2>
 
@@ -411,7 +430,7 @@ export default function Onboarding() {
                           <Loader2 className="w-4 h-4 text-white/30 animate-spin" />
                         </div>
                       )}
-                      <span className={`text-sm ${analysisStep >= idx ? "text-white" : "text-white/30"}`}>
+                      <span className={`text-base ${analysisStep >= idx ? "text-white" : "text-white/30"}`}>
                         {analysisStep >= idx ? "✓" : "○"} {label}
                       </span>
                     </motion.div>
@@ -431,7 +450,7 @@ export default function Onboarding() {
                 className="flex flex-col items-center text-center"
                 data-testid="step-viral-idea"
               >
-                <h2 className="text-2xl font-bold mb-6 flex items-center gap-2" data-testid="text-viral-idea-heading">
+                <h2 className="text-[26px] font-bold mb-6 flex items-center gap-2 leading-tight" data-testid="text-viral-idea-heading">
                   <Flame className="w-6 h-6 text-orange-500" />
                   Votre première idée de vidéo virale
                 </h2>
@@ -439,13 +458,13 @@ export default function Onboarding() {
                 {!viralIdea && !ideaError && (
                   <div className="flex flex-col items-center gap-4 py-8">
                     <Loader2 className="w-8 h-8 text-[#7C5CFF] animate-spin" />
-                    <p className="text-white/50 text-sm">Génération en cours...</p>
+                    <p className="text-white/50 text-base">Génération en cours...</p>
                   </div>
                 )}
 
                 {ideaError && (
                   <div className="flex flex-col items-center gap-4 py-8">
-                    <p className="text-white/50 text-sm">Une erreur est survenue. Voici une idée par défaut :</p>
+                    <p className="text-white/50 text-base">Une erreur est survenue. Voici une idée par défaut :</p>
                     <IdeaCard
                       idea={{
                         topic: selectedNiches[0] || "ai_tools",
@@ -464,8 +483,8 @@ export default function Onboarding() {
                 )}
 
                 <button
-                  onClick={() => setLocation("/home")}
-                  className="mt-4 text-white/40 text-xs hover:text-white/60 transition-colors"
+                  onClick={() => { window.location.href = "/home"; }}
+                  className="mt-4 text-white/40 text-sm hover:text-white/60 transition-colors"
                   data-testid="button-skip-to-home"
                 >
                   Passer et aller au tableau de bord →
@@ -496,37 +515,37 @@ function IdeaCard({
     >
       <div className="p-6 space-y-5">
         <div className="space-y-1">
-          <span className="text-[11px] uppercase tracking-wider text-white/40 font-medium">Topic</span>
-          <p className="text-sm text-[#7C5CFF] font-semibold" data-testid="text-idea-topic">
+          <span className="text-xs uppercase tracking-wider text-white/40 font-medium">Topic</span>
+          <p className="text-base text-[#7C5CFF] font-semibold" data-testid="text-idea-topic">
             {formatLabel(idea.topic)}
           </p>
         </div>
 
         <div className="space-y-1">
-          <span className="text-[11px] uppercase tracking-wider text-white/40 font-medium">Hook</span>
-          <p className="text-lg font-bold text-white leading-snug" data-testid="text-idea-hook">
+          <span className="text-xs uppercase tracking-wider text-white/40 font-medium">Hook</span>
+          <p className="text-xl font-bold text-white leading-snug" data-testid="text-idea-hook">
             "{idea.hook}"
           </p>
         </div>
 
         <div className="space-y-1">
-          <span className="text-[11px] uppercase tracking-wider text-white/40 font-medium">Format</span>
-          <p className="text-sm text-white/80" data-testid="text-idea-format">
+          <span className="text-xs uppercase tracking-wider text-white/40 font-medium">Format</span>
+          <p className="text-base text-white/80" data-testid="text-idea-format">
             {formatLabel(idea.format)}
           </p>
         </div>
 
         <div className="flex items-center justify-between pt-2 border-t border-white/10">
           <div className="space-y-1">
-            <span className="text-[11px] uppercase tracking-wider text-white/40 font-medium">Score de viralité</span>
+            <span className="text-xs uppercase tracking-wider text-white/40 font-medium">Score de viralité</span>
             <div className={`text-2xl font-bold ${viralityColorClass}`} data-testid="text-idea-score">
               <AnimatedScore target={idea.viralityScore} />
             </div>
           </div>
 
           <div className="space-y-1 text-right">
-            <span className="text-[11px] uppercase tracking-wider text-white/40 font-medium">Vues prédites</span>
-            <p className="text-sm font-semibold text-white/80 flex items-center gap-1 justify-end" data-testid="text-idea-predicted">
+            <span className="text-xs uppercase tracking-wider text-white/40 font-medium">Vues prédites</span>
+            <p className="text-base font-semibold text-white/80 flex items-center gap-1 justify-end" data-testid="text-idea-predicted">
               <Eye className="w-4 h-4" />
               {predicted.label}
             </p>
