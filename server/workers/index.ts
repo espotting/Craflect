@@ -6,6 +6,7 @@ import { scoringWorker } from './scoring.worker';
 import { patternWorker } from './pattern.worker';
 import { phaseTransitionWorker } from './phase-transition.worker';
 import './sync-to-replit.worker';
+import './velocity.worker';
 import { checkOllamaHealth } from '../config/ollama';
 import { Worker } from 'bullmq';
 import { redisConnection } from '../config/redis';

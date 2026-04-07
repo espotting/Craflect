@@ -1113,6 +1113,11 @@ export const contentClusters = pgTable("content_clusters", {
   confidenceScore: doublePrecision("confidence_score"),
   densityScore: doublePrecision("density_score"),
   analyzedByLlm: boolean("analyzed_by_llm").default(false),
+  velocity7d: doublePrecision("velocity_7d").default(0),
+  velocity14d: doublePrecision("velocity_14d").default(0),
+  velocity30d: doublePrecision("velocity_30d").default(0),
+  trendStatus: text("trend_status").default("stable"),
+  updatedAt: timestamp("updated_at").defaultNow(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
   index("idx_content_clusters_analyzed").on(table.analyzedByLlm),

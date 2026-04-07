@@ -7,6 +7,7 @@ export const classificationQueue = new Queue('classification', { connection: red
 export const scoringQueue = new Queue('scoring', { connection: redisConnection });
 export const patternQueue = new Queue('pattern', { connection: redisConnection });
 export const phaseTransitionQueue = new Queue('phase-transition', { connection: redisConnection });
+export const velocityQueue = new Queue('velocity', { connection: redisConnection });
 
 export async function setupSchedules() {
   await ingestionQueue.add('cycle-zones', {}, {
@@ -29,5 +30,11 @@ export async function setupSchedules() {
     jobId: 'scheduled-phase-transition'
   });
 
-  console.log('✅ Schedules configurés : Ingestion (2h), Scoring (15min), Patterns (6h), Phase Transition (30min)');
+  await velocityQueue.add('calculate', {}, {
+    repeat: { cron: '0 */6 * * *' },
+    removeOnComplete: 10,
+    removeOnFail: 5,
+  });
+
+  console.log('✅ Schedules configurés : Ingestion (2h), Scoring (15min), Patterns (6h), Velocity (6h), Phase Transition (30min)');
 }
