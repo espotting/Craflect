@@ -21,7 +21,7 @@ import Insights from "@/pages/insights";
 import Create from "@/pages/create";
 import Workspace from "@/pages/workspace";
 import Settings from "@/pages/settings";
-import Onboarding from "@/pages/welcome";
+import Onboarding from "@/pages/onboarding";
 import FounderOverview from "@/pages/founder-overview";
 import FounderUsers from "@/pages/founder-users";
 import FounderSubscriptions from "@/pages/founder-subscriptions";
