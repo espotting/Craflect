@@ -188,15 +188,19 @@ export const transcriptionWorker = new Worker('transcription', async (job) => {
 
     const result = await transcribeWithWhisper(audioPath);
     const cleaned = cleanTranscript(result.text);
-
-    await db.update(videos)
-      .set({
-        transcript: cleaned || null,
-        transcriptLanguage: result.language || null,
-        transcriptGenerated: true,
-        transcriptionStatus: 'completed',
-      })
-      .where(eq(videos.id, videoId));
+  if (result.language && result.language !== "en") {
+  await db.update(videos).set({ transcriptionStatus: "skipped", transcriptLanguage: result.language }).where(eq(videos.id, videoId));
+  console.log(`[Transcription] ⏭️ Video ${videoId} skipped (non-english: ${result.language})`);
+  return;
+}
+await db.update(videos)
+  .set({
+    transcript: cleaned || null,
+    transcriptLanguage: result.language || null,
+    transcriptGenerated: true,
+    transcriptionStatus: 'completed',
+  })
+  .where(eq(videos.id, videoId));
 
     console.log(`[Transcription] ✅ Video ${videoId} transcribed (${cleaned.length} chars, lang: ${result.language})`);
   } catch (error) {

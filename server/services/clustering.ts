@@ -34,13 +34,13 @@ export async function clusterVideos(): Promise<number> {
         embeddings[j].embedding
       );
 
-      if (similarity > 0.85) {
+      if (similarity > 0.70) {
         cluster.push(embeddings[j].video_id);
         assigned.add(embeddings[j].video_id);
       }
     }
 
-    if (cluster.length >= 3) {
+    if (cluster.length >= 2) {
       clusters.set(i, cluster);
     }
   }

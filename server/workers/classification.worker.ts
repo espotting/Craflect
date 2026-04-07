@@ -112,6 +112,7 @@ export const classificationWorker = new Worker('classification', async (job) => 
     await db.update(videos).set({
       hookText: dna.hook_text || null,
       hookMechanismPrimary: dna.hook_type || null,
+      hookTypeV2: dna.hook_type || null,
       structureType: dna.structure_type || null,
       topicCategory: dna.topic_level_1 || null,
       topicCluster: dna.topic_level_2 || null,

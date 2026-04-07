@@ -42,6 +42,7 @@ export const scoringWorker = new Worker('scoring', async () => {
       trend_score_processed_at = NOW()
     WHERE classification_status = 'completed'
       AND views IS NOT NULL
+      AND views >= 50000
   `);
 
   console.log('[Scoring] Batch terminé');

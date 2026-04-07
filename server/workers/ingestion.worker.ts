@@ -53,7 +53,7 @@ async function scrapeVideos(zone: any, niche: string): Promise<any[]> {
     const run = await apify.actor('clockworks/tiktok-scraper').call({
       searchQueries: keywords,
       resultsPerPage: 50,
-      maxItems: 200,
+      maxItems: 100,
       language: 'en',
       country: 'US',
     }, {
@@ -71,7 +71,8 @@ async function scrapeVideos(zone: any, niche: string): Promise<any[]> {
       platformVideoId: item.id || item.videoId || `tiktok_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
       videoUrl: item.webVideoUrl || `https://www.tiktok.com/@${item.authorMeta?.name || item.author?.uniqueId || 'unknown'}/video/${item.id || item.videoId || ''}`,
       downloadUrl: item.videoUrl || item.video?.playAddr || null,
-      thumbnailUrl: item.coverUrl || item.covers?.default || null,
+      thumbnailUrl: item.videoMeta?.coverUrl || item.coverUrl || null,
+      _debug: (() => { if (!item.coverUrl) { console.log("[Debug] Item keys:", Object.keys(item).join(", ")); console.log("[Debug] videoMeta:", JSON.stringify(item.videoMeta)); console.log("[Debug] mediaUrls:", JSON.stringify(item.mediaUrls)); } return undefined; })(),
       caption: item.text || item.desc || '',
       hashtags: (item.hashtags || item.challenges || []).map((h: any) => typeof h === 'string' ? h : h.name || h.title || ''),
       durationSeconds: item.videoMeta?.duration || item.video?.duration || 0,
@@ -148,7 +149,7 @@ export const ingestionWorker = new Worker('ingestion', async (job) => {
     where: eq(geoZones.zoneCode, zoneCode)
   });
 
-  if (!zone?.isActive) {
+  if (!zone) { console.log(`[Ingestion] Zone ${zoneCode} not found`); return; } if (!zone.isActive) {
     console.log(`[Ingestion] Zone ${zoneCode} inactive, skipping`);
     return;
   }
@@ -187,7 +188,7 @@ export const ingestionWorker = new Worker('ingestion', async (job) => {
       continue;
     }
 
-    if ((videoData.views || 0) < 10000) {
+    console.log(`[Debug] views: ${videoData.views}, duration: ${videoData.durationSeconds}, caption: ${videoData.caption?.length}`); if ((videoData.views || 0) < 10000) {
       filtered++;
       continue;
     }
@@ -213,7 +214,7 @@ export const ingestionWorker = new Worker('ingestion', async (job) => {
         platform: videoData.platform || 'tiktok',
         platformVideoId: videoData.platformVideoId,
         videoUrl: videoData.videoUrl || null,
-        downloadUrl: videoData.downloadUrl || null,
+        // downloadUrl removed — column does not exist
         thumbnailUrl: videoData.thumbnailUrl || null,
         caption: videoData.caption || '',
         hashtags: videoData.hashtags || [],
@@ -296,3 +297,7 @@ function calculateTargetMarkets(zoneCode: string, language: string): string[] {
   const country = zoneCode.split('-')[0];
   return [country, ...base.filter(m => m !== country)];
 }
+
+ingestionWorker.on('failed', (job, err) => {
+  console.error(`[Ingestion] ❌ Job failed: ${job?.name} — ${err.message}`);
+});

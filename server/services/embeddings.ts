@@ -12,7 +12,7 @@ export async function generateEmbeddings(): Promise<number> {
     LEFT JOIN video_embeddings ve ON ve.video_id = v.id
     WHERE v.classification_status = 'completed'
       AND ve.id IS NULL
-    LIMIT 100
+    LIMIT 600
   `);
 
   let processed = 0;

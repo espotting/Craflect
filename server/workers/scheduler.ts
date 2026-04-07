@@ -10,7 +10,7 @@ export const phaseTransitionQueue = new Queue('phase-transition', { connection: 
 
 export async function setupSchedules() {
   await ingestionQueue.add('cycle-zones', {}, {
-    repeat: { cron: '0 */2 * * *' },
+    repeat: { cron: '0 */6 * * *' },
     jobId: 'scheduled-ingestion'
   });
 
