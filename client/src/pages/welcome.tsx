@@ -271,15 +271,15 @@ export default function Onboarding() {
                 >
                   <Sparkles className="w-10 h-10 text-violet-500" />
                 </motion.div>
-                <h1 className="text-[34px] font-bold mb-4 leading-tight" data-testid="text-welcome-heading">
+                <h1 className="text-5xl font-bold mb-4 leading-tight" data-testid="text-welcome-heading">
                   Créer des vidéos virales avec l'IA
                 </h1>
-                <p className="text-white/50 text-[17px] mb-10 max-w-md leading-relaxed" data-testid="text-welcome-subtitle">
+                <p className="text-white/50 text-xl mb-10 max-w-md leading-relaxed" data-testid="text-welcome-subtitle">
                   Répondez à 3 questions rapides et obtenez votre première idée de vidéo virale.
                 </p>
                 <Button
                   onClick={() => setStep(1)}
-                  className="h-14 px-8 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white font-semibold text-base rounded-xl transition-all"
+                  className="h-14 px-8 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white font-semibold text-lg rounded-xl transition-all"
                   data-testid="button-get-started"
                 >
                   Commencer
@@ -298,10 +298,10 @@ export default function Onboarding() {
                 transition={{ duration: 0.35, ease: "easeInOut" }}
                 data-testid="step-role"
               >
-                <h2 className="text-[26px] font-bold mb-2 text-center leading-tight" data-testid="text-role-heading">
+                <h2 className="text-4xl font-bold mb-3 text-center leading-tight" data-testid="text-role-heading">
                   Comment créez-vous du contenu ?
                 </h2>
-                <p className="text-white/50 text-base mb-6 text-center" data-testid="text-role-subtitle">
+                <p className="text-white/50 text-xl mb-6 text-center" data-testid="text-role-subtitle">
                   Cela nous aide à personnaliser vos recommandations.
                 </p>
 
@@ -320,7 +320,7 @@ export default function Onboarding() {
                         data-testid={`card-role-${ct.value}`}
                       >
                         <span className="text-2xl">{ct.emoji}</span>
-                        <span className="text-sm font-medium">{ct.label}</span>
+                        <span className="text-base font-medium">{ct.label}</span>
                       </button>
                     );
                   })}
@@ -330,7 +330,7 @@ export default function Onboarding() {
                   <Button
                     onClick={() => setStep(2)}
                     disabled={!creatorType}
-                    className="bg-[#7C5CFF] hover:bg-[#6B4FE0] text-white px-8 text-base"
+                    className="bg-[#7C5CFF] hover:bg-[#6B4FE0] text-white px-8 text-lg h-12"
                     data-testid="button-role-continue"
                   >
                     Continue
@@ -350,10 +350,10 @@ export default function Onboarding() {
                 transition={{ duration: 0.35, ease: "easeInOut" }}
                 data-testid="step-topics"
               >
-                <h2 className="text-[26px] font-bold mb-2 text-center leading-tight" data-testid="text-topics-heading">
+                <h2 className="text-4xl font-bold mb-3 text-center leading-tight" data-testid="text-topics-heading">
                   Quels sujets de contenu créez-vous ?
                 </h2>
-                <p className="text-white/50 text-base mb-6 text-center" data-testid="text-topics-subtitle">
+                <p className="text-white/50 text-xl mb-6 text-center" data-testid="text-topics-subtitle">
                   Sélectionnez jusqu'à 3 niches pour que nous puissions trouver des idées virales pour vous.
                 </p>
 
@@ -364,7 +364,7 @@ export default function Onboarding() {
                       <button
                         key={niche.value}
                         onClick={() => toggleNiche(niche.value)}
-                        className={`px-4 py-2.5 rounded-md text-sm font-medium transition-all border ${
+                        className={`px-5 py-3 rounded-lg text-base font-medium transition-all border ${
                           selected
                             ? "bg-[#7C5CFF]/15 border-[#7C5CFF] text-white"
                             : "bg-white/5 border-white/10 text-white/70 hover:border-white/25 hover:text-white"
@@ -382,7 +382,7 @@ export default function Onboarding() {
                   <Button
                     onClick={handleTopicsSubmit}
                     disabled={selectedNiches.length === 0 || isSubmitting}
-                    className="bg-[#7C5CFF] hover:bg-[#6B4FE0] text-white px-8 text-base"
+                    className="bg-[#7C5CFF] hover:bg-[#6B4FE0] text-white px-8 text-lg h-12"
                     data-testid="button-topics-continue"
                   >
                     {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
@@ -407,7 +407,7 @@ export default function Onboarding() {
                 <div className="w-16 h-16 rounded-2xl bg-[#7C5CFF]/10 border border-[#7C5CFF]/20 flex items-center justify-center mb-8">
                   <TrendingUp className="w-8 h-8 text-[#7C5CFF] animate-pulse" />
                 </div>
-                <h2 className="text-[26px] font-bold mb-8 leading-tight" data-testid="text-analysis-heading">
+                <h2 className="text-4xl font-bold mb-8 leading-tight" data-testid="text-analysis-heading">
                   Analyse des patterns viraux dans votre niche...
                 </h2>
 
@@ -430,7 +430,7 @@ export default function Onboarding() {
                           <Loader2 className="w-4 h-4 text-white/30 animate-spin" />
                         </div>
                       )}
-                      <span className={`text-base ${analysisStep >= idx ? "text-white" : "text-white/30"}`}>
+                      <span className={`text-lg ${analysisStep >= idx ? "text-white" : "text-white/30"}`}>
                         {analysisStep >= idx ? "✓" : "○"} {label}
                       </span>
                     </motion.div>
@@ -450,7 +450,7 @@ export default function Onboarding() {
                 className="flex flex-col items-center text-center"
                 data-testid="step-viral-idea"
               >
-                <h2 className="text-[26px] font-bold mb-6 flex items-center gap-2 leading-tight" data-testid="text-viral-idea-heading">
+                <h2 className="text-4xl font-bold mb-6 flex items-center gap-2 leading-tight" data-testid="text-viral-idea-heading">
                   <Flame className="w-6 h-6 text-orange-500" />
                   Votre première idée de vidéo virale
                 </h2>
@@ -458,13 +458,13 @@ export default function Onboarding() {
                 {!viralIdea && !ideaError && (
                   <div className="flex flex-col items-center gap-4 py-8">
                     <Loader2 className="w-8 h-8 text-[#7C5CFF] animate-spin" />
-                    <p className="text-white/50 text-base">Génération en cours...</p>
+                    <p className="text-white/50 text-lg">Génération en cours...</p>
                   </div>
                 )}
 
                 {ideaError && (
                   <div className="flex flex-col items-center gap-4 py-8">
-                    <p className="text-white/50 text-base">Une erreur est survenue. Voici une idée par défaut :</p>
+                    <p className="text-white/50 text-lg">Une erreur est survenue. Voici une idée par défaut :</p>
                     <IdeaCard
                       idea={{
                         topic: selectedNiches[0] || "ai_tools",
@@ -484,7 +484,7 @@ export default function Onboarding() {
 
                 <button
                   onClick={() => { window.location.href = "/home"; }}
-                  className="mt-4 text-white/40 text-sm hover:text-white/60 transition-colors"
+                  className="mt-4 text-white/40 text-base hover:text-white/60 transition-colors"
                   data-testid="button-skip-to-home"
                 >
                   Passer et aller au tableau de bord →
@@ -515,37 +515,37 @@ function IdeaCard({
     >
       <div className="p-6 space-y-5">
         <div className="space-y-1">
-          <span className="text-xs uppercase tracking-wider text-white/40 font-medium">Topic</span>
-          <p className="text-base text-[#7C5CFF] font-semibold" data-testid="text-idea-topic">
+          <span className="text-sm uppercase tracking-wider text-white/40 font-medium">Topic</span>
+          <p className="text-lg text-[#7C5CFF] font-semibold" data-testid="text-idea-topic">
             {formatLabel(idea.topic)}
           </p>
         </div>
 
         <div className="space-y-1">
-          <span className="text-xs uppercase tracking-wider text-white/40 font-medium">Hook</span>
-          <p className="text-xl font-bold text-white leading-snug" data-testid="text-idea-hook">
+          <span className="text-sm uppercase tracking-wider text-white/40 font-medium">Hook</span>
+          <p className="text-2xl font-bold text-white leading-snug" data-testid="text-idea-hook">
             "{idea.hook}"
           </p>
         </div>
 
         <div className="space-y-1">
-          <span className="text-xs uppercase tracking-wider text-white/40 font-medium">Format</span>
-          <p className="text-base text-white/80" data-testid="text-idea-format">
+          <span className="text-sm uppercase tracking-wider text-white/40 font-medium">Format</span>
+          <p className="text-lg text-white/80" data-testid="text-idea-format">
             {formatLabel(idea.format)}
           </p>
         </div>
 
         <div className="flex items-center justify-between pt-2 border-t border-white/10">
           <div className="space-y-1">
-            <span className="text-xs uppercase tracking-wider text-white/40 font-medium">Score de viralité</span>
-            <div className={`text-2xl font-bold ${viralityColorClass}`} data-testid="text-idea-score">
+            <span className="text-sm uppercase tracking-wider text-white/40 font-medium">Score de viralité</span>
+            <div className={`text-3xl font-bold ${viralityColorClass}`} data-testid="text-idea-score">
               <AnimatedScore target={idea.viralityScore} />
             </div>
           </div>
 
           <div className="space-y-1 text-right">
-            <span className="text-xs uppercase tracking-wider text-white/40 font-medium">Vues prédites</span>
-            <p className="text-base font-semibold text-white/80 flex items-center gap-1 justify-end" data-testid="text-idea-predicted">
+            <span className="text-sm uppercase tracking-wider text-white/40 font-medium">Vues prédites</span>
+            <p className="text-lg font-semibold text-white/80 flex items-center gap-1 justify-end" data-testid="text-idea-predicted">
               <Eye className="w-4 h-4" />
               {predicted.label}
             </p>
@@ -555,7 +555,7 @@ function IdeaCard({
 
       <div className="px-6 pb-6">
         <Button
-          className="w-full bg-[#7C5CFF] hover:bg-[#6B4FE0] text-white font-semibold text-base py-5"
+          className="w-full bg-[#7C5CFF] hover:bg-[#6B4FE0] text-white font-semibold text-lg py-5"
           onClick={onCreateClick}
           data-testid="button-create-viral-video"
         >
