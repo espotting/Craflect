@@ -1728,11 +1728,15 @@ The content should directly apply the recommendations from the insight report. W
         selectedNiches: z.array(z.string()).max(10).optional(),
         userGoal: z.enum(["content_creator", "marketer", "business", "trend_explorer"]).optional(),
         onboardingCompleted: z.boolean().optional(),
+        primaryNiche: z.string().optional(),
+        secondaryNiches: z.array(z.string()).optional(),
+        contentStyle: z.string().optional(),
       }).parse(req.body);
 
       const updates: string[] = [];
       if (input.selectedNiches !== undefined) {
-        await db.execute(sql`UPDATE users SET selected_niches = ${input.selectedNiches} WHERE id = ${req.user.id}`);
+        const nichesArray = `{${input.selectedNiches.join(",")}}`;
+        await db.execute(sql`UPDATE users SET selected_niches = ${nichesArray}::text[] WHERE id = ${req.user.id}`);
       }
       if (input.userGoal !== undefined) {
         await db.execute(sql`UPDATE users SET user_goal = ${input.userGoal} WHERE id = ${req.user.id}`);
