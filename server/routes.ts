@@ -4424,6 +4424,39 @@ ${input.cta ? `CTA: ${input.cta}` : ""}`;
     }
   });
 
+  app.get('/api/home/stats', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await db.execute(sql`SELECT selected_niches, primary_niche FROM users WHERE id = ${req.user.id}`);
+      const userNiches = (user.rows[0] as any)?.selected_niches || [];
+      
+      const stats = await db.execute(sql`
+        SELECT
+          COUNT(*) as total_videos,
+          COUNT(CASE WHEN virality_score >= 60 THEN 1 END) as high_performing,
+          AVG(virality_score)::numeric(5,1) as avg_virality,
+          COUNT(DISTINCT niche_cluster) as active_niches
+        FROM videos
+        WHERE classification_status = 'completed'
+          AND (niche_cluster = ANY(${userNiches}::text[]) OR ${userNiches}::text[] = '{}')
+      `);
+      
+      const patternsCount = await db.execute(sql`
+        SELECT COUNT(*) as total FROM content_clusters
+        WHERE trend_status IN ('emerging', 'trending')
+      `);
+      
+      res.json({
+        totalVideos: parseInt((stats.rows[0] as any)?.total_videos) || 0,
+        highPerforming: parseInt((stats.rows[0] as any)?.high_performing) || 0,
+        avgVirality: parseFloat((stats.rows[0] as any)?.avg_virality) || 0,
+        activeNiches: parseInt((stats.rows[0] as any)?.active_niches) || 0,
+        patternsDetected: parseInt((patternsCount.rows[0] as any)?.total) || 0,
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.get('/api/alerts', isAuthenticated, async (req: any, res) => {
     try {
       const user = await db.execute(sql`

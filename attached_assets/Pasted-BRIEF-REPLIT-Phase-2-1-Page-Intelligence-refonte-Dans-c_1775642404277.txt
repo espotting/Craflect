@@ -1,0 +1,48 @@
+BRIEF REPLIT — Phase 2.1 : Page Intelligence (refonte)
+
+Dans client/src/pages/dashboard.tsx, refonte complète du feed Intelligence.
+
+Modifications à apporter :
+
+1. Remplacer le compteur "Videos Analyzed" par un appel à GET /api/home/stats qui retourne les vrais chiffres. Si l'endpoint n'existe pas encore, crée-le dans server/routes.ts :
+
+app.get('/api/home/stats', isAuthenticated, async (req: any, res) => {
+  try {
+    const user = await db.execute(sql`SELECT selected_niches, primary_niche FROM users WHERE id = ${req.user.id}`);
+    const userNiches = (user.rows[0] as any)?.selected_niches || [];
+    
+    const stats = await db.execute(sql`
+      SELECT
+        COUNT(*) as total_videos,
+        COUNT(CASE WHEN virality_score >= 60 THEN 1 END) as high_performing,
+        AVG(virality_score)::numeric(5,1) as avg_virality,
+        COUNT(DISTINCT niche_cluster) as active_niches
+      FROM videos
+      WHERE classification_status = 'completed'
+        AND (niche_cluster = ANY(${userNiches}::text[]) OR ${userNiches}::text[] = '{}')
+    `);
+    
+    const patternsCount = await db.execute(sql`
+      SELECT COUNT(*) as total FROM content_clusters
+      WHERE trend_status IN ('emerging', 'trending')
+    `);
+    
+    res.json({
+      totalVideos: (stats.rows[0] as any)?.total_videos || 0,
+      highPerforming: (stats.rows[0] as any)?.high_performing || 0,
+      avgVirality: (stats.rows[0] as any)?.avg_virality || 0,
+      activeNiches: (stats.rows[0] as any)?.active_niches || 0,
+      patternsDetected: (patternsCount.rows[0] as any)?.total || 0,
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+2. Dans dashboard.tsx, utilise useQuery pour /api/home/stats et affiche les vrais chiffres dans les 4 stat cards.
+
+3. Ajoute une section "Emerging Now" dans le feed Intelligence qui appelle GET /api/alerts et affiche les clusters en tendance avec leur badge trend_status (🔥 Emerging / ⚡ Trending).
+
+4. Filtre toutes les données du dashboard par la niche principale de l'utilisateur (primaryNiche).
+
+Push sur GitHub quand c'est fait.

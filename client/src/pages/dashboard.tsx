@@ -222,9 +222,24 @@ function ViralPlayCard({
 
 interface HomeStats {
   totalVideos: number;
-  totalPatterns: number;
+  highPerforming: number;
   avgVirality: number;
   activeNiches: number;
+  patternsDetected: number;
+}
+
+interface AlertItem {
+  id: string;
+  dominant_hook_type: string | null;
+  dominant_niche: string | null;
+  dominant_structure: string | null;
+  avg_virality_score: number | null;
+  velocity_7d: number | null;
+  trend_status: string;
+  video_count: number;
+  pattern_label: string | null;
+  hook_template: string | null;
+  why_it_works: string | null;
 }
 
 function PipelineStats({
@@ -241,8 +256,8 @@ function PipelineStats({
       bg: "bg-blue-500/10",
     },
     {
-      label: "Patterns Detected",
-      value: homeStats?.totalPatterns ? homeStats.totalPatterns.toString() : "—",
+      label: "High Performing",
+      value: homeStats?.highPerforming ? homeStats.highPerforming.toLocaleString() : "—",
       icon: Target,
       color: "text-purple-400",
       bg: "bg-purple-500/10",
@@ -281,6 +296,88 @@ function PipelineStats({
         </div>
       ))}
     </div>
+  );
+}
+
+// ─── Emerging Now ─────────────────────────────────────────────────────────────
+
+function EmergingNow({
+  alerts,
+  onNavigate,
+}: {
+  alerts: AlertItem[];
+  onNavigate: (path: string) => void;
+}) {
+  if (!alerts.length) return null;
+
+  return (
+    <section data-testid="section-emerging-now">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h2 className="text-lg font-bold text-white flex items-center gap-2">
+            <Flame className="w-5 h-5 text-red-400" />
+            Emerging Now
+          </h2>
+          <p className="text-slate-400 text-sm mt-0.5">Trends gaining momentum in your niches</p>
+        </div>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {alerts.map((alert) => (
+          <div
+            key={alert.id}
+            className="bg-slate-900/50 rounded-xl p-5 border border-slate-800 hover:border-purple-500/30 transition-colors cursor-pointer"
+            onClick={() => onNavigate("/opportunities")}
+            data-testid={`alert-card-${alert.id}`}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <Badge
+                className={
+                  alert.trend_status === "emerging"
+                    ? "bg-red-500/20 text-red-400 border border-red-500/30"
+                    : "bg-orange-500/20 text-orange-400 border border-orange-500/30"
+                }
+              >
+                {alert.trend_status === "emerging" ? "Emerging" : "Trending"}
+              </Badge>
+              <span className="text-slate-500 text-xs">{alert.video_count} videos</span>
+            </div>
+
+            {alert.pattern_label && (
+              <p className="text-white font-semibold text-sm mb-1">{alert.pattern_label}</p>
+            )}
+
+            <div className="flex flex-wrap gap-1.5 mb-3">
+              {alert.dominant_hook_type && (
+                <Badge variant="outline" className="border-slate-700 text-slate-300 text-xs capitalize">
+                  {alert.dominant_hook_type.replace(/_/g, " ")}
+                </Badge>
+              )}
+              {alert.dominant_niche && (
+                <Badge variant="outline" className="border-slate-700 text-slate-300 text-xs capitalize">
+                  {alert.dominant_niche.replace(/_/g, " ")}
+                </Badge>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="w-3.5 h-3.5 text-green-400" />
+                <span className="text-green-400 text-xs font-medium">+{alert.velocity_7d} this week</span>
+              </div>
+              {alert.avg_virality_score && (
+                <span className={`text-sm font-bold ${getViralityColor(alert.avg_virality_score)}`}>
+                  {Math.round(alert.avg_virality_score)}
+                </span>
+              )}
+            </div>
+
+            {alert.why_it_works && (
+              <p className="text-slate-400 text-xs mt-2 line-clamp-2">{alert.why_it_works}</p>
+            )}
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -503,6 +600,9 @@ export default function DashboardPage() {
   const { data: homeStats } = useQuery<HomeStats>({
     queryKey: ["/api/home/stats"],
   });
+  const { data: alertsData } = useQuery<{ alerts: AlertItem[]; count: number }>({
+    queryKey: ["/api/alerts"],
+  });
   const { data: credits } = useQuery<CreditsInfo>({
     queryKey: ["/api/credits"],
   });
@@ -546,6 +646,11 @@ export default function DashboardPage() {
 
             {/* 2 — Pipeline stats */}
             <PipelineStats homeStats={homeStats} />
+
+            {/* 2.5 — Emerging Now */}
+            {alertsData?.alerts && alertsData.alerts.length > 0 && (
+              <EmergingNow alerts={alertsData.alerts} onNavigate={navigate} />
+            )}
 
             {/* 3 — Trending patterns */}
             {trending && trending.length > 0 && (
