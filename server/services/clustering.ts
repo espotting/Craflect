@@ -147,11 +147,10 @@ async function getClusterMeta(videoIds: string[]) {
       AVG(virality_score) as avg_virality,
       AVG(confidence) as avg_confidence
     FROM videos
-    WHERE id = ANY(${videoIds}::text[])
+    WHERE id IN (${sql.raw(videoIds.map(id => `'${id}'`).join(','))})
       AND hook_type_v2 IS NOT NULL
   `);
-
-  console.log('[ClusterMeta] result:', JSON.stringify(result.rows[0]));
+  console.log('[ClusterMeta] rows:', result.rows.length, JSON.stringify(result.rows[0]));
   const top = result.rows[0] as any;
   return {
     dominantHookType: top?.dominant_hook_type || null,
