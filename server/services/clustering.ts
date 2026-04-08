@@ -140,27 +140,25 @@ function multiDimScore(a: any, b: any): number {
 async function getClusterMeta(videoIds: string[]) {
   const result = await db.execute(sql`
     SELECT
-      hook_type_v2,
-      structure_type,
-      content_format,
-      niche_cluster,
+      MODE() WITHIN GROUP (ORDER BY hook_type_v2) as dominant_hook_type,
+      MODE() WITHIN GROUP (ORDER BY structure_type) as dominant_structure,
+      MODE() WITHIN GROUP (ORDER BY content_format) as dominant_format,
+      MODE() WITHIN GROUP (ORDER BY niche_cluster) as dominant_niche,
       AVG(virality_score) as avg_virality,
       AVG(confidence) as avg_confidence
     FROM videos
     WHERE id = ANY(${videoIds}::text[])
-    GROUP BY hook_type_v2, structure_type, content_format, niche_cluster
-    ORDER BY COUNT(*) DESC
-    LIMIT 1
+      AND hook_type_v2 IS NOT NULL
   `);
 
   const top = result.rows[0] as any;
   return {
-    dominantHookType: top?.hook_type_v2 || null,
-    dominantStructure: top?.structure_type || null,
-    dominantFormat: top?.content_format || null,
-    dominantNiche: top?.niche_cluster || null,
-    avgVirality: top?.avg_virality || 0,
-    avgConfidence: top?.avg_confidence || 0.5,
+    dominantHookType: top?.dominant_hook_type || null,
+    dominantStructure: top?.dominant_structure || null,
+    dominantFormat: top?.dominant_format || null,
+    dominantNiche: top?.dominant_niche || null,
+    avgVirality: parseFloat(top?.avg_virality) || 0,
+    avgConfidence: parseFloat(top?.avg_confidence) || 0.5,
   };
 }
 
