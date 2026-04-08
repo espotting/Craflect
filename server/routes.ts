@@ -4465,8 +4465,11 @@ ${input.cta ? `CTA: ${input.cta}` : ""}`;
 
   app.get('/api/home/stats', isAuthenticated, async (req: any, res) => {
     try {
-      const user = await db.execute(sql`SELECT selected_niches, primary_niche FROM users WHERE id = ${req.user.id}`);
-      const userNiches = (user.rows[0] as any)?.selected_niches || [];
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const user = await db.execute(sql`SELECT selected_niches FROM users WHERE id = ${req.user.id}`);
+      const userNiches: string[] = (user.rows[0] as any)?.selected_niches || [];
+      const nichesArr = `{${userNiches.join(",")}}`;
       
       const stats = await db.execute(sql`
         SELECT
@@ -4476,7 +4479,7 @@ ${input.cta ? `CTA: ${input.cta}` : ""}`;
           COUNT(DISTINCT niche_cluster) as active_niches
         FROM videos
         WHERE classification_status = 'completed'
-          AND (niche_cluster = ANY(${userNiches}::text[]) OR ${userNiches}::text[] = '{}')
+          AND (niche_cluster = ANY(${nichesArr}::text[]) OR ${nichesArr}::text[] = '{}')
       `);
       
       const patternsCount = await db.execute(sql`
@@ -4498,11 +4501,14 @@ ${input.cta ? `CTA: ${input.cta}` : ""}`;
 
   app.get('/api/alerts', isAuthenticated, async (req: any, res) => {
     try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
       const user = await db.execute(sql`
-        SELECT selected_niches, primary_niche, content_style 
+        SELECT selected_niches 
         FROM users WHERE id = ${req.user.id}
       `);
-      const userNiches = (user.rows[0] as any)?.selected_niches || [];
+      const userNiches: string[] = (user.rows[0] as any)?.selected_niches || [];
+      const nichesArr = `{${userNiches.join(",")}}`;
       const alerts = await db.execute(sql`
         SELECT 
           cc.id,
@@ -4521,8 +4527,8 @@ ${input.cta ? `CTA: ${input.cta}` : ""}`;
         WHERE cc.trend_status IN ('emerging', 'trending')
           AND cc.velocity_7d >= 2
           AND (
-            cc.dominant_niche = ANY(${userNiches}::text[])
-            OR ${userNiches}::text[] = '{}'
+            cc.dominant_niche = ANY(${nichesArr}::text[])
+            OR ${nichesArr}::text[] = '{}'
           )
           AND array_length(cc.video_ids, 1) >= 3
         ORDER BY 
@@ -4539,6 +4545,8 @@ ${input.cta ? `CTA: ${input.cta}` : ""}`;
 
   app.get('/api/performance/:id/compare', isAuthenticated, async (req: any, res) => {
     try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
       const { id } = req.params;
       const result = await db.execute(sql`
         SELECT 
@@ -4567,6 +4575,8 @@ ${input.cta ? `CTA: ${input.cta}` : ""}`;
 
   app.get('/api/performance/stats', isAuthenticated, async (req: any, res) => {
     try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
       const stats = await db.execute(sql`
         SELECT
           COUNT(*) as total_tracked,
@@ -4585,6 +4595,8 @@ ${input.cta ? `CTA: ${input.cta}` : ""}`;
 
   app.post('/api/predict', isAuthenticated, async (req: any, res) => {
     try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
       const { hookType, format, niche, duration } = req.body;
 
       const matchingPatterns = await db.execute(sql`
