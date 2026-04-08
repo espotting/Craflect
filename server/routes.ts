@@ -4005,46 +4005,68 @@ ${input.cta ? `CTA: ${input.cta}` : ""}`;
       const { db } = await import("./db");
       const { sql } = await import("drizzle-orm");
       const format = req.query.format as string | undefined;
+      const hookType = req.query.hookType as string | undefined;
+      const velocity = req.query.velocity as string | undefined;
 
-      let query;
-      if (format) {
-        query = db.execute(sql`
-          SELECT v.id, v.hook_text, v.structure_type, v.topic_cluster, v.platform,
-                 v.virality_score, v.views, v.thumbnail_url, v.hook_mechanism_primary,
-                 v.emotion_primary
-          FROM videos v
-          WHERE v.classification_status = 'completed' AND v.virality_score IS NOT NULL 
-            AND v.hook_text IS NOT NULL AND v.structure_type = ${format}
-          ORDER BY v.virality_score DESC NULLS LAST
-          LIMIT 20
-        `);
-      } else {
-        query = db.execute(sql`
-          SELECT v.id, v.hook_text, v.structure_type, v.topic_cluster, v.platform,
-                 v.virality_score, v.views, v.thumbnail_url, v.hook_mechanism_primary,
-                 v.emotion_primary
-          FROM videos v
-          WHERE v.classification_status = 'completed' AND v.virality_score IS NOT NULL AND v.hook_text IS NOT NULL
-          ORDER BY v.virality_score DESC NULLS LAST
-          LIMIT 20
-        `);
+      const user = await db.execute(sql`SELECT selected_niches, primary_niche FROM users WHERE id = ${req.user.id}`);
+      const userNiches = (user.rows[0] as any)?.selected_niches || [];
+      const primaryNiche = (user.rows[0] as any)?.primary_niche || null;
+
+      const conditions: string[] = [
+        "v.classification_status = 'completed'",
+        "v.virality_score IS NOT NULL",
+        "v.hook_text IS NOT NULL",
+      ];
+      if (format) conditions.push(`v.structure_type = '${format.replace(/'/g, "''")}'`);
+      if (hookType) conditions.push(`v.hook_type_v2 = '${hookType.replace(/'/g, "''")}'`);
+
+      let velocityJoin = "";
+      let velocityFilter = "";
+      if (velocity === "emerging" || velocity === "trending") {
+        velocityJoin = "LEFT JOIN content_clusters cc ON v.id = ANY(cc.video_ids)";
+        velocityFilter = `AND cc.trend_status = '${velocity}'`;
       }
 
-      const result = await query;
+      const whereClause = conditions.join(" AND ");
+      const nicheCase = userNiches.length > 0
+        ? `CASE WHEN v.niche_cluster IN (${userNiches.map((n: string) => `'${n.replace(/'/g, "''")}'`).join(",")}) THEN 0 ELSE 1 END,`
+        : "";
 
-      const opportunities = result.rows.map((v: any) => ({
-        id: v.id,
-        hook: cleanHookYear(v.hook_text),
-        format: v.structure_type || "Mixed",
-        topic: v.topic_cluster || "general",
-        platform: v.platform || "TikTok",
-        viralityScore: Math.round(v.virality_score || 0),
-        viewRange: getViewRange(v.virality_score || 0),
-        views: v.views,
-        thumbnailUrl: v.thumbnail_url?.replace(/^http:\/\/178\.104\.52\.64:3000\/thumbnails\//, '/api/thumbnails/') || `/api/thumbnails/${v.id}.jpg`,
-        hookType: v.hook_mechanism_primary,
-        emotion: v.emotion_primary,
-      }));
+      const result = await db.execute(sql.raw(`
+        SELECT v.id, v.hook_text, v.structure_type, v.topic_cluster, v.platform,
+               v.virality_score, v.views, v.thumbnail_url, v.hook_mechanism_primary,
+               v.hook_type_v2, v.emotion_primary, v.niche_cluster
+        FROM videos v
+        ${velocityJoin}
+        WHERE ${whereClause} ${velocityFilter}
+        ORDER BY ${nicheCase} v.virality_score DESC NULLS LAST
+        LIMIT 40
+      `));
+
+      const opportunities = result.rows.map((v: any) => {
+        let compatibility: string | null = null;
+        if (primaryNiche && v.niche_cluster === primaryNiche) {
+          compatibility = "your_niche";
+        } else if (userNiches.length > 0 && userNiches.includes(v.niche_cluster)) {
+          compatibility = "related";
+        }
+
+        return {
+          id: v.id,
+          hook: cleanHookYear(v.hook_text),
+          format: v.structure_type || "Mixed",
+          topic: v.topic_cluster || "general",
+          platform: v.platform || "TikTok",
+          viralityScore: Math.round(v.virality_score || 0),
+          viewRange: getViewRange(v.virality_score || 0),
+          views: v.views,
+          thumbnailUrl: v.thumbnail_url?.replace(/^http:\/\/178\.104\.52\.64:3000\/thumbnails\//, '/api/thumbnails/') || `/api/thumbnails/${v.id}.jpg`,
+          hookType: v.hook_mechanism_primary || v.hook_type_v2,
+          emotion: v.emotion_primary,
+          nicheCluster: v.niche_cluster,
+          compatibility,
+        };
+      });
 
       res.json(opportunities);
     } catch (err: any) {

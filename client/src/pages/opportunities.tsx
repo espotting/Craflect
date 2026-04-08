@@ -4,8 +4,9 @@ import { useLanguage } from "@/hooks/use-language";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Video, TrendingUp, Filter } from "lucide-react";
+import { Video, TrendingUp, Filter, Flame, Zap, BarChart3, Check, ArrowUpRight } from "lucide-react";
 import { VideoCardV2, type VideoCardData } from "@/components/video-card-v2";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -24,6 +25,8 @@ interface OpportunityItem {
   videoCount?: number;
   confidence?: number;
   patternId?: string;
+  nicheCluster?: string;
+  compatibility?: "your_niche" | "related" | null;
 }
 
 interface FormatInfo {
@@ -32,23 +35,49 @@ interface FormatInfo {
   avgVirality: number;
 }
 
+const FORMAT_FILTERS = [
+  { key: "all", label: "All" },
+  { key: "tutorial", label: "Tutorial" },
+  { key: "storytelling", label: "Storytelling" },
+  { key: "listicle", label: "Listicle" },
+  { key: "reaction", label: "Reaction" },
+];
+
+const HOOK_FILTERS = [
+  { key: "all", label: "All Hooks" },
+  { key: "statement", label: "Statement" },
+  { key: "curiosity", label: "Curiosity" },
+  { key: "question", label: "Question" },
+  { key: "list", label: "List" },
+  { key: "shock", label: "Shock" },
+];
+
+const VELOCITY_FILTERS = [
+  { key: "all", label: "All", icon: null },
+  { key: "emerging", label: "Emerging", icon: Flame },
+  { key: "trending", label: "Trending", icon: Zap },
+  { key: "rising", label: "Rising", icon: BarChart3 },
+];
+
 export default function OpportunitiesPage() {
   const { t } = useLanguage();
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const [formatFilter, setFormatFilter] = useState<string>("all");
+  const [hookFilter, setHookFilter] = useState<string>("all");
+  const [velocityFilter, setVelocityFilter] = useState<string>("all");
   const [visibleCount, setVisibleCount] = useState(12);
 
-  const queryKey = formatFilter === "all"
-    ? "/api/opportunities/top"
-    : `/api/opportunities/top?format=${formatFilter}`;
+  const params = new URLSearchParams();
+  if (formatFilter !== "all") params.set("format", formatFilter);
+  if (hookFilter !== "all") params.set("hookType", hookFilter);
+  if (velocityFilter !== "all") params.set("velocity", velocityFilter);
+  const queryString = params.toString();
+  const queryUrl = queryString ? `/api/opportunities/top?${queryString}` : "/api/opportunities/top";
 
   const { data: opportunities, isLoading } = useQuery<OpportunityItem[]>({
-    queryKey: [queryKey],
-  });
-
-  const { data: formats } = useQuery<FormatInfo[]>({
-    queryKey: ["/api/opportunities/trending-formats"],
+    queryKey: ["/api/opportunities/top", formatFilter, hookFilter, velocityFilter],
+    queryFn: () => fetch(queryUrl, { credentials: "include" }).then(r => r.json()),
   });
 
   const videos: VideoCardData[] = (opportunities || []).map((opp) => ({
@@ -63,25 +92,18 @@ export default function OpportunitiesPage() {
 
   const visibleVideos = videos.slice(0, visibleCount);
 
-  // Passe le contexte complet vers Studio — c'est le lien Intelligence → Action
   const handleCreateSimilar = (video: VideoCardData) => {
     const opp = opportunities?.find((o) => o.id === video.id);
-
-    const params = new URLSearchParams({
-      hook: video.hook,
-      format: video.format,
-    });
-
+    const p = new URLSearchParams({ hook: video.hook, format: video.format });
     if (opp) {
-      if (opp.topic) params.set("topic", opp.topic);
-      if (opp.viralityScore) params.set("viralityScore", String(opp.viralityScore));
-      if (opp.videoCount) params.set("videoCount", String(opp.videoCount));
-      if (opp.whyItWorks) params.set("whyItWorks", encodeURIComponent(opp.whyItWorks));
-      if (opp.patternId) params.set("patternId", opp.patternId);
-      if (opp.confidence) params.set("confidence", String(opp.confidence));
+      if (opp.topic) p.set("topic", opp.topic);
+      if (opp.viralityScore) p.set("viralityScore", String(opp.viralityScore));
+      if (opp.videoCount) p.set("videoCount", String(opp.videoCount));
+      if (opp.whyItWorks) p.set("whyItWorks", encodeURIComponent(opp.whyItWorks));
+      if (opp.patternId) p.set("patternId", opp.patternId);
+      if (opp.confidence) p.set("confidence", String(opp.confidence));
     }
-
-    navigate(`/create?${params.toString()}`);
+    navigate(`/create?${p.toString()}`);
   };
 
   const handleSave = async (video: VideoCardData) => {
@@ -100,6 +122,30 @@ export default function OpportunitiesPage() {
     } catch {}
   };
 
+  const getCompatibilityBadge = (opp: OpportunityItem) => {
+    if (opp.compatibility === "your_niche") {
+      return (
+        <div className="absolute top-2 left-2 z-10">
+          <Badge className="bg-green-500/20 text-green-400 border border-green-500/30 text-[10px] px-1.5 py-0.5">
+            <Check className="w-3 h-3 mr-0.5" />
+            Your niche
+          </Badge>
+        </div>
+      );
+    }
+    if (opp.compatibility === "related") {
+      return (
+        <div className="absolute top-2 left-2 z-10">
+          <Badge className="bg-blue-500/20 text-blue-400 border border-blue-500/30 text-[10px] px-1.5 py-0.5">
+            <ArrowUpRight className="w-3 h-3 mr-0.5" />
+            Related
+          </Badge>
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
     <DashboardLayout>
       <div className="p-4 md:p-8 max-w-7xl mx-auto" data-testid="page-opportunities">
@@ -112,27 +158,54 @@ export default function OpportunitiesPage() {
               {t.opportunities?.subtitle || "All viral opportunities matched to your niche"}
             </p>
           </div>
+        </div>
 
-          <div className="flex items-center gap-3">
-            <Button
-              variant="outline"
-              className={`border-slate-700 text-slate-300 ${formatFilter === "all" ? "bg-purple-600/20 border-purple-500/50" : ""}`}
-              onClick={() => setFormatFilter("all")}
-              data-testid="filter-all"
-            >
-              <Filter className="w-4 h-4 mr-2" />
-              {t.opportunities?.all || "All"}
-            </Button>
-            {formats?.slice(0, 4).map((f) => (
+        <div className="space-y-3 mb-6">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-slate-500 text-xs font-medium w-16">Format</span>
+            {FORMAT_FILTERS.map((f) => (
               <Button
-                key={f.format}
+                key={f.key}
                 variant="outline"
-                className={`border-slate-700 text-slate-300 capitalize ${formatFilter === f.format ? "bg-purple-600/20 border-purple-500/50" : ""}`}
-                onClick={() => setFormatFilter(formatFilter === f.format ? "all" : f.format)}
-                data-testid={`filter-${f.format}`}
+                size="sm"
+                className={`border-slate-700 text-slate-300 text-xs h-8 ${formatFilter === f.key ? "bg-purple-600/20 border-purple-500/50 text-purple-300" : ""}`}
+                onClick={() => { setFormatFilter(f.key); setVisibleCount(12); }}
+                data-testid={`filter-format-${f.key}`}
               >
-                <Video className="w-4 h-4 mr-2" />
-                {f.format.replace(/_/g, " ")}
+                {f.label}
+              </Button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-slate-500 text-xs font-medium w-16">Hook</span>
+            {HOOK_FILTERS.map((f) => (
+              <Button
+                key={f.key}
+                variant="outline"
+                size="sm"
+                className={`border-slate-700 text-slate-300 text-xs h-8 ${hookFilter === f.key ? "bg-purple-600/20 border-purple-500/50 text-purple-300" : ""}`}
+                onClick={() => { setHookFilter(f.key); setVisibleCount(12); }}
+                data-testid={`filter-hook-${f.key}`}
+              >
+                {f.label}
+              </Button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-slate-500 text-xs font-medium w-16">Velocity</span>
+            {VELOCITY_FILTERS.map((f) => (
+              <Button
+                key={f.key}
+                variant="outline"
+                size="sm"
+                className={`border-slate-700 text-slate-300 text-xs h-8 ${velocityFilter === f.key ? "bg-purple-600/20 border-purple-500/50 text-purple-300" : ""}`}
+                onClick={() => { setVelocityFilter(f.key); setVisibleCount(12); }}
+                data-testid={`filter-velocity-${f.key}`}
+              >
+                {f.icon && <f.icon className="w-3 h-3 mr-1" />}
+                {f.label}
               </Button>
             ))}
           </div>
@@ -153,15 +226,20 @@ export default function OpportunitiesPage() {
         ) : (
           <>
             <div className="grid grid-cols-4 gap-6" data-testid="opportunities-grid">
-              {visibleVideos.map((video) => (
-                <VideoCardV2
-                  key={video.id}
-                  video={video}
-                  onCreateSimilar={handleCreateSimilar}
-                  onAnalyze={() => {}}
-                  onSave={handleSave}
-                />
-              ))}
+              {visibleVideos.map((video) => {
+                const opp = opportunities?.find((o) => o.id === video.id);
+                return (
+                  <div key={video.id} className="relative">
+                    {opp && getCompatibilityBadge(opp)}
+                    <VideoCardV2
+                      video={video}
+                      onCreateSimilar={handleCreateSimilar}
+                      onAnalyze={() => {}}
+                      onSave={handleSave}
+                    />
+                  </div>
+                );
+              })}
             </div>
 
             {visibleCount < videos.length && (
