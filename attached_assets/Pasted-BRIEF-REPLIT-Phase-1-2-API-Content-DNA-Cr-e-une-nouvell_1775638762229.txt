@@ -1,0 +1,97 @@
+BRIEF REPLIT — Phase 1.2 : API Content DNA
+Crée une nouvelle table et les endpoints associés.
+Dans shared/schema.ts, ajoute la table user_content_dna :
+typescriptexport const userContentDna = pgTable("user_content_dna", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  hookTypePerformance: jsonb("hook_type_performance").default({}),
+  formatPerformance: jsonb("format_performance").default({}),
+  bestPostingPatterns: jsonb("best_posting_patterns").default({}),
+  avgPredictionAccuracy: doublePrecision("avg_prediction_accuracy"),
+  totalTrackedVideos: integer("total_tracked_videos").default(0),
+  topPerformingNiche: text("top_performing_niche"),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+Dans server/routes.ts, ajoute ces 2 endpoints :
+typescript// GET /api/user/dna — profil de performance personnel
+app.get('/api/user/dna', isAuthenticated, async (req: any, res) => {
+  try {
+    const userId = req.user.id;
+    const dna = await db.execute(sql`
+      SELECT * FROM user_content_dna WHERE user_id = ${userId}
+    `);
+    
+    if (!dna.rows.length) {
+      return res.json({ 
+        exists: false, 
+        message: 'Track your first video to build your Content DNA' 
+      });
+    }
+    
+    res.json({ exists: true, dna: dna.rows[0] });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /api/user/dna/update — recalcule le DNA depuis les vidéos trackées
+app.post('/api/user/dna/update', isAuthenticated, async (req: any, res) => {
+  try {
+    const userId = req.user.id;
+    
+    const performances = await db.execute(sql`
+      SELECT 
+        vp.*,
+        v.hook_type_v2,
+        v.structure_type,
+        v.content_format,
+        v.virality_score as predicted_virality
+      FROM video_performance vp
+      LEFT JOIN videos v ON v.video_url = vp.platform_video_url
+      WHERE vp.user_id = ${userId}
+        AND vp.actual_views IS NOT NULL
+    `);
+
+    if (!performances.rows.length) {
+      return res.json({ message: 'No tracked videos yet' });
+    }
+
+    const rows = performances.rows as any[];
+    
+    // Calculer performance par hook type
+    const hookPerf: Record<string, { count: number; avgViews: number }> = {};
+    rows.forEach(r => {
+      if (r.hook_type_v2) {
+        if (!hookPerf[r.hook_type_v2]) hookPerf[r.hook_type_v2] = { count: 0, avgViews: 0 };
+        hookPerf[r.hook_type_v2].count++;
+        hookPerf[r.hook_type_v2].avgViews += r.actual_views || 0;
+      }
+    });
+    Object.keys(hookPerf).forEach(k => {
+      hookPerf[k].avgViews = Math.round(hookPerf[k].avgViews / hookPerf[k].count);
+    });
+
+    const accuracy = rows
+      .filter(r => r.predicted_views && r.actual_views)
+      .map(r => 1 - Math.abs(r.predicted_views - r.actual_views) / Math.max(r.predicted_views, r.actual_views))
+      .reduce((a, b) => a + b, 0) / rows.length;
+
+    await db.execute(sql`
+      INSERT INTO user_content_dna (user_id, hook_type_performance, total_tracked_videos, avg_prediction_accuracy, updated_at)
+      VALUES (${userId}, ${JSON.stringify(hookPerf)}, ${rows.length}, ${accuracy || null}, NOW())
+      ON CONFLICT (user_id) DO UPDATE SET
+        hook_type_performance = ${JSON.stringify(hookPerf)},
+        total_tracked_videos = ${rows.length},
+        avg_prediction_accuracy = ${accuracy || null},
+        updated_at = NOW()
+    `);
+
+    res.json({ success: true, dna: { hookTypePerformance: hookPerf, totalTrackedVideos: rows.length } });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+Migration SQL Hetzner (lance maintenant) :
+bashdocker exec -it craflect-backup-manual-postgres-1 psql -U craflect -d craflect -c "CREATE TABLE IF NOT EXISTS user_content_dna (id varchar PRIMARY KEY DEFAULT gen_random_uuid(), user_id varchar NOT NULL UNIQUE, hook_type_performance jsonb DEFAULT '{}', format_performance jsonb DEFAULT '{}', best_posting_patterns jsonb DEFAULT '{}', avg_prediction_accuracy double precision, total_tracked_videos integer DEFAULT 0, top_performing_niche text, updated_at timestamp DEFAULT NOW(), created_at timestamp DEFAULT NOW());"
+Push sur GitHub quand c'est fait

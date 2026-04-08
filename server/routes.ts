@@ -4348,6 +4348,82 @@ ${input.cta ? `CTA: ${input.cta}` : ""}`;
     }
   });
 
+  app.get('/api/user/dna', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const dna = await db.execute(sql`
+        SELECT * FROM user_content_dna WHERE user_id = ${userId}
+      `);
+      
+      if (!dna.rows.length) {
+        return res.json({ 
+          exists: false, 
+          message: 'Track your first video to build your Content DNA' 
+        });
+      }
+      
+      res.json({ exists: true, dna: dna.rows[0] });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post('/api/user/dna/update', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      
+      const performances = await db.execute(sql`
+        SELECT 
+          vp.*,
+          v.hook_type_v2,
+          v.structure_type,
+          v.content_format,
+          v.virality_score as predicted_virality
+        FROM video_performance vp
+        LEFT JOIN videos v ON v.video_url = vp.platform_video_url
+        WHERE vp.user_id = ${userId}
+          AND vp.actual_views IS NOT NULL
+      `);
+
+      if (!performances.rows.length) {
+        return res.json({ message: 'No tracked videos yet' });
+      }
+
+      const rows = performances.rows as any[];
+      
+      const hookPerf: Record<string, { count: number; avgViews: number }> = {};
+      rows.forEach(r => {
+        if (r.hook_type_v2) {
+          if (!hookPerf[r.hook_type_v2]) hookPerf[r.hook_type_v2] = { count: 0, avgViews: 0 };
+          hookPerf[r.hook_type_v2].count++;
+          hookPerf[r.hook_type_v2].avgViews += r.actual_views || 0;
+        }
+      });
+      Object.keys(hookPerf).forEach(k => {
+        hookPerf[k].avgViews = Math.round(hookPerf[k].avgViews / hookPerf[k].count);
+      });
+
+      const accuracy = rows
+        .filter(r => r.predicted_views && r.actual_views)
+        .map(r => 1 - Math.abs(r.predicted_views - r.actual_views) / Math.max(r.predicted_views, r.actual_views))
+        .reduce((a, b) => a + b, 0) / rows.length;
+
+      await db.execute(sql`
+        INSERT INTO user_content_dna (user_id, hook_type_performance, total_tracked_videos, avg_prediction_accuracy, updated_at)
+        VALUES (${userId}, ${JSON.stringify(hookPerf)}, ${rows.length}, ${accuracy || null}, NOW())
+        ON CONFLICT (user_id) DO UPDATE SET
+          hook_type_performance = ${JSON.stringify(hookPerf)},
+          total_tracked_videos = ${rows.length},
+          avg_prediction_accuracy = ${accuracy || null},
+          updated_at = NOW()
+      `);
+
+      res.json({ success: true, dna: { hookTypePerformance: hookPerf, totalTrackedVideos: rows.length } });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.post('/api/predict', isAuthenticated, async (req: any, res) => {
     try {
       const { hookType, format, niche, duration } = req.body;

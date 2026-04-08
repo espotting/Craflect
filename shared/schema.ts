@@ -1138,6 +1138,19 @@ export const contentClusters = pgTable("content_clusters", {
 
 export const insertContentClusterSchema = createInsertSchema(contentClusters).omit({ id: true, createdAt: true });
 
+export const userContentDna = pgTable("user_content_dna", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().unique(),
+  hookTypePerformance: jsonb("hook_type_performance").default({}),
+  formatPerformance: jsonb("format_performance").default({}),
+  bestPostingPatterns: jsonb("best_posting_patterns").default({}),
+  avgPredictionAccuracy: doublePrecision("avg_prediction_accuracy"),
+  totalTrackedVideos: integer("total_tracked_videos").default(0),
+  topPerformingNiche: text("top_performing_niche"),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export type Niche = typeof niches.$inferSelect;
 export type InsertNiche = z.infer<typeof insertNicheSchema>;
 export type Creator = typeof creators.$inferSelect;
