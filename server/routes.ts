@@ -4424,6 +4424,47 @@ ${input.cta ? `CTA: ${input.cta}` : ""}`;
     }
   });
 
+  app.get('/api/alerts', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await db.execute(sql`
+        SELECT selected_niches, primary_niche, content_style 
+        FROM users WHERE id = ${req.user.id}
+      `);
+      const userNiches = (user.rows[0] as any)?.selected_niches || [];
+      const alerts = await db.execute(sql`
+        SELECT 
+          cc.id,
+          cc.dominant_hook_type,
+          cc.dominant_niche,
+          cc.dominant_structure,
+          cc.avg_virality_score,
+          cc.velocity_7d,
+          cc.trend_status,
+          array_length(cc.video_ids, 1) as video_count,
+          p.pattern_label,
+          p.hook_template,
+          p.why_it_works
+        FROM content_clusters cc
+        LEFT JOIN patterns p ON p.cluster_id = cc.id::text
+        WHERE cc.trend_status IN ('emerging', 'trending')
+          AND cc.velocity_7d >= 2
+          AND (
+            cc.dominant_niche = ANY(${userNiches}::text[])
+            OR ${userNiches}::text[] = '{}'
+          )
+          AND array_length(cc.video_ids, 1) >= 3
+        ORDER BY 
+          CASE cc.trend_status WHEN 'emerging' THEN 1 WHEN 'trending' THEN 2 ELSE 3 END,
+          cc.velocity_7d DESC,
+          cc.avg_virality_score DESC NULLS LAST
+        LIMIT 10
+      `);
+      res.json({ alerts: alerts.rows, count: alerts.rows.length, userNiches });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.get('/api/performance/:id/compare', isAuthenticated, async (req: any, res) => {
     try {
       const { id } = req.params;
