@@ -4424,6 +4424,52 @@ ${input.cta ? `CTA: ${input.cta}` : ""}`;
     }
   });
 
+  app.get('/api/performance/:id/compare', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const result = await db.execute(sql`
+        SELECT 
+          vp.*,
+          CASE 
+            WHEN vp.predicted_views > 0 AND vp.actual_views > 0
+            THEN ROUND((1 - ABS(vp.predicted_views - vp.actual_views)::float / 
+                 GREATEST(vp.predicted_views, vp.actual_views)) * 100)
+            ELSE NULL
+          END as accuracy_pct,
+          CASE
+            WHEN vp.actual_views > vp.predicted_views THEN 'outperformed'
+            WHEN vp.actual_views < vp.predicted_views * 0.5 THEN 'underperformed'
+            ELSE 'as_expected'
+          END as performance_label
+        FROM video_performance vp
+        WHERE vp.id = ${id} AND vp.user_id = ${req.user.id}
+      `);
+      
+      if (!result.rows.length) return res.status(404).json({ error: 'Not found' });
+      res.json(result.rows[0]);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get('/api/performance/stats', isAuthenticated, async (req: any, res) => {
+    try {
+      const stats = await db.execute(sql`
+        SELECT
+          COUNT(*) as total_tracked,
+          COUNT(actual_views) as with_results,
+          AVG(accuracy_score) as avg_accuracy,
+          SUM(CASE WHEN actual_views > predicted_views THEN 1 ELSE 0 END) as outperformed,
+          SUM(CASE WHEN actual_views < predicted_views * 0.5 THEN 1 ELSE 0 END) as underperformed
+        FROM video_performance
+        WHERE user_id = ${req.user.id}
+      `);
+      res.json(stats.rows[0]);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.post('/api/predict', isAuthenticated, async (req: any, res) => {
     try {
       const { hookType, format, niche, duration } = req.body;
