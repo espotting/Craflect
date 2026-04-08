@@ -151,6 +151,7 @@ async function getClusterMeta(videoIds: string[]) {
       AND hook_type_v2 IS NOT NULL
   `);
 
+  console.log('[ClusterMeta] result:', JSON.stringify(result.rows[0]));
   const top = result.rows[0] as any;
   return {
     dominantHookType: top?.dominant_hook_type || null,
