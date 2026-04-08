@@ -4446,6 +4446,23 @@ ${input.cta ? `CTA: ${input.cta}` : ""}`;
     }
   });
 
+  app.get('/api/patterns/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const result = await db.execute(sql`
+        SELECT p.*, cc.trend_status, cc.velocity_7d
+        FROM patterns p
+        LEFT JOIN content_clusters cc ON cc.id::text = p.cluster_id
+        WHERE p.pattern_id = ${req.params.id}
+      `);
+      if (!result.rows.length) return res.status(404).json({ error: 'Not found' });
+      res.json(result.rows[0]);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.get('/api/home/stats', isAuthenticated, async (req: any, res) => {
     try {
       const user = await db.execute(sql`SELECT selected_niches, primary_niche FROM users WHERE id = ${req.user.id}`);

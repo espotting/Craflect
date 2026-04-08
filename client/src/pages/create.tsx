@@ -85,6 +85,20 @@ interface OpportunityContext {
   confidence?: number;
 }
 
+interface PatternData {
+  pattern_id: string;
+  pattern_label: string;
+  hook_template: string | null;
+  structure_template: string | null;
+  optimal_duration: number | null;
+  why_it_works: string | null;
+  best_for: string | null;
+  content_angle: string | null;
+  cta_suggestion: string | null;
+  trend_status: string | null;
+  velocity_7d: number | null;
+}
+
 // Réponse de l'API predict/views
 interface PredictResponse {
   viral_probability: number;
@@ -400,76 +414,136 @@ function LiveScorePanel({
 
 // ─── Step 0 — Idea ────────────────────────────────────────────────────────────
 
+function StructureGuide({ pattern }: { pattern: PatternData }) {
+  if (!pattern.structure_template) return null;
+  const steps = pattern.structure_template.split(/\n|(?:\d+[\.\)]\s)/).filter(s => s.trim());
+
+  return (
+    <Card className="bg-slate-900/50 border-slate-800 border-l-2 border-l-purple-500">
+      <CardContent className="p-5 space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold text-sm flex items-center gap-2 text-white">
+            <Layers className="h-4 w-4 text-purple-400" />
+            Recommended Structure
+          </h3>
+          {pattern.pattern_label && (
+            <Badge className="bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[10px]">
+              {pattern.pattern_label}
+            </Badge>
+          )}
+        </div>
+        <div className="space-y-2">
+          {steps.map((step, i) => (
+            <div key={i} className="flex items-start gap-3 p-2.5 rounded-lg bg-slate-800/50">
+              <span className="w-6 h-6 rounded-full bg-purple-500/20 text-purple-400 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">
+                {i + 1}
+              </span>
+              <p className="text-sm text-slate-300">{step.trim()}</p>
+            </div>
+          ))}
+        </div>
+        <div className="flex flex-wrap gap-3 pt-1">
+          {pattern.optimal_duration && (
+            <div className="flex items-center gap-1.5 text-xs text-slate-400">
+              <Clock className="w-3 h-3" />
+              {pattern.optimal_duration}s optimal
+            </div>
+          )}
+          {pattern.best_for && (
+            <div className="flex items-center gap-1.5 text-xs text-slate-400">
+              <Target className="w-3 h-3" />
+              {pattern.best_for}
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function StepIdea({
   hook, setHook,
   format, setFormat,
   topic, setTopic,
   context, setContext,
   oppContext,
+  patternData,
   t,
 }: any) {
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-      {/* Input form */}
-      <div className="lg:col-span-3 space-y-4">
-        <Card className="bg-slate-900/50 border-slate-800">
-          <CardContent className="p-5 space-y-4">
-            <div>
-              <Label className="text-sm font-medium text-slate-300">Hook *</Label>
-              <Input
-                placeholder='e.g. "3 AI tools nobody talks about"'
-                value={hook}
-                onChange={(e) => setHook(e.target.value)}
-                className="mt-1 bg-slate-800 border-slate-700 text-white"
-                data-testid="input-hook"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <div className="lg:col-span-3 space-y-4">
+          <Card className="bg-slate-900/50 border-slate-800">
+            <CardContent className="p-5 space-y-4">
               <div>
-                <Label className="text-sm font-medium text-slate-300">Format</Label>
+                <Label className="text-sm font-medium text-slate-300">Hook *</Label>
                 <Input
-                  placeholder="e.g. Listicle, Tutorial"
-                  value={format}
-                  onChange={(e) => setFormat(e.target.value)}
+                  placeholder='e.g. "3 AI tools nobody talks about"'
+                  value={hook}
+                  onChange={(e) => setHook(e.target.value)}
                   className="mt-1 bg-slate-800 border-slate-700 text-white"
-                  data-testid="input-format"
+                  data-testid="input-hook"
                 />
+                {patternData?.hook_template && hook !== patternData.hook_template && (
+                  <button
+                    onClick={() => setHook(patternData.hook_template)}
+                    className="mt-1.5 text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1"
+                    data-testid="button-use-template"
+                  >
+                    <Sparkles className="w-3 h-3" />
+                    Use pattern template: "{patternData.hook_template}"
+                  </button>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-sm font-medium text-slate-300">Format</Label>
+                  <Input
+                    placeholder="e.g. Listicle, Tutorial"
+                    value={format}
+                    onChange={(e) => setFormat(e.target.value)}
+                    className="mt-1 bg-slate-800 border-slate-700 text-white"
+                    data-testid="input-format"
+                  />
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-slate-300">Topic</Label>
+                  <Input
+                    placeholder="e.g. AI Tools"
+                    value={topic}
+                    onChange={(e) => setTopic(e.target.value)}
+                    className="mt-1 bg-slate-800 border-slate-700 text-white"
+                    data-testid="input-topic"
+                  />
+                </div>
               </div>
               <div>
-                <Label className="text-sm font-medium text-slate-300">Topic</Label>
-                <Input
-                  placeholder="e.g. AI Tools"
-                  value={topic}
-                  onChange={(e) => setTopic(e.target.value)}
-                  className="mt-1 bg-slate-800 border-slate-700 text-white"
-                  data-testid="input-topic"
+                <Label className="text-sm font-medium text-slate-300">Context</Label>
+                <Textarea
+                  placeholder="Additional context for better AI results..."
+                  value={context}
+                  onChange={(e) => setContext(e.target.value)}
+                  className="mt-1 h-20 bg-slate-800 border-slate-700 text-white"
+                  data-testid="input-context"
                 />
               </div>
-            </div>
-            <div>
-              <Label className="text-sm font-medium text-slate-300">Context</Label>
-              <Textarea
-                placeholder="Additional context for better AI results..."
-                value={context}
-                onChange={(e) => setContext(e.target.value)}
-                className="mt-1 h-20 bg-slate-800 border-slate-700 text-white"
-                data-testid="input-context"
-              />
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="lg:col-span-2">
+          <LiveScorePanel
+            hook={hook}
+            format={format}
+            topic={topic}
+            oppContext={oppContext}
+            t={t}
+          />
+        </div>
       </div>
 
-      {/* Live score panel */}
-      <div className="lg:col-span-2">
-        <LiveScorePanel
-          hook={hook}
-          format={format}
-          topic={topic}
-          oppContext={oppContext}
-          t={t}
-        />
-      </div>
+      {patternData && <StructureGuide pattern={patternData} />}
     </div>
   );
 }
@@ -936,6 +1010,9 @@ export default function CreatePage() {
   const [showPaywall, setShowPaywall] = useState(false);
   const autoSavedRef = useRef(false);
 
+  // Pattern data (fetched when patternId is available)
+  const [patternData, setPatternData] = useState<PatternData | null>(null);
+
   // Data
   const { data: credits, refetch: refetchCredits } = useQuery<CreditsInfo>({ queryKey: ["/api/credits"] });
   const { data: projects } = useQuery<ProjectItem[]>({ queryKey: ["/api/projects"] });
@@ -972,6 +1049,24 @@ export default function CreatePage() {
         patternId: qPatternId || undefined,
         confidence: qConfidence ? Number(qConfidence) : undefined,
       });
+    }
+
+    // Fetch pattern data if patternId is provided
+    if (qPatternId) {
+      fetch(`/api/patterns/${qPatternId}`, { credentials: "include" })
+        .then(r => r.ok ? r.json() : null)
+        .then((data: PatternData | null) => {
+          if (data) {
+            setPatternData(data);
+            if (data.hook_template && !qHook) {
+              setHook(data.hook_template);
+            }
+            if (data.why_it_works && !qWhyItWorks) {
+              setOppContext(prev => ({ ...prev, whyItWorks: data.why_it_works || undefined }));
+            }
+          }
+        })
+        .catch(() => {});
     }
   }, []);
 
@@ -1145,6 +1240,7 @@ export default function CreatePage() {
     setCurrentStep(0);
     setHook(""); setFormat(""); setTopic(""); setStructure(""); setContext("");
     setOppContext({});
+    setPatternData(null);
     setScript(null); setBlueprint(null);
     setEditHookLine(""); setEditScene1(""); setEditScene2(""); setEditScene3(""); setEditCta("");
     setCopied(false); setShowNextActions(false);
@@ -1242,6 +1338,7 @@ export default function CreatePage() {
             topic={topic} setTopic={setTopic}
             context={context} setContext={setContext}
             oppContext={oppContext}
+            patternData={patternData}
             t={t}
           />
         )}
