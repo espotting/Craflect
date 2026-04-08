@@ -2,6 +2,7 @@ import { Worker } from 'bullmq';
 import { db } from '../db';
 import { sql } from 'drizzle-orm';
 import { redisConnection } from '../config/redis';
+import { generateAllPatterns } from '../services/pattern-generator';
 
 export const patternWorker = new Worker('pattern', async () => {
   console.log('[Pattern Engine] Détection...');
@@ -66,4 +67,7 @@ export const patternWorker = new Worker('pattern', async () => {
   }
 
   console.log(`[Pattern Engine] ${result.rows.length} patterns mis à jour (filtres: US content, min 5 vidéos, virality > 20)`);
+
+  const patternsGenerated = await generateAllPatterns();
+  console.log(`[Pattern] ${patternsGenerated} patterns générés`);
 }, { connection: redisConnection, concurrency: 1 });
