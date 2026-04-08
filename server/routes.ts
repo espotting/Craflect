@@ -4348,6 +4348,68 @@ ${input.cta ? `CTA: ${input.cta}` : ""}`;
     }
   });
 
+  app.post('/api/predict', isAuthenticated, async (req: any, res) => {
+    try {
+      const { hookType, format, niche, duration } = req.body;
+
+      const matchingPatterns = await db.execute(sql`
+        SELECT 
+          p.pattern_label,
+          p.hook_template,
+          p.why_it_works,
+          p.avg_virality_score,
+          p.video_count,
+          p.confidence_score,
+          p.trend_classification,
+          cc.trend_status,
+          cc.velocity_7d
+        FROM patterns p
+        LEFT JOIN content_clusters cc ON cc.id::text = p.cluster_id
+        WHERE 
+          (p.hook_type = ${hookType} OR ${hookType} IS NULL)
+          AND (p.topic_cluster = ${niche} OR ${niche} IS NULL)
+        ORDER BY p.avg_virality_score DESC NULLS LAST
+        LIMIT 5
+      `);
+
+      if (!matchingPatterns.rows.length) {
+        return res.json({
+          predictedViews: { min: 10000, max: 100000, likely: 50000 },
+          confidence: 0.3,
+          matchingPatterns: [],
+          recommendation: 'Not enough data for this combination yet.'
+        });
+      }
+
+      const topPattern = matchingPatterns.rows[0] as any;
+      const avgVirality = topPattern.avg_virality_score || 50;
+
+      const baseViews = Math.round(Math.pow(10, avgVirality / 100 * 6));
+      const confidence = Math.min(0.9, (topPattern.confidence_score || 0.5) * 
+        (topPattern.video_count > 10 ? 1.2 : 1));
+
+      res.json({
+        predictedViews: {
+          min: Math.round(baseViews * 0.3),
+          max: Math.round(baseViews * 3),
+          likely: baseViews
+        },
+        confidence: parseFloat(confidence.toFixed(2)),
+        viralityScore: Math.round(avgVirality),
+        matchingPatterns: matchingPatterns.rows,
+        topPattern: {
+          label: topPattern.pattern_label,
+          hookTemplate: topPattern.hook_template,
+          whyItWorks: topPattern.why_it_works,
+          trendStatus: topPattern.trend_status || 'stable',
+          velocity: topPattern.velocity_7d || 0
+        }
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   return httpServer;
 }
 
