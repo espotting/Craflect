@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Play, Eye, Sparkles, BarChart3, Bookmark } from "lucide-react";
+import { Eye, Sparkles, BarChart3, Bookmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ViralityBadge } from "./virality-badge";
 import { useLanguage } from "@/hooks/use-language";
+import { useLocation } from "wouter";
 
 export interface VideoCardData {
   id: string;
@@ -13,6 +14,9 @@ export interface VideoCardData {
   viralityScore: number;
   platform?: string;
   creator?: string;
+  trendStatus?: 'emerging' | 'trending' | 'stable' | 'declining';
+  velocity7d?: number;
+  followersCount?: number;
 }
 
 interface VideoCardV2Props {
@@ -36,10 +40,43 @@ function getGradient(id: string) {
   return gradients[Math.abs(hash) % gradients.length];
 }
 
+function getViralityBarColor(score: number): string {
+  if (score >= 80) return 'linear-gradient(90deg, #7C5CFF, #c026d3)';
+  if (score >= 60) return '#7C5CFF';
+  if (score >= 40) return '#3b82f6';
+  return '#64748b';
+}
+
+function VelocityBadge({ trendStatus }: { trendStatus?: string }) {
+  if (trendStatus === 'emerging') {
+    return (
+      <div style={{
+        position: 'absolute', top: 8, right: 8,
+        background: 'rgba(239,68,68,0.15)', border: '1px solid #ef4444',
+        borderRadius: 20, padding: '3px 10px', fontSize: 11, fontWeight: 600,
+        color: '#ef4444', backdropFilter: 'blur(4px)', zIndex: 10,
+      }}>🔥 Emerging</div>
+    );
+  }
+  if (trendStatus === 'trending') {
+    return (
+      <div style={{
+        position: 'absolute', top: 8, right: 8,
+        background: 'rgba(124,92,255,0.15)', border: '1px solid #7C5CFF',
+        borderRadius: 20, padding: '3px 10px', fontSize: 11, fontWeight: 600,
+        color: '#7C5CFF', backdropFilter: 'blur(4px)', zIndex: 10,
+      }}>⚡ Trending</div>
+    );
+  }
+  return null;
+}
+
 export function VideoCardV2({ video, compact = false, onCreateSimilar, onAnalyze, onSave }: VideoCardV2Props) {
   const [isHovered, setIsHovered] = useState(false);
   const { t } = useLanguage();
+  const [, navigate] = useLocation();
   const gradient = getGradient(video.id);
+  const viralityBarColor = getViralityBarColor(video.viralityScore);
 
   if (compact) {
     return (
@@ -65,11 +102,21 @@ export function VideoCardV2({ video, compact = false, onCreateSimilar, onAnalyze
               </span>
             </div>
           )}
-          <div className="absolute top-2 right-2">
-            <ViralityBadge score={video.viralityScore} />
-          </div>
+          <VelocityBadge trendStatus={video.trendStatus} />
+          {!video.trendStatus && (
+            <div className="absolute top-2 right-2">
+              <ViralityBadge score={video.viralityScore} />
+            </div>
+          )}
           <div className="absolute bottom-0 left-0 right-0 p-3">
             <p className="text-white font-medium text-xs line-clamp-2">{video.hook}</p>
+          </div>
+          {/* Virality bar */}
+          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 3, background: 'rgba(255,255,255,0.1)' }}>
+            <div style={{
+              width: `${Math.min(100, video.viralityScore)}%`, height: '100%',
+              background: viralityBarColor, transition: 'width 0.3s ease'
+            }} />
           </div>
         </div>
       </div>
@@ -103,46 +150,71 @@ export function VideoCardV2({ video, compact = false, onCreateSimilar, onAnalyze
           </div>
         )}
 
-        <div className="absolute top-3 right-3">
-          <ViralityBadge score={video.viralityScore} />
-        </div>
+        <VelocityBadge trendStatus={video.trendStatus} />
+        {!video.trendStatus && (
+          <div className="absolute top-3 right-3">
+            <ViralityBadge score={video.viralityScore} />
+          </div>
+        )}
 
-        <div
-          className={`absolute inset-0 flex flex-col items-center justify-center gap-2 transition-opacity duration-300 ${isHovered ? "opacity-100" : "opacity-0"}`}
-        >
-          <Button
-            size="sm"
-            className="bg-purple-600 hover:bg-purple-700 text-white w-36"
-            onClick={(e) => { e.stopPropagation(); onCreateSimilar?.(video); }}
-            data-testid={`button-create-similar-${video.id}`}
-          >
-            <Sparkles className="w-4 h-4 mr-2" />
-            {t.studio?.hover?.createSimilar || "Create Similar"}
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            className="border-white/30 text-white hover:bg-white/20 w-36"
-            onClick={(e) => { e.stopPropagation(); onAnalyze?.(video); }}
-            data-testid={`button-analyze-${video.id}`}
-          >
-            <BarChart3 className="w-4 h-4 mr-2" />
-            {t.studio?.hover?.analyze || "Analyze"}
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            className="border-white/30 text-white hover:bg-white/20 w-36"
-            onClick={(e) => { e.stopPropagation(); onSave?.(video); }}
-            data-testid={`button-save-${video.id}`}
-          >
-            <Bookmark className="w-4 h-4 mr-2" />
-            {t.studio?.hover?.save || "Save"}
-          </Button>
-        </div>
+        {/* Hover overlay */}
+        {isHovered && (
+          <div style={{
+            position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.7)',
+            display: 'flex', flexDirection: 'column', alignItems: 'center',
+            justifyContent: 'center', gap: 10, borderRadius: 'inherit',
+          }}>
+            <button
+              onClick={(e) => { e.stopPropagation(); navigate('/create?videoId=' + video.id); }}
+              style={{
+                background: '#7C5CFF', color: '#fff', border: 'none',
+                padding: '10px 20px', borderRadius: 8, fontSize: 13, fontWeight: 600,
+                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+              }}
+              data-testid={`button-create-similar-${video.id}`}
+            >
+              <Sparkles style={{ width: 14, height: 14 }} />
+              {t.studio?.hover?.createSimilar || "Use in Studio"}
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onAnalyze?.(video); }}
+              style={{
+                background: 'rgba(255,255,255,0.1)', color: '#fff',
+                border: '1px solid rgba(255,255,255,0.2)',
+                padding: '8px 20px', borderRadius: 8, fontSize: 13,
+                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+              }}
+              data-testid={`button-analyze-${video.id}`}
+            >
+              <BarChart3 style={{ width: 14, height: 14 }} />
+              {t.studio?.hover?.analyze || "Analyze"}
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onSave?.(video); }}
+              style={{
+                background: 'rgba(255,255,255,0.1)', color: '#fff',
+                border: '1px solid rgba(255,255,255,0.2)',
+                padding: '8px 20px', borderRadius: 8, fontSize: 13,
+                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+              }}
+              data-testid={`button-save-${video.id}`}
+            >
+              <Bookmark style={{ width: 14, height: 14 }} />
+              {t.studio?.hover?.save || "Save"}
+            </button>
+          </div>
+        )}
 
         <div className="absolute bottom-0 left-0 right-0 p-4">
           <p className="text-white font-semibold text-sm line-clamp-2 leading-tight">{video.hook}</p>
+        </div>
+
+        {/* Virality bar */}
+        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 3, background: 'rgba(255,255,255,0.1)' }}>
+          <div style={{
+            width: `${Math.min(100, video.viralityScore)}%`, height: '100%',
+            background: viralityBarColor, transition: 'width 0.3s ease'
+          }} />
         </div>
       </div>
 

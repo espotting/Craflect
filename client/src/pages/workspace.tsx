@@ -42,6 +42,10 @@ import {
   Bookmark,
   TrendingUp,
   ArrowRight,
+  Sparkles,
+  Layers,
+  Settings,
+  X,
 } from "lucide-react";
 import { getViralityColor } from "@/lib/predicted-views";
 
@@ -488,6 +492,304 @@ function SavedInspirationsTab() {
   );
 }
 
+// ─── Saved Patterns Tab ───────────────────────────────────────────────────────
+
+interface SavedPattern {
+  pattern_id: string;
+  pattern_label: string | null;
+  hook_template: string | null;
+  why_it_works: string | null;
+  avg_virality_score: number | null;
+  topic_cluster: string | null;
+  hook_type: string | null;
+  trend_status: string | null;
+  velocity_7d: number | null;
+}
+
+function viralityBarColor(score: number): string {
+  if (score >= 80) return 'linear-gradient(90deg, #7C5CFF, #c026d3)';
+  if (score >= 60) return '#7C5CFF';
+  if (score >= 40) return '#3b82f6';
+  return '#64748b';
+}
+
+function SavedPatternsTab() {
+  const [, setLocation] = useLocation();
+  const { data: patterns, isLoading } = useQuery<SavedPattern[]>({ queryKey: ["/api/patterns/saved"] });
+
+  if (isLoading) return <LoadingSkeleton />;
+
+  if (!patterns || patterns.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center">
+        <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center mb-4">
+          <Layers className="w-7 h-7 text-muted-foreground" />
+        </div>
+        <p className="text-muted-foreground font-medium mb-1">No patterns found</p>
+        <p className="text-sm text-muted-foreground">Add niches in My Niches to see relevant patterns here.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" data-testid="grid-saved-patterns">
+      {patterns.map((pattern) => {
+        const score = Math.round(pattern.avg_virality_score || 0);
+        return (
+          <Card key={pattern.pattern_id} className="hover-elevate transition-all" data-testid={`card-pattern-${pattern.pattern_id}`}>
+            <CardContent className="p-4 space-y-3">
+              {/* Header */}
+              <div className="flex items-start justify-between gap-2">
+                <h3 className="font-semibold text-sm text-foreground line-clamp-2 flex-1">
+                  {pattern.pattern_label || pattern.hook_type || "Pattern"}
+                </h3>
+                <div className="flex gap-1 shrink-0">
+                  {pattern.trend_status === 'emerging' && (
+                    <span style={{ padding: '2px 8px', borderRadius: 12, fontSize: 11, fontWeight: 600, background: 'rgba(239,68,68,0.15)', color: '#ef4444', border: '1px solid #ef4444' }}>
+                      🔥 Emerging
+                    </span>
+                  )}
+                  {pattern.trend_status === 'trending' && (
+                    <span style={{ padding: '2px 8px', borderRadius: 12, fontSize: 11, fontWeight: 600, background: 'rgba(124,92,255,0.15)', color: '#7C5CFF', border: '1px solid #7C5CFF' }}>
+                      ⚡ Trending
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Hook template */}
+              {pattern.hook_template && (
+                <div style={{
+                  background: 'rgba(124,92,255,0.08)', border: '1px solid rgba(124,92,255,0.2)',
+                  borderRadius: 8, padding: '8px 10px',
+                  fontFamily: 'monospace', fontSize: 12, color: 'rgba(255,255,255,0.8)', lineHeight: 1.5,
+                }}>
+                  {pattern.hook_template}
+                </div>
+              )}
+
+              {/* Why it works */}
+              {pattern.why_it_works && (
+                <p className="text-xs text-muted-foreground line-clamp-2">{pattern.why_it_works}</p>
+              )}
+
+              {/* Virality bar */}
+              {score > 0 && (
+                <div>
+                  <div className="flex justify-between mb-1">
+                    <span className="text-xs text-muted-foreground">Virality</span>
+                    <span className="text-xs font-semibold" style={{ color: '#7C5CFF' }}>{score}/100</span>
+                  </div>
+                  <div style={{ height: 4, background: 'rgba(255,255,255,0.1)', borderRadius: 2, overflow: 'hidden' }}>
+                    <div style={{
+                      width: `${score}%`, height: '100%', borderRadius: 2,
+                      background: viralityBarColor(score), transition: 'width 0.3s ease',
+                    }} />
+                  </div>
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex items-center gap-2 pt-1 border-t border-border/50">
+                <Button
+                  size="sm"
+                  className="flex-1 text-xs bg-purple-600 hover:bg-purple-700 text-white"
+                  onClick={() => setLocation(`/create?patternId=${pattern.pattern_id}`)}
+                  data-testid={`button-use-pattern-${pattern.pattern_id}`}
+                >
+                  <Sparkles className="w-3 h-3 mr-1" />Use in Studio
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── My Niches Tab ────────────────────────────────────────────────────────────
+
+const AVAILABLE_NICHES = [
+  'fitness', 'finance', 'beauty', 'food', 'travel', 'tech', 'gaming',
+  'education', 'business', 'lifestyle', 'fashion', 'health', 'music',
+  'comedy', 'sports', 'motivation', 'cooking', 'diy', 'pets', 'parenting',
+];
+
+function MyNichesTab() {
+  const { toast } = useToast();
+  const [showModal, setShowModal] = useState(false);
+  const [editPrimary, setEditPrimary] = useState<string | null>(null);
+  const [editSelected, setEditSelected] = useState<string[]>([]);
+
+  const { data: prefs, isLoading } = useQuery<{
+    selectedNiches: string[];
+    primaryNiche: string | null;
+  }>({ queryKey: ["/api/user/preferences"] });
+
+  const saveMutation = useMutation({
+    mutationFn: async (data: { selectedNiches: string[]; primaryNiche: string | null }) =>
+      apiRequest("PATCH", "/api/user/preferences", {
+        selectedNiches: data.selectedNiches,
+        primaryNiche: data.primaryNiche,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/user/preferences"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      setShowModal(false);
+      toast({ title: "Niches updated!" });
+    },
+    onError: () => toast({ title: "Could not save niches", variant: "destructive" }),
+  });
+
+  function openModal() {
+    setEditPrimary(prefs?.primaryNiche || null);
+    setEditSelected(prefs?.selectedNiches || []);
+    setShowModal(true);
+  }
+
+  function toggleNiche(niche: string) {
+    if (editPrimary === niche) {
+      setEditPrimary(null);
+      setEditSelected(prev => prev.filter(n => n !== niche));
+    } else if (editSelected.includes(niche)) {
+      setEditSelected(prev => prev.filter(n => n !== niche));
+    } else if (editSelected.length < 3) {
+      setEditSelected(prev => [...prev, niche]);
+    }
+  }
+
+  function setPrimaryNiche(niche: string) {
+    if (!editSelected.includes(niche)) {
+      if (editSelected.length < 3) {
+        setEditSelected(prev => [...prev, niche]);
+      }
+    }
+    setEditPrimary(niche);
+  }
+
+  if (isLoading) return <LoadingSkeleton />;
+
+  const selectedNiches = prefs?.selectedNiches || [];
+  const primaryNiche = prefs?.primaryNiche || null;
+
+  return (
+    <div data-testid="tab-my-niches">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h3 className="font-semibold text-foreground">Your Content Niches</h3>
+          <p className="text-sm text-muted-foreground mt-1">
+            These define which trends and patterns Craflect shows you.
+          </p>
+        </div>
+        <Button variant="outline" size="sm" onClick={openModal} data-testid="button-edit-niches">
+          <Settings className="w-3.5 h-3.5 mr-1.5" />Edit Niches
+        </Button>
+      </div>
+
+      {selectedNiches.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center mb-4">
+            <Lightbulb className="w-7 h-7 text-muted-foreground" />
+          </div>
+          <p className="text-muted-foreground font-medium mb-1">No niches selected</p>
+          <p className="text-sm text-muted-foreground mb-4">Add niches to personalize your experience.</p>
+          <Button onClick={openModal}>Add Niches</Button>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {primaryNiche && (
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Primary Niche</p>
+              <span style={{
+                display: 'inline-block', padding: '8px 20px', borderRadius: 20,
+                background: 'rgba(124,92,255,0.2)', border: '2px solid #7C5CFF',
+                color: '#7C5CFF', fontSize: 15, fontWeight: 700,
+                textTransform: 'capitalize',
+              }}>
+                {primaryNiche.replace(/_/g, ' ')}
+              </span>
+            </div>
+          )}
+          {selectedNiches.filter(n => n !== primaryNiche).length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Secondary Niches</p>
+              <div className="flex flex-wrap gap-2">
+                {selectedNiches.filter(n => n !== primaryNiche).map(niche => (
+                  <span key={niche} style={{
+                    display: 'inline-block', padding: '6px 14px', borderRadius: 16,
+                    background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)',
+                    color: 'rgba(255,255,255,0.7)', fontSize: 13, textTransform: 'capitalize',
+                  }}>
+                    {niche.replace(/_/g, ' ')}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Edit Niches Modal */}
+      <Dialog open={showModal} onOpenChange={(v) => !v && setShowModal(false)}>
+        <DialogContent className="max-w-lg" data-testid="dialog-edit-niches">
+          <DialogHeader>
+            <DialogTitle>Edit Your Niches</DialogTitle>
+          </DialogHeader>
+          <div className="mt-4 space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Select up to 3 niches. Click once to add as secondary, click the ★ to set as primary.
+            </p>
+            <div className="flex flex-wrap gap-2 max-h-64 overflow-y-auto">
+              {AVAILABLE_NICHES.map(niche => {
+                const isSelected = editSelected.includes(niche);
+                const isPrimary = editPrimary === niche;
+                return (
+                  <div key={niche} style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <button
+                      onClick={() => toggleNiche(niche)}
+                      style={{
+                        padding: '6px 12px', borderRadius: 16, fontSize: 13, cursor: 'pointer',
+                        fontWeight: isPrimary ? 700 : 500, textTransform: 'capitalize',
+                        background: isPrimary ? 'rgba(124,92,255,0.2)' : isSelected ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.04)',
+                        border: isPrimary ? '2px solid #7C5CFF' : isSelected ? '1px solid rgba(255,255,255,0.3)' : '1px solid rgba(255,255,255,0.1)',
+                        color: isPrimary ? '#7C5CFF' : isSelected ? '#fff' : 'rgba(255,255,255,0.5)',
+                        transition: 'all 0.15s',
+                      }}
+                    >
+                      {niche.replace(/_/g, ' ')}
+                    </button>
+                    {isSelected && !isPrimary && (
+                      <button
+                        onClick={() => setPrimaryNiche(niche)}
+                        title="Set as primary"
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', fontSize: 14, padding: 0 }}
+                      >★</button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{ paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+              <Button variant="ghost" onClick={() => setShowModal(false)}>Cancel</Button>
+              <Button
+                onClick={() => saveMutation.mutate({ selectedNiches: editSelected, primaryNiche: editPrimary })}
+                disabled={saveMutation.isPending}
+                data-testid="button-save-niches"
+              >
+                {saveMutation.isPending ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : null}
+                Save
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
+
 export default function WorkspacePage() {
   const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState("generated-ideas");
@@ -514,10 +816,18 @@ export default function WorkspacePage() {
             <TabsTrigger value="saved-inspirations" data-testid="tab-saved-inspirations">
               <Bookmark className="w-4 h-4 mr-1.5" />{t.workspace.tabSavedInspirations}
             </TabsTrigger>
+            <TabsTrigger value="saved-patterns" data-testid="tab-saved-patterns">
+              <Layers className="w-4 h-4 mr-1.5" />Saved Patterns
+            </TabsTrigger>
+            <TabsTrigger value="my-niches" data-testid="tab-my-niches">
+              <Settings className="w-4 h-4 mr-1.5" />My Niches
+            </TabsTrigger>
           </TabsList>
           <TabsContent value="generated-ideas" className="mt-4"><GeneratedIdeasTab /></TabsContent>
           <TabsContent value="created-scripts" className="mt-4"><CreatedScriptsTab /></TabsContent>
           <TabsContent value="saved-inspirations" className="mt-4"><SavedInspirationsTab /></TabsContent>
+          <TabsContent value="saved-patterns" className="mt-4"><SavedPatternsTab /></TabsContent>
+          <TabsContent value="my-niches" className="mt-4"><MyNichesTab /></TabsContent>
         </Tabs>
       </div>
     </DashboardLayout>

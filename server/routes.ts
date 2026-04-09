@@ -3809,30 +3809,6 @@ ${input.cta ? `CTA: ${input.cta}` : ""}`;
 
   // ─── Home Page Endpoints ───
 
-  app.get("/api/home/stats", isAuthenticated, async (req: any, res) => {
-    try {
-      const { db } = await import("./db");
-      const { sql } = await import("drizzle-orm");
-      const result = await db.execute(sql`
-        SELECT
-          (SELECT COUNT(*) FROM videos WHERE classification_status = 'completed') as total_videos,
-          (SELECT COUNT(*) FROM patterns WHERE avg_virality_score IS NOT NULL) as total_patterns,
-          (SELECT ROUND(AVG(virality_score)::numeric, 1) FROM videos WHERE classification_status = 'completed' AND virality_score IS NOT NULL) as avg_virality,
-          (SELECT COUNT(DISTINCT topic_cluster) FROM videos WHERE classification_status = 'completed' AND topic_cluster IS NOT NULL AND topic_cluster != '' AND topic_cluster != 'null') as active_niches
-      `);
-      const row: any = result.rows[0];
-      res.json({
-        totalVideos: parseInt(row.total_videos) || 0,
-        totalPatterns: parseInt(row.total_patterns) || 0,
-        avgVirality: parseFloat(row.avg_virality) || 0,
-        activeNiches: parseInt(row.active_niches) || 0,
-      });
-    } catch (err: any) {
-      console.error("Home stats error:", err);
-      res.status(500).json({ message: "Internal Error" });
-    }
-  });
-
   app.get("/api/home/viral-play", isAuthenticated, async (req: any, res) => {
     try {
       const { db } = await import("./db");
@@ -4652,6 +4628,54 @@ ${input.cta ? `CTA: ${input.cta}` : ""}`;
           velocity: topPattern.velocity_7d || 0
         }
       });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get('/api/user/preferences', isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const user = await db.execute(sql`
+        SELECT selected_niches, primary_niche, content_style, user_goal, onboarding_completed
+        FROM users WHERE id = ${req.user.id}
+      `);
+      if (!user.rows.length) return res.status(404).json({ error: 'User not found' });
+      const row = user.rows[0] as any;
+      res.json({
+        selectedNiches: row.selected_niches || [],
+        primaryNiche: row.primary_niche || null,
+        contentStyle: row.content_style || null,
+        userGoal: row.user_goal || null,
+        onboardingCompleted: row.onboarding_completed || false,
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get('/api/patterns/saved', isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const user = await db.execute(sql`SELECT selected_niches FROM users WHERE id = ${req.user.id}`);
+      const niches: string[] = (user.rows[0] as any)?.selected_niches || [];
+      const nichesArr = `{${niches.join(',')}}`;
+
+      const patterns = await db.execute(sql`
+        SELECT p.*, cc.trend_status, cc.velocity_7d
+        FROM patterns p
+        LEFT JOIN content_clusters cc ON cc.id::text = p.cluster_id
+        WHERE (
+          p.topic_cluster = ANY(${nichesArr}::text[])
+          OR ${nichesArr}::text[] = '{}'
+        )
+          AND p.pattern_label IS NOT NULL
+        ORDER BY p.avg_virality_score DESC NULLS LAST
+        LIMIT 20
+      `);
+      res.json(patterns.rows);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
