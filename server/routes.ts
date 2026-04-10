@@ -3996,10 +3996,8 @@ ${input.cta ? `CTA: ${input.cta}` : ""}`;
       if (format) conditions.push(`v.structure_type = '${format.replace(/'/g, "''")}'`);
       if (hookType) conditions.push(`v.hook_type_v2 = '${hookType.replace(/'/g, "''")}'`);
 
-      let velocityJoin = "";
       let velocityFilter = "";
       if (velocity === "emerging" || velocity === "trending") {
-        velocityJoin = "LEFT JOIN content_clusters cc ON v.id = ANY(cc.video_ids)";
         velocityFilter = `AND cc.trend_status = '${velocity}'`;
       }
 
@@ -4011,21 +4009,29 @@ ${input.cta ? `CTA: ${input.cta}` : ""}`;
       const result = await db.execute(sql.raw(`
         SELECT v.id, v.hook_text, v.structure_type, v.topic_cluster, v.platform,
                v.virality_score, v.views, v.thumbnail_url, v.hook_mechanism_primary,
-               v.hook_type_v2, v.emotion_primary, v.niche_cluster
+               v.hook_type_v2, v.emotion_primary, v.niche_cluster,
+               cc.trend_status, cc.velocity_7d
         FROM videos v
-        ${velocityJoin}
+        LEFT JOIN content_clusters cc ON v.id = ANY(cc.video_ids)
         WHERE ${whereClause} ${velocityFilter}
         ORDER BY ${nicheCase} v.virality_score DESC NULLS LAST
         LIMIT 40
       `));
 
       const opportunities = result.rows.map((v: any) => {
-        let compatibility: string | null = null;
-        if (primaryNiche && v.niche_cluster === primaryNiche) {
-          compatibility = "your_niche";
-        } else if (userNiches.length > 0 && userNiches.includes(v.niche_cluster)) {
-          compatibility = "related";
-        }
+        let compatibilityScore = 0;
+        if (primaryNiche && v.niche_cluster === primaryNiche) compatibilityScore += 40;
+        else if (userNiches.length > 0 && userNiches.includes(v.niche_cluster)) compatibilityScore += 20;
+        if (['emerging', 'trending'].includes(v.trend_status)) compatibilityScore += 20;
+        compatibilityScore += Math.min(20, (parseFloat(v.velocity_7d) || 0) * 2);
+        compatibilityScore = Math.min(100, Math.round(compatibilityScore));
+
+        const matchType = compatibilityScore >= 80 ? 'perfect_match'
+          : compatibilityScore >= 50 ? 'good_match' : 'explore';
+
+        // keep legacy compatibility for existing frontend
+        const compatibility = primaryNiche && v.niche_cluster === primaryNiche ? 'your_niche'
+          : (userNiches.length > 0 && userNiches.includes(v.niche_cluster)) ? 'related' : null;
 
         return {
           id: v.id,
@@ -4040,7 +4046,11 @@ ${input.cta ? `CTA: ${input.cta}` : ""}`;
           hookType: v.hook_mechanism_primary || v.hook_type_v2,
           emotion: v.emotion_primary,
           nicheCluster: v.niche_cluster,
+          trendStatus: v.trend_status,
+          velocity7d: parseFloat(v.velocity_7d) || 0,
           compatibility,
+          compatibilityScore,
+          matchType,
         };
       });
 
@@ -4894,6 +4904,172 @@ ${input.cta ? `CTA: ${input.cta}` : ""}`;
         opportunities: parseInt((opportunities.rows[0] as any)?.count) || 0,
         trackedVideos: parseInt((tracked.rows[0] as any)?.count) || 0,
       });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ═══════════════════════════════════════════════════════════
+  // DAILY BRIEF — personalized morning intelligence
+  // ═══════════════════════════════════════════════════════════
+  app.get('/api/daily-brief', isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+
+      const userResult = await db.execute(sql`
+        SELECT first_name, primary_niche, selected_niches FROM users WHERE id = ${req.user.id}
+      `);
+      const userData = userResult.rows[0] as any;
+      const primaryNiche = userData?.primary_niche || 'content_creation';
+      const niches: string[] = userData?.selected_niches || [primaryNiche];
+      const nichesArr = `{${niches.join(',')}}`;
+
+      const [newEmerging, topOpportunity, declining] = await Promise.all([
+        db.execute(sql`
+          SELECT cc.dominant_hook_type, cc.dominant_niche, cc.velocity_7d,
+                 p.pattern_label, p.hook_template
+          FROM content_clusters cc
+          LEFT JOIN patterns p ON p.cluster_id = cc.id::text
+          WHERE cc.trend_status = 'emerging'
+            AND cc.dominant_niche = ANY(${nichesArr}::text[])
+            AND cc.updated_at >= NOW() - INTERVAL '24 hours'
+          ORDER BY cc.velocity_7d DESC NULLS LAST
+          LIMIT 3
+        `),
+        db.execute(sql`
+          SELECT hook_text, hook_type_v2, virality_score, views, niche_cluster
+          FROM videos
+          WHERE niche_cluster = ANY(${nichesArr}::text[])
+            AND classification_status = 'completed'
+            AND collected_at >= NOW() - INTERVAL '48 hours'
+          ORDER BY virality_score DESC NULLS LAST
+          LIMIT 1
+        `),
+        db.execute(sql`
+          SELECT dominant_hook_type, dominant_niche
+          FROM content_clusters
+          WHERE trend_status = 'declining'
+            AND dominant_niche = ANY(${nichesArr}::text[])
+          LIMIT 2
+        `),
+      ]);
+
+      const emergingCount = newEmerging.rows.length;
+      const topHook = (topOpportunity.rows[0] as any)?.hook_text || null;
+      const decliningTypes = declining.rows.map((r: any) => r.dominant_hook_type).filter(Boolean).join(', ');
+
+      let briefContent = {
+        headline: `${emergingCount} new patterns in your niche today`,
+        summary: `Your niche is active with ${emergingCount} emerging patterns. Check the opportunities before creating today.`,
+        action: "Open Opportunities and filter by Emerging to see what's working right now.",
+      };
+
+      try {
+        const OpenAI = (await import('openai')).default;
+        const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+        const briefPrompt = `You are the intelligence assistant of Craflect. Generate a short, actionable Daily Brief for a content creator.
+
+Niche: ${primaryNiche}
+Emerging patterns today: ${emergingCount}
+Top hook of the day: ${topHook || 'N/A'}
+Declining patterns: ${decliningTypes || 'none'}
+
+Generate a JSON with:
+{"headline":"catchy brief title (max 10 words)","summary":"2 sentences max, direct and actionable","action":"one concrete action starting with a verb"}
+JSON only, no markdown.`;
+        const completion = await openai.chat.completions.create({
+          model: 'gpt-4o-mini',
+          messages: [{ role: 'user', content: briefPrompt }],
+          response_format: { type: 'json_object' },
+          temperature: 0.7,
+          max_tokens: 200,
+        });
+        const parsed = JSON.parse(completion.choices[0].message.content || '{}');
+        if (parsed.headline) briefContent = parsed;
+      } catch (_) { /* use fallback */ }
+
+      res.json({
+        date: new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }),
+        userName: userData?.first_name?.split(' ')[0] || 'Creator',
+        brief: briefContent,
+        newEmerging: newEmerging.rows,
+        topOpportunity: topOpportunity.rows[0] || null,
+        declining: declining.rows,
+        emergingCount,
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ═══════════════════════════════════════════════════════════
+  // PERSONALIZED FEED — Netflix-style ranked content
+  // ═══════════════════════════════════════════════════════════
+  app.get('/api/feed/personalized', isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+
+      const userResult = await db.execute(sql`
+        SELECT primary_niche, selected_niches FROM users WHERE id = ${req.user.id}
+      `);
+      const userData = userResult.rows[0] as any;
+      const primaryNiche = userData?.primary_niche || null;
+      const niches: string[] = userData?.selected_niches || [];
+      const nichesArr = `{${niches.length > 0 ? niches.join(',') : (primaryNiche || 'general')}}`;
+      const primaryVal = primaryNiche || 'general';
+
+      const feed = await db.execute(sql.raw(`
+        SELECT
+          v.id, v.hook_text, v.hook_type_v2, v.structure_type, v.content_format,
+          v.niche_cluster, v.virality_score, v.views, v.thumbnail_url,
+          v.creator_name, v.duration_seconds, v.followers_count,
+          cc.trend_status, cc.velocity_7d,
+          (
+            CASE WHEN v.niche_cluster = '${primaryVal.replace(/'/g, "''")}' THEN 50
+                 WHEN v.niche_cluster = ANY(ARRAY${nichesArr.replace(/\{/,'[').replace(/\}/,']').split(',').map((n: string) => `'${n.trim().replace(/'/g, "''")}'`).join(',').replace(/\[/, '[').replace(/\]/, ']')}::text[]) THEN 30
+                 ELSE 0 END +
+            COALESCE(cc.velocity_7d, 0) * 3 +
+            COALESCE(v.virality_score, 0) * 0.2
+          ) as relevance_score
+        FROM videos v
+        LEFT JOIN content_clusters cc ON v.id = ANY(cc.video_ids)
+        WHERE v.classification_status = 'completed'
+          AND v.virality_score >= 50
+          AND v.hook_text IS NOT NULL
+        ORDER BY relevance_score DESC, v.virality_score DESC NULLS LAST
+        LIMIT 20
+      `));
+
+      res.json({
+        videos: feed.rows,
+        personalizedFor: primaryNiche,
+        totalResults: feed.rows.length,
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ═══════════════════════════════════════════════════════════
+  // FOUNDER ACCURACY — prediction engine stats
+  // ═══════════════════════════════════════════════════════════
+  app.get('/api/founder/accuracy', isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const stats = await db.execute(sql`
+        SELECT
+          COUNT(*) as total_predictions,
+          COUNT(accuracy_score) as with_accuracy,
+          AVG(accuracy_score)::numeric(4,2) as avg_accuracy,
+          COUNT(*) FILTER (WHERE accuracy_score >= 0.7) as good_predictions,
+          COUNT(*) FILTER (WHERE accuracy_score < 0.3) as poor_predictions
+        FROM video_performance
+        WHERE predicted_views IS NOT NULL
+      `);
+      res.json(stats.rows[0] || {});
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

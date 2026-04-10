@@ -20,6 +20,152 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { VideoCardV2, type VideoCardData } from "@/components/video-card-v2";
 
+// ─── Niche gradients (Netflix-style thumbnails) ───────────────────────────────
+
+const NICHE_GRADIENTS: Record<string, string> = {
+  finance: 'linear-gradient(135deg,#1e3a8a,#2563eb,#06b6d4)',
+  ai_tools: 'linear-gradient(135deg,#4c1d95,#7c3aed,#db2777)',
+  online_business: 'linear-gradient(135deg,#7c2d12,#ea580c,#fbbf24)',
+  productivity: 'linear-gradient(135deg,#064e3b,#059669,#84cc16)',
+  content_creation: 'linear-gradient(135deg,#1e1b4b,#4338ca,#7c3aed)',
+  entrepreneurship: 'linear-gradient(135deg,#7c2d12,#b45309,#d97706)',
+  default: 'linear-gradient(135deg,#1e1b4b,#4338ca,#6d28d9)',
+};
+function getNicheGradient(niche?: string | null): string {
+  return NICHE_GRADIENTS[niche || ''] || NICHE_GRADIENTS.default;
+}
+
+// ─── PatternCard ──────────────────────────────────────────────────────────────
+
+function PatternCard({ pattern }: { pattern: any }) {
+  const [, nav] = useLocation();
+  return (
+    <div style={{
+      flex: '0 0 220px', background: 'rgba(124,92,255,0.06)',
+      border: '1px solid rgba(124,92,255,0.2)', borderRadius: 12,
+      padding: 14, cursor: 'pointer',
+    }}>
+      <div style={{ marginBottom: 8 }}>
+        {pattern.trend_status === 'emerging' &&
+          <span style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.4)',
+                         color: '#ef4444', borderRadius: 20, padding: '3px 10px', fontSize: 10, fontWeight: 600 }}>🔥 Emerging</span>}
+        {pattern.trend_status === 'trending' &&
+          <span style={{ background: 'rgba(124,92,255,0.15)', border: '1px solid rgba(124,92,255,0.4)',
+                         color: '#a78bfa', borderRadius: 20, padding: '3px 10px', fontSize: 10, fontWeight: 600 }}>⚡ Trending</span>}
+      </div>
+      <div style={{ fontSize: 13, fontWeight: 600, color: '#a78bfa', marginBottom: 6 }}>
+        {pattern.pattern_label || 'Pattern'}
+      </div>
+      {pattern.hook_template && (
+        <div style={{ fontFamily: 'monospace', fontSize: 11, background: 'rgba(0,0,0,0.3)',
+                      padding: 8, borderRadius: 6, color: 'rgba(255,255,255,0.7)',
+                      lineHeight: 1.5, marginBottom: 8 }}>
+          {pattern.hook_template}
+        </div>
+      )}
+      {pattern.why_it_works && (
+        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', lineHeight: 1.5, marginBottom: 8 }}>
+          {pattern.why_it_works}
+        </div>
+      )}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>
+          Avg {Math.round(pattern.avg_virality_score || 0)} score
+        </span>
+        <span onClick={() => nav(`/create?patternId=${pattern.pattern_id || pattern.id}`)}
+              style={{ fontSize: 11, color: '#7C5CFF', fontWeight: 600, cursor: 'pointer' }}>
+          Use in Studio →
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// ─── Section header ───────────────────────────────────────────────────────────
+
+function SectionHeader({ title, isEmerging, onSeeAll }: { title: string; isEmerging?: boolean; onSeeAll?: () => void }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ width: 6, height: 6, borderRadius: '50%',
+                      background: isEmerging ? '#ef4444' : '#7C5CFF' }} />
+        <span style={{ fontSize: 15, fontWeight: 600, color: '#fff' }}>{title}</span>
+      </div>
+      {onSeeAll && (
+        <span onClick={onSeeAll}
+              style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', cursor: 'pointer' }}>
+          See all →
+        </span>
+      )}
+    </div>
+  );
+}
+
+// ─── Horizontal scroll row ────────────────────────────────────────────────────
+
+const hScrollStyle: React.CSSProperties = {
+  display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 8,
+  scrollbarWidth: 'thin' as any,
+};
+
+// ─── Daily Brief ──────────────────────────────────────────────────────────────
+
+function DailyBrief() {
+  const [, navigate] = useLocation();
+  const { data, isLoading } = useQuery<any>({
+    queryKey: ['/api/daily-brief'],
+    refetchInterval: 6 * 60 * 60 * 1000,
+  });
+
+  if (isLoading) return <Skeleton className="h-32 w-full rounded-2xl" />;
+  if (!data) return null;
+
+  return (
+    <div style={{
+      background: 'rgba(124,92,255,0.08)', border: '1px solid rgba(124,92,255,0.2)',
+      borderRadius: 16, padding: '20px 24px',
+      display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16,
+    }}>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', marginBottom: 4 }}>{data.date}</div>
+        <div style={{ fontSize: 20, fontWeight: 700, color: '#fff', marginBottom: 6 }}>
+          {data.brief?.headline}
+        </div>
+        <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', lineHeight: 1.5, marginBottom: 8 }}>
+          {data.brief?.summary}
+        </div>
+        {data.brief?.action && (
+          <div style={{ fontSize: 13, color: '#10b981', fontStyle: 'italic' }}>
+            → {data.brief.action}
+          </div>
+        )}
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end', flexShrink: 0 }}>
+        {data.emergingCount > 0 && (
+          <span style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.35)',
+                         color: '#ef4444', borderRadius: 20, padding: '4px 12px', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap' }}>
+            🔥 {data.emergingCount} Emerging
+          </span>
+        )}
+        {data.declining?.length > 0 && (
+          <span style={{ background: 'rgba(100,116,139,0.15)', border: '1px solid rgba(100,116,139,0.3)',
+                         color: '#94a3b8', borderRadius: 20, padding: '4px 12px', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap' }}>
+            📉 {data.declining.length} Declining
+          </span>
+        )}
+        <button
+          onClick={() => navigate('/opportunities?filter=emerging')}
+          style={{ background: 'rgba(124,92,255,0.2)', border: '1px solid rgba(124,92,255,0.4)',
+                   color: '#a78bfa', borderRadius: 10, padding: '8px 16px', fontSize: 13,
+                   fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
+        >
+          See opportunities →
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 interface ViralPlay {
@@ -607,6 +753,10 @@ export default function DashboardPage() {
     queryKey: ["/api/credits"],
   });
 
+  const { data: feedData } = useQuery<{ videos: any[]; personalizedFor: string | null }>({
+    queryKey: ["/api/feed/personalized"],
+  });
+
   const isLoading = loadingPlay || loadingTrending;
 
   return (
@@ -634,6 +784,11 @@ export default function DashboardPage() {
           )}
         </div>
 
+        {/* Daily Brief — always shown above fold */}
+        <div className="mb-8">
+          <DailyBrief />
+        </div>
+
         {isLoading ? (
           <LoadingSkeleton />
         ) : (
@@ -647,27 +802,130 @@ export default function DashboardPage() {
             {/* 2 — Pipeline stats */}
             <PipelineStats homeStats={homeStats} />
 
-            {/* 2.5 — Emerging Now */}
+            {/* Netflix Section 1 — Emerging Now (horizontal scroll) */}
             {alertsData?.alerts && alertsData.alerts.length > 0 && (
-              <EmergingNow alerts={alertsData.alerts} onNavigate={navigate} />
+              <section>
+                <SectionHeader
+                  title={`🔥 Emerging Now`}
+                  isEmerging
+                  onSeeAll={() => navigate('/opportunities?filter=emerging')}
+                />
+                <div style={hScrollStyle}>
+                  {alertsData.alerts.slice(0, 5).map((alert: AlertItem) => {
+                    const nicheGrad = getNicheGradient(alert.dominant_niche);
+                    return (
+                      <div
+                        key={alert.id}
+                        onClick={() => navigate('/opportunities')}
+                        style={{
+                          flex: '0 0 200px', borderRadius: 12, overflow: 'hidden',
+                          background: nicheGrad, cursor: 'pointer', position: 'relative',
+                          height: 140,
+                        }}
+                      >
+                        <div style={{
+                          position: 'absolute', inset: 0,
+                          background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.1) 60%)',
+                          padding: '10px 12px', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
+                        }}>
+                          <div style={{ fontSize: 10, color: '#ef4444', fontWeight: 700, marginBottom: 3 }}>🔥 EMERGING</div>
+                          <div style={{ fontSize: 12, fontWeight: 600, color: '#fff', lineHeight: 1.3 }}>
+                            {alert.pattern_label || alert.dominant_hook_type?.replace(/_/g, ' ') || 'Emerging Pattern'}
+                          </div>
+                          {alert.velocity_7d && (
+                            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', marginTop: 3 }}>
+                              +{Math.round(alert.velocity_7d as number)} this week
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
             )}
 
-            {/* 3 — Trending patterns */}
+            {/* Netflix Section 2 — Recommended Patterns (PatternCard) */}
+            {feedData?.videos && feedData.videos.length > 0 && (
+              <section>
+                <SectionHeader
+                  title="Recommended Patterns — Match Your Style"
+                  onSeeAll={() => navigate('/opportunities')}
+                />
+                <div style={hScrollStyle}>
+                  {feedData.videos
+                    .filter((v: any) => v.trend_status)
+                    .slice(0, 8)
+                    .map((v: any) => (
+                      <PatternCard
+                        key={v.id}
+                        pattern={{
+                          pattern_id: v.id,
+                          pattern_label: v.hook_type_v2?.replace(/_/g, ' ') || 'Pattern',
+                          hook_template: v.hook_text,
+                          why_it_works: null,
+                          avg_virality_score: v.virality_score,
+                          trend_status: v.trend_status,
+                        }}
+                      />
+                    ))}
+                </div>
+              </section>
+            )}
+
+            {/* Netflix Section 3 — Top in Your Niche This Week */}
             {trending && trending.length > 0 && (
-              <TrendingPatterns trending={trending} onNavigate={navigate} />
+              <section>
+                <SectionHeader
+                  title={`Top in ${feedData?.personalizedFor?.replace(/_/g, ' ') || 'Your Niche'} This Week`}
+                  onSeeAll={() => navigate('/opportunities')}
+                />
+                <div style={hScrollStyle}>
+                  {trending.slice(0, 6).map((opp) => {
+                    const nicheGrad = getNicheGradient(undefined);
+                    return (
+                      <div
+                        key={opp.id}
+                        style={{
+                          flex: '0 0 200px', borderRadius: 12, overflow: 'hidden',
+                          background: opp.thumbnailUrl ? undefined : nicheGrad,
+                          backgroundImage: opp.thumbnailUrl ? `url(${opp.thumbnailUrl})` : undefined,
+                          backgroundSize: 'cover', backgroundPosition: 'center',
+                          cursor: 'pointer', position: 'relative', height: 140,
+                        }}
+                        onClick={() => navigate(buildStudioUrl(opp))}
+                      >
+                        <div style={{
+                          position: 'absolute', inset: 0,
+                          background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.1) 60%)',
+                          padding: '10px 12px', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
+                        }}>
+                          <div style={{ fontSize: 10, color: '#a78bfa', fontWeight: 700, marginBottom: 3 }}>
+                            SCORE {opp.viralityScore}
+                          </div>
+                          <div style={{ fontSize: 11, fontWeight: 600, color: '#fff', lineHeight: 1.3,
+                                        display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as any, overflow: 'hidden' }}>
+                            {opp.hook}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
             )}
 
-            {/* 4 — Hook performance */}
+            {/* Hook performance */}
             {hooks && hooks.length > 0 && (
               <HookPerformance hooks={hooks} />
             )}
 
-            {/* 5 — Trending niches */}
+            {/* Trending niches */}
             {niches && niches.length > 0 && (
               <TrendingNiches niches={niches} onNavigate={navigate} />
             )}
 
-            {/* 6 — CTA Studio */}
+            {/* CTA Studio */}
             <StudioCTA onNavigate={navigate} />
 
           </div>
