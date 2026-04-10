@@ -4899,6 +4899,67 @@ ${input.cta ? `CTA: ${input.cta}` : ""}`;
     }
   });
 
+  // ═══════════════════════════════════════════════════════════
+  // PROOF SCREEN — personalized first-login wow moment
+  // ═══════════════════════════════════════════════════════════
+  app.get('/api/proof-screen', isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+
+      const userResult = await db.execute(sql`
+        SELECT first_name, primary_niche, selected_niches FROM users WHERE id = ${req.user.id}
+      `);
+      const userData = userResult.rows[0] as any;
+      const niche = userData?.primary_niche || 'content_creation';
+
+      const [topPatterns, nicheStats, emergingCount] = await Promise.all([
+        db.execute(sql`
+          SELECT
+            p.pattern_id,
+            p.pattern_label,
+            p.hook_template,
+            p.why_it_works,
+            p.avg_virality_score,
+            p.video_count,
+            cc.trend_status,
+            cc.velocity_7d
+          FROM patterns p
+          LEFT JOIN content_clusters cc ON cc.id::text = p.cluster_id
+          WHERE p.topic_cluster = ${niche}
+            AND p.pattern_label IS NOT NULL
+          ORDER BY p.avg_virality_score DESC NULLS LAST
+          LIMIT 3
+        `),
+        db.execute(sql`
+          SELECT
+            COUNT(*) as total_videos,
+            AVG(virality_score)::numeric(5,1) as avg_virality,
+            MAX(virality_score)::numeric(5,1) as max_virality,
+            COUNT(*) FILTER (WHERE collected_at >= NOW() - INTERVAL '7 days') as new_this_week
+          FROM videos
+          WHERE niche_cluster = ${niche}
+            AND classification_status = 'completed'
+        `),
+        db.execute(sql`
+          SELECT COUNT(*) as count FROM content_clusters
+          WHERE dominant_niche = ${niche}
+            AND trend_status = 'emerging'
+        `),
+      ]);
+
+      res.json({
+        userName: userData?.first_name || 'Creator',
+        niche,
+        topPatterns: topPatterns.rows,
+        nicheStats: nicheStats.rows[0] || { total_videos: 0, new_this_week: 0 },
+        emergingCount: parseInt((emergingCount.rows[0] as any)?.count) || 0,
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   return httpServer;
 }
 

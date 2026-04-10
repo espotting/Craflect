@@ -29,6 +29,7 @@ import FounderLogs from "@/pages/founder-logs";
 import FounderSettings from "@/pages/founder-settings";
 import PlanBilling from "@/pages/plan-billing";
 import PerformancePage from "@/pages/performance";
+import ProofScreen from "@/pages/proof-screen";
 import WaitlistPage from "@/pages/waitlist";
 import FounderWaitlist from "@/pages/founder-waitlist";
 import { TermsPage, BillingPage, PrivacyPage, CookiesPage, DpaPage, SecurityPage, ContactPage } from "@/pages/legal";
@@ -47,6 +48,7 @@ function Router() {
       <Route path="/auth">{() => <Redirect to="/welcome" />}</Route>
       <Route path="/pricing">{() => <Redirect to="/" />}</Route>
       <Route path="/onboarding" component={Onboarding} />
+      <Route path="/proof" component={ProofScreen} />
       <Route path="/home" component={Dashboard} />
       <Route path="/dashboard">{() => <Redirect to="/home" />}</Route>
       <Route path="/opportunities" component={Opportunities} />

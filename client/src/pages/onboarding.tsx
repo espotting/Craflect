@@ -149,7 +149,13 @@ export default function Onboarding() {
   };
 
   const handleEnterDashboard = () => {
-    window.location.href = "/home";
+    const seenKey = `proof_seen_${(user as any)?.id || 'anon'}`;
+    if (!localStorage.getItem(seenKey)) {
+      localStorage.setItem(seenKey, '1');
+      window.location.href = "/proof";
+    } else {
+      window.location.href = "/home";
+    }
   };
 
   const suggestedNiches = ALL_NICHES.slice(0, 10);
