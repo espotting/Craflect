@@ -4730,7 +4730,7 @@ ${input.cta ? `CTA: ${input.cta}` : ""}`;
       `);
 
       const phaseState = await db.execute(sql`
-        SELECT current_phase, last_updated FROM pattern_engine_state WHERE id = 1
+        SELECT current_phase, updated_at FROM pattern_engine_state WHERE id = 1
       `);
 
       res.json({
