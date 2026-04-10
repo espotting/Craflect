@@ -3,13 +3,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { User, Bell, Shield, Key, Loader2, Eye, EyeOff, Copy, RefreshCw } from "lucide-react";
+import { User, Bell, Shield, Key, Loader2, Eye, EyeOff, Copy, RefreshCw, Sparkles } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useState, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useLanguage } from "@/hooks/use-language";
 import { apiRequest } from "@/lib/queryClient";
+import { useLocation } from "wouter";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export default function Settings() {
   const { user } = useAuth();
@@ -28,9 +31,28 @@ export default function Settings() {
   const [showCurrentPw, setShowCurrentPw] = useState(false);
   const [showNewPw, setShowNewPw] = useState(false);
 
+  const [, navigate] = useLocation();
+
+  const { data: prefs } = useQuery<{
+    selectedNiches: string[];
+    primaryNiche: string | null;
+    onboardingCompleted: boolean;
+  }>({ queryKey: ["/api/user/preferences"] });
+
   const [notifEmail, setNotifEmail] = useState(true);
   const [notifTrends, setNotifTrends] = useState(true);
   const [notifWeekly, setNotifWeekly] = useState(false);
+
+  const notifMutation = useMutation({
+    mutationFn: async (prefs: Record<string, boolean>) => {
+      const res = await apiRequest("PATCH", "/api/user/preferences", {
+        notificationPrefs: prefs,
+      });
+      return res.json();
+    },
+    onSuccess: () => toast({ title: "Preferences saved" }),
+    onError: () => toast({ title: "Could not save", variant: "destructive" }),
+  });
 
   const saveMutation = useMutation({
     mutationFn: async (data: { firstName: string; lastName: string }) => {
@@ -100,6 +122,7 @@ export default function Settings() {
 
   const tabs = [
     { id: 'profile', label: t.settings.profile, icon: User },
+    { id: 'intelligence', label: 'Intelligence Profile', icon: Sparkles },
     { id: 'notifications', label: t.settings.notifications, icon: Bell },
     { id: 'security', label: t.settings.security, icon: Shield },
   ];
@@ -196,14 +219,32 @@ export default function Settings() {
                 </div>
 
                 <div className="pt-6">
-                  <Button 
+                  <Button
                     onClick={handleSave}
                     disabled={saveMutation.isPending}
-                    className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl px-8 h-11 neon-border" 
+                    className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl px-8 h-11 neon-border"
                     data-testid="button-save-settings"
                   >
                     {saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                     {t.common.save}
+                  </Button>
+                </div>
+
+                <div className="pt-6 border-t border-border mt-6 space-y-3">
+                  <h3 className="text-base font-semibold text-foreground">Account</h3>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Email</p>
+                    <p className="text-foreground font-medium">{user?.email || "—"}</p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    className="text-destructive border-destructive/30 hover:bg-destructive/10"
+                    onClick={async () => {
+                      await fetch('/api/logout', { credentials: 'include' });
+                      navigate('/');
+                    }}
+                  >
+                    Sign out
                   </Button>
                 </div>
               </div>
@@ -236,6 +277,71 @@ export default function Settings() {
                   <Switch checked={notifWeekly} onCheckedChange={setNotifWeekly} data-testid="switch-notif-weekly" />
                 </div>
                 <p className="text-xs text-muted-foreground">{t.settings.notifComingSoon}</p>
+              </div>
+            </>
+          )}
+
+          {activeTab === "intelligence" && (
+            <>
+              <h2 className="text-2xl font-display font-bold text-foreground mb-2">Intelligence Profile</h2>
+              <p className="text-muted-foreground mb-6">Your niche configuration shapes every recommendation Craflect makes.</p>
+              <div className="space-y-6 max-w-lg">
+                {prefs?.onboardingCompleted && (
+                  <div className="flex items-center gap-2">
+                    <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 px-3 py-1">
+                      ✓ Profile complete
+                    </Badge>
+                  </div>
+                )}
+
+                <div className="glass-card rounded-xl p-5 border border-border space-y-4">
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Primary Niche</p>
+                    {prefs?.primaryNiche ? (
+                      <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/30 text-primary font-medium text-sm">
+                        <Sparkles className="w-3.5 h-3.5" />
+                        {prefs.primaryNiche.replace(/_/g, ' ')}
+                      </div>
+                    ) : (
+                      <p className="text-muted-foreground text-sm italic">Not set — complete onboarding to configure</p>
+                    )}
+                  </div>
+
+                  {prefs?.selectedNiches && prefs.selectedNiches.filter(n => n !== prefs.primaryNiche).length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Secondary Niches</p>
+                      <div className="flex flex-wrap gap-2">
+                        {prefs.selectedNiches.filter(n => n !== prefs.primaryNiche).map((niche) => (
+                          <span key={niche} className="px-3 py-1 rounded-full bg-secondary/10 border border-border text-foreground text-sm">
+                            {niche.replace(/_/g, ' ')}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <Button
+                  variant="outline"
+                  className="border-primary/30 text-primary hover:bg-primary/10 rounded-xl h-11 px-6"
+                  onClick={() => navigate('/workspace?tab=my-niches')}
+                >
+                  Edit Niches →
+                </Button>
+
+                {!prefs?.onboardingCompleted && (
+                  <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
+                    <p className="text-sm text-amber-400 font-medium mb-1">Complete your onboarding</p>
+                    <p className="text-xs text-muted-foreground mb-3">Set up your niche profile to unlock personalized trend intelligence.</p>
+                    <Button
+                      size="sm"
+                      className="bg-amber-500 hover:bg-amber-600 text-white rounded-lg"
+                      onClick={() => navigate('/onboarding')}
+                    >
+                      Start Onboarding
+                    </Button>
+                  </div>
+                )}
               </div>
             </>
           )}

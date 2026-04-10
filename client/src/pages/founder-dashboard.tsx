@@ -1,7 +1,9 @@
 import { DashboardLayout } from "@/components/layout";
 import { useLanguage } from "@/hooks/use-language";
 import { useAuth } from "@/hooks/use-auth";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -241,6 +243,35 @@ export default function FounderDashboard() {
     enabled: !!(user as any)?.isAdmin,
   });
 
+  const { data: pipeline } = useQuery<any>({
+    queryKey: ["/api/founder/pipeline"],
+    enabled: !!(user as any)?.isAdmin,
+    refetchInterval: 30000,
+  });
+
+  const { data: usersData } = useQuery<any>({
+    queryKey: ["/api/founder/users"],
+    enabled: !!(user as any)?.isAdmin,
+  });
+
+  const { data: waitlistData } = useQuery<any>({
+    queryKey: ["/api/founder/waitlist"],
+    enabled: !!(user as any)?.isAdmin,
+  });
+
+  const { toast } = useToast();
+
+  const actionMutation = useMutation({
+    mutationFn: async (action: string) => {
+      const res = await apiRequest("POST", `/api/founder/actions/${action}`, {});
+      return res.json();
+    },
+    onSuccess: (data: any) => {
+      toast({ title: data.message || "Action triggered" });
+    },
+    onError: () => toast({ title: "Action failed", variant: "destructive" }),
+  });
+
   if (authLoading || !(user as any)?.isAdmin) return null;
 
   const ft = t.founderDashboard;
@@ -434,6 +465,167 @@ export default function FounderDashboard() {
                 </Card>
               </div>
             </section>
+
+            {/* Pipeline Real-Time Status */}
+            {pipeline && (
+              <section>
+                <SectionHeader title="Pipeline Real-Time" color="blue" testId="text-section-pipeline-rt" />
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
+                  {/* Health indicator */}
+                  <div className="col-span-2 md:col-span-5 flex items-center gap-2 mb-2">
+                    {parseInt(pipeline.videos?.classified) > 1000 && pipeline.videos?.last_ingestion && (Date.now() - new Date(pipeline.videos.last_ingestion).getTime()) < 12 * 3600 * 1000 ? (
+                      <span style={{ fontSize: 14, color: '#10b981', fontWeight: 600 }}>🟢 Pipeline healthy</span>
+                    ) : (
+                      <span style={{ fontSize: 14, color: '#ef4444', fontWeight: 600 }}>🔴 Pipeline needs attention</span>
+                    )}
+                    <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
+                      Last ingestion: {pipeline.videos?.last_ingestion ? new Date(pipeline.videos.last_ingestion).toLocaleString() : 'Never'}
+                    </span>
+                  </div>
+                  <ColoredMetricCard label="Classified" value={pipeline.videos?.classified || 0} icon={CheckCircle} color="green" testId="rt-classified" />
+                  <ColoredMetricCard label="Pending" value={pipeline.videos?.pending || 0} icon={Clock} color="orange" testId="rt-pending" />
+                  <ColoredMetricCard label="With hook_type_v2" value={pipeline.videos?.classified_v2 || 0} icon={Sparkles} color="violet" testId="rt-v2" />
+                  <ColoredMetricCard label="Ingested 24h" value={pipeline.videos?.ingested_24h || 0} icon={Download} color="blue" testId="rt-24h" />
+                  <ColoredMetricCard label="Ingested 7d" value={pipeline.videos?.ingested_7d || 0} icon={Download} color="blue" testId="rt-7d" />
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                  <ColoredMetricCard label="Total Clusters" value={pipeline.clusters?.total_clusters || 0} icon={Layers} color="violet" testId="rt-clusters" />
+                  <ColoredMetricCard label="With Metadata" value={pipeline.clusters?.with_metadata || 0} icon={CheckSquare} color="green" testId="rt-clusters-meta" />
+                  <ColoredMetricCard label="Emerging" value={pipeline.clusters?.emerging || 0} icon={Flame} color="orange" testId="rt-emerging" />
+                  <ColoredMetricCard label="Trending" value={pipeline.clusters?.trending || 0} icon={TrendingUp} color="violet" testId="rt-trending" />
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  <ColoredMetricCard label="Total Patterns" value={pipeline.patterns?.total_patterns || 0} icon={Sparkles} color="orange" testId="rt-patterns" />
+                  <ColoredMetricCard label="With Template" value={pipeline.patterns?.with_template || 0} icon={FileText} color="green" testId="rt-with-template" />
+                  <ColoredMetricCard label="Phase Engine" value={pipeline.phase ? `Phase ${pipeline.phase.current_phase}` : 'Unknown'} icon={Cpu} color="blue" testId="rt-phase" />
+                </div>
+              </section>
+            )}
+
+            {/* Users Section */}
+            {usersData && (
+              <section>
+                <SectionHeader title="Users (Real-time)" color="blue" testId="text-section-users-rt" />
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                  <ColoredMetricCard label="Total Users" value={parseInt(usersData.stats?.total_users) || 0} icon={Users} color="blue" testId="rt-total-users" />
+                  <ColoredMetricCard label="Onboarded" value={parseInt(usersData.stats?.onboarded) || 0} icon={CheckCircle} color="green" testId="rt-onboarded" />
+                  <ColoredMetricCard label="New (7d)" value={parseInt(usersData.stats?.new_7d) || 0} icon={UserPlus} color="violet" testId="rt-new-7d" />
+                  <ColoredMetricCard label="New (24h)" value={parseInt(usersData.stats?.new_24h) || 0} icon={Activity} color="orange" testId="rt-new-24h" />
+                </div>
+
+                {/* Niche distribution */}
+                {usersData.niches?.length > 0 && (
+                  <div className="mb-6">
+                    <h3 className="text-sm font-semibold text-muted-foreground mb-3">Niche Distribution</h3>
+                    <div className="space-y-2">
+                      {usersData.niches.map((n: any) => {
+                        const max = parseInt(usersData.niches[0].count) || 1;
+                        const pct = Math.round((parseInt(n.count) / max) * 100);
+                        return (
+                          <div key={n.primary_niche}>
+                            <div className="flex justify-between mb-1 text-xs">
+                              <span className="text-foreground capitalize">{(n.primary_niche || '').replace(/_/g, ' ')}</span>
+                              <span className="text-muted-foreground">{n.count}</span>
+                            </div>
+                            <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                              <div style={{ width: `${pct}%`, height: '100%', background: 'linear-gradient(90deg, #7C5CFF, #c026d3)', borderRadius: 999 }} />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* User list */}
+                <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, overflow: 'hidden' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 60px 120px', gap: 8, padding: '10px 16px', borderBottom: '1px solid rgba(255,255,255,0.08)', fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' }}>
+                    <div>Email</div><div>Niche</div><div>Done</div><div>Joined</div>
+                  </div>
+                  {(usersData.users || []).slice(0, 20).map((u: any) => (
+                    <div key={u.id} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 60px 120px', gap: 8, padding: '10px 16px', borderBottom: '1px solid rgba(255,255,255,0.04)', fontSize: 12, alignItems: 'center' }}>
+                      <div style={{ color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.email}</div>
+                      <div style={{ color: 'rgba(255,255,255,0.5)', textTransform: 'capitalize' }}>{(u.primary_niche || '—').replace(/_/g, ' ')}</div>
+                      <div style={{ color: u.onboarding_completed ? '#10b981' : '#f59e0b' }}>{u.onboarding_completed ? '✓' : '—'}</div>
+                      <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11 }}>{new Date(u.created_at).toLocaleDateString()}</div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* Quick Actions */}
+            <section>
+              <SectionHeader title="Quick Actions" color="orange" testId="text-section-actions" />
+              <div className="flex flex-wrap gap-3">
+                <button
+                  onClick={() => actionMutation.mutate('force-clustering')}
+                  disabled={actionMutation.isPending}
+                  style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid #ef4444', color: '#ef4444', padding: '10px 20px', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                >
+                  🔄 Force Clustering
+                </button>
+                <button
+                  onClick={() => actionMutation.mutate('force-scoring')}
+                  disabled={actionMutation.isPending}
+                  style={{ background: 'rgba(124,92,255,0.15)', border: '1px solid #7C5CFF', color: '#7C5CFF', padding: '10px 20px', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                >
+                  📊 Force Scoring
+                </button>
+                <button
+                  onClick={() => actionMutation.mutate('force-velocity')}
+                  disabled={actionMutation.isPending}
+                  style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid #f59e0b', color: '#f59e0b', padding: '10px 20px', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                >
+                  ⚡ Force Velocity
+                </button>
+              </div>
+            </section>
+
+            {/* Waitlist Management */}
+            {waitlistData && (
+              <section>
+                <SectionHeader title="Waitlist" color="violet" testId="text-section-waitlist" />
+                <div className="grid grid-cols-3 gap-3 mb-4">
+                  <ColoredMetricCard label="Total" value={parseInt(waitlistData.stats?.total) || 0} icon={Users} color="violet" testId="wl-total" />
+                  <ColoredMetricCard label="Invited" value={parseInt(waitlistData.stats?.invited) || 0} icon={CheckCircle} color="green" testId="wl-invited" />
+                  <ColoredMetricCard label="New (7d)" value={parseInt(waitlistData.stats?.new_7d) || 0} icon={UserPlus} color="blue" testId="wl-new-7d" />
+                </div>
+                <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, overflow: 'hidden' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 100px', gap: 8, padding: '10px 16px', borderBottom: '1px solid rgba(255,255,255,0.08)', fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' }}>
+                    <div>Email</div><div>Niche</div><div>Platform</div><div>Followers</div><div>Action</div>
+                  </div>
+                  {(waitlistData.entries || []).slice(0, 20).map((e: any) => (
+                    <div key={e.id} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 100px', gap: 8, padding: '10px 16px', borderBottom: '1px solid rgba(255,255,255,0.04)', fontSize: 12, alignItems: 'center' }}>
+                      <div style={{ color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.email}</div>
+                      <div style={{ color: 'rgba(255,255,255,0.5)', textTransform: 'capitalize' }}>{(e.niche || '—').replace(/_/g, ' ')}</div>
+                      <div style={{ color: 'rgba(255,255,255,0.5)' }}>{e.platform || '—'}</div>
+                      <div style={{ color: 'rgba(255,255,255,0.5)' }}>{e.followers_range || '—'}</div>
+                      <div>
+                        {e.status === 'invited' ? (
+                          <span style={{ fontSize: 11, color: '#10b981' }}>✓ Invited</span>
+                        ) : (
+                          <button
+                            onClick={async () => {
+                              try {
+                                await apiRequest("POST", `/api/admin/waitlist/${e.id}/invite`, {});
+                                queryClient.invalidateQueries({ queryKey: ["/api/founder/waitlist"] });
+                                toast({ title: `Invited ${e.email}` });
+                              } catch {
+                                toast({ title: "Invite failed", variant: "destructive" });
+                              }
+                            }}
+                            style={{ background: '#7C5CFF', color: '#fff', border: 'none', padding: '4px 10px', borderRadius: 6, fontSize: 11, cursor: 'pointer' }}
+                          >
+                            Invite
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
           </>
         ) : (
           <Card>

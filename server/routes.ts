@@ -4237,6 +4237,9 @@ ${input.cta ? `CTA: ${input.cta}` : ""}`;
         email: z.string().email().max(255),
         niche: z.string().max(50).optional(),
         why: z.string().max(500).optional(),
+        platform: z.string().max(50).optional(),
+        followersRange: z.string().max(20).optional(),
+        contentGoal: z.string().max(100).optional(),
       });
       const parsed = schema.safeParse(req.body);
       if (!parsed.success) {
@@ -4245,6 +4248,12 @@ ${input.cta ? `CTA: ${input.cta}` : ""}`;
       const input = parsed.data;
 
       const { db } = await import("./db");
+      const { sql: sqlRaw } = await import("drizzle-orm");
+      // Ensure new columns exist
+      await db.execute(sqlRaw`ALTER TABLE waitlist ADD COLUMN IF NOT EXISTS platform text`);
+      await db.execute(sqlRaw`ALTER TABLE waitlist ADD COLUMN IF NOT EXISTS followers_range text`);
+      await db.execute(sqlRaw`ALTER TABLE waitlist ADD COLUMN IF NOT EXISTS content_goal text`);
+
       const { waitlist } = await import("@shared/schema");
       const { eq } = await import("drizzle-orm");
 
@@ -4255,12 +4264,12 @@ ${input.cta ? `CTA: ${input.cta}` : ""}`;
 
       const safeName = input.firstName.replace(/[<>"'&]/g, "");
 
-      await db.insert(waitlist).values({
-        firstName: safeName,
-        email: input.email.toLowerCase(),
-        niche: input.niche || null,
-        why: input.why || null,
-      });
+      await db.execute(sqlRaw`
+        INSERT INTO waitlist ("firstName", email, niche, why, platform, followers_range, content_goal)
+        VALUES (${safeName}, ${input.email.toLowerCase()}, ${input.niche || null},
+                ${input.why || null}, ${input.platform || null},
+                ${input.followersRange || null}, ${input.contentGoal || null})
+      `);
 
       try {
         const { sendWaitlistConfirmation } = await import("./email");
@@ -4676,6 +4685,215 @@ ${input.cta ? `CTA: ${input.cta}` : ""}`;
         LIMIT 20
       `);
       res.json(patterns.rows);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ─── Founder Endpoints ──────────────────────────────────────────────────────
+
+  app.get('/api/founder/pipeline', isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+
+      const stats = await db.execute(sql`
+        SELECT
+          COUNT(*) FILTER (WHERE classification_status = 'completed') as classified,
+          COUNT(*) FILTER (WHERE classification_status = 'pending') as pending,
+          COUNT(*) FILTER (WHERE classification_status = 'failed') as failed,
+          COUNT(*) FILTER (WHERE transcription_status = 'completed') as transcribed,
+          COUNT(*) FILTER (WHERE transcription_status = 'pending') as pending_transcription,
+          COUNT(*) FILTER (WHERE followers_count IS NOT NULL) as with_followers,
+          COUNT(*) FILTER (WHERE hook_type_v2 IS NOT NULL) as classified_v2,
+          COUNT(*) FILTER (WHERE collected_at >= NOW() - INTERVAL '24 hours') as ingested_24h,
+          COUNT(*) FILTER (WHERE collected_at >= NOW() - INTERVAL '7 days') as ingested_7d,
+          AVG(virality_score)::numeric(5,1) as avg_virality,
+          MAX(collected_at) as last_ingestion
+        FROM videos
+      `);
+
+      const clusters = await db.execute(sql`
+        SELECT
+          COUNT(*) as total_clusters,
+          COUNT(dominant_hook_type) as with_metadata,
+          COUNT(*) FILTER (WHERE trend_status = 'emerging') as emerging,
+          COUNT(*) FILTER (WHERE trend_status = 'trending') as trending,
+          COUNT(*) FILTER (WHERE analyzed_by_llm = true) as analyzed
+        FROM content_clusters
+      `);
+
+      const patterns = await db.execute(sql`
+        SELECT COUNT(*) as total_patterns,
+               COUNT(hook_template) as with_template
+        FROM patterns
+      `);
+
+      const phaseState = await db.execute(sql`
+        SELECT current_phase, last_updated FROM pattern_engine_state WHERE id = 1
+      `);
+
+      res.json({
+        videos: stats.rows[0],
+        clusters: clusters.rows[0],
+        patterns: patterns.rows[0],
+        phase: phaseState.rows[0] || null,
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get('/api/founder/users', isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+
+      const stats = await db.execute(sql`
+        SELECT
+          COUNT(*) as total_users,
+          COUNT(*) FILTER (WHERE onboarding_completed = true) as onboarded,
+          COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '7 days') as new_7d,
+          COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '24 hours') as new_24h
+        FROM users
+        WHERE is_admin = false OR is_admin IS NULL
+      `);
+
+      const userList = await db.execute(sql`
+        SELECT id, email, name, primary_niche, selected_niches,
+               onboarding_completed, created_at
+        FROM users
+        WHERE is_admin = false OR is_admin IS NULL
+        ORDER BY created_at DESC
+        LIMIT 50
+      `);
+
+      const nicheDistribution = await db.execute(sql`
+        SELECT primary_niche, COUNT(*) as count
+        FROM users
+        WHERE primary_niche IS NOT NULL
+        GROUP BY primary_niche
+        ORDER BY count DESC
+      `);
+
+      res.json({
+        stats: stats.rows[0],
+        users: userList.rows,
+        niches: nicheDistribution.rows,
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post('/api/founder/actions/:action', isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const { action } = req.params;
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const { Queue } = await import('bullmq');
+      const { redisConnection } = await import('./config/redis');
+
+      if (action === 'force-clustering') {
+        await db.execute(sql`UPDATE pattern_engine_state SET current_phase = 1 WHERE id = 1`);
+        await new Queue('phase-transition', { connection: redisConnection }).add('check', {});
+        return res.json({ success: true, message: 'Clustering triggered' });
+      }
+
+      if (action === 'force-scoring') {
+        await new Queue('scoring', { connection: redisConnection }).add('batch', {});
+        return res.json({ success: true, message: 'Scoring triggered' });
+      }
+
+      if (action === 'force-velocity') {
+        await new Queue('velocity', { connection: redisConnection }).add('calculate', {});
+        return res.json({ success: true, message: 'Velocity calculation triggered' });
+      }
+
+      res.status(400).json({ success: false, message: 'Unknown action' });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get('/api/founder/waitlist', isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+
+      const stats = await db.execute(sql`
+        SELECT
+          COUNT(*) as total,
+          COUNT(*) FILTER (WHERE status = 'invited') as invited,
+          COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '7 days') as new_7d
+        FROM waitlist
+      `);
+
+      const entries = await db.execute(sql`
+        SELECT id, email, "firstName" as first_name, niche, platform, followers_range,
+               content_goal, status, created_at
+        FROM waitlist
+        ORDER BY created_at DESC
+        LIMIT 100
+      `);
+
+      const nicheStats = await db.execute(sql`
+        SELECT niche, COUNT(*) as count FROM waitlist
+        WHERE niche IS NOT NULL GROUP BY niche ORDER BY count DESC
+      `);
+
+      const platformStats = await db.execute(sql`
+        SELECT platform, COUNT(*) as count FROM waitlist
+        WHERE platform IS NOT NULL GROUP BY platform ORDER BY count DESC
+      `);
+
+      const followersStats = await db.execute(sql`
+        SELECT followers_range, COUNT(*) as count FROM waitlist
+        WHERE followers_range IS NOT NULL GROUP BY followers_range ORDER BY count DESC
+      `);
+
+      res.json({
+        stats: stats.rows[0],
+        entries: entries.rows,
+        nicheStats: nicheStats.rows,
+        platformStats: platformStats.rows,
+        followersStats: followersStats.rows,
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ─── Sidebar Stats ──────────────────────────────────────────────────────────
+
+  app.get('/api/sidebar/stats', isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const user = await db.execute(sql`SELECT selected_niches FROM users WHERE id = ${req.user.id}`);
+      const niches: string[] = (user.rows[0] as any)?.selected_niches || [];
+      const nichesArr = `{${niches.length > 0 ? niches.join(',') : 'general'}}`;
+
+      const emerging = await db.execute(sql`
+        SELECT COUNT(*) as count FROM content_clusters WHERE trend_status = 'emerging'
+      `);
+
+      const opportunities = await db.execute(sql`
+        SELECT COUNT(*) as count FROM videos
+        WHERE classification_status = 'completed'
+          AND virality_score >= 60
+          AND niche_cluster = ANY(${nichesArr}::text[])
+      `);
+
+      const tracked = await db.execute(sql`
+        SELECT COUNT(*) as count FROM video_performance WHERE user_id = ${req.user.id}
+      `);
+
+      res.json({
+        emergingPatterns: parseInt((emerging.rows[0] as any)?.count) || 0,
+        opportunities: parseInt((opportunities.rows[0] as any)?.count) || 0,
+        trackedVideos: parseInt((tracked.rows[0] as any)?.count) || 0,
+      });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

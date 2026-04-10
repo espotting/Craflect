@@ -30,6 +30,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useLanguage } from "@/hooks/use-language";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { Progress } from "@/components/ui/progress";
+import { useQuery } from "@tanstack/react-query";
 import logoTransparent from "@/assets/logo-transparent.png";
 
 export function AppSidebar() {
@@ -38,6 +39,21 @@ export function AppSidebar() {
   const { t } = useLanguage();
 
   const isAdmin = (user as any)?.isAdmin === true;
+
+  const { data: prefs } = useQuery<{ primaryNiche: string | null; selectedNiches: string[] }>({
+    queryKey: ["/api/user/preferences"],
+    enabled: !isAdmin,
+  });
+
+  const { data: sidebarStats } = useQuery<{
+    emergingPatterns: number;
+    opportunities: number;
+    trackedVideos: number;
+  }>({
+    queryKey: ["/api/sidebar/stats"],
+    enabled: !isAdmin,
+    refetchInterval: 5 * 60 * 1000,
+  });
 
   // 5 destinations — architecture cible Craflect
   const userItems = [
@@ -66,13 +82,23 @@ export function AppSidebar() {
 
   return (
     <Sidebar variant="inset" className="border-r border-border bg-sidebar">
-      <SidebarHeader className="p-4 flex flex-row items-center justify-between gap-2">
-        <img
-          src={logoTransparent}
-          alt="Craflect"
-          className="h-10 w-auto object-contain"
-          data-testid="logo-sidebar"
-        />
+      <SidebarHeader className="p-4 flex flex-col gap-2">
+        <div className="flex flex-row items-center justify-between gap-2">
+          <img
+            src={logoTransparent}
+            alt="Craflect"
+            className="h-10 w-auto object-contain"
+            data-testid="logo-sidebar"
+          />
+        </div>
+        {!isAdmin && prefs?.primaryNiche && (
+          <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-primary/10 border border-primary/20 w-fit">
+            <Sparkles className="w-3 h-3 text-primary" />
+            <span className="text-xs font-medium text-primary capitalize" data-testid="text-primary-niche">
+              {prefs.primaryNiche.replace(/_/g, ' ')}
+            </span>
+          </div>
+        )}
       </SidebarHeader>
 
       <SidebarContent>
@@ -83,6 +109,14 @@ export function AppSidebar() {
                 const isActive =
                   location === item.url ||
                   (!isAdmin && item.url === "/home" && location === "/");
+
+                let counter: number | undefined;
+                if (!isAdmin && sidebarStats) {
+                  if (item.url === "/home") counter = sidebarStats.emergingPatterns || undefined;
+                  if (item.url === "/opportunities") counter = sidebarStats.opportunities || undefined;
+                  if (item.url === "/performance") counter = sidebarStats.trackedVideos || undefined;
+                }
+
                 return (
                   <SidebarMenuItem key={item.url}>
                     <SidebarMenuButton
@@ -96,7 +130,12 @@ export function AppSidebar() {
                         data-testid={`nav-${item.url.replace(/\//g, "-").replace(/^-/, "")}`}
                       >
                         <item.icon className={`w-4 h-4 ${isActive ? "text-primary" : ""}`} />
-                        <span className="font-medium">{item.title}</span>
+                        <span className="font-medium flex-1 text-left">{item.title}</span>
+                        {counter !== undefined && (
+                          <span className="ml-auto text-xs font-semibold px-1.5 py-0.5 rounded-full bg-primary/20 text-primary min-w-[20px] text-center">
+                            {counter}
+                          </span>
+                        )}
                       </button>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

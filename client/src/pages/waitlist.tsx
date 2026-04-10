@@ -34,6 +34,9 @@ export default function WaitlistPage() {
   const [firstName, setFirstName] = useState("");
   const [email, setEmail] = useState("");
   const [niche, setNiche] = useState("");
+  const [platform, setPlatform] = useState("");
+  const [followersRange, setFollowersRange] = useState("");
+  const [contentGoal, setContentGoal] = useState("");
   const [why, setWhy] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -53,6 +56,9 @@ export default function WaitlistPage() {
         email,
         niche,
         why,
+        platform,
+        followersRange,
+        contentGoal: contentGoal || undefined,
       });
       return res.json();
     },
@@ -77,7 +83,7 @@ export default function WaitlistPage() {
     },
   });
 
-  const canSubmit = firstName.trim() && email.trim() && niche;
+  const canSubmit = firstName.trim() && email.trim() && niche && platform;
 
   if (submitted) {
     return (
@@ -245,6 +251,82 @@ export default function WaitlistPage() {
                         data-testid={`niche-${n.value}`}
                       >
                         {n.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Platform */}
+                <div>
+                  <label className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-1.5 block">
+                    Your Main Platform
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { value: "tiktok", label: "TikTok" },
+                      { value: "instagram", label: "Instagram" },
+                      { value: "youtube", label: "YouTube Shorts" },
+                      { value: "multi", label: "Multi-platform" },
+                    ].map((p) => (
+                      <button
+                        key={p.value}
+                        onClick={() => setPlatform(p.value)}
+                        className={`px-3 py-2 rounded-lg text-sm font-medium border transition-all text-left ${
+                          platform === p.value
+                            ? "bg-purple-600/20 border-purple-500/50 text-purple-300"
+                            : "bg-slate-800/50 border-slate-700 text-slate-400 hover:border-slate-600"
+                        }`}
+                      >
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Followers range */}
+                <div>
+                  <label className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-1.5 block">
+                    Followers Count
+                  </label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {["0–1K", "1K–10K", "10K–100K", "100K+"].map((r) => (
+                      <button
+                        key={r}
+                        onClick={() => setFollowersRange(r)}
+                        className={`px-2 py-2 rounded-lg text-xs font-medium border transition-all text-center ${
+                          followersRange === r
+                            ? "bg-purple-600/20 border-purple-500/50 text-purple-300"
+                            : "bg-slate-800/50 border-slate-700 text-slate-400 hover:border-slate-600"
+                        }`}
+                      >
+                        {r}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Content goal */}
+                <div>
+                  <label className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-1.5 block">
+                    Main Goal <span className="text-slate-600 normal-case">(optional)</span>
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { value: "grow_faster", label: "Grow faster" },
+                      { value: "go_viral", label: "Go viral" },
+                      { value: "save_time", label: "Save time" },
+                      { value: "understand_trends", label: "Understand trends" },
+                    ].map((g) => (
+                      <button
+                        key={g.value}
+                        onClick={() => setContentGoal(contentGoal === g.value ? "" : g.value)}
+                        className={`px-3 py-2 rounded-lg text-sm font-medium border transition-all text-left ${
+                          contentGoal === g.value
+                            ? "bg-purple-600/20 border-purple-500/50 text-purple-300"
+                            : "bg-slate-800/50 border-slate-700 text-slate-400 hover:border-slate-600"
+                        }`}
+                      >
+                        {g.label}
                       </button>
                     ))}
                   </div>
