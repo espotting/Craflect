@@ -5136,6 +5136,47 @@ JSON only, no markdown.`;
     }
   });
 
+  // ═══════════════════════════════════════════════════════════
+  // BACKFILL — fix niche_cluster for existing videos
+  // Maps topic_cluster → correct niche_cluster (5 target niches)
+  // ═══════════════════════════════════════════════════════════
+  app.post('/api/admin/backfill-niches', isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+
+      const result = await db.execute(sql`
+        UPDATE videos
+        SET niche_cluster = CASE
+          WHEN topic_cluster IN ('ai_tools','ai_automation','tech','saas') THEN 'ai_tools'
+          WHEN topic_cluster IN ('finance','crypto','real_estate') THEN 'finance'
+          WHEN topic_cluster IN ('online_business','entrepreneurship','ecommerce','digital_marketing') THEN 'online_business'
+          WHEN topic_cluster IN ('content_creation','personal_branding','education','coaching','entertainment','gaming') THEN 'content_creation'
+          WHEN topic_cluster IN ('productivity','motivation','lifestyle','fitness','health','beauty','food','travel','relationships') THEN 'productivity'
+          ELSE niche_cluster
+        END
+        WHERE niche_cluster IS NULL
+           OR niche_cluster NOT IN ('ai_tools','finance','online_business','content_creation','productivity')
+      `);
+
+      // Also run keyword-based backfill for videos where topic_cluster didn't match
+      // (videos where niche_cluster is still null after the CASE update)
+      const stillNull = await db.execute(sql`
+        SELECT COUNT(*) as count FROM videos
+        WHERE classification_status = 'completed'
+          AND niche_cluster IS NULL
+      `);
+
+      res.json({
+        message: 'Backfill complete',
+        rowsUpdated: (result as any).rowCount || 0,
+        stillNullAfter: parseInt((stillNull.rows[0] as any)?.count) || 0,
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   return httpServer;
 }
 

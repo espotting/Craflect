@@ -8,55 +8,98 @@ import OpenAI from 'openai';
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-const DNA_PROMPT = `Tu es un analyste de contenu viral spécialisé dans les vidéos courtes (TikTok, Reels, Shorts).
+// ─── Niche keyword classifier ─────────────────────────────────────────────────
+// Deterministic, runs on caption + transcript + hashtags.
+// Scores each niche and returns the best match (min score threshold = 1).
 
-Analyse la vidéo et retourne un JSON structuré.
+const NICHE_SIGNALS: Record<string, string[]> = {
+  ai_tools: [
+    'chatgpt', 'gpt-4', 'gpt4', 'openai', 'claude', 'gemini', 'copilot',
+    'midjourney', 'stable diffusion', 'dall-e', 'sora',
+    'ai tools', 'artificial intelligence', 'machine learning', 'deep learning',
+    'llm', 'large language model', 'prompt engineering', 'ai agent',
+    'automation', 'n8n', 'zapier', 'make.com', 'workflow automation',
+    'chatbot', 'ai app', 'ai software', 'ai model', 'ai startup',
+  ],
+  finance: [
+    'money', 'investing', 'investment', 'stocks', 'stock market', 'trading',
+    'crypto', 'bitcoin', 'ethereum', 'defi', 'nft',
+    'passive income', 'wealth', 'rich', 'financial freedom', 'financial independence',
+    'budget', 'savings', 'debt', 'credit', 'dividends', 'portfolio',
+    'real estate', 'rental property', 'mortgage', 'etf', 'index fund',
+    's&p 500', 'hedge fund', 'venture capital', 'net worth', 'millionaire',
+  ],
+  online_business: [
+    'online business', 'entrepreneur', 'entrepreneurship', 'startup',
+    'side hustle', 'dropshipping', 'ecommerce', 'shopify', 'amazon fba',
+    'digital product', 'saas', 'agency', 'freelance', 'clients',
+    'scale', 'sales funnel', 'lead generation', 'b2b', 'b2c',
+    'consulting', 'coaching business', 'digital marketing', 'facebook ads',
+    'google ads', 'email list', 'marketing strategy', 'brand',
+  ],
+  content_creation: [
+    'youtube', 'tiktok', 'instagram reels', 'content creator', 'creator',
+    'viral video', 'viral content', 'trending', 'algorithm', 'grow',
+    'subscribers', 'followers', 'views', 'engagement', 'video editing',
+    'thumbnail', 'hook', 'script', 'personal brand', 'influencer',
+    'audience', 'shorts', 'reels', 'podcast', 'newsletter',
+    'brand deal', 'sponsorship', 'monetization', 'adsense',
+  ],
+  productivity: [
+    'productivity', 'habits', 'routine', 'morning routine', 'night routine',
+    'time management', 'focus', 'pomodoro', 'deep work', 'flow state',
+    'notion', 'obsidian', 'second brain', 'pkm', 'note taking',
+    'system', 'organization', 'goals', 'discipline', 'consistency',
+    'work life balance', 'stress', 'burnout', 'remote work', 'work from home',
+    'self improvement', 'personal development', 'mindset', 'motivation',
+  ],
+};
 
-INPUT :
+function classifyNiche(text: string): string | null {
+  if (!text || text.trim().length === 0) return null;
+  const lower = text.toLowerCase();
+  const scores: Record<string, number> = {};
+  for (const [niche, keywords] of Object.entries(NICHE_SIGNALS)) {
+    scores[niche] = 0;
+    for (const kw of keywords) {
+      if (lower.includes(kw)) scores[niche]++;
+    }
+  }
+  const best = Object.entries(scores).sort((a, b) => b[1] - a[1])[0];
+  return best && best[1] >= 1 ? best[0] : null;
+}
 
-* Caption : {caption}
-* Transcript : {transcript}
+const DNA_PROMPT = `You are a viral content analyst for short-form videos (TikTok, Reels, Shorts).
 
-RÈGLES :
+Analyze the video and return a structured JSON.
 
-* JSON uniquement
-* aucune explication
-* ne rien inventer
-* null si incertain
+INPUT:
+Caption: {caption}
+Transcript: {transcript}
 
-FORMAT :
+RULES:
+- JSON only, no explanation, no markdown
+- null if uncertain
 
+FORMAT:
 {
-  "hook_text": "...",
-  "hook_type": "...",
-  "structure_type": "...",
-  "format_type": "...",
-  "topic_level_1": "...",
-  "topic_level_2": "...",
-  "emotion_primary": "...",
+  "hook_text": "first strong sentence of the video",
+  "hook_type": "curiosity|list|shock|question|statement",
+  "structure_type": "listicle|storytelling|tutorial|reaction|before_after",
+  "format_type": "facecam|broll|captions|mixed",
+  "topic_cluster": "ai_tools|finance|online_business|content_creation|productivity",
+  "emotion_primary": "curiosity|urgency|fear|excitement|surprise",
   "confidence": 0.0
 }
 
-VALEURS :
+topic_cluster MUST be one of these exact values:
+- ai_tools : AI, ChatGPT, automation, machine learning
+- finance : money, investing, crypto, wealth, stocks
+- online_business : entrepreneurship, ecommerce, marketing, agency, freelance
+- content_creation : YouTube, TikTok growth, personal brand, creator
+- productivity : habits, time management, focus, self-improvement
 
-hook_type :
-curiosity, list, shock, question, statement
-
-structure_type :
-listicle, storytelling, tutorial, reaction, before_after
-
-format_type :
-facecam, broll, captions, mixed
-
-topic_level_1 :
-business, ai, money, productivity, marketing, lifestyle
-
-emotion_primary :
-curiosity, urgency, fear, excitement, surprise
-
-IMPORTANT :
-hook_text = première phrase forte
-confidence = score de confiance entre 0.0 et 1.0`;
+confidence = 0.0 to 1.0`;
 
 export const classificationWorker = new Worker('classification', async (job) => {
   const { videoId } = job.data;
@@ -96,9 +139,9 @@ export const classificationWorker = new Worker('classification', async (job) => 
     } catch {
       console.log(`[Fallback OpenAI] Video ${videoId}`);
       const completion = await openai.chat.completions.create({
-        model: 'gpt-4.1-mini',
+        model: 'gpt-4o-mini',
         messages: [
-          { role: 'system', content: 'Expert Content DNA analyst. Réponse JSON uniquement.' },
+          { role: 'system', content: 'Expert Content DNA analyst. Return JSON only.' },
           { role: 'user', content: prompt }
         ],
         response_format: { type: 'json_object' },
@@ -109,23 +152,50 @@ export const classificationWorker = new Worker('classification', async (job) => 
       source = 'openai';
     }
 
+    // Resolve niche: LLM result → keyword fallback → existing topicCluster → null
+    const TARGET_NICHES = ['ai_tools', 'finance', 'online_business', 'content_creation', 'productivity'];
+    let nicheCluster: string | null = null;
+
+    // 1. LLM topic_cluster if it's a valid target niche
+    if (dna.topic_cluster && TARGET_NICHES.includes(dna.topic_cluster)) {
+      nicheCluster = dna.topic_cluster;
+    }
+
+    // 2. Keyword classifier on full text
+    if (!nicheCluster) {
+      const fullText = [video.caption, video.transcript, (video.hashtags || []).join(' ')].filter(Boolean).join(' ');
+      nicheCluster = classifyNiche(fullText);
+    }
+
+    // 3. Remap existing topicCluster via TOPIC_TO_NICHE_CLUSTER
+    if (!nicheCluster && video.topicCluster) {
+      const { resolveNicheCluster } = await import('@shared/schema');
+      nicheCluster = resolveNicheCluster(video.topicCluster);
+    }
+
+    // topicCluster: use LLM value if canonical, else keep existing ingestion value
+    const topicCluster = (dna.topic_cluster && TARGET_NICHES.includes(dna.topic_cluster))
+      ? dna.topic_cluster
+      : (video.topicCluster || null);
+
     await db.update(videos).set({
       hookText: dna.hook_text || null,
       hookMechanismPrimary: dna.hook_type || null,
       hookTypeV2: dna.hook_type || null,
       structureType: dna.structure_type || null,
-      topicCategory: dna.topic_level_1 || null,
-      topicCluster: dna.topic_level_2 || null,
+      topicCategory: dna.format_type || null,
+      topicCluster,
+      nicheCluster,
       emotionPrimary: dna.emotion_primary || null,
       durationBucket: calculateBucket(video.durationSeconds),
       classificationStatus: 'completed',
       classifiedAt: new Date(),
       classifiedBy: source,
-      taxonomyVersion: '3.0',
+      taxonomyVersion: '4.0',
       confidence: dna.confidence || 0.5
     }).where(eq(videos.id, videoId));
 
-    console.log(`[Classified] ${videoId} via ${source}`);
+    console.log(`[Classified] ${videoId} via ${source} → niche: ${nicheCluster}`);
 
   } catch (error: any) {
     const attempts = (video.classificationAttempts || 0) + 1;

@@ -14,11 +14,11 @@ const DATASET_LIMITS = {
 };
 
 const NICHE_KEYWORDS: Record<string, string[]> = {
-  'ai_tools': ['ai tools', 'chatgpt', 'midjourney', 'automation'],
-  'online_business': ['online business', 'entrepreneurship', 'digital marketing'],
-  'productivity': ['productivity', 'time management', 'habits'],
-  'finance': ['personal finance', 'investing', 'crypto'],
-  'content_creation': ['content creation', 'viral content', 'youtube growth']
+  'ai_tools': ['chatgpt', 'ai tools', 'midjourney', 'automation', 'openai', 'claude ai', 'gemini ai', 'n8n', 'zapier', 'ai agent', 'llm'],
+  'online_business': ['online business', 'entrepreneurship', 'digital marketing', 'dropshipping', 'shopify', 'agency', 'side hustle', 'ecommerce', 'freelance'],
+  'productivity': ['productivity', 'time management', 'habits', 'morning routine', 'deep work', 'notion', 'second brain', 'focus'],
+  'finance': ['personal finance', 'investing', 'crypto', 'stocks', 'passive income', 'wealth', 'financial freedom', 'trading', 'bitcoin'],
+  'content_creation': ['content creation', 'viral content', 'youtube growth', 'tiktok growth', 'personal brand', 'grow on instagram', 'content creator', 'subscribers'],
 };
 
 const ALL_NICHES = Object.keys(NICHE_KEYWORDS);
