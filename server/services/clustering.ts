@@ -13,7 +13,7 @@ export async function clusterVideos(): Promise<number> {
       ve.embedding,
       v.hook_type_v2,
       v.structure_type,
-      v.format_type,
+      v.content_format,
       v.virality_score,
       v.niche_cluster,
       v.topic_cluster,
@@ -30,7 +30,7 @@ export async function clusterVideos(): Promise<number> {
     embedding: number[];
     hook_type_v2: string | null;
     structure_type: string | null;
-    format_type: string | null;
+    content_format: string | null;
     virality_score: number;
     niche_cluster: string | null;
     topic_cluster: string | null;
