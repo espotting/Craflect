@@ -167,26 +167,37 @@ export default function Onboarding() {
     setStep(2);
   };
 
+  const savePreferences = async () => {
+    await apiRequest("PATCH", "/api/user/preferences", {
+      selectedNiches: [primaryNiche!, ...secondaryNiches],
+      primaryNiche: primaryNiche!,
+      secondaryNiches,
+      contentStyle: contentStyle || "educational",
+      userGoal: "content_creator",
+      onboardingCompleted: true,
+    });
+  };
+
   const handleSubmit = async () => {
     if (!primaryNiche) return;
     setIsSubmitting(true);
     setStep(5);
+    // Try to save, retry once on failure
     try {
-      await apiRequest("PATCH", "/api/user/preferences", {
-        selectedNiches: [primaryNiche, ...secondaryNiches],
-        primaryNiche,
-        secondaryNiches,
-        contentStyle: contentStyle || "educational",
-        userGoal: "content_creator",
-        onboardingCompleted: true,
-      });
-    } catch {}
+      await savePreferences();
+    } catch {
+      try { await savePreferences(); } catch {}
+    }
     setIsSubmitting(false);
     [600, 1200, 1900, 2600].forEach((d, i) => setTimeout(() => setAnalysisStep(i), d));
     setTimeout(() => setStep(6), 3800);
   };
 
-  const handleEnterDashboard = () => {
+  const handleEnterDashboard = async () => {
+    // Final safety: ensure onboardingCompleted=true is saved before hard navigation
+    try {
+      await apiRequest("PATCH", "/api/user/preferences", { onboardingCompleted: true });
+    } catch {}
     const seenKey = `proof_seen_${(user as any)?.id || 'anon'}`;
     if (!localStorage.getItem(seenKey)) {
       localStorage.setItem(seenKey, '1');

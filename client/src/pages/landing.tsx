@@ -68,7 +68,7 @@ export default function Landing() {
   if (isAuthenticated && (user as any)?.onboardingCompleted) return null;
 
   const handleGetStarted = () => setLocation("/waitlist");
-  const handleSignIn = () => setLocation("/signin");
+  const handleSignIn = () => setLocation("/welcome");
   const scrollToPricing = () => {
     document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" });
     setMobileMenuOpen(false);
