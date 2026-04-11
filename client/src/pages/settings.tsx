@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { User, Bell, Shield, Key, Loader2, Eye, EyeOff, Copy, RefreshCw, Sparkles } from "lucide-react";
+import { User, Bell, Shield, Key, Loader2, Eye, EyeOff, Copy, RefreshCw, Sparkles, Link, Unlink, CheckCircle } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useState, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -20,7 +20,13 @@ export default function Settings() {
   const queryClient = useQueryClient();
   const { t } = useLanguage();
 
-  const [activeTab, setActiveTab] = useState("profile");
+  const [activeTab, setActiveTab] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const tab = new URLSearchParams(window.location.search).get('tab');
+      if (tab && ['profile', 'intelligence', 'notifications', 'security', 'accounts'].includes(tab)) return tab;
+    }
+    return "profile";
+  });
   const [firstName, setFirstName] = useState(user?.firstName || "");
   const [lastName, setLastName] = useState(user?.lastName || "");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -52,6 +58,49 @@ export default function Settings() {
     },
     onSuccess: () => toast({ title: "Preferences saved" }),
     onError: () => toast({ title: "Could not save", variant: "destructive" }),
+  });
+
+  interface ImportStatus {
+    profileConnected: boolean;
+    platforms: Array<{ platform: string; connectedAt: string; videoCount: number }>;
+    lastImportedAt: string | null;
+  }
+  const { data: importStatus, refetch: refetchImportStatus } = useQuery<ImportStatus>({
+    queryKey: ["/api/user/import-status"],
+    queryFn: () => fetch("/api/user/import-status", { credentials: "include" }).then(r => r.json()),
+    enabled: activeTab === "accounts",
+  });
+
+  const [connectPlatform, setConnectPlatform] = useState<string | null>(null);
+  const [connectUrl, setConnectUrl] = useState("");
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [connectError, setConnectError] = useState<string | null>(null);
+
+  const handleConnect = async () => {
+    if (!connectPlatform || !connectUrl.trim()) return;
+    setIsConnecting(true);
+    setConnectError(null);
+    try {
+      await apiRequest("POST", "/api/user/import-profile", { platform: connectPlatform, profileUrl: connectUrl.trim() });
+      toast({ title: "Profile connected!", description: `${connectPlatform} profile is being imported.` });
+      setConnectPlatform(null);
+      setConnectUrl("");
+      refetchImportStatus();
+    } catch (err: any) {
+      setConnectError(err?.message || "Connection failed");
+    } finally {
+      setIsConnecting(false);
+    }
+  };
+
+  const disconnectMutation = useMutation({
+    mutationFn: (platform: string) => apiRequest("DELETE", `/api/user/disconnect-profile/${platform}`),
+    onSuccess: () => {
+      toast({ title: "Profile disconnected" });
+      refetchImportStatus();
+      queryClient.invalidateQueries({ queryKey: ["/api/user/import-status"] });
+    },
+    onError: () => toast({ title: "Could not disconnect", variant: "destructive" }),
   });
 
   const saveMutation = useMutation({
@@ -123,9 +172,21 @@ export default function Settings() {
   const tabs = [
     { id: 'profile', label: t.settings.profile, icon: User },
     { id: 'intelligence', label: 'Intelligence Profile', icon: Sparkles },
+    { id: 'accounts', label: 'Connected Accounts', icon: Link },
     { id: 'notifications', label: t.settings.notifications, icon: Bell },
     { id: 'security', label: t.settings.security, icon: Shield },
   ];
+
+  const PLATFORM_COLORS: Record<string, string> = {
+    tiktok: '#69C9D0',
+    instagram: '#E1306C',
+    youtube: '#FF0000',
+  };
+  const PLATFORM_PLACEHOLDERS: Record<string, string> = {
+    tiktok: 'https://www.tiktok.com/@yourhandle',
+    instagram: 'https://www.instagram.com/yourhandle',
+    youtube: 'https://www.youtube.com/@yourchannel',
+  };
 
   return (
     <DashboardLayout>
@@ -339,6 +400,79 @@ export default function Settings() {
                       onClick={() => navigate('/onboarding')}
                     >
                       Start Onboarding
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
+          {activeTab === "accounts" && (
+            <>
+              <h2 className="text-2xl font-display font-bold text-foreground mb-2">Connected Accounts</h2>
+              <p className="text-muted-foreground mb-6">Connect your creator profiles so Craflect can analyze your existing content and personalize recommendations.</p>
+
+              <div className="space-y-4 max-w-lg mb-8">
+                {importStatus?.platforms && importStatus.platforms.length > 0 ? (
+                  importStatus.platforms.map((p) => (
+                    <div key={p.platform} className="flex items-center justify-between p-4 rounded-xl border border-border bg-background/50">
+                      <div className="flex items-center gap-3">
+                        <div style={{ width: 36, height: 36, borderRadius: 8, background: `${PLATFORM_COLORS[p.platform]}18`, border: `1px solid ${PLATFORM_COLORS[p.platform]}40`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <CheckCircle size={16} style={{ color: PLATFORM_COLORS[p.platform] }} />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-foreground capitalize">{p.platform}</p>
+                          <p className="text-xs text-muted-foreground">{p.videoCount} videos imported · {new Date(p.connectedAt).toLocaleDateString()}</p>
+                        </div>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-destructive border-destructive/30 hover:bg-destructive/10 gap-1"
+                        onClick={() => disconnectMutation.mutate(p.platform)}
+                        disabled={disconnectMutation.isPending}
+                      >
+                        <Unlink className="w-3.5 h-3.5" />
+                        Disconnect
+                      </Button>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-10 rounded-xl border border-dashed border-border">
+                    <Link className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
+                    <p className="text-muted-foreground text-sm">No profiles connected yet</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="max-w-lg">
+                <h3 className="text-base font-semibold text-foreground mb-4">Connect a new profile</h3>
+                <div className="flex gap-3 mb-4">
+                  {['tiktok', 'instagram', 'youtube'].map(pl => (
+                    <button key={pl} onClick={() => { setConnectPlatform(pl); setConnectUrl(""); setConnectError(null); }}
+                      style={{ flex: 1, padding: '10px 8px', borderRadius: 10, border: connectPlatform === pl ? `1px solid ${PLATFORM_COLORS[pl]}` : '1px solid rgba(255,255,255,0.08)', background: connectPlatform === pl ? `${PLATFORM_COLORS[pl]}15` : 'rgba(255,255,255,0.03)', cursor: 'pointer', textAlign: 'center' as const }}>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: connectPlatform === pl ? PLATFORM_COLORS[pl] : 'rgba(255,255,255,0.5)', textTransform: 'capitalize' as const }}>{pl}</span>
+                    </button>
+                  ))}
+                </div>
+
+                {connectPlatform && (
+                  <div className="space-y-3">
+                    <input
+                      type="url"
+                      placeholder={PLATFORM_PLACEHOLDERS[connectPlatform]}
+                      value={connectUrl}
+                      onChange={e => { setConnectUrl(e.target.value); setConnectError(null); }}
+                      className="w-full h-11 px-4 rounded-xl border border-border bg-background text-foreground text-sm outline-none focus:border-primary/50"
+                    />
+                    {connectError && <p className="text-destructive text-sm">{connectError}</p>}
+                    <Button
+                      onClick={handleConnect}
+                      disabled={!connectUrl.trim() || isConnecting}
+                      className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl h-11 px-6"
+                    >
+                      {isConnecting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                      Import profile →
                     </Button>
                   </div>
                 )}

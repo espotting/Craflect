@@ -61,12 +61,53 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
-  
+
   await setupAuth(app);
   registerAuthRoutes(app);
   registerChatRoutes(app);
   registerImageRoutes(app);
   registerSyncRoutes(app);
+
+  // ─── Phase 4 SQL migrations ───────────────────────────────────────────────
+  {
+    const { db } = await import("./db");
+    const { sql: sqlRaw } = await import("drizzle-orm");
+    await db.execute(sqlRaw`
+      CREATE TABLE IF NOT EXISTS user_videos (
+        id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id varchar NOT NULL,
+        platform text NOT NULL,
+        platform_video_id text,
+        video_url text,
+        thumbnail_url text,
+        caption text,
+        transcript text,
+        views integer,
+        likes integer,
+        comments integer,
+        shares integer,
+        virality_score double precision,
+        hook_type text,
+        structure_type text,
+        duration_seconds integer,
+        published_at timestamp,
+        collected_at timestamp DEFAULT NOW(),
+        UNIQUE(user_id, platform_video_id)
+      )
+    `);
+    await db.execute(sqlRaw`CREATE INDEX IF NOT EXISTS idx_user_videos_user_id ON user_videos(user_id)`);
+    await db.execute(sqlRaw`ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_url_tiktok text`);
+    await db.execute(sqlRaw`ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_url_instagram text`);
+    await db.execute(sqlRaw`ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_url_youtube text`);
+    await db.execute(sqlRaw`ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_connected boolean DEFAULT false`);
+    await db.execute(sqlRaw`ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_imported_at timestamp`);
+    await db.execute(sqlRaw`ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_videos_count integer DEFAULT 0`);
+    await db.execute(sqlRaw`ALTER TABLE users ADD COLUMN IF NOT EXISTS platform_preference text DEFAULT 'tiktok'`);
+    await db.execute(sqlRaw`ALTER TABLE users ADD COLUMN IF NOT EXISTS popup_skip_count integer DEFAULT 0`);
+    await db.execute(sqlRaw`ALTER TABLE users ADD COLUMN IF NOT EXISTS popup_last_shown timestamp`);
+    await db.execute(sqlRaw`ALTER TABLE users ADD COLUMN IF NOT EXISTS first_login boolean DEFAULT true`);
+    console.log('[Migrations] Phase 4 columns OK');
+  }
 
   // ─── Workspaces ───
   app.get("/api/workspaces", isAuthenticated, async (req: any, res) => {
@@ -1731,18 +1772,29 @@ The content should directly apply the recommendations from the insight report. W
         primaryNiche: z.string().optional(),
         secondaryNiches: z.array(z.string()).optional(),
         contentStyle: z.string().optional(),
+        profileSkipped: z.boolean().optional(),
+        popupSkipCount: z.number().optional(),
+        notificationPrefs: z.record(z.boolean()).optional(),
       }).parse(req.body);
 
-      const updates: string[] = [];
       if (input.selectedNiches !== undefined) {
         const nichesArray = `{${input.selectedNiches.join(",")}}`;
         await db.execute(sql`UPDATE users SET selected_niches = ${nichesArray}::text[] WHERE id = ${req.user.id}`);
+      }
+      if (input.primaryNiche !== undefined) {
+        await db.execute(sql`UPDATE users SET primary_niche = ${input.primaryNiche} WHERE id = ${req.user.id}`);
+      }
+      if (input.contentStyle !== undefined) {
+        await db.execute(sql`UPDATE users SET content_style = ${input.contentStyle} WHERE id = ${req.user.id}`);
       }
       if (input.userGoal !== undefined) {
         await db.execute(sql`UPDATE users SET user_goal = ${input.userGoal} WHERE id = ${req.user.id}`);
       }
       if (input.onboardingCompleted !== undefined) {
         await db.execute(sql`UPDATE users SET onboarding_completed = ${input.onboardingCompleted} WHERE id = ${req.user.id}`);
+      }
+      if (input.popupSkipCount !== undefined) {
+        await db.execute(sql`UPDATE users SET popup_skip_count = ${input.popupSkipCount}, popup_last_shown = NOW() WHERE id = ${req.user.id}`);
       }
 
       res.json({ success: true });
@@ -5010,6 +5062,10 @@ JSON only, no markdown.`;
     try {
       const { db } = await import("./db");
       const { sql } = await import("drizzle-orm");
+      const rawPlatform = (req.query.platform as string) || 'all';
+      const ALLOWED_PLATFORMS = ['all', 'tiktok', 'instagram', 'youtube'];
+      const platformFilter = ALLOWED_PLATFORMS.includes(rawPlatform) ? rawPlatform : 'all';
+      const platformClause = platformFilter !== 'all' ? `AND v.platform = '${platformFilter}'` : '';
 
       const userResult = await db.execute(sql`
         SELECT primary_niche, selected_niches FROM users WHERE id = ${req.user.id}
@@ -5038,6 +5094,7 @@ JSON only, no markdown.`;
         WHERE v.classification_status = 'completed'
           AND v.virality_score >= 50
           AND v.hook_text IS NOT NULL
+          ${platformClause}
         ORDER BY relevance_score DESC, v.virality_score DESC NULLS LAST
         LIMIT 20
       `));
@@ -5140,6 +5197,86 @@ JSON only, no markdown.`;
   // BACKFILL — fix niche_cluster for existing videos
   // Maps topic_cluster → correct niche_cluster (5 target niches)
   // ═══════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════
+  // PHASE 4 — Profile Import + Connected Accounts
+  // ═══════════════════════════════════════════════════════════
+
+  app.post('/api/user/import-profile', isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const { profileUrl, platform } = req.body;
+      const userId = req.user.id;
+
+      if (!profileUrl || !platform) {
+        return res.status(400).json({ error: 'profileUrl and platform required' });
+      }
+
+      const urlField = platform === 'tiktok' ? 'profile_url_tiktok'
+        : platform === 'instagram' ? 'profile_url_instagram' : 'profile_url_youtube';
+
+      await db.execute(sql.raw(`
+        UPDATE users SET ${urlField} = '${profileUrl.replace(/'/g, "''")}',
+          profile_connected = true, profile_imported_at = NOW()
+        WHERE id = '${userId}'
+      `));
+
+      res.json({ success: true, message: 'Profile import started' });
+
+      // Fire-and-forget background scrape
+      scrapeUserProfile(userId, profileUrl, platform).catch(e =>
+        console.error('[ProfileImport] Background scrape failed:', e.message)
+      );
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get('/api/user/import-status', isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const result = await db.execute(sql`
+        SELECT profile_connected, profile_imported_at, profile_videos_count,
+               profile_url_tiktok, profile_url_instagram, profile_url_youtube,
+               popup_skip_count
+        FROM users WHERE id = ${req.user.id}
+      `);
+      res.json(result.rows[0] || { profile_connected: false });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.delete('/api/user/disconnect-profile/:platform', isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const { platform } = req.params;
+      const userId = req.user.id;
+
+      const urlField = platform === 'tiktok' ? 'profile_url_tiktok'
+        : platform === 'instagram' ? 'profile_url_instagram' : 'profile_url_youtube';
+
+      await db.execute(sql.raw(`UPDATE users SET ${urlField} = NULL WHERE id = '${userId}'`));
+
+      const remaining = await db.execute(sql`
+        SELECT profile_url_tiktok, profile_url_instagram, profile_url_youtube
+        FROM users WHERE id = ${userId}
+      `);
+      const r = remaining.rows[0] as any;
+      if (!r?.profile_url_tiktok && !r?.profile_url_instagram && !r?.profile_url_youtube) {
+        await db.execute(sql`UPDATE users SET profile_connected = false WHERE id = ${userId}`);
+      }
+
+      await db.execute(sql`DELETE FROM user_videos WHERE user_id = ${userId} AND platform = ${platform}`);
+
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.post('/api/admin/backfill-niches', isAuthenticated, isAdmin, async (req: any, res) => {
     try {
       const { db } = await import("./db");
@@ -5184,4 +5321,93 @@ function formatViewCount(num: number): string {
   if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(0)}M`;
   if (num >= 1_000) return `${(num / 1_000).toFixed(0)}k`;
   return num.toString();
+}
+
+// ─── Profile Import helpers ───────────────────────────────────────────────────
+
+async function scrapeUserProfile(userId: string, profileUrl: string, platform: string) {
+  const { db } = await import("./db");
+  const { sql } = await import("drizzle-orm");
+  const { ApifyClient } = await import('apify-client');
+  const apify = new ApifyClient({ token: process.env.APIFY_API_KEY });
+
+  try {
+    console.log(`[ProfileImport] Scraping ${platform} profile: ${profileUrl}`);
+
+    let actorId = 'clockworks/tiktok-scraper';
+    let input: any = {};
+
+    if (platform === 'tiktok') {
+      input = { profiles: [profileUrl], resultsPerPage: 30, shouldDownloadVideos: false, shouldDownloadCovers: true };
+    } else if (platform === 'instagram') {
+      actorId = 'apify/instagram-reel-scraper';
+      const handle = profileUrl.replace(/\/$/, '').split('/').pop() || '';
+      input = { username: handle, resultsLimit: 30 };
+    } else {
+      actorId = 'streamers/youtube-scraper';
+      input = { startUrls: [{ url: profileUrl }], maxResults: 30, type: 'shorts' };
+    }
+
+    const run = await apify.actor(actorId).call(input, { waitSecs: 120 });
+    const { items } = await apify.dataset(run.defaultDatasetId).listItems();
+
+    let imported = 0;
+    for (const item of items as any[]) {
+      try {
+        const views = item.playCount || item.viewCount || item.stats?.viewCount || 0;
+        const likes = item.diggCount || item.likeCount || item.stats?.likeCount || 0;
+        const pvId = String(item.id || item.videoId || `${platform}_${Date.now()}_${Math.random().toString(36).slice(2,7)}`);
+        await db.execute(sql`
+          INSERT INTO user_videos (user_id, platform, platform_video_id, video_url, thumbnail_url, caption, views, likes, duration_seconds, published_at)
+          VALUES (${userId}, ${platform}, ${pvId},
+            ${item.webVideoUrl || item.url || null},
+            ${item.videoMeta?.coverUrl || item.thumbnail || null},
+            ${item.text || item.description || null},
+            ${views}, ${likes},
+            ${item.videoMeta?.duration || item.duration || null},
+            ${item.createTime ? new Date(item.createTime * 1000).toISOString() : null})
+          ON CONFLICT (user_id, platform_video_id) DO NOTHING
+        `);
+        imported++;
+      } catch (_) {}
+    }
+
+    await db.execute(sql`UPDATE users SET profile_videos_count = ${imported} WHERE id = ${userId}`);
+    await buildUserDnaFromVideos(userId);
+    console.log(`[ProfileImport] Imported ${imported} videos for user ${userId}`);
+  } catch (error: any) {
+    console.error(`[ProfileImport] Error for user ${userId}: ${error.message}`);
+  }
+}
+
+async function buildUserDnaFromVideos(userId: string) {
+  const { db } = await import("./db");
+  const { sql } = await import("drizzle-orm");
+
+  const result = await db.execute(sql`
+    SELECT views, likes, hook_type, structure_type, duration_seconds FROM user_videos WHERE user_id = ${userId}
+  `);
+  if (!result.rows.length) return;
+
+  const rows = result.rows as any[];
+  const hookPerf: Record<string, { count: number; avgViews: number }> = {};
+  rows.forEach((r: any) => {
+    if (r.hook_type) {
+      if (!hookPerf[r.hook_type]) hookPerf[r.hook_type] = { count: 0, avgViews: 0 };
+      hookPerf[r.hook_type].count++;
+      hookPerf[r.hook_type].avgViews += r.views || 0;
+    }
+  });
+  Object.keys(hookPerf).forEach(k => {
+    hookPerf[k].avgViews = Math.round(hookPerf[k].avgViews / hookPerf[k].count);
+  });
+
+  await db.execute(sql`
+    INSERT INTO user_content_dna (user_id, hook_type_performance, total_tracked_videos, updated_at)
+    VALUES (${userId}, ${JSON.stringify(hookPerf)}, ${rows.length}, NOW())
+    ON CONFLICT (user_id) DO UPDATE SET
+      hook_type_performance = ${JSON.stringify(hookPerf)},
+      total_tracked_videos = ${rows.length},
+      updated_at = NOW()
+  `);
 }

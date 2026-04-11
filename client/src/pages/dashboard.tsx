@@ -5,6 +5,8 @@ import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { usePlatform } from "@/hooks/use-platform";
+import { PlatformToggle } from "@/components/platform-toggle";
 import {
   Sparkles,
   ArrowRight,
@@ -753,8 +755,11 @@ export default function DashboardPage() {
     queryKey: ["/api/credits"],
   });
 
+  const { platform, setPlatform } = usePlatform();
+
   const { data: feedData } = useQuery<{ videos: any[]; personalizedFor: string | null }>({
-    queryKey: ["/api/feed/personalized"],
+    queryKey: ["/api/feed/personalized", platform],
+    queryFn: () => fetch(`/api/feed/personalized${platform !== 'all' ? `?platform=${platform}` : ''}`, { credentials: "include" }).then(r => r.json()),
   });
 
   const isLoading = loadingPlay || loadingTrending;
@@ -775,13 +780,16 @@ export default function DashboardPage() {
                 : "Your content intelligence feed"}
             </p>
           </div>
-          {credits && (
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-900 rounded-lg border border-slate-800" data-testid="credits-counter">
-              <Coins className="w-4 h-4 text-yellow-400" />
-              <span className="text-sm font-medium text-white">{credits.credits}</span>
-              <span className="text-xs text-slate-400">/ {credits.maxCredits}</span>
-            </div>
-          )}
+          <div className="flex items-center gap-3">
+            <PlatformToggle value={platform} onChange={setPlatform} />
+            {credits && (
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-900 rounded-lg border border-slate-800" data-testid="credits-counter">
+                <Coins className="w-4 h-4 text-yellow-400" />
+                <span className="text-sm font-medium text-white">{credits.credits}</span>
+                <span className="text-xs text-slate-400">/ {credits.maxCredits}</span>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Daily Brief — always shown above fold */}
