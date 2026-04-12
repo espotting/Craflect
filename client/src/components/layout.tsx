@@ -2,11 +2,17 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./app-sidebar";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
-import { useEffect } from "react";
+import { useEffect, Component, type ReactNode } from "react";
 import { Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useLanguage } from "@/hooks/use-language";
 import { SmartPopup } from "./smart-popup";
+
+class PopupErrorBoundary extends Component<{ children: ReactNode }, { crashed: boolean }> {
+  state = { crashed: false };
+  componentDidCatch() { this.setState({ crashed: true }); }
+  render() { return this.state.crashed ? null : this.props.children; }
+}
 
 const userRoutes = ["/home", "/opportunities", "/create", "/workspace", "/insights", "/settings", "/plan-billing", "/onboarding"];
 const adminRoutes = ["/system/founder", "/system/founder/waitlist", "/system/logs", "/system/settings"];
@@ -87,7 +93,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           </main>
         </div>
       </div>
-      <SmartPopup />
+      <PopupErrorBoundary><SmartPopup /></PopupErrorBoundary>
     </SidebarProvider>
   );
 }

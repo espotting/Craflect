@@ -5092,7 +5092,8 @@ JSON only, no markdown.`;
       const userData = userResult.rows[0] as any;
       const primaryNiche = userData?.primary_niche || null;
       const niches: string[] = userData?.selected_niches || [];
-      const nichesArr = `{${niches.length > 0 ? niches.join(',') : (primaryNiche || 'general')}}`;
+      const nicheValues = niches.length > 0 ? niches : [primaryNiche || 'general'];
+      const nicheListSQL = nicheValues.map((n: string) => `'${n.replace(/'/g, "''")}'`).join(',');
       const primaryVal = primaryNiche || 'general';
 
       const feed = await db.execute(sql.raw(`
@@ -5103,7 +5104,7 @@ JSON only, no markdown.`;
           cc.trend_status, cc.velocity_7d,
           (
             CASE WHEN v.niche_cluster = '${primaryVal.replace(/'/g, "''")}' THEN 50
-                 WHEN v.niche_cluster = ANY(ARRAY${nichesArr.replace(/\{/,'[').replace(/\}/,']').split(',').map((n: string) => `'${n.trim().replace(/'/g, "''")}'`).join(',').replace(/\[/, '[').replace(/\]/, ']')}::text[]) THEN 30
+                 WHEN v.niche_cluster = ANY(ARRAY[${nicheListSQL}]::text[]) THEN 30
                  ELSE 0 END +
             COALESCE(cc.velocity_7d, 0) * 3 +
             COALESCE(v.virality_score, 0) * 0.2
