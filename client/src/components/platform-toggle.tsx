@@ -14,7 +14,7 @@ interface PlatformToggleProps {
 
 export function PlatformToggle({ value, onChange }: PlatformToggleProps) {
   return (
-    <div style={{ display: "flex", gap: 6, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, padding: 4 }}>
+    <div style={{ display: "flex", gap: 4, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 10, padding: 4 }}>
       {PLATFORM_OPTIONS.map((opt) => {
         const active = value === opt.value;
         return (

@@ -162,7 +162,7 @@ export default function StudioPage() {
 
   return (
     <DashboardLayout>
-      <div style={{ display: "flex", flexDirection: "column", height: "100vh", background: "#0a0a0f", overflow: "hidden" }}>
+      <div style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 64px)", background: "#0a0a0f", overflow: "hidden", margin: "-1.5rem", width: "calc(100% + 3rem)" }}>
 
         {/* ── TOP BAR ── */}
         <div style={{
