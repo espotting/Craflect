@@ -474,7 +474,7 @@ function EmergingNow({
           <div
             key={alert.id}
             className="bg-slate-900/50 rounded-xl p-5 border border-slate-800 hover:border-purple-500/30 transition-colors cursor-pointer"
-            onClick={() => onNavigate("/opportunities")}
+            onClick={() => onNavigate(alert.dominant_niche ? `/opportunities?filter=emerging&niche=${alert.dominant_niche}` : '/opportunities?filter=emerging')}
             data-testid={`alert-card-${alert.id}`}
           >
             <div className="flex items-center justify-between mb-3">
@@ -576,7 +576,7 @@ function TrendingPatterns({
         <Button
           variant="outline"
           className="border-slate-700 text-slate-300"
-          onClick={() => onNavigate("/opportunities")}
+          onClick={() => onNavigate("/create")}
           data-testid="button-see-all"
         >
           See All
@@ -590,7 +590,7 @@ function TrendingPatterns({
             <VideoCardV2
               key={video.id}
               video={video}
-              onCreateSimilar={() => opp && onNavigate(buildStudioUrl(opp))}
+              onCreateSimilar={() => opp && onNavigate(`/create?patternId=${opp.patternId || opp.id}`)}
               onAnalyze={() => {}}
               onSave={() => opp && handleSave(opp)}
             />
@@ -821,10 +821,13 @@ export default function DashboardPage() {
                 <div style={hScrollStyle}>
                   {alertsData.alerts.slice(0, 5).map((alert: AlertItem) => {
                     const nicheGrad = getNicheGradient(alert.dominant_niche);
+                    const emergingUrl = alert.dominant_niche
+                      ? `/opportunities?filter=emerging&niche=${alert.dominant_niche}`
+                      : '/opportunities?filter=emerging';
                     return (
                       <div
                         key={alert.id}
-                        onClick={() => navigate('/opportunities')}
+                        onClick={() => navigate(emergingUrl)}
                         style={{
                           flex: '0 0 200px', borderRadius: 12, overflow: 'hidden',
                           background: nicheGrad, cursor: 'pointer', position: 'relative',
@@ -858,7 +861,7 @@ export default function DashboardPage() {
               <section>
                 <SectionHeader
                   title="Recommended Patterns — Match Your Style"
-                  onSeeAll={() => navigate('/opportunities')}
+                  onSeeAll={() => navigate('/create')}
                 />
                 <div style={hScrollStyle}>
                   {feedData.videos
@@ -901,7 +904,7 @@ export default function DashboardPage() {
                           backgroundSize: 'cover', backgroundPosition: 'center',
                           cursor: 'pointer', position: 'relative', height: 140,
                         }}
-                        onClick={() => navigate(buildStudioUrl(opp))}
+                        onClick={() => navigate(`/opportunities?videoId=${opp.id}`)}
                       >
                         <div style={{
                           position: 'absolute', inset: 0,

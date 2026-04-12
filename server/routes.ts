@@ -5359,6 +5359,36 @@ JSON only, no markdown.`;
     }
   });
 
+  // ── POST /api/workspace/save-brief — save Studio filming brief as idea ──
+  app.post('/api/workspace/save-brief', isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { savedIdeas } = await import("@shared/schema");
+      const input = z.object({
+        hookFinal: z.string().min(1),
+        patternId: z.string().optional(),
+        duration: z.string().optional(),
+      }).parse(req.body);
+
+      const [idea] = await db.insert(savedIdeas).values({
+        userId: req.user.id,
+        hook: input.hookFinal,
+        format: "studio_brief",
+        topic: input.patternId || null,
+        opportunityScore: null,
+        velocity: null,
+        videosDetected: null,
+        status: "saved",
+      }).returning();
+
+      res.status(201).json({ success: true, id: idea?.id });
+    } catch (error: any) {
+      if (error instanceof z.ZodError) return res.status(400).json({ error: error.errors[0].message });
+      console.error("Save brief error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.post('/api/admin/backfill-niches', isAuthenticated, isAdmin, async (req: any, res) => {
     try {
       const { db } = await import("./db");
