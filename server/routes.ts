@@ -3968,23 +3968,28 @@ ${input.cta ? `CTA: ${input.cta}` : ""}`;
       const { sql } = await import("drizzle-orm");
 
       const result = await db.execute(sql`
-        SELECT hook_text, hook_mechanism_primary, topic_cluster,
-               ROUND(AVG(virality_score)::numeric, 1) as avg_virality,
-               COUNT(*) as usage_count
+        SELECT
+          hook_type_v2 as hook_type,
+          COUNT(*) as uses,
+          ROUND(AVG(virality_score)::numeric, 1) as avg_score,
+          ROUND(MAX(virality_score)::numeric, 1) as max_score
         FROM videos
-        WHERE classification_status = 'completed' AND hook_text IS NOT NULL AND virality_score IS NOT NULL
-        GROUP BY hook_text, hook_mechanism_primary, topic_cluster
-        HAVING COUNT(*) >= 1
+        WHERE classification_status = 'completed'
+          AND hook_type_v2 IS NOT NULL
+          AND virality_score IS NOT NULL
+          AND virality_score < 98
+        GROUP BY hook_type_v2
+        HAVING COUNT(*) >= 3
         ORDER BY AVG(virality_score) DESC NULLS LAST
-        LIMIT 10
+        LIMIT 8
       `);
 
       const hooks = result.rows.map((h: any) => ({
-        hook: cleanHookYear(h.hook_text),
-        hookType: h.hook_mechanism_primary,
-        topic: h.topic_cluster,
-        avgVirality: parseFloat(h.avg_virality) || 0,
-        usageCount: parseInt(h.usage_count) || 0,
+        hook: (h.hook_type || '').replace(/_/g, ' '),
+        hookType: h.hook_type,
+        avgVirality: parseFloat(h.avg_score) || 0,
+        maxVirality: parseFloat(h.max_score) || 0,
+        usageCount: parseInt(h.uses) || 0,
       }));
 
       res.json(hooks);
@@ -4730,22 +4735,36 @@ ${input.cta ? `CTA: ${input.cta}` : ""}`;
     try {
       const { db } = await import("./db");
       const { sql } = await import("drizzle-orm");
-      const user = await db.execute(sql`SELECT selected_niches FROM users WHERE id = ${req.user.id}`);
-      const niches: string[] = (user.rows[0] as any)?.selected_niches || [];
-      const nichesArr = `{${niches.join(',')}}`;
+      const user = await db.execute(sql`SELECT selected_niches, primary_niche FROM users WHERE id = ${req.user.id}`);
+      const row = user.rows[0] as any;
+      const niches: string[] = row?.selected_niches || (row?.primary_niche ? [row.primary_niche] : []);
 
-      const patterns = await db.execute(sql`
-        SELECT p.*, cc.trend_status, cc.velocity_7d
-        FROM patterns p
-        LEFT JOIN content_clusters cc ON cc.id::text = p.cluster_id
-        WHERE (
-          p.topic_cluster = ANY(${nichesArr}::text[])
-          OR ${nichesArr}::text[] = '{}'
-        )
-          AND p.pattern_label IS NOT NULL
-        ORDER BY p.avg_virality_score DESC NULLS LAST
-        LIMIT 20
-      `);
+      let patterns;
+      if (niches.length > 0) {
+        const nichesArr = `{${niches.join(',')}}`;
+        patterns = await db.execute(sql`
+          SELECT p.*, cc.trend_status, cc.velocity_7d
+          FROM patterns p
+          LEFT JOIN content_clusters cc ON cc.id::text = p.cluster_id
+          WHERE p.topic_cluster = ANY(${nichesArr}::text[])
+            AND p.pattern_label IS NOT NULL
+          ORDER BY p.avg_virality_score DESC NULLS LAST
+          LIMIT 20
+        `);
+      }
+
+      // Fallback: no niche match or niches empty → return all patterns
+      if (!patterns || patterns.rows.length === 0) {
+        patterns = await db.execute(sql`
+          SELECT p.*, cc.trend_status, cc.velocity_7d
+          FROM patterns p
+          LEFT JOIN content_clusters cc ON cc.id::text = p.cluster_id
+          WHERE p.pattern_label IS NOT NULL
+          ORDER BY p.avg_virality_score DESC NULLS LAST
+          LIMIT 10
+        `);
+      }
+
       res.json(patterns.rows);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
