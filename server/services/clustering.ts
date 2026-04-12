@@ -8,7 +8,7 @@ const MIN_CLUSTER_SIZE = 2;
 export async function clusterVideos(): Promise<number> {
   // Récupérer embeddings + métadonnées structurelles
   const rows = await db.execute(sql`
-    SELECT 
+    SELECT
       ve.video_id,
       ve.embedding,
       v.hook_type_v2,
@@ -148,7 +148,6 @@ async function getClusterMeta(videoIds: string[]) {
       AVG(confidence) as avg_confidence
     FROM videos
     WHERE id IN (${sql.raw(videoIds.map(id => `'${id}'`).join(','))})
-      AND hook_type_v2 IS NOT NULL
   `);
   console.log('[ClusterMeta] rows:', result.rows.length, JSON.stringify(result.rows[0]));
   const top = result.rows[0] as any;

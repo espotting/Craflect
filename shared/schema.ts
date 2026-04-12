@@ -367,47 +367,53 @@ export const TOPIC_CLUSTERS = [
 ] as const;
 
 export const NICHE_CLUSTERS = [
-  "tech_business",
-  "creator_economy",
+  "ai_tools",
+  "finance",
+  "online_business",
+  "content_creation",
   "productivity",
-  "marketing_growth",
-  "lifestyle",
 ] as const;
 
 export const NICHE_CLUSTER_LABELS: Record<string, string> = {
-  tech_business: "Tech & Business",
-  creator_economy: "Creator Economy",
+  ai_tools: "AI Tools",
+  finance: "Finance",
+  online_business: "Online Business",
+  content_creation: "Content Creation",
   productivity: "Productivity",
-  marketing_growth: "Marketing & Growth",
-  lifestyle: "Lifestyle",
 };
 
 export const TOPIC_TO_NICHE_CLUSTER: Record<string, string> = {
-  ai_tools: "tech_business",
-  ai_automation: "tech_business",
-  tech: "tech_business",
-  saas: "tech_business",
-  online_business: "tech_business",
-  entrepreneurship: "tech_business",
-  ecommerce: "tech_business",
-  finance: "tech_business",
-  crypto: "tech_business",
-  real_estate: "tech_business",
-  personal_branding: "creator_economy",
-  coaching: "creator_economy",
-  education: "creator_economy",
-  entertainment: "creator_economy",
-  gaming: "creator_economy",
+  // AI / Tech
+  ai_tools: "ai_tools",
+  ai_automation: "ai_tools",
+  tech: "ai_tools",
+  saas: "ai_tools",
+  // Finance
+  finance: "finance",
+  crypto: "finance",
+  real_estate: "finance",
+  // Online business
+  online_business: "online_business",
+  entrepreneurship: "online_business",
+  ecommerce: "online_business",
+  digital_marketing: "online_business",
+  // Content creation
+  content_creation: "content_creation",
+  personal_branding: "content_creation",
+  education: "content_creation",
+  coaching: "content_creation",
+  entertainment: "content_creation",
+  gaming: "content_creation",
+  // Productivity (catch-all for lifestyle-adjacent)
   productivity: "productivity",
   motivation: "productivity",
-  digital_marketing: "marketing_growth",
-  lifestyle: "lifestyle",
-  fitness: "lifestyle",
-  health: "lifestyle",
-  beauty: "lifestyle",
-  food: "lifestyle",
-  travel: "lifestyle",
-  relationships: "lifestyle",
+  lifestyle: "productivity",
+  fitness: "productivity",
+  health: "productivity",
+  beauty: "productivity",
+  food: "productivity",
+  travel: "productivity",
+  relationships: "productivity",
 };
 
 export function resolveNicheCluster(topicCluster: string | null | undefined): string | null {

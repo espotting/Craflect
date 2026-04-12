@@ -26,8 +26,18 @@ interface OpportunityItem {
   confidence?: number;
   patternId?: string;
   nicheCluster?: string;
+  trendStatus?: string;
+  velocity7d?: number;
   compatibility?: "your_niche" | "related" | null;
+  compatibilityScore?: number;
+  matchType?: "perfect_match" | "good_match" | "explore";
 }
+
+const SORT_OPTIONS = [
+  { key: "compatibility", label: "By Compatibility" },
+  { key: "virality", label: "By Virality" },
+  { key: "velocity", label: "By Velocity" },
+];
 
 interface FormatInfo {
   format: string;
@@ -66,6 +76,7 @@ export default function OpportunitiesPage() {
   const [formatFilter, setFormatFilter] = useState<string>("all");
   const [hookFilter, setHookFilter] = useState<string>("all");
   const [velocityFilter, setVelocityFilter] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<string>("compatibility");
   const [visibleCount, setVisibleCount] = useState(12);
 
   const params = new URLSearchParams();
@@ -80,7 +91,13 @@ export default function OpportunitiesPage() {
     queryFn: () => fetch(queryUrl, { credentials: "include" }).then(r => r.json()),
   });
 
-  const videos: VideoCardData[] = (opportunities || []).map((opp) => ({
+  const sortedOpportunities = [...(opportunities || [])].sort((a, b) => {
+    if (sortBy === "compatibility") return (b.compatibilityScore ?? 0) - (a.compatibilityScore ?? 0);
+    if (sortBy === "velocity") return (b.velocity7d ?? 0) - (a.velocity7d ?? 0);
+    return b.viralityScore - a.viralityScore;
+  });
+
+  const videos: VideoCardData[] = sortedOpportunities.map((opp) => ({
     id: opp.id,
     hook: opp.hook,
     format: opp.format,
@@ -123,22 +140,24 @@ export default function OpportunitiesPage() {
   };
 
   const getCompatibilityBadge = (opp: OpportunityItem) => {
-    if (opp.compatibility === "your_niche") {
+    const match = opp.matchType;
+    const score = opp.compatibilityScore ?? 0;
+    if (match === "perfect_match" || opp.compatibility === "your_niche") {
       return (
         <div className="absolute top-2 left-2 z-10">
           <Badge className="bg-green-500/20 text-green-400 border border-green-500/30 text-[10px] px-1.5 py-0.5">
             <Check className="w-3 h-3 mr-0.5" />
-            Your niche
+            ⭐ Perfect Match {score > 0 ? `· ${score}` : ""}
           </Badge>
         </div>
       );
     }
-    if (opp.compatibility === "related") {
+    if (match === "good_match" || opp.compatibility === "related") {
       return (
         <div className="absolute top-2 left-2 z-10">
           <Badge className="bg-blue-500/20 text-blue-400 border border-blue-500/30 text-[10px] px-1.5 py-0.5">
             <ArrowUpRight className="w-3 h-3 mr-0.5" />
-            Related
+            ✓ Good Match {score > 0 ? `· ${score}` : ""}
           </Badge>
         </div>
       );
@@ -194,6 +213,21 @@ export default function OpportunitiesPage() {
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-slate-500 text-xs font-medium w-16">Sort</span>
+            {SORT_OPTIONS.map((s) => (
+              <Button
+                key={s.key}
+                variant="outline"
+                size="sm"
+                className={`border-slate-700 text-slate-300 text-xs h-8 ${sortBy === s.key ? "bg-purple-600/20 border-purple-500/50 text-purple-300" : ""}`}
+                onClick={() => setSortBy(s.key)}
+              >
+                {s.label}
+              </Button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
             <span className="text-slate-500 text-xs font-medium w-16">Velocity</span>
             {VELOCITY_FILTERS.map((f) => (
               <Button
@@ -227,7 +261,7 @@ export default function OpportunitiesPage() {
           <>
             <div className="grid grid-cols-4 gap-6" data-testid="opportunities-grid">
               {visibleVideos.map((video) => {
-                const opp = opportunities?.find((o) => o.id === video.id);
+                const opp = sortedOpportunities.find((o) => o.id === video.id);
                 return (
                   <div key={video.id} className="relative">
                     {opp && getCompatibilityBadge(opp)}

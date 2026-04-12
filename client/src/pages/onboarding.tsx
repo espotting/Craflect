@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { Check, Loader2, TrendingUp, RefreshCw, LogOut } from "lucide-react";
+import { Check, Loader2, TrendingUp, RefreshCw, LogOut, Link, SkipForward } from "lucide-react";
 
 const ALL_NICHES = [
   { value: "ai_tools", label: "AI Tools" },
@@ -41,6 +41,12 @@ const ANALYSIS_STEPS = [
   "Ranking top viral patterns by engagement",
   "Calibrating hook performance for your style",
   "Generating your personalized opportunity score",
+];
+
+const PLATFORMS = [
+  { value: "tiktok", label: "TikTok", color: "#69C9D0", placeholder: "https://www.tiktok.com/@yourhandle" },
+  { value: "instagram", label: "Instagram", color: "#E1306C", placeholder: "https://www.instagram.com/yourhandle" },
+  { value: "youtube", label: "YouTube", color: "#FF0000", placeholder: "https://www.youtube.com/@yourchannel" },
 ];
 
 const slideVariants = {
@@ -98,22 +104,33 @@ function NicheSearchInput({ placeholder, exclude, selected, onSelect, max = 1 }:
   );
 }
 
+// Steps: 0=Welcome, 1=ConnectProfile, 2=PrimaryNiche, 3=SecondaryNiches, 4=ContentStyle, 5=BuildingFeed, 6=Ready
+const TOTAL_STEPS = 7;
+
 export default function Onboarding() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const [step, setStep] = useState(0);
+
+  // Profile import state (T15)
+  const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
+  const [profileUrl, setProfileUrl] = useState("");
+  const [isImporting, setIsImporting] = useState(false);
+  const [profileImported, setProfileImported] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+
+  // Niche state
   const [primaryNiche, setPrimaryNiche] = useState<string | null>(null);
   const [secondaryNiches, setSecondaryNiches] = useState<string[]>([]);
   const [contentStyle, setContentStyle] = useState<string | null>(null);
   const [analysisStep, setAnalysisStep] = useState(-1);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [onboardingDone, setOnboardingDone] = useState(false);
 
   useEffect(() => {
     if ((user as any)?.isAdmin) setLocation("/system/founder");
   }, [user, setLocation]);
 
-  const progress = ((step + 1) / 5) * 100;
+  const progress = ((step + 1) / TOTAL_STEPS) * 100;
 
   const toggleSecondary = (value: string) => {
     setSecondaryNiches(prev => {
@@ -128,32 +145,71 @@ export default function Onboarding() {
     window.location.href = "/";
   };
 
+  const handleProfileImport = async () => {
+    if (!selectedPlatform || !profileUrl.trim()) return;
+    setIsImporting(true);
+    setImportError(null);
+    try {
+      await apiRequest("POST", "/api/user/import-profile", {
+        platform: selectedPlatform,
+        profileUrl: profileUrl.trim(),
+      });
+      setProfileImported(true);
+      setTimeout(() => setStep(2), 800);
+    } catch (err: any) {
+      setImportError(err?.message || "Import failed. You can skip this step.");
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  const handleSkipProfile = () => {
+    setStep(2);
+  };
+
+  const savePreferences = async () => {
+    await apiRequest("PATCH", "/api/user/preferences", {
+      selectedNiches: [primaryNiche!, ...secondaryNiches],
+      primaryNiche: primaryNiche!,
+      secondaryNiches,
+      contentStyle: contentStyle || "educational",
+      userGoal: "content_creator",
+      onboardingCompleted: true,
+    });
+  };
+
   const handleSubmit = async () => {
     if (!primaryNiche) return;
     setIsSubmitting(true);
-    setStep(4);
+    setStep(5);
+    // Try to save, retry once on failure
     try {
-      await apiRequest("PATCH", "/api/user/preferences", {
-        selectedNiches: [primaryNiche, ...secondaryNiches],
-        primaryNiche,
-        secondaryNiches,
-        contentStyle: contentStyle || "educational",
-        userGoal: "content_creator",
-        onboardingCompleted: true,
-      });
-      setOnboardingDone(true);
-    } catch {}
+      await savePreferences();
+    } catch {
+      try { await savePreferences(); } catch {}
+    }
     setIsSubmitting(false);
     [600, 1200, 1900, 2600].forEach((d, i) => setTimeout(() => setAnalysisStep(i), d));
-    setTimeout(() => setStep(5), 3800);
+    setTimeout(() => setStep(6), 3800);
   };
 
-  const handleEnterDashboard = () => {
-    window.location.href = "/home";
+  const handleEnterDashboard = async () => {
+    // Final safety: ensure onboardingCompleted=true is saved before hard navigation
+    try {
+      await apiRequest("PATCH", "/api/user/preferences", { onboardingCompleted: true });
+    } catch {}
+    const seenKey = `proof_seen_${(user as any)?.id || 'anon'}`;
+    if (!localStorage.getItem(seenKey)) {
+      localStorage.setItem(seenKey, '1');
+      window.location.href = "/proof";
+    } else {
+      window.location.href = "/home";
+    }
   };
 
   const suggestedNiches = ALL_NICHES.slice(0, 10);
   const secondarySuggestions = ALL_NICHES.filter(n => n.value !== primaryNiche).slice(0, 12);
+  const activePlatform = PLATFORMS.find(p => p.value === selectedPlatform);
 
   return (
     <div style={{ minHeight: "100vh", background: "#0a0a0f", color: "#fff", fontFamily: "system-ui, sans-serif", display: "flex", flexDirection: "column" as const, overflow: "hidden", position: "relative" as const }}>
@@ -164,7 +220,7 @@ export default function Onboarding() {
           initial={{ width: 0 }} animate={{ width: `${progress}%` }} transition={{ duration: 0.5 }} />
       </div>
 
-      {step < 5 && (
+      {step < 6 && (
         <div style={{ position: "absolute" as const, top: 16, right: 20, zIndex: 20 }}>
           <button onClick={handleLogout}
             style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, padding: "10px 16px", color: "rgba(255,255,255,0.4)", fontSize: 15, cursor: "pointer" }}>
@@ -178,6 +234,7 @@ export default function Onboarding() {
         <div style={{ width: "100%", maxWidth: 540, position: "relative" as const, zIndex: 10 }}>
           <AnimatePresence mode="wait">
 
+            {/* STEP 0 — Welcome */}
             {step === 0 && (
               <motion.div key="s0" variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.35 }} style={{ textAlign: "center" as const }}>
                 <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.2, type: "spring" }}
@@ -204,8 +261,81 @@ export default function Onboarding() {
               </motion.div>
             )}
 
+            {/* STEP 1 — Connect Profile */}
             {step === 1 && (
               <motion.div key="s1" variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.35 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
+                  <div style={{ width: 40, height: 40, background: "rgba(124,92,255,0.15)", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Link size={20} color="#7C5CFF" />
+                  </div>
+                  <div style={{ fontSize: 13, color: "rgba(255,255,255,0.35)", textTransform: "uppercase" as const, letterSpacing: "0.07em" }}>Optional · 30 seconds</div>
+                </div>
+                <h2 style={{ fontSize: 36, fontWeight: 700, margin: "0 0 10px" }}>Connect your profile</h2>
+                <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 18, margin: "0 0 28px", lineHeight: 1.6 }}>
+                  Craflect will analyze your existing content to personalize your feed even further.
+                </p>
+
+                {/* Platform selector */}
+                <div style={{ display: "flex", gap: 12, marginBottom: 24 }}>
+                  {PLATFORMS.map(p => (
+                    <button key={p.value} onClick={() => { setSelectedPlatform(p.value); setProfileUrl(""); setImportError(null); }}
+                      style={{ flex: 1, padding: "14px 10px", borderRadius: 12, border: selectedPlatform === p.value ? `1px solid ${p.color}` : "1px solid rgba(255,255,255,0.12)", background: selectedPlatform === p.value ? `${p.color}18` : "rgba(255,255,255,0.04)", cursor: "pointer", textAlign: "center" as const, transition: "all 0.2s" }}>
+                      <div style={{ fontSize: 15, fontWeight: 600, color: selectedPlatform === p.value ? p.color : "rgba(255,255,255,0.6)" }}>{p.label}</div>
+                    </button>
+                  ))}
+                </div>
+
+                {/* URL input */}
+                {selectedPlatform && !profileImported && (
+                  <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
+                    <input
+                      type="url"
+                      value={profileUrl}
+                      onChange={e => { setProfileUrl(e.target.value); setImportError(null); }}
+                      placeholder={activePlatform?.placeholder || ""}
+                      style={{ width: "100%", padding: "14px 18px", borderRadius: 12, border: importError ? "1px solid #ef4444" : "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.07)", color: "#fff", fontSize: 16, boxSizing: "border-box" as const, outline: "none", marginBottom: 12 }}
+                    />
+                    {importError && <p style={{ color: "#ef4444", fontSize: 14, margin: "0 0 12px" }}>{importError}</p>}
+                    <Button
+                      onClick={handleProfileImport}
+                      disabled={!profileUrl.trim() || isImporting}
+                      style={{ width: "100%", background: "linear-gradient(90deg,#7C5CFF,#c026d3)", color: "#fff", border: "none", padding: "15px 0", borderRadius: 12, fontSize: 17, fontWeight: 600, cursor: profileUrl.trim() && !isImporting ? "pointer" : "not-allowed", opacity: profileUrl.trim() && !isImporting ? 1 : 0.5, marginBottom: 12 }}>
+                      {isImporting ? <><Loader2 size={17} className="animate-spin" style={{ marginRight: 8, display: "inline" }} />Importing...</> : "Import my profile →"}
+                    </Button>
+                  </motion.div>
+                )}
+
+                {/* Success state */}
+                {profileImported && (
+                  <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px 20px", background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.3)", borderRadius: 12, marginBottom: 16 }}>
+                    <Check size={20} color="#10b981" />
+                    <span style={{ fontSize: 16, color: "#10b981", fontWeight: 600 }}>Profile imported — personalizing your feed</span>
+                  </motion.div>
+                )}
+
+                {/* Benefit hint */}
+                {!profileImported && (
+                  <div style={{ background: "rgba(124,92,255,0.06)", border: "1px solid rgba(124,92,255,0.15)", borderRadius: 10, padding: "12px 16px", marginBottom: 24 }}>
+                    <p style={{ margin: 0, fontSize: 14, color: "rgba(255,255,255,0.45)", lineHeight: 1.6 }}>
+                      ✨ <strong style={{ color: "rgba(255,255,255,0.6)" }}>Why connect?</strong> We analyze your top videos to detect your hook style, format, and audience — then filter opportunities that match YOUR proven patterns.
+                    </p>
+                  </div>
+                )}
+
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <button onClick={() => setStep(0)} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.4)", fontSize: 17, cursor: "pointer" }}>← Back</button>
+                  <button onClick={handleSkipProfile}
+                    style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", color: "rgba(255,255,255,0.35)", fontSize: 16, cursor: "pointer" }}>
+                    <SkipForward size={15} />
+                    Skip for now
+                  </button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* STEP 2 — Primary Niche */}
+            {step === 2 && (
+              <motion.div key="s2" variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.35 }}>
                 <h2 style={{ fontSize: 36, fontWeight: 700, margin: "0 0 10px" }}>What's your primary niche?</h2>
                 <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 20, margin: "0 0 28px" }}>Your main content topic. Choose one.</p>
                 <div style={{ marginBottom: 20 }}>
@@ -227,8 +357,9 @@ export default function Onboarding() {
                     </button>
                   ))}
                 </div>
-                <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                  <Button onClick={() => setStep(2)} disabled={!primaryNiche}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <button onClick={() => setStep(1)} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.4)", fontSize: 17, cursor: "pointer" }}>← Back</button>
+                  <Button onClick={() => setStep(3)} disabled={!primaryNiche}
                     style={{ background: "#7C5CFF", color: "#fff", border: "none", padding: "14px 32px", borderRadius: 12, fontSize: 18, fontWeight: 600, cursor: primaryNiche ? "pointer" : "not-allowed", opacity: primaryNiche ? 1 : 0.4 }}>
                     Continue →
                   </Button>
@@ -236,8 +367,9 @@ export default function Onboarding() {
               </motion.div>
             )}
 
-            {step === 2 && (
-              <motion.div key="s2" variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.35 }}>
+            {/* STEP 3 — Secondary Niches */}
+            {step === 3 && (
+              <motion.div key="s3" variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.35 }}>
                 <h2 style={{ fontSize: 36, fontWeight: 700, margin: "0 0 10px" }}>Any secondary topics?</h2>
                 <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 20, margin: "0 0 6px" }}>Topics you also cover — up to 2. <span style={{ color: "#7C5CFF", fontSize: 16 }}>Optional</span></p>
                 <p style={{ color: "rgba(255,255,255,0.25)", fontSize: 16, margin: "0 0 24px" }}>Cross-niche patterns are often the most viral.</p>
@@ -269,14 +401,15 @@ export default function Onboarding() {
                   })}
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <button onClick={() => setStep(1)} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.4)", fontSize: 17, cursor: "pointer" }}>← Back</button>
-                  <Button onClick={() => setStep(3)} style={{ background: "#7C5CFF", color: "#fff", border: "none", padding: "14px 32px", borderRadius: 12, fontSize: 18, fontWeight: 600, cursor: "pointer" }}>Continue →</Button>
+                  <button onClick={() => setStep(2)} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.4)", fontSize: 17, cursor: "pointer" }}>← Back</button>
+                  <Button onClick={() => setStep(4)} style={{ background: "#7C5CFF", color: "#fff", border: "none", padding: "14px 32px", borderRadius: 12, fontSize: 18, fontWeight: 600, cursor: "pointer" }}>Continue →</Button>
                 </div>
               </motion.div>
             )}
 
-            {step === 3 && (
-              <motion.div key="s3" variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.35 }}>
+            {/* STEP 4 — Content Style */}
+            {step === 4 && (
+              <motion.div key="s4" variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.35 }}>
                 <h2 style={{ fontSize: 36, fontWeight: 700, margin: "0 0 10px" }}>Your content style</h2>
                 <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 20, margin: "0 0 28px" }}>Helps us weight the most relevant patterns for your audience.</p>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 32 }}>
@@ -290,7 +423,7 @@ export default function Onboarding() {
                   ))}
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <button onClick={() => setStep(2)} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.4)", fontSize: 17, cursor: "pointer" }}>← Back</button>
+                  <button onClick={() => setStep(3)} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.4)", fontSize: 17, cursor: "pointer" }}>← Back</button>
                   <Button onClick={handleSubmit} disabled={!contentStyle || isSubmitting}
                     style={{ background: "linear-gradient(90deg,#7C5CFF,#c026d3)", color: "#fff", border: "none", padding: "14px 32px", borderRadius: 12, fontSize: 18, fontWeight: 600, cursor: contentStyle ? "pointer" : "not-allowed", opacity: contentStyle ? 1 : 0.4 }}>
                     {isSubmitting && <Loader2 size={18} className="animate-spin" style={{ marginRight: 8 }} />}
@@ -300,8 +433,9 @@ export default function Onboarding() {
               </motion.div>
             )}
 
-            {step === 4 && (
-              <motion.div key="s4" variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.35 }} style={{ textAlign: "center" as const }}>
+            {/* STEP 5 — Building Feed */}
+            {step === 5 && (
+              <motion.div key="s5" variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.35 }} style={{ textAlign: "center" as const }}>
                 <div style={{ width: 80, height: 80, background: "rgba(124,92,255,0.12)", borderRadius: 20, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 32px" }}>
                   <RefreshCw size={36} color="#7C5CFF" className="animate-spin" />
                 </div>
@@ -321,8 +455,9 @@ export default function Onboarding() {
               </motion.div>
             )}
 
-            {step === 5 && (
-              <motion.div key="s5" variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.35 }} style={{ textAlign: "center" as const }}>
+            {/* STEP 6 — Ready */}
+            {step === 6 && (
+              <motion.div key="s6" variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.35 }} style={{ textAlign: "center" as const }}>
                 <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", delay: 0.1 }}
                   style={{ width: 80, height: 80, background: "rgba(16,185,129,0.12)", borderRadius: 20, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 28px" }}>
                   <Check size={40} color="#10b981" />
@@ -340,6 +475,12 @@ export default function Onboarding() {
                       <span style={{ fontSize: 17, fontWeight: 600, color: "rgba(255,255,255,0.7)" }}>{secondaryNiches.map(v => ALL_NICHES.find(n => n.value === v)?.label).join(", ")}</span>
                     </div>
                   )}
+                  {profileImported && (
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16, paddingBottom: 16, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+                      <span style={{ fontSize: 14, color: "rgba(255,255,255,0.4)", textTransform: "uppercase" as const, letterSpacing: "0.05em" }}>Profile</span>
+                      <span style={{ fontSize: 17, fontWeight: 600, color: "#10b981" }}>✓ {PLATFORMS.find(p => p.value === selectedPlatform)?.label} connected</span>
+                    </div>
+                  )}
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16, paddingBottom: 16, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
                     <span style={{ fontSize: 14, color: "rgba(255,255,255,0.4)", textTransform: "uppercase" as const, letterSpacing: "0.05em" }}>Content style</span>
                     <span style={{ fontSize: 17, fontWeight: 600, color: "rgba(255,255,255,0.7)" }}>{CONTENT_STYLES.find(s => s.value === contentStyle)?.label}</span>
@@ -353,7 +494,7 @@ export default function Onboarding() {
                   style={{ width: "100%", background: "linear-gradient(90deg,#7C5CFF,#c026d3)", color: "#fff", border: "none", padding: "18px 0", borderRadius: 14, fontSize: 19, fontWeight: 600, cursor: "pointer" }}>
                   Enter my intelligence feed →
                 </Button>
-                <button onClick={() => setStep(1)} style={{ marginTop: 16, background: "none", border: "none", color: "rgba(255,255,255,0.3)", fontSize: 16, cursor: "pointer" }}>
+                <button onClick={() => setStep(2)} style={{ marginTop: 16, background: "none", border: "none", color: "rgba(255,255,255,0.3)", fontSize: 16, cursor: "pointer" }}>
                   Edit my profile
                 </button>
               </motion.div>
