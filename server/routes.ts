@@ -5242,7 +5242,17 @@ JSON only, no markdown.`;
                popup_skip_count
         FROM users WHERE id = ${req.user.id}
       `);
-      res.json(result.rows[0] || { profile_connected: false });
+      const row = result.rows[0] as any;
+      const platforms: Array<{ platform: string; connectedAt: string; videoCount: number }> = [];
+      if (row?.profile_url_tiktok) platforms.push({ platform: 'tiktok', connectedAt: row.profile_imported_at || new Date().toISOString(), videoCount: row.profile_videos_count || 0 });
+      if (row?.profile_url_instagram) platforms.push({ platform: 'instagram', connectedAt: row.profile_imported_at || new Date().toISOString(), videoCount: row.profile_videos_count || 0 });
+      if (row?.profile_url_youtube) platforms.push({ platform: 'youtube', connectedAt: row.profile_imported_at || new Date().toISOString(), videoCount: row.profile_videos_count || 0 });
+      res.json({
+        profileConnected: platforms.length > 0,
+        platforms,
+        lastImportedAt: row?.profile_imported_at || null,
+        popupSkipCount: row?.popup_skip_count || 0,
+      });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
@@ -5272,6 +5282,59 @@ JSON only, no markdown.`;
       await db.execute(sql`DELETE FROM user_videos WHERE user_id = ${userId} AND platform = ${platform}`);
 
       res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ── GET /api/cluster/:id — cluster detail with videos ──
+  app.get('/api/cluster/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const cluster = await db.execute(sql`
+        SELECT cc.*,
+               json_agg(
+                 json_build_object(
+                   'id', v.id, 'hook_text', v.hook_text, 'virality_score', v.virality_score,
+                   'thumbnail_url', v.thumbnail_url, 'views', v.views, 'niche_cluster', v.niche_cluster
+                 ) ORDER BY v.virality_score DESC NULLS LAST
+               ) FILTER (WHERE v.id IS NOT NULL) as videos
+        FROM content_clusters cc
+        LEFT JOIN videos v ON v.id = ANY(cc.video_ids)
+        WHERE cc.id = ${req.params.id}
+        GROUP BY cc.id
+        LIMIT 1
+      `);
+      res.json(cluster.rows[0] || null);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ── GET /api/patterns/list — ordered by user niche ──
+  app.get('/api/patterns/list', isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const userRes = await db.execute(sql`SELECT selected_niches, primary_niche FROM users WHERE id = ${req.user.id}`);
+      const row = userRes.rows[0] as any;
+      const niches: string[] = row?.selected_niches || (row?.primary_niche ? [row.primary_niche] : []);
+      const nicheList = niches.length > 0 ? niches.map((n: string) => `'${n.replace(/'/g, "''")}'`).join(',') : "'general'";
+      const patterns = await db.execute(sql.raw(`
+        SELECT p.id, p.pattern_label, p.hook_template, p.structure_template,
+               p.optimal_duration, p.why_it_works, p.best_for, p.cta_suggestion,
+               p.avg_virality_score, p.topic_cluster,
+               cc.trend_status, cc.velocity_7d
+        FROM patterns p
+        LEFT JOIN content_clusters cc ON cc.id::text = p.cluster_id
+        WHERE p.pattern_label IS NOT NULL AND p.hook_template IS NOT NULL
+        ORDER BY
+          CASE WHEN p.topic_cluster = ANY(ARRAY[${nicheList}]::text[]) THEN 0 ELSE 1 END,
+          p.avg_virality_score DESC NULLS LAST
+        LIMIT 20
+      `));
+      res.json(patterns.rows);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

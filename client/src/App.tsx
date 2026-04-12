@@ -30,6 +30,7 @@ import FounderSettings from "@/pages/founder-settings";
 import PlanBilling from "@/pages/plan-billing";
 import PerformancePage from "@/pages/performance";
 import ProofScreen from "@/pages/proof-screen";
+import ClusterDetail from "@/pages/cluster-detail";
 import WaitlistPage from "@/pages/waitlist";
 import FounderWaitlist from "@/pages/founder-waitlist";
 import { TermsPage, BillingPage, PrivacyPage, CookiesPage, DpaPage, SecurityPage, ContactPage } from "@/pages/legal";
@@ -52,6 +53,8 @@ function Router() {
       <Route path="/home" component={Dashboard} />
       <Route path="/dashboard">{() => <Redirect to="/home" />}</Route>
       <Route path="/opportunities" component={Opportunities} />
+      <Route path="/opportunities/:id">{() => <Redirect to="/opportunities" />}</Route>
+      <Route path="/intelligence/:id" component={ClusterDetail} />
       <Route path="/discover">{() => <Redirect to="/opportunities" />}</Route>
       <Route path="/insights" component={Insights} />
       <Route path="/create" component={Create} />

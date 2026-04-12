@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { X, Link, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ interface ImportStatus {
   profileConnected: boolean;
   platforms: Array<{ platform: string; connectedAt: string; videoCount: number }>;
   lastImportedAt: string | null;
+  popupSkipCount?: number;
 }
 
 export function SmartPopup() {
@@ -23,40 +24,37 @@ export function SmartPopup() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const { data: prefs } = useQuery<{ popupSkipCount?: number }>({
-    queryKey: ["/api/user/me"],
-    staleTime: 5 * 60 * 1000,
-  });
-
   const skipMutation = useMutation({
-    mutationFn: () => apiRequest("PATCH", "/api/user/preferences", { popupSkipCount: (prefs?.popupSkipCount || 0) + 1 }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/user/me"] }),
+    mutationFn: (count: number) => apiRequest("PATCH", "/api/user/preferences", { popupSkipCount: count }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/user/import-status"] }),
   });
 
   useEffect(() => {
     if (!status || dismissed) return;
     if (sessionStorage.getItem(SESSION_KEY)) return;
 
-    const skipCount = prefs?.popupSkipCount || 0;
+    const skipCount = status.popupSkipCount || 0;
     if (skipCount >= 5) return;
 
+    const platforms = status.platforms || [];
     const noProfile = !status.profileConnected;
-    const singlePlatform = status.platforms.length === 1;
+    const singlePlatform = platforms.length === 1;
     const lastImport = status.lastImportedAt ? new Date(status.lastImportedAt) : null;
     const hoursAgo = lastImport ? (Date.now() - lastImport.getTime()) / 3600000 : Infinity;
 
     if (noProfile || (singlePlatform && hoursAgo >= 48)) {
-      // Delay 3s after page load
       const timer = setTimeout(() => setVisible(true), 3000);
       return () => clearTimeout(timer);
     }
-  }, [status, prefs, dismissed]);
+  }, [status, dismissed]);
 
   const handleDismiss = () => {
     setDismissed(true);
     setVisible(false);
     sessionStorage.setItem(SESSION_KEY, "1");
-    skipMutation.mutate();
+    if (status) {
+      skipMutation.mutate((status.popupSkipCount || 0) + 1);
+    }
   };
 
   const handleConnect = () => {
@@ -65,7 +63,8 @@ export function SmartPopup() {
 
   if (!visible || !status) return null;
 
-  const isExpand = status.profileConnected && status.platforms.length === 1;
+  const platforms = status.platforms || [];
+  const isExpand = status.profileConnected && platforms.length === 1;
   const title = isExpand ? "Expand your analysis" : "Connect your profile";
   const desc = isExpand
     ? "You're only connected to one platform. Add more to unlock cross-platform viral patterns."
@@ -94,7 +93,6 @@ export function SmartPopup() {
           fontFamily: "system-ui, sans-serif",
         }}
       >
-        {/* Close */}
         <button
           onClick={handleDismiss}
           style={{ position: "absolute", top: 12, right: 12, background: "none", border: "none", color: "rgba(255,255,255,0.3)", cursor: "pointer", padding: 4, borderRadius: 6 }}
@@ -102,7 +100,6 @@ export function SmartPopup() {
           <X size={16} />
         </button>
 
-        {/* Icon + title */}
         <div style={{ display: "flex", alignItems: "flex-start", gap: 14, marginBottom: 12 }}>
           <div style={{ width: 38, height: 38, background: "rgba(124,92,255,0.15)", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
             {isExpand ? <TrendingUp size={18} color="#7C5CFF" /> : <Link size={18} color="#7C5CFF" />}
@@ -113,7 +110,6 @@ export function SmartPopup() {
           </div>
         </div>
 
-        {/* Benefit pills */}
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" as const, marginBottom: 16 }}>
           {["Better matches", "Personalized hooks", "Higher relevance"].map(b => (
             <span key={b} style={{ fontSize: 11, padding: "4px 8px", background: "rgba(124,92,255,0.1)", border: "1px solid rgba(124,92,255,0.2)", borderRadius: 20, color: "rgba(255,255,255,0.5)" }}>{b}</span>
