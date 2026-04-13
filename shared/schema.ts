@@ -1,4 +1,4 @@
-import { pgTable, text, varchar, timestamp, integer, doublePrecision, jsonb, boolean, real, index, char } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, integer, doublePrecision, jsonb, boolean, real, index, uniqueIndex, char } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { sql } from "drizzle-orm";
@@ -831,6 +831,7 @@ export const patterns = pgTable("patterns", {
   trendStatus: text("trend_status").default("stable"),
   lastUpdated: timestamp("last_updated").defaultNow().notNull(),
 }, (table) => [
+  uniqueIndex("idx_patterns_dimension_keys_unique").on(table.dimensionKeys),
   index("idx_patterns_geo_zone").on(table.geoZone),
   index("idx_patterns_hook_type").on(table.hookType),
   index("idx_patterns_structure_type").on(table.structureType),
