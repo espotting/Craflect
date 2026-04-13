@@ -25,6 +25,10 @@ interface VideoCardV2Props {
   onCreateSimilar?: (video: VideoCardData) => void;
   onAnalyze?: (video: VideoCardData) => void;
   onSave?: (video: VideoCardData) => void;
+  predictedViewsMin?: number;
+  predictedViewsMax?: number;
+  confidenceScore?: number;
+  onCreateVideo?: () => void;
 }
 
 const gradients = [
@@ -71,7 +75,7 @@ function VelocityBadge({ trendStatus }: { trendStatus?: string }) {
   return null;
 }
 
-export function VideoCardV2({ video, compact = false, onCreateSimilar, onAnalyze, onSave }: VideoCardV2Props) {
+export function VideoCardV2({ video, compact = false, onCreateSimilar, onAnalyze, onSave, predictedViewsMin, predictedViewsMax, confidenceScore, onCreateVideo }: VideoCardV2Props) {
   const [isHovered, setIsHovered] = useState(false);
   const { t } = useLanguage();
   const [, navigate] = useLocation();
@@ -161,47 +165,46 @@ export function VideoCardV2({ video, compact = false, onCreateSimilar, onAnalyze
         {/* Hover overlay */}
         {isHovered && (
           <div style={{
-            position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.7)',
+            position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.82)',
             display: 'flex', flexDirection: 'column', alignItems: 'center',
-            justifyContent: 'center', gap: 10, borderRadius: 'inherit',
+            justifyContent: 'center', gap: 10, padding: '0 12px',
           }}>
+            {(predictedViewsMin != null && predictedViewsMax != null) && (
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', textAlign: 'center' }}>
+                👁 {Math.round(predictedViewsMin / 1000)}K–{Math.round(predictedViewsMax / 1000)}K views expected
+              </div>
+            )}
+            {confidenceScore != null && (
+              <div style={{ fontSize: 12, color: '#f59e0b', textAlign: 'center' }}>
+                ⭐ {Math.round(confidenceScore)}% confidence
+              </div>
+            )}
             <button
-              onClick={(e) => { e.stopPropagation(); navigate('/create?videoId=' + video.id); }}
-              style={{
-                background: '#7C5CFF', color: '#fff', border: 'none',
-                padding: '10px 20px', borderRadius: 8, fontSize: 13, fontWeight: 600,
-                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onCreateVideo) onCreateVideo();
+                else navigate('/create?videoId=' + video.id);
               }}
-              data-testid={`button-create-similar-${video.id}`}
-            >
-              <Sparkles style={{ width: 14, height: 14 }} />
-              {t.studio?.hover?.createSimilar || "Use in Studio"}
-            </button>
-            <button
-              onClick={(e) => { e.stopPropagation(); onAnalyze?.(video); }}
               style={{
-                background: 'rgba(255,255,255,0.1)', color: '#fff',
-                border: '1px solid rgba(255,255,255,0.2)',
-                padding: '8px 20px', borderRadius: 8, fontSize: 13,
-                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+                background: 'linear-gradient(90deg,#7C5CFF,#c026d3)', color: '#fff', border: 'none',
+                padding: '9px 0', borderRadius: 8, fontSize: 12, fontWeight: 600,
+                cursor: 'pointer', width: 140, textAlign: 'center',
               }}
-              data-testid={`button-analyze-${video.id}`}
+              data-testid={`button-create-video-${video.id}`}
             >
-              <BarChart3 style={{ width: 14, height: 14 }} />
-              {t.studio?.hover?.analyze || "Analyze"}
+              Create this video →
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); onSave?.(video); }}
               style={{
-                background: 'rgba(255,255,255,0.1)', color: '#fff',
-                border: '1px solid rgba(255,255,255,0.2)',
-                padding: '8px 20px', borderRadius: 8, fontSize: 13,
-                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+                background: 'transparent', color: '#fff',
+                border: '1px solid rgba(255,255,255,0.4)',
+                padding: '7px 0', borderRadius: 8, fontSize: 12,
+                cursor: 'pointer', width: 140, textAlign: 'center',
               }}
               data-testid={`button-save-${video.id}`}
             >
-              <Bookmark style={{ width: 14, height: 14 }} />
-              {t.studio?.hover?.save || "Save"}
+              Save
             </button>
           </div>
         )}

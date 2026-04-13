@@ -5427,6 +5427,104 @@ JSON only, no markdown.`;
     }
   });
 
+  // ── POST /api/patterns/compute-predictions ──────────────────────────────────
+  app.post('/api/patterns/compute-predictions', isAuthenticated, async (_req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      await db.execute(sql`
+        UPDATE patterns SET
+          predicted_views_min = (avg_virality_score * 10000)::integer,
+          predicted_views_max = (avg_virality_score * 50000)::integer,
+          confidence_score = LEAST(95, (video_count * 3) + (avg_virality_score * 0.5))
+        WHERE pattern_label IS NOT NULL AND avg_virality_score IS NOT NULL
+      `);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ── GET /api/daily-signal ────────────────────────────────────────────────────
+  app.get('/api/daily-signal', isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+
+      const userResult = await db.execute(sql`
+        SELECT primary_niche, daily_signal_pattern_id, daily_signal_date, daily_signal_used
+        FROM users WHERE id = ${req.user.id}
+      `);
+      const u = userResult.rows[0] as any;
+      const today = new Date().toISOString().split('T')[0];
+      const signalDate = u?.daily_signal_date instanceof Date
+        ? u.daily_signal_date.toISOString().split('T')[0]
+        : u?.daily_signal_date?.split?.('T')[0] ?? u?.daily_signal_date;
+
+      // Signal du jour déjà utilisé
+      if (u?.daily_signal_used && signalDate === today) {
+        return res.json({ used: true, message: "Come back tomorrow for your next signal 🔥" });
+      }
+
+      // Signal du jour déjà assigné (pas encore utilisé)
+      if (u?.daily_signal_pattern_id && signalDate === today) {
+        const existing = await db.execute(sql`
+          SELECT p.*, cc.trend_status, cc.velocity_7d
+          FROM patterns p
+          LEFT JOIN content_clusters cc ON cc.id::text = p.cluster_id
+          WHERE p.pattern_id = ${u.daily_signal_pattern_id}
+        `);
+        return res.json({ signal: existing.rows[0] || null, used: false });
+      }
+
+      // Nouveau signal
+      const niche = u?.primary_niche || 'finance';
+      const signal = await db.execute(sql`
+        SELECT p.*, cc.trend_status, cc.velocity_7d
+        FROM patterns p
+        LEFT JOIN content_clusters cc ON cc.id::text = p.cluster_id
+        WHERE p.topic_cluster = ${niche}
+          AND p.pattern_label IS NOT NULL
+          AND p.confidence_score IS NOT NULL
+          AND p.pattern_id != ALL(
+            SELECT COALESCE(array_agg(daily_signal_pattern_id), ARRAY[]::text[])
+            FROM users WHERE id = ${req.user.id}
+              AND daily_signal_date >= NOW() - INTERVAL '7 days'
+          )
+        ORDER BY p.confidence_score DESC, p.avg_virality_score DESC NULLS LAST
+        LIMIT 1
+      `);
+
+      if (signal.rows.length > 0) {
+        const pat = signal.rows[0] as any;
+        await db.execute(sql`
+          UPDATE users SET
+            daily_signal_pattern_id = ${pat.pattern_id},
+            daily_signal_date = CURRENT_DATE,
+            daily_signal_used = false
+          WHERE id = ${req.user.id}
+        `);
+        return res.json({ signal: pat, used: false });
+      }
+
+      res.json({ signal: null, used: false });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ── POST /api/daily-signal/use ───────────────────────────────────────────────
+  app.post('/api/daily-signal/use', isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      await db.execute(sql`UPDATE users SET daily_signal_used = true WHERE id = ${req.user.id}`);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   return httpServer;
 }
 

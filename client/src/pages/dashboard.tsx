@@ -1,3 +1,4 @@
+import React from "react";
 import { DashboardLayout } from "@/components/layout";
 import { useLanguage } from "@/hooks/use-language";
 import { useQuery } from "@tanstack/react-query";
@@ -25,13 +26,18 @@ import { VideoCardV2, type VideoCardData } from "@/components/video-card-v2";
 // ─── Niche gradients (Netflix-style thumbnails) ───────────────────────────────
 
 const NICHE_GRADIENTS: Record<string, string> = {
-  finance: 'linear-gradient(135deg,#1e3a8a,#2563eb,#06b6d4)',
-  ai_tools: 'linear-gradient(135deg,#4c1d95,#7c3aed,#db2777)',
-  online_business: 'linear-gradient(135deg,#7c2d12,#ea580c,#fbbf24)',
-  productivity: 'linear-gradient(135deg,#064e3b,#059669,#84cc16)',
-  content_creation: 'linear-gradient(135deg,#1e1b4b,#4338ca,#7c3aed)',
-  entrepreneurship: 'linear-gradient(135deg,#7c2d12,#b45309,#d97706)',
-  default: 'linear-gradient(135deg,#1e1b4b,#4338ca,#6d28d9)',
+  finance: 'linear-gradient(145deg,#1e3a8a,#1d4ed8,#0369a1)',
+  ai_tools: 'linear-gradient(145deg,#4c1d95,#6d28d9,#7c3aed)',
+  online_business: 'linear-gradient(145deg,#7c2d12,#c2410c,#ea580c)',
+  productivity: 'linear-gradient(145deg,#064e3b,#065f46,#059669)',
+  content_creation: 'linear-gradient(145deg,#1e1b4b,#312e81,#3730a3)',
+  health_wellness: 'linear-gradient(145deg,#0f4c75,#1b6ca8,#4cb8c4)',
+  fitness: 'linear-gradient(145deg,#1a1a2e,#16213e,#e94560)',
+  mindset: 'linear-gradient(145deg,#2d1b69,#11998e,#38ef7d)',
+  digital_marketing: 'linear-gradient(145deg,#141e30,#243b55,#7c5cff)',
+  real_estate: 'linear-gradient(145deg,#134e5e,#71b280,#f7971e)',
+  entrepreneurship: 'linear-gradient(145deg,#7c2d12,#b45309,#d97706)',
+  default: 'linear-gradient(145deg,#1e1b4b,#4338ca,#6d28d9)',
 };
 function getNicheGradient(niche?: string | null): string {
   return NICHE_GRADIENTS[niche || ''] || NICHE_GRADIENTS.default;
@@ -110,59 +116,166 @@ const hScrollStyle: React.CSSProperties = {
   scrollbarWidth: 'thin' as any,
 };
 
-// ─── Daily Brief ──────────────────────────────────────────────────────────────
+// ─── Daily Signal ─────────────────────────────────────────────────────────────
 
-function DailyBrief() {
+function DailySignal() {
   const [, navigate] = useLocation();
   const { data, isLoading } = useQuery<any>({
-    queryKey: ['/api/daily-brief'],
-    refetchInterval: 6 * 60 * 60 * 1000,
+    queryKey: ['/api/daily-signal'],
+    refetchInterval: 60 * 60 * 1000,
   });
 
-  if (isLoading) return <Skeleton className="h-32 w-full rounded-2xl" />;
-  if (!data) return null;
+  const useMutation = (url: string) => {
+    const [loading, setLoading] = React.useState(false);
+    const mutate = async () => {
+      setLoading(true);
+      try { await apiRequest('POST', url, {}); } catch {} finally { setLoading(false); }
+    };
+    return { mutate, loading };
+  };
+
+  const { mutate: markUsed } = useMutation('/api/daily-signal/use');
+
+  if (isLoading) return (
+    <div style={{ background: 'rgba(124,92,255,0.06)', border: '1px solid rgba(124,92,255,0.2)', borderRadius: 16, padding: '24px' }}>
+      <div style={{ height: 14, background: 'rgba(255,255,255,0.07)', borderRadius: 6, width: '40%', marginBottom: 12 }} />
+      <div style={{ height: 28, background: 'rgba(255,255,255,0.07)', borderRadius: 6, width: '70%', marginBottom: 10 }} />
+      <div style={{ height: 60, background: 'rgba(255,255,255,0.05)', borderRadius: 8, marginBottom: 12 }} />
+      <div style={{ height: 14, background: 'rgba(255,255,255,0.05)', borderRadius: 6, width: '55%' }} />
+    </div>
+  );
+
+  if (data?.used) return (
+    <div style={{
+      background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.2)',
+      borderRadius: 16, padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+    }}>
+      <div style={{ fontSize: 15, color: 'rgba(255,255,255,0.7)' }}>
+        {data.message || "You're creating from today's signal. Come back tomorrow for a new one 🔥"}
+      </div>
+      <button
+        onClick={() => navigate('/performance')}
+        style={{ background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.4)',
+                 color: '#10b981', borderRadius: 10, padding: '9px 18px', fontSize: 13, fontWeight: 600,
+                 cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, marginLeft: 16 }}
+      >
+        Track my video →
+      </button>
+    </div>
+  );
+
+  if (!data?.signal) return (
+    <div style={{
+      background: 'rgba(124,92,255,0.06)', border: '1px solid rgba(124,92,255,0.15)',
+      borderRadius: 16, padding: '20px 24px', textAlign: 'center', color: 'rgba(255,255,255,0.4)', fontSize: 14,
+    }}>
+      No signal available yet — check back soon as patterns are analyzed.
+    </div>
+  );
+
+  const s = data.signal;
+  const niche = s.topic_cluster || 'default';
+  const gradient = NICHE_GRADIENTS[niche] || NICHE_GRADIENTS.default;
+  const nicheName = niche.replace(/_/g, ' ');
+  const trendLabel = s.trend_status === 'rising' ? 'Rising' : s.trend_status === 'emerging' ? 'Emerging' : 'Active';
 
   return (
     <div style={{
-      background: 'rgba(124,92,255,0.08)', border: '1px solid rgba(124,92,255,0.2)',
-      borderRadius: 16, padding: '20px 24px',
-      display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16,
+      background: 'rgba(124,92,255,0.07)', border: '1px solid rgba(124,92,255,0.25)',
+      borderRadius: 16, padding: '24px', display: 'flex', gap: 24, alignItems: 'flex-start',
     }}>
-      <div style={{ flex: 1 }}>
-        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', marginBottom: 4 }}>{data.date}</div>
-        <div style={{ fontSize: 20, fontWeight: 700, color: '#fff', marginBottom: 6 }}>
-          {data.brief?.headline}
+      {/* Left column */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ marginBottom: 10 }}>
+          <span style={{
+            background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.35)',
+            color: '#ef4444', borderRadius: 20, padding: '4px 12px', fontSize: 11, fontWeight: 700,
+          }}>
+            🔥 {nicheName.toUpperCase()} · {trendLabel.toUpperCase()}
+          </span>
         </div>
-        <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', lineHeight: 1.5, marginBottom: 8 }}>
-          {data.brief?.summary}
+        <div style={{ fontSize: 22, fontWeight: 700, color: '#fff', marginBottom: 12, lineHeight: 1.3 }}>
+          {s.pattern_label || 'Today\'s Signal'}
         </div>
-        {data.brief?.action && (
-          <div style={{ fontSize: 13, color: '#10b981', fontStyle: 'italic' }}>
-            → {data.brief.action}
+        {s.hook_template && (
+          <div style={{
+            fontFamily: 'monospace', fontSize: 15, background: 'rgba(0,0,0,0.35)',
+            padding: '14px 16px', borderRadius: 10, border: '1px solid rgba(124,92,255,0.4)',
+            color: '#fff', lineHeight: 1.6, marginBottom: 12,
+          }}>
+            {s.hook_template}
           </div>
         )}
+        {s.why_it_works && (
+          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', lineHeight: 1.5, marginBottom: 14 }}>
+            {s.why_it_works}
+          </div>
+        )}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 18 }}>
+          {s.predicted_views_min != null && (
+            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', fontWeight: 500 }}>
+              👁 {Math.round((s.predicted_views_min || 0) / 1000)}K–{Math.round((s.predicted_views_max || 0) / 1000)}K views expected
+            </div>
+          )}
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
+            ⭐ {Math.round(s.confidence_score || 0)}% confidence · based on {s.video_count || 0} similar videos
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <button
+            onClick={async () => {
+              await markUsed();
+              navigate(`/create?patternId=${s.pattern_id}`);
+            }}
+            style={{
+              background: 'linear-gradient(90deg,#7C5CFF,#c026d3)', color: '#fff', border: 'none',
+              padding: '12px 22px', borderRadius: 10, fontSize: 15, fontWeight: 700,
+              cursor: 'pointer',
+            }}
+          >
+            Create this video →
+          </button>
+          <button
+            onClick={() => navigate('/opportunities')}
+            style={{
+              background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.7)',
+              border: '1px solid rgba(255,255,255,0.15)', padding: '12px 18px',
+              borderRadius: 10, fontSize: 14, cursor: 'pointer',
+            }}
+          >
+            Explore more →
+          </button>
+        </div>
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end', flexShrink: 0 }}>
-        {data.emergingCount > 0 && (
-          <span style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.35)',
-                         color: '#ef4444', borderRadius: 20, padding: '4px 12px', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap' }}>
-            🔥 {data.emergingCount} Emerging
-          </span>
-        )}
-        {data.declining?.length > 0 && (
-          <span style={{ background: 'rgba(100,116,139,0.15)', border: '1px solid rgba(100,116,139,0.3)',
-                         color: '#94a3b8', borderRadius: 20, padding: '4px 12px', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap' }}>
-            📉 {data.declining.length} Declining
-          </span>
-        )}
-        <button
-          onClick={() => navigate('/opportunities?filter=emerging')}
-          style={{ background: 'rgba(124,92,255,0.2)', border: '1px solid rgba(124,92,255,0.4)',
-                   color: '#a78bfa', borderRadius: 10, padding: '8px 16px', fontSize: 13,
-                   fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
-        >
-          See opportunities →
-        </button>
+
+      {/* Right column — thumbnail */}
+      <div style={{ flexShrink: 0, width: 160, position: 'relative' }}>
+        <div style={{
+          width: 160, height: 220, borderRadius: 12, overflow: 'hidden',
+          background: gradient, position: 'relative',
+        }}>
+          {s.thumbnail_url ? (
+            <img src={s.thumbnail_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          ) : (
+            <div style={{
+              position: 'absolute', inset: 0, display: 'flex', alignItems: 'flex-end', padding: 10,
+              background: 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 60%)',
+            }}>
+              <div style={{ fontFamily: 'monospace', fontSize: 11, color: 'rgba(255,255,255,0.8)', lineHeight: 1.4 }}>
+                {(s.hook_template || '').substring(0, 60)}
+              </div>
+            </div>
+          )}
+          {s.trend_status && (
+            <div style={{
+              position: 'absolute', top: 8, right: 8,
+              background: 'rgba(239,68,68,0.85)', borderRadius: 20,
+              padding: '3px 8px', fontSize: 10, fontWeight: 700, color: '#fff',
+            }}>
+              {s.trend_status}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -792,9 +905,9 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Daily Brief — always shown above fold */}
+        {/* Daily Signal — always shown above fold */}
         <div className="mb-8">
-          <DailyBrief />
+          <DailySignal />
         </div>
 
         {isLoading ? (
@@ -941,6 +1054,33 @@ export default function DashboardPage() {
 
           </div>
         )}
+
+        {/* Bloc 3 — Tracking intégré */}
+        <div style={{
+          marginTop: 32, background: 'rgba(16,185,129,0.04)',
+          border: '1px solid rgba(16,185,129,0.2)', borderRadius: 14, padding: '18px 22px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap',
+        }}>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.8)', marginBottom: 4 }}>
+              🎬 Ready to film?
+            </div>
+            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>
+              We'll track your results when you publish.
+            </div>
+          </div>
+          <button
+            onClick={() => navigate('/performance')}
+            style={{
+              background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.35)',
+              color: '#10b981', borderRadius: 9, padding: '9px 18px', fontSize: 13,
+              fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
+            }}
+          >
+            Track my video →
+          </button>
+        </div>
+
       </div>
     </DashboardLayout>
   );
