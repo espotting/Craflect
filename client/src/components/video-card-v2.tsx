@@ -126,11 +126,12 @@ export function VideoCardV2({ video, compact = false, onCreateSimilar, onAnalyze
   return (
     <div
       className="group relative bg-slate-900/50 rounded-2xl overflow-hidden border border-slate-800 hover:border-purple-500/50 transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl hover:shadow-purple-500/10"
+      style={{ minWidth: 170 }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       data-testid={`video-card-${video.id}`}
     >
-      <div className={`relative aspect-[9/16] bg-gradient-to-br ${gradient} overflow-hidden`}>
+      <div className={`relative bg-gradient-to-br ${gradient} overflow-hidden`} style={{ height: 220 }}>
         {video.thumbnail && (
           <img
             src={video.thumbnail}
