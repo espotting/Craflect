@@ -101,13 +101,12 @@ export async function generatePatternFromCluster(clusterId: string): Promise<boo
 
     const patternData = JSON.parse(completion.choices[0].message.content || '{}');
 
-    // dimension_keys = [hook_type, structure_type, niche] — required NOT NULL
-    const dimKeys = [
-      cluster.dominant_hook_type || 'unknown',
-      cluster.dominant_structure || 'unknown',
-      cluster.dominant_niche || 'general',
-    ];
-    const dimKeysLiteral = `{${dimKeys.map((k: string) => k.replace(/'/g, "''")).join(',')}}`;
+    // Build dimension_keys as a raw SQL ARRAY literal to avoid pg type-OID mismatch
+    // (parameterizing a JS string with ::text[] cast causes "cannot cast record to text[]")
+    const dimKey0 = String(cluster.dominant_hook_type || 'unknown').replace(/'/g, "''");
+    const dimKey1 = String(cluster.dominant_structure || 'unknown').replace(/'/g, "''");
+    const dimKey2 = String(cluster.dominant_niche || 'general').replace(/'/g, "''");
+    const dimKeysRaw = sql.raw(`ARRAY['${dimKey0}','${dimKey1}','${dimKey2}']`);
 
     await db.execute(sql`
       INSERT INTO patterns (
@@ -132,7 +131,7 @@ export async function generatePatternFromCluster(clusterId: string): Promise<boo
         last_updated
       ) VALUES (
         gen_random_uuid(),
-        ${dimKeysLiteral}::text[],
+        ${dimKeysRaw},
         ${cluster.dominant_hook_type},
         ${cluster.dominant_structure},
         ${cluster.dominant_niche},
