@@ -48,6 +48,15 @@ export async function generatePatternFromCluster(clusterId: string): Promise<boo
     if (!clusterResult.rows.length) return false;
     const cluster = clusterResult.rows[0] as any;
 
+    // Build video_ids as a raw SQL literal — passing a JS array as a pg parameter
+    // can produce "record" type mismatches when combined with ::text[] cast.
+    const rawIds = (Array.isArray(cluster.video_ids) ? cluster.video_ids : [])
+      .map((id: string) => `'${String(id).replace(/'/g, "''")}'`)
+      .join(',');
+    const videoIdsSQL = rawIds.length > 0
+      ? sql.raw(`ARRAY[${rawIds}]`)
+      : sql.raw(`ARRAY[]::text[]`);
+
     const videosResult = await db.execute(sql`
       SELECT
         hook_text,
@@ -57,7 +66,7 @@ export async function generatePatternFromCluster(clusterId: string): Promise<boo
         virality_score,
         duration_seconds
       FROM videos
-      WHERE id = ANY(${cluster.video_ids}::text[])
+      WHERE id = ANY(${videoIdsSQL})
         AND hook_text IS NOT NULL
         AND virality_score >= 20
       ORDER BY virality_score DESC
@@ -101,12 +110,27 @@ export async function generatePatternFromCluster(clusterId: string): Promise<boo
 
     const patternData = JSON.parse(completion.choices[0].message.content || '{}');
 
+    // GPT sometimes returns fields as arrays/objects instead of strings.
+    // pg sends JS arrays/objects as a "record" composite type → PostgreSQL
+    // throws "cannot cast type record to text[]" for any text column.
+    // Coerce every field to a scalar string before binding.
+    const s = (v: any): string | null => {
+      if (v === null || v === undefined) return null;
+      if (Array.isArray(v)) return v.join('\n');
+      if (typeof v === 'object') return JSON.stringify(v);
+      return String(v);
+    };
+
     // Build dimension_keys as a raw SQL ARRAY literal to avoid pg type-OID mismatch
-    // (parameterizing a JS string with ::text[] cast causes "cannot cast record to text[]")
     const dimKey0 = String(cluster.dominant_hook_type || 'unknown').replace(/'/g, "''");
     const dimKey1 = String(cluster.dominant_structure || 'unknown').replace(/'/g, "''");
     const dimKey2 = String(cluster.dominant_niche || 'general').replace(/'/g, "''");
     const dimKeysRaw = sql.raw(`ARRAY['${dimKey0}','${dimKey1}','${dimKey2}']`);
+
+    console.log(`[PatternGen] Inserting pattern for cluster ${clusterId}:`, {
+      pattern_label: s(patternData.pattern_label),
+      hook_template: s(patternData.hook_template)?.substring(0, 60),
+    });
 
     await db.execute(sql`
       INSERT INTO patterns (
@@ -132,22 +156,22 @@ export async function generatePatternFromCluster(clusterId: string): Promise<boo
       ) VALUES (
         gen_random_uuid(),
         ${dimKeysRaw},
-        ${cluster.dominant_hook_type},
-        ${cluster.dominant_structure},
-        ${cluster.dominant_niche},
-        ${patternData.pattern_label},
-        ${patternData.hook_template},
-        ${patternData.structure_template},
-        ${parseInt(patternData.optimal_duration) || 60},
-        ${patternData.why_it_works},
-        ${patternData.best_for},
-        ${patternData.content_angle},
-        ${patternData.cta_suggestion},
+        ${s(cluster.dominant_hook_type)},
+        ${s(cluster.dominant_structure)},
+        ${s(cluster.dominant_niche)},
+        ${s(patternData.pattern_label)},
+        ${s(patternData.hook_template)},
+        ${s(patternData.structure_template)},
+        ${parseInt(s(patternData.optimal_duration) || '60') || 60},
+        ${s(patternData.why_it_works)},
+        ${s(patternData.best_for)},
+        ${s(patternData.content_angle)},
+        ${s(patternData.cta_suggestion)},
         ${cluster.video_count || 0},
         ${cluster.avg_virality_score || 0},
         ${Math.min(100, Math.round((cluster.avg_virality_score || 0) * 1.1))},
         ${clusterId},
-        ${cluster.trend_status || 'stable'},
+        ${s(cluster.trend_status) || 'stable'},
         NOW()
       )
       ON CONFLICT DO NOTHING
