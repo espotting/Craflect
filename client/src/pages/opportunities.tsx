@@ -86,12 +86,13 @@ export default function OpportunitiesPage() {
   const queryString = params.toString();
   const queryUrl = queryString ? `/api/opportunities/top?${queryString}` : "/api/opportunities/top";
 
-  const { data: opportunities, isLoading } = useQuery<OpportunityItem[]>({
+  const { data: opportunitiesRaw, isLoading } = useQuery({
     queryKey: ["/api/opportunities/top", formatFilter, hookFilter, velocityFilter],
     queryFn: () => fetch(queryUrl, { credentials: "include" }).then(r => r.json()),
   });
+  const opportunities: OpportunityItem[] = Array.isArray(opportunitiesRaw) ? opportunitiesRaw : [];
 
-  const sortedOpportunities = [...(opportunities || [])].sort((a, b) => {
+  const sortedOpportunities = [...opportunities].sort((a, b) => {
     if (sortBy === "compatibility") return (b.compatibilityScore ?? 0) - (a.compatibilityScore ?? 0);
     if (sortBy === "velocity") return (b.velocity7d ?? 0) - (a.velocity7d ?? 0);
     return b.viralityScore - a.viralityScore;

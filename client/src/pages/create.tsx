@@ -98,10 +98,11 @@ export default function StudioPage() {
   const [copied, setCopied] = useState(false);
   const [savedOk, setSavedOk] = useState(false);
 
-  const { data: patterns = [], isLoading } = useQuery<Pattern[]>({
+  const { data: patternsRaw, isLoading } = useQuery({
     queryKey: ["/api/patterns/list"],
     queryFn: () => fetch("/api/patterns/list", { credentials: "include" }).then((r) => r.json()),
   });
+  const patterns: Pattern[] = Array.isArray(patternsRaw) ? patternsRaw : [];
 
   // Pre-select from URL param once patterns load
   useEffect(() => {
@@ -162,7 +163,7 @@ export default function StudioPage() {
 
   return (
     <DashboardLayout>
-      <div style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 64px)", background: "#0a0a0f", overflow: "hidden", margin: "-1.5rem", width: "calc(100% + 3rem)" }}>
+      <div style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 130px)", background: "#0a0a0f", overflow: "hidden", borderRadius: 12 }}>
 
         {/* ── TOP BAR ── */}
         <div style={{
