@@ -26,16 +26,15 @@ const NICHE_SIGNALS: Record<string, string[]> = {
     'crypto', 'bitcoin', 'ethereum', 'defi', 'nft',
     'passive income', 'wealth', 'rich', 'financial freedom', 'financial independence',
     'budget', 'savings', 'debt', 'credit', 'dividends', 'portfolio',
-    'real estate', 'rental property', 'mortgage', 'etf', 'index fund',
-    's&p 500', 'hedge fund', 'venture capital', 'net worth', 'millionaire',
+    'etf', 'index fund', 's&p 500', 'hedge fund', 'venture capital', 'net worth', 'millionaire',
   ],
   online_business: [
     'online business', 'entrepreneur', 'entrepreneurship', 'startup',
     'side hustle', 'dropshipping', 'ecommerce', 'shopify', 'amazon fba',
     'digital product', 'saas', 'agency', 'freelance', 'clients',
     'scale', 'sales funnel', 'lead generation', 'b2b', 'b2c',
-    'consulting', 'coaching business', 'digital marketing', 'facebook ads',
-    'google ads', 'email list', 'marketing strategy', 'brand',
+    'consulting', 'coaching business', 'facebook ads',
+    'google ads', 'email list', 'marketing strategy',
   ],
   content_creation: [
     'youtube', 'tiktok', 'instagram reels', 'content creator', 'creator',
@@ -46,12 +45,48 @@ const NICHE_SIGNALS: Record<string, string[]> = {
     'brand deal', 'sponsorship', 'monetization', 'adsense',
   ],
   productivity: [
-    'productivity', 'habits', 'routine', 'morning routine', 'night routine',
+    'productivity', 'habits', 'routine', 'night routine',
     'time management', 'focus', 'pomodoro', 'deep work', 'flow state',
     'notion', 'obsidian', 'second brain', 'pkm', 'note taking',
-    'system', 'organization', 'goals', 'discipline', 'consistency',
-    'work life balance', 'stress', 'burnout', 'remote work', 'work from home',
-    'self improvement', 'personal development', 'mindset', 'motivation',
+    'system', 'organization', 'goals', 'consistency',
+    'work life balance', 'burnout', 'remote work', 'work from home',
+    'self improvement', 'personal development',
+  ],
+  health_wellness: [
+    'health tips', 'wellness', 'mental health', 'healthy lifestyle',
+    'self care', 'nutrition', 'diet', 'meal prep', 'calories', 'vitamins',
+    'sleep', 'sleep routine', 'sleep optimization', 'stress management',
+    'anxiety', 'depression', 'therapy', 'mindfulness', 'meditation',
+    'gut health', 'immune system', 'inflammation', 'hydration', 'detox',
+  ],
+  fitness: [
+    'workout', 'gym', 'exercise', 'training', 'lifting', 'weights',
+    'weight loss', 'fat loss', 'muscle building', 'bulking', 'cutting',
+    'home workout', 'calisthenics', 'yoga', 'pilates', 'cardio',
+    'fitness tips', 'body transformation', 'abs', 'glutes', 'chest day',
+    'protein', 'pre workout', 'creatine', 'supplement', 'macro',
+  ],
+  mindset: [
+    'mindset', 'mindset shift', 'success mindset', 'growth mindset',
+    'motivation', 'discipline', 'manifestation', 'law of attraction',
+    'abundance', 'vision board', 'affirmation', 'gratitude',
+    'morning routine', 'journaling', 'personal growth', 'level up',
+    'confidence', 'self worth', 'limiting beliefs', 'stoicism',
+  ],
+  digital_marketing: [
+    'digital marketing', 'social media marketing', 'content marketing',
+    'personal branding', 'brand building', 'brand strategy',
+    'grow on instagram', 'grow on tiktok', 'grow on youtube',
+    'email marketing', 'newsletter', 'email list', 'open rate',
+    'seo', 'search engine', 'organic traffic', 'keyword research',
+    'copywriting', 'conversion rate', 'funnel', 'landing page', 'ad creative',
+  ],
+  real_estate: [
+    'real estate', 'real estate investing', 'rental property', 'landlord',
+    'house flipping', 'fix and flip', 'airbnb', 'short term rental',
+    'passive income real estate', 'mortgage', 'down payment', 'interest rate',
+    'property investment', 'cash flow', 'cap rate', 'roi property',
+    'real estate agent', 'realtor', 'housing market', 'property management',
   ],
 };
 
@@ -87,7 +122,7 @@ FORMAT:
   "hook_type": "curiosity|list|shock|question|statement",
   "structure_type": "listicle|storytelling|tutorial|reaction|before_after",
   "format_type": "facecam|broll|captions|mixed",
-  "topic_cluster": "ai_tools|finance|online_business|content_creation|productivity",
+  "topic_cluster": "ai_tools|finance|online_business|content_creation|productivity|health_wellness|fitness|mindset|digital_marketing|real_estate",
   "emotion_primary": "curiosity|urgency|fear|excitement|surprise",
   "confidence": 0.0
 }
@@ -95,9 +130,14 @@ FORMAT:
 topic_cluster MUST be one of these exact values:
 - ai_tools : AI, ChatGPT, automation, machine learning
 - finance : money, investing, crypto, wealth, stocks
-- online_business : entrepreneurship, ecommerce, marketing, agency, freelance
+- online_business : entrepreneurship, ecommerce, agency, freelance, dropshipping
 - content_creation : YouTube, TikTok growth, personal brand, creator
-- productivity : habits, time management, focus, self-improvement
+- productivity : habits, time management, focus, deep work, Notion
+- health_wellness : health, wellness, mental health, nutrition, sleep, self care
+- fitness : workout, gym, weight loss, muscle, exercise, training
+- mindset : mindset, motivation, discipline, manifestation, personal growth
+- digital_marketing : digital marketing, SEO, email marketing, social media, branding
+- real_estate : real estate, rental property, house flipping, mortgage, landlord
 
 confidence = 0.0 to 1.0`;
 
@@ -153,7 +193,7 @@ export const classificationWorker = new Worker('classification', async (job) => 
     }
 
     // Resolve niche: LLM result → keyword fallback → existing topicCluster → null
-    const TARGET_NICHES = ['ai_tools', 'finance', 'online_business', 'content_creation', 'productivity'];
+    const TARGET_NICHES = ['ai_tools', 'finance', 'online_business', 'content_creation', 'productivity', 'health_wellness', 'fitness', 'mindset', 'digital_marketing', 'real_estate'];
     let nicheCluster: string | null = null;
 
     // 1. LLM topic_cluster if it's a valid target niche

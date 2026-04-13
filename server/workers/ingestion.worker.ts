@@ -19,6 +19,11 @@ const NICHE_KEYWORDS: Record<string, string[]> = {
   'productivity': ['productivity', 'time management', 'habits', 'morning routine', 'deep work', 'notion', 'second brain', 'focus'],
   'finance': ['personal finance', 'investing', 'crypto', 'stocks', 'passive income', 'wealth', 'financial freedom', 'trading', 'bitcoin'],
   'content_creation': ['content creation', 'viral content', 'youtube growth', 'tiktok growth', 'personal brand', 'grow on instagram', 'content creator', 'subscribers'],
+  'health_wellness': ['health tips', 'wellness routine', 'mental health', 'healthy lifestyle', 'self care', 'nutrition tips', 'sleep optimization', 'stress management'],
+  'fitness': ['workout routine', 'gym motivation', 'weight loss', 'muscle building', 'home workout', 'fitness tips', 'training program', 'body transformation'],
+  'mindset': ['mindset shift', 'motivation', 'success mindset', 'morning routine', 'discipline', 'personal growth', 'abundance mindset', 'manifestation'],
+  'digital_marketing': ['digital marketing', 'social media marketing', 'personal branding', 'grow on instagram', 'grow on tiktok', 'email marketing', 'SEO tips', 'brand strategy'],
+  'real_estate': ['real estate investing', 'rental property', 'house flipping', 'passive income real estate', 'mortgage tips', 'property investment', 'landlord tips', 'real estate agent'],
 };
 
 const ALL_NICHES = Object.keys(NICHE_KEYWORDS);
