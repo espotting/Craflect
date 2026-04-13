@@ -49,7 +49,7 @@ export async function generatePatternFromCluster(clusterId: string): Promise<boo
     const cluster = clusterResult.rows[0] as any;
 
     const videosResult = await db.execute(sql`
-      SELECT 
+      SELECT
         hook_text,
         transcript,
         hook_type_v2,
@@ -59,13 +59,16 @@ export async function generatePatternFromCluster(clusterId: string): Promise<boo
       FROM videos
       WHERE id = ANY(${cluster.video_ids}::text[])
         AND hook_text IS NOT NULL
-        AND virality_score >= 50
+        AND virality_score >= 20
       ORDER BY virality_score DESC
       LIMIT 5
     `);
 
     const videos = videosResult.rows as any[];
-    if (videos.length === 0) return false;
+    if (videos.length === 0) {
+      console.warn(`[PatternGen] Cluster ${clusterId}: no hook_text videos found (niche=${cluster.dominant_niche})`);
+      return false;
+    }
 
     const hookExamples = videos
       .map(v => v.hook_text)
@@ -98,9 +101,18 @@ export async function generatePatternFromCluster(clusterId: string): Promise<boo
 
     const patternData = JSON.parse(completion.choices[0].message.content || '{}');
 
+    // dimension_keys = [hook_type, structure_type, niche] — required NOT NULL
+    const dimKeys = [
+      cluster.dominant_hook_type || 'unknown',
+      cluster.dominant_structure || 'unknown',
+      cluster.dominant_niche || 'general',
+    ];
+    const dimKeysLiteral = `{${dimKeys.map((k: string) => k.replace(/'/g, "''")).join(',')}}`;
+
     await db.execute(sql`
       INSERT INTO patterns (
-        id,
+        pattern_id,
+        dimension_keys,
         hook_type,
         structure_type,
         topic_cluster,
@@ -115,13 +127,12 @@ export async function generatePatternFromCluster(clusterId: string): Promise<boo
         video_count,
         avg_virality_score,
         pattern_score,
-        confidence_score,
         cluster_id,
         trend_classification,
-        created_at,
-        updated_at
+        last_updated
       ) VALUES (
         gen_random_uuid(),
+        ${dimKeysLiteral}::text[],
         ${cluster.dominant_hook_type},
         ${cluster.dominant_structure},
         ${cluster.dominant_niche},
@@ -136,10 +147,8 @@ export async function generatePatternFromCluster(clusterId: string): Promise<boo
         ${cluster.video_count || 0},
         ${cluster.avg_virality_score || 0},
         ${Math.min(100, Math.round((cluster.avg_virality_score || 0) * 1.1))},
-        ${cluster.confidence_score || 0.5},
         ${clusterId},
         ${cluster.trend_status || 'stable'},
-        NOW(),
         NOW()
       )
       ON CONFLICT DO NOTHING
@@ -159,10 +168,15 @@ export async function generatePatternFromCluster(clusterId: string): Promise<boo
 }
 
 export async function generateAllPatterns(): Promise<number> {
-  console.log('[PatternGen] Génération des patterns depuis les clusters...');
+  console.log('[PatternGen] Starting generateAllPatterns...');
+  if (!process.env.OPENAI_API_KEY) {
+    console.error('[PatternGen] FATAL: OPENAI_API_KEY is not set — aborting');
+    return 0;
+  }
 
   const clusters = await db.execute(sql`
-    SELECT id, video_ids, dominant_hook_type, dominant_niche, avg_virality_score
+    SELECT id, video_ids, dominant_hook_type, dominant_niche, dominant_structure,
+           dominant_format, avg_virality_score, trend_status, confidence_score
     FROM content_clusters
     WHERE analyzed_by_llm = false
       AND array_length(video_ids, 1) >= 3
@@ -171,16 +185,26 @@ export async function generateAllPatterns(): Promise<number> {
     LIMIT 20
   `);
 
+  console.log(`[PatternGen] Clusters found: ${clusters.rows.length} (unanalyzed, hook_type != null, >= 3 videos)`);
+
+  if (clusters.rows.length === 0) {
+    console.log('[PatternGen] No eligible clusters — check analyzed_by_llm flags and dominant_hook_type population');
+    return 0;
+  }
+
   let generated = 0;
   for (const cluster of clusters.rows as any[]) {
+    console.log(`[PatternGen] Processing cluster ${cluster.id} (${cluster.dominant_hook_type}/${cluster.dominant_niche}, virality=${cluster.avg_virality_score})`);
     const success = await generatePatternFromCluster(cluster.id);
     if (success) {
       generated++;
-      console.log(`[PatternGen] Pattern généré pour cluster ${cluster.id} (${cluster.dominant_hook_type}/${cluster.dominant_niche})`);
+      console.log(`[PatternGen] ✓ Pattern generated for cluster ${cluster.id}`);
+    } else {
+      console.warn(`[PatternGen] ✗ Failed for cluster ${cluster.id}`);
     }
     await new Promise(r => setTimeout(r, 500));
   }
 
-  console.log(`[PatternGen] ${generated} patterns générés`);
+  console.log(`[PatternGen] Done — ${generated}/${clusters.rows.length} patterns generated`);
   return generated;
 }
