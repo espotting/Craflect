@@ -5427,6 +5427,63 @@ JSON only, no markdown.`;
     }
   });
 
+  // ── GET /api/video/:id — Page détail vidéo ──────────────────────────────────
+  app.get('/api/video/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const videoId = req.params.id;
+
+      const videoResult = await db.execute(sql`
+        SELECT
+          v.*,
+          cc.id as cluster_id, cc.trend_status, cc.velocity_7d, cc.dominant_niche,
+          p.pattern_id, p.pattern_label, p.hook_template, p.why_it_works,
+          p.cta_suggestion, p.optimal_duration, p.structure_template,
+          p.predicted_views_min, p.predicted_views_max, p.confidence_score,
+          p.video_count, p.avg_virality_score as pattern_virality
+        FROM videos v
+        LEFT JOIN content_clusters cc ON v.id = ANY(cc.video_ids)
+        LEFT JOIN patterns p ON p.cluster_id = cc.id::text
+        WHERE v.id = ${videoId}
+        LIMIT 1
+      `);
+
+      if (!videoResult.rows.length) return res.status(404).json({ error: 'Not found' });
+      const video = videoResult.rows[0] as any;
+
+      const similar = await db.execute(sql`
+        SELECT v.id, v.hook_text, v.hook_type_v2, v.niche_cluster,
+               v.virality_score, v.thumbnail_url,
+               cc.trend_status,
+               p.predicted_views_min, p.predicted_views_max, p.confidence_score
+        FROM videos v
+        LEFT JOIN content_clusters cc ON v.id = ANY(cc.video_ids)
+        LEFT JOIN patterns p ON p.cluster_id = cc.id::text
+        WHERE v.niche_cluster = ${video.niche_cluster}
+          AND v.id != ${videoId}
+          AND v.classification_status = 'completed'
+          AND v.virality_score >= 40
+        ORDER BY v.virality_score DESC NULLS LAST
+        LIMIT 10
+      `);
+
+      const patterns = await db.execute(sql`
+        SELECT pattern_id, pattern_label, hook_template, avg_virality_score,
+               predicted_views_min, predicted_views_max, confidence_score
+        FROM patterns
+        WHERE topic_cluster = ${video.niche_cluster}
+          AND pattern_label IS NOT NULL
+        ORDER BY confidence_score DESC NULLS LAST
+        LIMIT 6
+      `);
+
+      res.json({ video, similar: similar.rows, patterns: patterns.rows });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // ── POST /api/patterns/compute-predictions ──────────────────────────────────
   app.post('/api/patterns/compute-predictions', isAuthenticated, async (_req: any, res) => {
     try {

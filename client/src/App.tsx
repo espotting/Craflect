@@ -35,6 +35,7 @@ import WaitlistPage from "@/pages/waitlist";
 import FounderWaitlist from "@/pages/founder-waitlist";
 import { TermsPage, BillingPage, PrivacyPage, CookiesPage, DpaPage, SecurityPage, ContactPage } from "@/pages/legal";
 import FaqPage from "@/pages/faq";
+import VideoDetail from "@/pages/video-detail";
 
 function Router() {
   return (
@@ -51,6 +52,7 @@ function Router() {
       <Route path="/onboarding" component={Onboarding} />
       <Route path="/proof" component={ProofScreen} />
       <Route path="/home" component={Dashboard} />
+      <Route path="/video/:id" component={VideoDetail} />
       <Route path="/dashboard">{() => <Redirect to="/home" />}</Route>
       <Route path="/opportunities" component={Opportunities} />
       <Route path="/opportunities/:id">{() => <Redirect to="/opportunities" />}</Route>
