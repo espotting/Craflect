@@ -104,8 +104,8 @@ function NicheSearchInput({ placeholder, exclude, selected, onSelect, max = 1 }:
   );
 }
 
-// Steps: 0=Welcome, 1=ConnectProfile, 2=PrimaryNiche, 3=SecondaryNiches, 4=ContentStyle, 5=BuildingFeed, 6=Ready
-const TOTAL_STEPS = 7;
+// Steps: 0=Welcome, 1=ConnectProfile, 2=PrimaryNiche, 3=SecondaryNiches, 4=ContentStyle, 5=Platforms, 6=BuildingFeed, 7=Ready
+const TOTAL_STEPS = 8;
 
 export default function Onboarding() {
   const [, setLocation] = useLocation();
@@ -123,6 +123,7 @@ export default function Onboarding() {
   const [primaryNiche, setPrimaryNiche] = useState<string | null>(null);
   const [secondaryNiches, setSecondaryNiches] = useState<string[]>([]);
   const [contentStyle, setContentStyle] = useState<string | null>(null);
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(['tiktok']);
   const [analysisStep, setAnalysisStep] = useState(-1);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -175,14 +176,14 @@ export default function Onboarding() {
       contentStyle: contentStyle || "educational",
       userGoal: "content_creator",
       onboardingCompleted: true,
+      platforms: selectedPlatforms.length > 0 ? selectedPlatforms : ['tiktok'],
     });
   };
 
   const handleSubmit = async () => {
     if (!primaryNiche) return;
     setIsSubmitting(true);
-    setStep(5);
-    // Try to save, retry once on failure
+    setStep(6);
     try {
       await savePreferences();
     } catch {
@@ -190,7 +191,15 @@ export default function Onboarding() {
     }
     setIsSubmitting(false);
     [600, 1200, 1900, 2600].forEach((d, i) => setTimeout(() => setAnalysisStep(i), d));
-    setTimeout(() => setStep(6), 3800);
+    setTimeout(() => setStep(7), 3800);
+  };
+
+  const togglePlatform = (value: string) => {
+    setSelectedPlatforms(prev =>
+      prev.includes(value)
+        ? prev.length > 1 ? prev.filter(p => p !== value) : prev // keep at least 1
+        : [...prev, value]
+    );
   };
 
   const handleEnterDashboard = async () => {
@@ -424,8 +433,77 @@ export default function Onboarding() {
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <button onClick={() => setStep(3)} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.4)", fontSize: 17, cursor: "pointer" }}>← Back</button>
-                  <Button onClick={handleSubmit} disabled={!contentStyle || isSubmitting}
+                  <Button onClick={() => setStep(5)} disabled={!contentStyle}
                     style={{ background: "linear-gradient(90deg,#7C5CFF,#c026d3)", color: "#fff", border: "none", padding: "14px 32px", borderRadius: 12, fontSize: 18, fontWeight: 600, cursor: contentStyle ? "pointer" : "not-allowed", opacity: contentStyle ? 1 : 0.4 }}>
+                    Continue →
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* STEP 5 — Platform Selection */}
+            {step === 5 && (
+              <motion.div key="s5" variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.35 }}>
+                <h2 style={{ fontSize: 36, fontWeight: 700, margin: "0 0 12px" }}>Where do you post?</h2>
+                <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 18, margin: "0 0 32px" }}>Select all platforms you create content for</p>
+
+                <div style={{ display: "flex", flexDirection: "column" as const, gap: 12, marginBottom: 36 }}>
+                  {[
+                    { value: 'tiktok', label: 'TikTok', sub: 'Short-form vertical video', color: '#fff' },
+                    { value: 'instagram', label: 'Instagram Reels', sub: 'Reels & Stories', color: '#E1306C' },
+                    { value: 'youtube', label: 'YouTube Shorts', sub: 'Short-form on YouTube', color: '#FF0000' },
+                  ].map(p => {
+                    const active = selectedPlatforms.includes(p.value);
+                    return (
+                      <button
+                        key={p.value}
+                        onClick={() => togglePlatform(p.value)}
+                        style={{
+                          display: "flex", alignItems: "center", gap: 16, padding: "18px 20px",
+                          borderRadius: 14, textAlign: "left" as const, cursor: "pointer",
+                          border: active ? `1px solid ${p.color}50` : "1px solid rgba(255,255,255,0.1)",
+                          background: active ? `rgba(${p.value === 'tiktok' ? '255,255,255' : p.value === 'instagram' ? '225,48,108' : '255,0,0'},0.06)` : "rgba(255,255,255,0.04)",
+                          transition: "all 0.15s",
+                        }}
+                      >
+                        <div style={{ width: 40, height: 40, borderRadius: 10, background: active ? `${p.color}20` : "rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                          {p.value === 'tiktok' && (
+                            <svg viewBox="0 0 24 24" width="20" height="20" fill={active ? '#fff' : 'rgba(255,255,255,0.4)'}>
+                              <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V9.37a8.16 8.16 0 004.77 1.52V7.45a4.85 4.85 0 01-1-.76z"/>
+                            </svg>
+                          )}
+                          {p.value === 'instagram' && (
+                            <svg viewBox="0 0 24 24" width="20" height="20" fill={active ? '#E1306C' : 'rgba(255,255,255,0.4)'}>
+                              <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
+                            </svg>
+                          )}
+                          {p.value === 'youtube' && (
+                            <svg viewBox="0 0 24 24" width="20" height="20" fill={active ? '#FF0000' : 'rgba(255,255,255,0.4)'}>
+                              <path d="M23.495 6.205a3.007 3.007 0 00-2.088-2.088c-1.87-.501-9.396-.501-9.396-.501s-7.507-.01-9.396.501A3.007 3.007 0 00.527 6.205a31.247 31.247 0 00-.522 5.805 31.247 31.247 0 00.522 5.783 3.007 3.007 0 002.088 2.088c1.868.502 9.396.502 9.396.502s7.506 0 9.396-.502a3.007 3.007 0 002.088-2.088 31.247 31.247 0 00.5-5.783 31.247 31.247 0 00-.5-5.805zM9.609 15.601V8.408l6.264 3.602z"/>
+                            </svg>
+                          )}
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 16, fontWeight: 600, color: active ? '#fff' : 'rgba(255,255,255,0.7)', marginBottom: 2 }}>{p.label}</div>
+                          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>{p.sub}</div>
+                        </div>
+                        <div style={{
+                          width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
+                          border: active ? 'none' : '1px solid rgba(255,255,255,0.2)',
+                          background: active ? '#7C5CFF' : 'transparent',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}>
+                          {active && <Check size={13} color="#fff" />}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <button onClick={() => setStep(4)} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.4)", fontSize: 17, cursor: "pointer" }}>← Back</button>
+                  <Button onClick={handleSubmit} disabled={selectedPlatforms.length === 0 || isSubmitting}
+                    style={{ background: "linear-gradient(90deg,#7C5CFF,#c026d3)", color: "#fff", border: "none", padding: "14px 32px", borderRadius: 12, fontSize: 18, fontWeight: 600, cursor: "pointer" }}>
                     {isSubmitting && <Loader2 size={18} className="animate-spin" style={{ marginRight: 8 }} />}
                     Build my feed →
                   </Button>
@@ -433,8 +511,8 @@ export default function Onboarding() {
               </motion.div>
             )}
 
-            {/* STEP 5 — Building Feed */}
-            {step === 5 && (
+            {/* STEP 6 — Building Feed */}
+            {step === 6 && (
               <motion.div key="s5" variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.35 }} style={{ textAlign: "center" as const }}>
                 <div style={{ width: 80, height: 80, background: "rgba(124,92,255,0.12)", borderRadius: 20, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 32px" }}>
                   <RefreshCw size={36} color="#7C5CFF" className="animate-spin" />
@@ -455,8 +533,8 @@ export default function Onboarding() {
               </motion.div>
             )}
 
-            {/* STEP 6 — Ready */}
-            {step === 6 && (
+            {/* STEP 7 — Ready */}
+            {step === 7 && (
               <motion.div key="s6" variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.35 }} style={{ textAlign: "center" as const }}>
                 <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", delay: 0.1 }}
                   style={{ width: 80, height: 80, background: "rgba(16,185,129,0.12)", borderRadius: 20, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 28px" }}>

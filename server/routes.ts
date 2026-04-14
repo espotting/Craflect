@@ -1790,6 +1790,7 @@ The content should directly apply the recommendations from the insight report. W
         profileSkipped: z.boolean().optional(),
         popupSkipCount: z.number().optional(),
         notificationPrefs: z.record(z.boolean()).optional(),
+        platforms: z.array(z.string()).optional(),
       }).parse(req.body);
 
       if (input.selectedNiches !== undefined) {
@@ -1810,6 +1811,10 @@ The content should directly apply the recommendations from the insight report. W
       }
       if (input.popupSkipCount !== undefined) {
         await db.execute(sql`UPDATE users SET popup_skip_count = ${input.popupSkipCount}, popup_last_shown = NOW() WHERE id = ${req.user.id}`);
+      }
+      if (input.platforms !== undefined && input.platforms.length > 0) {
+        const platformsArray = `{${input.platforms.join(',')}}`;
+        await db.execute(sql`UPDATE users SET platforms = ${platformsArray}::text[] WHERE id = ${req.user.id}`);
       }
 
       res.json({ success: true });
@@ -4729,7 +4734,7 @@ ${input.cta ? `CTA: ${input.cta}` : ""}`;
       const { db } = await import("./db");
       const { sql } = await import("drizzle-orm");
       const user = await db.execute(sql`
-        SELECT selected_niches, primary_niche, content_style, user_goal, onboarding_completed
+        SELECT selected_niches, primary_niche, content_style, user_goal, onboarding_completed, platforms
         FROM users WHERE id = ${req.user.id}
       `);
       if (!user.rows.length) return res.status(404).json({ error: 'User not found' });
@@ -4740,6 +4745,7 @@ ${input.cta ? `CTA: ${input.cta}` : ""}`;
         contentStyle: row.content_style || null,
         userGoal: row.user_goal || null,
         onboardingCompleted: row.onboarding_completed || false,
+        platforms: row.platforms || ['tiktok'],
       });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
