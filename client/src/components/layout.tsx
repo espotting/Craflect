@@ -17,6 +17,13 @@ class PopupErrorBoundary extends Component<{ children: ReactNode }, { crashed: b
 const userRoutes = ["/home", "/opportunities", "/create", "/workspace", "/insights", "/settings", "/plan-billing", "/onboarding"];
 const adminRoutes = ["/system/founder", "/system/founder/waitlist", "/system/logs", "/system/settings"];
 
+function getGreeting(name: string): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning, ' + name;
+  if (hour < 18) return 'Good afternoon, ' + name;
+  return 'Good evening, ' + name;
+}
+
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading, user } = useAuth();
   const [location, setLocation] = useLocation();
@@ -74,10 +81,11 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             <SidebarTrigger className="text-muted-foreground hover:text-foreground hover:bg-accent -ml-2 mr-4" />
             <div className="flex-1" />
             <div className="flex items-center gap-4">
-              <span className="flex items-center gap-2 text-xs font-medium px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 neon-border" data-testid="status-system">
-                <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                {t.common.systemOnline}
-              </span>
+              {user?.firstName && (
+                <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', fontWeight: 400 }} data-testid="status-system">
+                  {getGreeting(user.firstName)}
+                </span>
+              )}
             </div>
           </header>
           
