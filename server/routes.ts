@@ -5534,6 +5534,36 @@ JSON only, no markdown.`;
     }
   });
 
+  // ── POST /api/video/:id/like — Toggle like on a video ─────────────────────
+  app.post('/api/video/:id/like', isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const videoId = req.params.id;
+
+      const userResult = await db.execute(sql`
+        SELECT liked_video_ids FROM users WHERE id = ${req.user.id}
+      `);
+      const likedIds: string[] = (userResult.rows[0] as any)?.liked_video_ids || [];
+      const isLiked = likedIds.includes(videoId);
+
+      if (isLiked) {
+        await db.execute(sql`
+          UPDATE users SET liked_video_ids = array_remove(liked_video_ids, ${videoId})
+          WHERE id = ${req.user.id}
+        `);
+      } else {
+        await db.execute(sql`
+          UPDATE users SET liked_video_ids = array_append(COALESCE(liked_video_ids, ARRAY[]::text[]), ${videoId})
+          WHERE id = ${req.user.id}
+        `);
+      }
+      res.json({ liked: !isLiked });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // ── POST /api/patterns/compute-predictions ──────────────────────────────────
   app.post('/api/patterns/compute-predictions', isAuthenticated, async (_req: any, res) => {
     try {

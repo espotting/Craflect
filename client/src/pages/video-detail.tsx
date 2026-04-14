@@ -1,5 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useRoute } from "wouter";
+import { useState } from "react";
 import { DashboardLayout } from "@/components/layout";
 import { VideoCard, NICHE_LABELS, NICHE_GRADIENTS, NICHE_EMOJIS, formatViews, renderHookWithVars } from "@/components/video-card-v3";
 
@@ -63,6 +64,13 @@ export default function VideoDetail({ id: propId }: { id?: string }) {
   const [, navigate] = useLocation();
   const [, params] = useRoute('/video/:id');
   const id = propId || params?.id;
+  const [liked, setLiked] = useState(false);
+  const queryClient = useQueryClient();
+
+  const likeMutation = useMutation({
+    mutationFn: () => fetch('/api/video/' + id + '/like', { method: 'POST', credentials: 'include' }).then(r => r.json()),
+    onSuccess: (data) => setLiked(data.liked),
+  });
 
   const { data, isLoading } = useQuery<any>({
     queryKey: ['/api/video', id],
@@ -101,12 +109,17 @@ export default function VideoDetail({ id: propId }: { id?: string }) {
       <div style={{ background: '#08080f', minHeight: '100vh', padding: '20px 28px' }}>
 
         {/* Back */}
-        <div
+        <button
           onClick={() => navigate('/home')}
-          style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', cursor: 'pointer', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 6 }}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+            color: 'rgba(255,255,255,0.7)', padding: '8px 16px', borderRadius: 8,
+            fontSize: 13, cursor: 'pointer', marginBottom: 24, fontWeight: 500,
+          }}
         >
           ← Back to feed
-        </div>
+        </button>
 
         {/* Hero */}
         <div style={{ display: 'flex', gap: 32, marginBottom: 40, alignItems: 'flex-start' }}>
@@ -242,22 +255,19 @@ export default function VideoDetail({ id: propId }: { id?: string }) {
               >
                 Create this video →
               </button>
-              <button style={{
-                background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
-                color: 'rgba(255,255,255,0.45)', padding: '12px 16px', borderRadius: 10,
-                fontSize: 12, cursor: 'pointer',
-              }}>
-                Save
-              </button>
               <button
-                onClick={() => navigate('/performance')}
+                onClick={() => likeMutation.mutate()}
                 style={{
-                  background: 'rgba(16,185,129,0.07)', border: '1px solid rgba(16,185,129,0.18)',
-                  color: '#10b981', padding: '12px 16px', borderRadius: 10,
-                  fontSize: 12, cursor: 'pointer',
+                  background: liked ? 'rgba(239,68,68,0.12)' : 'rgba(255,255,255,0.05)',
+                  border: '1px solid ' + (liked ? 'rgba(239,68,68,0.35)' : 'rgba(255,255,255,0.1)'),
+                  color: liked ? '#ef4444' : 'rgba(255,255,255,0.45)',
+                  padding: '12px 20px', borderRadius: 10,
+                  fontSize: 18, cursor: 'pointer', lineHeight: 1,
+                  transition: 'all 0.15s',
                 }}
+                title={liked ? 'Unlike' : 'Like'}
               >
-                Tracker
+                {liked ? '♥' : '♡'}
               </button>
             </div>
           </div>
