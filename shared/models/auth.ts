@@ -29,6 +29,11 @@ export const users = pgTable("users", {
   aiCredits: integer("ai_credits").default(40),
   aiCreditsResetAt: timestamp("ai_credits_reset_at").defaultNow(),
   plan: varchar("plan").default("free"),
+  primaryNiche: text("primary_niche"),
+  contentStyle: text("content_style"),
+  dailySignalPatternId: text("daily_signal_pattern_id"),
+  dailySignalDate: text("daily_signal_date"),
+  dailySignalUsed: boolean("daily_signal_used").default(false),
 });
 
 export const verificationCodes = pgTable("verification_codes", {

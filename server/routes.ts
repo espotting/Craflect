@@ -106,6 +106,19 @@ export async function registerRoutes(
     await db.execute(sqlRaw`ALTER TABLE users ADD COLUMN IF NOT EXISTS popup_skip_count integer DEFAULT 0`);
     await db.execute(sqlRaw`ALTER TABLE users ADD COLUMN IF NOT EXISTS popup_last_shown timestamp`);
     await db.execute(sqlRaw`ALTER TABLE users ADD COLUMN IF NOT EXISTS first_login boolean DEFAULT true`);
+    await db.execute(sqlRaw`ALTER TABLE users ADD COLUMN IF NOT EXISTS primary_niche text`);
+    await db.execute(sqlRaw`ALTER TABLE users ADD COLUMN IF NOT EXISTS content_style text`);
+    await db.execute(sqlRaw`ALTER TABLE users ADD COLUMN IF NOT EXISTS daily_signal_pattern_id text`);
+    await db.execute(sqlRaw`ALTER TABLE users ADD COLUMN IF NOT EXISTS daily_signal_date text`);
+    await db.execute(sqlRaw`ALTER TABLE users ADD COLUMN IF NOT EXISTS daily_signal_used boolean DEFAULT false`);
+    // Backfill primary_niche from selected_niches[1] for users who have niches but no primary
+    await db.execute(sqlRaw`
+      UPDATE users
+      SET primary_niche = selected_niches[1]
+      WHERE primary_niche IS NULL
+        AND selected_niches IS NOT NULL
+        AND array_length(selected_niches, 1) > 0
+    `);
     console.log('[Migrations] Phase 4 columns OK');
   }
 
