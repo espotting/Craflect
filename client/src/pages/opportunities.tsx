@@ -1,296 +1,197 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/layout";
-import { useLanguage } from "@/hooks/use-language";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Video, TrendingUp, Filter, Flame, Zap, BarChart3, Check, ArrowUpRight } from "lucide-react";
-import { VideoCardV2, type VideoCardData } from "@/components/video-card-v2";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
+import { VideoCard, NICHE_LABELS } from "@/components/video-card-v3";
 
-interface OpportunityItem {
-  id: string;
-  hook: string;
-  format: string;
-  topic: string;
-  platform: string;
-  viralityScore: number;
-  viewRange: string;
-  views: number | null;
-  thumbnailUrl: string | null;
-  whyItWorks?: string;
-  videoCount?: number;
-  confidence?: number;
-  patternId?: string;
-  nicheCluster?: string;
-  trendStatus?: string;
-  velocity7d?: number;
-  compatibility?: "your_niche" | "related" | null;
-  compatibilityScore?: number;
-  matchType?: "perfect_match" | "good_match" | "explore";
+// ── Chip button ───────────────────────────────────────────────────────────────
+
+function Chip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        padding: '6px 14px', borderRadius: 20, fontSize: 11, fontWeight: 600,
+        cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.15s',
+        background: active ? 'rgba(124,92,255,0.2)' : 'rgba(255,255,255,0.04)',
+        border: '1px solid ' + (active ? 'rgba(124,92,255,0.5)' : 'rgba(255,255,255,0.08)'),
+        color: active ? '#a78bfa' : 'rgba(255,255,255,0.4)',
+      }}
+    >
+      {label}
+    </button>
+  );
 }
 
-const SORT_OPTIONS = [
-  { key: "compatibility", label: "By Compatibility" },
-  { key: "virality", label: "By Virality" },
-  { key: "velocity", label: "By Velocity" },
-];
+// ── Filter row ────────────────────────────────────────────────────────────────
 
-interface FormatInfo {
-  format: string;
-  count: number;
-  avgVirality: number;
+function FilterRow({ label, chips, active, onSelect }: {
+  label: string; chips: { key: string; label: string }[];
+  active: string; onSelect: (k: string) => void;
+}) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', letterSpacing: '0.1em', minWidth: 52 }}>
+        {label}
+      </span>
+      <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 2, scrollbarWidth: 'none' as any }}>
+        {chips.map(c => (
+          <Chip key={c.key} label={c.label} active={active === c.key} onClick={() => onSelect(c.key)} />
+        ))}
+      </div>
+    </div>
+  );
 }
 
-const FORMAT_FILTERS = [
-  { key: "all", label: "All" },
-  { key: "tutorial", label: "Tutorial" },
-  { key: "storytelling", label: "Storytelling" },
-  { key: "listicle", label: "Listicle" },
-  { key: "reaction", label: "Reaction" },
-];
+// ── Main ──────────────────────────────────────────────────────────────────────
 
-const HOOK_FILTERS = [
-  { key: "all", label: "All Hooks" },
-  { key: "statement", label: "Statement" },
-  { key: "curiosity", label: "Curiosity" },
-  { key: "question", label: "Question" },
-  { key: "list", label: "List" },
-  { key: "shock", label: "Shock" },
+const TREND_CHIPS = [
+  { key: 'all', label: 'Tous' },
+  { key: 'emerging', label: '🔥 Emerging' },
+  { key: 'trending', label: '⚡ Trending' },
 ];
-
-const VELOCITY_FILTERS = [
-  { key: "all", label: "All", icon: null },
-  { key: "emerging", label: "Emerging", icon: Flame },
-  { key: "trending", label: "Trending", icon: Zap },
-  { key: "rising", label: "Rising", icon: BarChart3 },
+const SORT_CHIPS = [
+  { key: 'confidence', label: 'Par confiance' },
+  { key: 'velocity', label: 'Par vélocité' },
+  { key: 'virality', label: 'Par virality' },
+];
+const ALL_NICHES = [
+  'finance', 'ai_tools', 'online_business', 'productivity', 'content_creation',
+  'health_wellness', 'fitness', 'mindset', 'digital_marketing', 'real_estate',
 ];
 
 export default function OpportunitiesPage() {
-  const { t } = useLanguage();
-  const [, navigate] = useLocation();
-  const { toast } = useToast();
-  const [formatFilter, setFormatFilter] = useState<string>("all");
-  const [hookFilter, setHookFilter] = useState<string>("all");
-  const [velocityFilter, setVelocityFilter] = useState<string>("all");
-  const [sortBy, setSortBy] = useState<string>("compatibility");
-  const [visibleCount, setVisibleCount] = useState(12);
+  const [location] = useLocation();
+  const urlParams = new URLSearchParams(location.split('?')[1] || '');
 
-  const params = new URLSearchParams();
-  if (formatFilter !== "all") params.set("format", formatFilter);
-  if (hookFilter !== "all") params.set("hookType", hookFilter);
-  if (velocityFilter !== "all") params.set("velocity", velocityFilter);
-  const queryString = params.toString();
-  const queryUrl = queryString ? `/api/opportunities/top?${queryString}` : "/api/opportunities/top";
+  const [nicheFilter, setNicheFilter] = useState<string>(urlParams.get('niche') || 'all');
+  const [trendFilter, setTrendFilter] = useState<string>(urlParams.get('filter') || 'all');
+  const [sortBy, setSortBy] = useState<string>('confidence');
+  const [visibleCount, setVisibleCount] = useState(24);
 
-  const { data: opportunitiesRaw, isLoading } = useQuery({
-    queryKey: ["/api/opportunities/top", formatFilter, hookFilter, velocityFilter],
-    queryFn: () => fetch(queryUrl, { credentials: "include" }).then(r => r.json()),
-  });
-  const opportunities: OpportunityItem[] = Array.isArray(opportunitiesRaw) ? opportunitiesRaw : [];
+  useEffect(() => {
+    const n = urlParams.get('niche');
+    const f = urlParams.get('filter');
+    if (n) setNicheFilter(n);
+    if (f) setTrendFilter(f);
+  }, [location]);
 
-  const sortedOpportunities = [...opportunities].sort((a, b) => {
-    if (sortBy === "compatibility") return (b.compatibilityScore ?? 0) - (a.compatibilityScore ?? 0);
-    if (sortBy === "velocity") return (b.velocity7d ?? 0) - (a.velocity7d ?? 0);
-    return b.viralityScore - a.viralityScore;
+  const apiParams = new URLSearchParams();
+  if (trendFilter !== 'all') apiParams.set('velocity', trendFilter);
+  const queryUrl = '/api/opportunities/top' + (apiParams.toString() ? '?' + apiParams.toString() : '');
+
+  const { data: raw, isLoading } = useQuery({
+    queryKey: ['/api/opportunities/top', trendFilter],
+    queryFn: () => fetch(queryUrl, { credentials: 'include' }).then(r => r.json()),
   });
 
-  const videos: VideoCardData[] = sortedOpportunities.map((opp) => ({
-    id: opp.id,
-    hook: opp.hook,
-    format: opp.format,
-    views: opp.viewRange,
-    viralityScore: opp.viralityScore,
-    platform: opp.platform,
-    thumbnail: opp.thumbnailUrl || undefined,
+  const opportunities: any[] = Array.isArray(raw) ? raw : [];
+
+  // Map opportunity → VideoCard format
+  const mapped = opportunities.map(o => ({
+    id: o.id,
+    hook_text: o.hook,
+    hook_type_v2: o.format,
+    niche_cluster: o.nicheCluster || o.topic,
+    virality_score: o.viralityScore,
+    thumbnail_url: o.thumbnailUrl || null,
+    trend_status: o.trendStatus || (trendFilter !== 'all' ? trendFilter : 'trending'),
+    predicted_views_min: o.confidence ? o.viralityScore * 10000 : null,
+    predicted_views_max: o.confidence ? o.viralityScore * 50000 : null,
+    confidence_score: o.confidence || null,
+    _original: o,
   }));
 
-  const visibleVideos = videos.slice(0, visibleCount);
+  // Apply niche filter
+  const nicheBuckets = nicheFilter === 'all'
+    ? mapped
+    : mapped.filter(v => v.niche_cluster === nicheFilter || !v.niche_cluster);
 
-  const handleCreateSimilar = (video: VideoCardData) => {
-    const opp = opportunities?.find((o) => o.id === video.id);
-    const p = new URLSearchParams({ hook: video.hook, format: video.format });
-    if (opp) {
-      if (opp.topic) p.set("topic", opp.topic);
-      if (opp.viralityScore) p.set("viralityScore", String(opp.viralityScore));
-      if (opp.videoCount) p.set("videoCount", String(opp.videoCount));
-      if (opp.whyItWorks) p.set("whyItWorks", encodeURIComponent(opp.whyItWorks));
-      if (opp.patternId) p.set("patternId", opp.patternId);
-      if (opp.confidence) p.set("confidence", String(opp.confidence));
-    }
-    navigate(`/create?${p.toString()}`);
-  };
+  // Sort
+  const sorted = [...nicheBuckets].sort((a, b) => {
+    if (sortBy === 'confidence') return (b.confidence_score || 0) - (a.confidence_score || 0);
+    if (sortBy === 'velocity') return (b._original.velocity7d || 0) - (a._original.velocity7d || 0);
+    return (b.virality_score || 0) - (a.virality_score || 0);
+  });
 
-  const handleSave = async (video: VideoCardData) => {
-    try {
-      const opp = opportunities?.find((o) => o.id === video.id);
-      if (opp) {
-        await apiRequest("POST", "/api/ideas/save", {
-          hook: opp.hook,
-          format: opp.format,
-          topic: opp.topic,
-          opportunityScore: opp.viralityScore,
-        });
-        queryClient.invalidateQueries({ queryKey: ["/api/ideas"] });
-        toast({ title: t.dashboard?.savedIdea || "Idea saved" });
-      }
-    } catch {}
-  };
+  const visible = sorted.slice(0, visibleCount);
 
-  const getCompatibilityBadge = (opp: OpportunityItem) => {
-    const match = opp.matchType;
-    const score = opp.compatibilityScore ?? 0;
-    if (match === "perfect_match" || opp.compatibility === "your_niche") {
-      return (
-        <div className="absolute top-2 left-2 z-10">
-          <Badge className="bg-green-500/20 text-green-400 border border-green-500/30 text-[10px] px-1.5 py-0.5">
-            <Check className="w-3 h-3 mr-0.5" />
-            ⭐ Perfect Match {score > 0 ? `· ${score}` : ""}
-          </Badge>
-        </div>
-      );
-    }
-    if (match === "good_match" || opp.compatibility === "related") {
-      return (
-        <div className="absolute top-2 left-2 z-10">
-          <Badge className="bg-blue-500/20 text-blue-400 border border-blue-500/30 text-[10px] px-1.5 py-0.5">
-            <ArrowUpRight className="w-3 h-3 mr-0.5" />
-            ✓ Good Match {score > 0 ? `· ${score}` : ""}
-          </Badge>
-        </div>
-      );
-    }
-    return null;
-  };
+  const nicheChips = [
+    { key: 'all', label: 'Toutes' },
+    ...ALL_NICHES.map(n => ({ key: n, label: NICHE_LABELS[n] || n })),
+  ];
 
   return (
     <DashboardLayout>
-      <div className="p-4 md:p-8 max-w-7xl mx-auto" data-testid="page-opportunities">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-2xl font-bold text-white" data-testid="text-page-title">
-              {t.opportunities?.title || "Opportunities"}
-            </h2>
-            <p className="text-slate-400">
-              {t.opportunities?.subtitle || "All viral opportunities matched to your niche"}
-            </p>
+      <div style={{ background: '#08080f', minHeight: '100vh', padding: '20px 28px' }} data-testid="page-opportunities">
+
+        {/* Header */}
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ fontSize: 11, fontWeight: 800, color: '#7C5CFF', textTransform: 'uppercase', letterSpacing: '0.18em', marginBottom: 6 }}>
+            Library
+          </div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', marginBottom: 4 }}>
+            Opportunities
+          </div>
+          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>
+            {sorted.length} vidéos virales analysées
           </div>
         </div>
 
-        <div className="space-y-3 mb-6">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-slate-500 text-xs font-medium w-16">Format</span>
-            {FORMAT_FILTERS.map((f) => (
-              <Button
-                key={f.key}
-                variant="outline"
-                size="sm"
-                className={`border-slate-700 text-slate-300 text-xs h-8 ${formatFilter === f.key ? "bg-purple-600/20 border-purple-500/50 text-purple-300" : ""}`}
-                onClick={() => { setFormatFilter(f.key); setVisibleCount(12); }}
-                data-testid={`filter-format-${f.key}`}
-              >
-                {f.label}
-              </Button>
-            ))}
+        {/* Filters */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
+          {/* Niche chips scrollables */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', letterSpacing: '0.1em', minWidth: 52 }}>
+              Niche
+            </span>
+            <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 2, scrollbarWidth: 'none' as any }}>
+              {nicheChips.map(c => (
+                <Chip key={c.key} label={c.label} active={nicheFilter === c.key} onClick={() => { setNicheFilter(c.key); setVisibleCount(24); }} />
+              ))}
+            </div>
           </div>
-
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-slate-500 text-xs font-medium w-16">Hook</span>
-            {HOOK_FILTERS.map((f) => (
-              <Button
-                key={f.key}
-                variant="outline"
-                size="sm"
-                className={`border-slate-700 text-slate-300 text-xs h-8 ${hookFilter === f.key ? "bg-purple-600/20 border-purple-500/50 text-purple-300" : ""}`}
-                onClick={() => { setHookFilter(f.key); setVisibleCount(12); }}
-                data-testid={`filter-hook-${f.key}`}
-              >
-                {f.label}
-              </Button>
-            ))}
-          </div>
-
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-slate-500 text-xs font-medium w-16">Sort</span>
-            {SORT_OPTIONS.map((s) => (
-              <Button
-                key={s.key}
-                variant="outline"
-                size="sm"
-                className={`border-slate-700 text-slate-300 text-xs h-8 ${sortBy === s.key ? "bg-purple-600/20 border-purple-500/50 text-purple-300" : ""}`}
-                onClick={() => setSortBy(s.key)}
-              >
-                {s.label}
-              </Button>
-            ))}
-          </div>
-
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-slate-500 text-xs font-medium w-16">Velocity</span>
-            {VELOCITY_FILTERS.map((f) => (
-              <Button
-                key={f.key}
-                variant="outline"
-                size="sm"
-                className={`border-slate-700 text-slate-300 text-xs h-8 ${velocityFilter === f.key ? "bg-purple-600/20 border-purple-500/50 text-purple-300" : ""}`}
-                onClick={() => { setVelocityFilter(f.key); setVisibleCount(12); }}
-                data-testid={`filter-velocity-${f.key}`}
-              >
-                {f.icon && <f.icon className="w-3 h-3 mr-1" />}
-                {f.label}
-              </Button>
-            ))}
-          </div>
+          <FilterRow label="Trend" chips={TREND_CHIPS} active={trendFilter} onSelect={v => { setTrendFilter(v); setVisibleCount(24); }} />
+          <FilterRow label="Tri" chips={SORT_CHIPS} active={sortBy} onSelect={setSortBy} />
         </div>
 
+        {/* Grid */}
         {isLoading ? (
-          <div className="grid grid-cols-4 gap-6">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <Skeleton key={i} className="h-80 rounded-2xl" />
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+            {Array.from({ length: 12 }).map((_, i) => (
+              <div key={i} style={{ flex: '0 0 150px', height: 240, background: 'rgba(255,255,255,0.04)', borderRadius: 11 }} />
             ))}
           </div>
-        ) : visibleVideos.length === 0 ? (
-          <div className="text-center py-16">
-            <TrendingUp className="w-12 h-12 text-slate-600 mx-auto mb-4" />
-            <h3 className="text-white font-medium mb-2">{t.opportunities?.noResults || "No opportunities found"}</h3>
-            <p className="text-slate-400 text-sm">{t.opportunities?.tryDifferent || "Try a different filter"}</p>
+        ) : visible.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '60px 0', color: 'rgba(255,255,255,0.3)' }}>
+            Aucune opportunité trouvée pour ce filtre.
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-4 gap-6" data-testid="opportunities-grid">
-              {visibleVideos.map((video) => {
-                const opp = sortedOpportunities.find((o) => o.id === video.id);
-                return (
-                  <div key={video.id} className="relative">
-                    {opp && getCompatibilityBadge(opp)}
-                    <VideoCardV2
-                      video={video}
-                      onCreateSimilar={handleCreateSimilar}
-                      onAnalyze={() => {}}
-                      onSave={handleSave}
-                    />
-                  </div>
-                );
-              })}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }} data-testid="opportunities-grid">
+              {visible.map(v => (
+                <VideoCard key={v.id} video={v} niche={v.niche_cluster || 'finance'} />
+              ))}
             </div>
 
-            {visibleCount < videos.length && (
-              <div className="flex justify-center pt-8">
-                <Button
-                  variant="outline"
-                  className="border-slate-700 text-slate-300 px-8"
-                  onClick={() => setVisibleCount((prev) => prev + 8)}
+            {visibleCount < sorted.length && (
+              <div style={{ display: 'flex', justifyContent: 'center', marginTop: 24 }}>
+                <button
+                  onClick={() => setVisibleCount(c => c + 24)}
+                  style={{
+                    background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+                    color: 'rgba(255,255,255,0.4)', padding: '10px 32px', borderRadius: 10,
+                    fontSize: 13, cursor: 'pointer',
+                  }}
                   data-testid="button-load-more"
                 >
-                  {t.opportunities?.loadMore || "Load More"}
-                </Button>
+                  Charger plus
+                </button>
               </div>
             )}
           </>
         )}
+
       </div>
     </DashboardLayout>
   );
