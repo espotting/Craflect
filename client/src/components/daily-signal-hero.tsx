@@ -114,7 +114,7 @@ export function DailySignalHero({ signal, niche }: { signal: any; niche: string 
             fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.35)',
             textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 18,
           }}>
-            Signal du Jour
+            Today's Signal
           </div>
           <div style={{
             fontSize: 38, fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.1, marginBottom: 14,
@@ -135,19 +135,19 @@ export function DailySignalHero({ signal, niche }: { signal: any; niche: string 
           <div style={{ display: 'flex', alignItems: 'flex-end', marginBottom: 26 }}>
             <MetricItem
               value={s.predicted_views_min ? formatViews(s.predicted_views_min, s.predicted_views_max) : '—'}
-              label="Vues attendues"
+              label="Expected views"
               color="#a78bfa"
             />
             <div style={{ width: 1, background: 'rgba(255,255,255,0.08)', height: 36, margin: '0 24px' }} />
             <MetricItem
               value={Math.round(s.confidence_score || 0) + '%'}
-              label="Confiance"
+              label="Confidence"
               color="#10b981"
             />
             <div style={{ width: 1, background: 'rgba(255,255,255,0.08)', height: 36, margin: '0 24px' }} />
             <MetricItem
               value={String(s.video_count || 0)}
-              label="Vidéos similaires"
+              label="Similar videos"
               color="#fff"
             />
           </div>
@@ -161,7 +161,7 @@ export function DailySignalHero({ signal, niche }: { signal: any; niche: string 
                 fontSize: 13, fontWeight: 700, cursor: 'pointer',
               }}
             >
-              Créer cette vidéo →
+              Create this video →
             </button>
             <button
               onClick={() => navigate('/opportunities')}
@@ -171,7 +171,7 @@ export function DailySignalHero({ signal, niche }: { signal: any; niche: string 
                 fontSize: 13, cursor: 'pointer',
               }}
             >
-              Explorer plus
+              Explore more
             </button>
           </div>
         </div>

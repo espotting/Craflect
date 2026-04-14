@@ -74,7 +74,7 @@ export default function VideoDetail({ id: propId }: { id?: string }) {
   if (!data?.video) return (
     <DashboardLayout>
       <div style={{ background: '#08080f', minHeight: '100vh', padding: '40px 28px', color: 'rgba(255,255,255,0.4)', textAlign: 'center' }}>
-        Vidéo non trouvée
+        Video not found
       </div>
     </DashboardLayout>
   );
@@ -85,13 +85,13 @@ export default function VideoDetail({ id: propId }: { id?: string }) {
 
   const stats = [
     {
-      label: 'Vues attendues',
+      label: 'Expected views',
       value: video.predicted_views_min ? formatViews(video.predicted_views_min, video.predicted_views_max) : '500K+',
       color: '#a78bfa',
     },
-    { label: 'Confiance', value: Math.round(video.confidence_score || 75) + '%', color: '#10b981' },
-    { label: 'Durée optimale', value: (video.optimal_duration || 45) + 's', color: '#fff' },
-    { label: 'Vélocité', value: '+' + Math.round(video.velocity_7d || 0), color: '#f59e0b' },
+    { label: 'Confidence', value: Math.round(video.confidence_score || 75) + '%', color: '#10b981' },
+    { label: 'Optimal duration', value: (video.optimal_duration || 45) + 's', color: '#fff' },
+    { label: 'Velocity', value: '+' + Math.round(video.velocity_7d || 0), color: '#f59e0b' },
   ];
 
   const tags = [video.hook_type_v2, video.structure_type, 'TikTok · Reels', 'Face cam'].filter(Boolean);
@@ -105,7 +105,7 @@ export default function VideoDetail({ id: propId }: { id?: string }) {
           onClick={() => navigate('/home')}
           style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', cursor: 'pointer', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 6 }}
         >
-          ← Retour au feed
+          ← Back to feed
         </div>
 
         {/* Hero */}
@@ -222,7 +222,7 @@ export default function VideoDetail({ id: propId }: { id?: string }) {
                 borderRadius: 10, padding: '12px 14px', marginBottom: 20,
               }}>
                 <div style={{ fontSize: 9, color: 'rgba(16,185,129,0.6)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>
-                  Pourquoi ça marche
+                  Why it works
                 </div>
                 <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', lineHeight: 1.6 }}>
                   {video.why_it_works}
@@ -240,14 +240,14 @@ export default function VideoDetail({ id: propId }: { id?: string }) {
                   fontSize: 13, fontWeight: 700, cursor: 'pointer',
                 }}
               >
-                Créer cette vidéo →
+                Create this video →
               </button>
               <button style={{
                 background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
                 color: 'rgba(255,255,255,0.45)', padding: '12px 16px', borderRadius: 10,
                 fontSize: 12, cursor: 'pointer',
               }}>
-                Sauvegarder
+                Save
               </button>
               <button
                 onClick={() => navigate('/performance')}
@@ -266,13 +266,13 @@ export default function VideoDetail({ id: propId }: { id?: string }) {
         {/* Divider */}
         <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', marginBottom: 24 }} />
 
-        {/* Vidéos similaires */}
+        {/* Similar videos */}
         {Array.isArray(similar) && similar.length > 0 && (
           <div style={{ marginBottom: 28 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 14 }}>
               <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', gap: 8 }}>
                 <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#ef4444' }} />
-                Emerging Now
+                Emerging now
                 <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', fontWeight: 400, marginLeft: 4 }}>
                   {NICHE_LABELS[niche]}
                 </span>
@@ -281,7 +281,7 @@ export default function VideoDetail({ id: propId }: { id?: string }) {
                 onClick={() => navigate('/opportunities?niche=' + niche)}
                 style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', cursor: 'pointer' }}
               >
-                Voir tout →
+                See all →
               </span>
             </div>
             <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 6, scrollbarWidth: 'none' as any }}>
@@ -290,19 +290,19 @@ export default function VideoDetail({ id: propId }: { id?: string }) {
           </div>
         )}
 
-        {/* Patterns recommandés */}
+        {/* Recommended patterns */}
         {Array.isArray(patterns) && patterns.length > 0 && (
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 14 }}>
               <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', gap: 8 }}>
                 <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#7C5CFF' }} />
-                Patterns recommandés
+                Recommended patterns
                 <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', fontWeight: 400, marginLeft: 4 }}>
                   {NICHE_LABELS[niche]}
                 </span>
               </div>
               <span onClick={() => navigate('/create')} style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', cursor: 'pointer' }}>
-                Voir tout →
+                See all →
               </span>
             </div>
             <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 6, scrollbarWidth: 'none' as any }}>

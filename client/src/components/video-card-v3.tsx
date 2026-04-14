@@ -123,7 +123,7 @@ export function VideoCard({ video, niche }: { video: any; niche: string }) {
                 : '500K+ views'}
             </div>
             <div style={{ fontSize: 10, color: '#f59e0b' }}>
-              ⭐ {Math.round(video.confidence_score || 75)}% confiance
+              ⭐ {Math.round(video.confidence_score || 75)}% confidence
             </div>
             <button
               onClick={e => { e.stopPropagation(); navigate('/video/' + video.id); }}
@@ -133,7 +133,7 @@ export function VideoCard({ video, niche }: { video: any; niche: string }) {
                 cursor: 'pointer', width: 120, textAlign: 'center',
               }}
             >
-              En savoir plus →
+              Learn more →
             </button>
           </div>
         )}

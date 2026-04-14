@@ -24,7 +24,7 @@ function NicheRow({ niche, videos, isFirst }: { niche: string; videos: any[]; is
           onClick={() => navigate('/opportunities?niche=' + niche)}
           style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', cursor: 'pointer' }}
         >
-          Voir tout →
+          See all →
         </span>
       </div>
       <div style={scrollStyle}>
@@ -52,7 +52,7 @@ function RecommendedRow({ videos }: { videos: any[] }) {
           onClick={() => navigate('/create')}
           style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', cursor: 'pointer' }}
         >
-          Voir tout →
+          See all →
         </span>
       </div>
       <div style={scrollStyle}>

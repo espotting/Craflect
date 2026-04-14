@@ -46,14 +46,14 @@ function FilterRow({ label, chips, active, onSelect }: {
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 const TREND_CHIPS = [
-  { key: 'all', label: 'Tous' },
+  { key: 'all', label: 'All' },
   { key: 'emerging', label: '🔥 Emerging' },
   { key: 'trending', label: '⚡ Trending' },
 ];
 const SORT_CHIPS = [
-  { key: 'confidence', label: 'Par confiance' },
-  { key: 'velocity', label: 'Par vélocité' },
-  { key: 'virality', label: 'Par virality' },
+  { key: 'confidence', label: 'By confidence' },
+  { key: 'velocity', label: 'By velocity' },
+  { key: 'virality', label: 'By virality' },
 ];
 const ALL_NICHES = [
   'finance', 'ai_tools', 'online_business', 'productivity', 'content_creation',
@@ -117,7 +117,7 @@ export default function OpportunitiesPage() {
   const visible = sorted.slice(0, visibleCount);
 
   const nicheChips = [
-    { key: 'all', label: 'Toutes' },
+    { key: 'all', label: 'All' },
     ...ALL_NICHES.map(n => ({ key: n, label: NICHE_LABELS[n] || n })),
   ];
 
@@ -134,7 +134,7 @@ export default function OpportunitiesPage() {
             Opportunities
           </div>
           <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>
-            {sorted.length} vidéos virales analysées
+            {sorted.length} viral videos analyzed
           </div>
         </div>
 
@@ -152,7 +152,7 @@ export default function OpportunitiesPage() {
             </div>
           </div>
           <FilterRow label="Trend" chips={TREND_CHIPS} active={trendFilter} onSelect={v => { setTrendFilter(v); setVisibleCount(24); }} />
-          <FilterRow label="Tri" chips={SORT_CHIPS} active={sortBy} onSelect={setSortBy} />
+          <FilterRow label="Sort" chips={SORT_CHIPS} active={sortBy} onSelect={setSortBy} />
         </div>
 
         {/* Grid */}
@@ -164,7 +164,7 @@ export default function OpportunitiesPage() {
           </div>
         ) : visible.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px 0', color: 'rgba(255,255,255,0.3)' }}>
-            Aucune opportunité trouvée pour ce filtre.
+            No opportunities found for this filter.
           </div>
         ) : (
           <>
@@ -185,7 +185,7 @@ export default function OpportunitiesPage() {
                   }}
                   data-testid="button-load-more"
                 >
-                  Charger plus
+                  Load more
                 </button>
               </div>
             )}
