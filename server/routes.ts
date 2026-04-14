@@ -109,8 +109,10 @@ export async function registerRoutes(
     await db.execute(sqlRaw`ALTER TABLE users ADD COLUMN IF NOT EXISTS primary_niche text`);
     await db.execute(sqlRaw`ALTER TABLE users ADD COLUMN IF NOT EXISTS content_style text`);
     await db.execute(sqlRaw`ALTER TABLE users ADD COLUMN IF NOT EXISTS daily_signal_pattern_id text`);
-    await db.execute(sqlRaw`ALTER TABLE users ADD COLUMN IF NOT EXISTS daily_signal_date text`);
+    await db.execute(sqlRaw`ALTER TABLE users ADD COLUMN IF NOT EXISTS daily_signal_date date`);
     await db.execute(sqlRaw`ALTER TABLE users ADD COLUMN IF NOT EXISTS daily_signal_used boolean DEFAULT false`);
+    await db.execute(sqlRaw`ALTER TABLE users ADD COLUMN IF NOT EXISTS platforms text[] DEFAULT '{tiktok}'`);
+    await db.execute(sqlRaw`ALTER TABLE users ADD COLUMN IF NOT EXISTS liked_video_ids text[] DEFAULT '{}'`);
     // Backfill primary_niche from selected_niches[1] for users who have niches but no primary
     await db.execute(sqlRaw`
       UPDATE users
@@ -5102,8 +5104,8 @@ JSON only, no markdown.`;
         SELECT primary_niche, selected_niches FROM users WHERE id = ${req.user.id}
       `);
       const u = userResult.rows[0] as any;
-      const primaryNiche = u?.primary_niche || 'finance';
-      const rawSelected: string[] = u?.selected_niches || [];
+      const rawSelected: string[] = Array.isArray(u?.selected_niches) ? u.selected_niches : [];
+      const primaryNiche = u?.primary_niche || rawSelected[0] || 'finance';
       const selectedNiches = rawSelected.length > 0 ? rawSelected : [primaryNiche];
 
       // Safe SQL injection: escape niche values manually
@@ -5154,7 +5156,8 @@ JSON only, no markdown.`;
         totalResults: feed.rows.length,
       });
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error('[feed/personalized] error:', error.message);
+      res.json({ videos: [], primaryNiche: 'finance', selectedNiches: ['finance'], totalResults: 0 });
     }
   });
 
@@ -5538,14 +5541,22 @@ JSON only, no markdown.`;
       const { sql } = await import("drizzle-orm");
 
       const userResult = await db.execute(sql`
-        SELECT primary_niche, daily_signal_pattern_id, daily_signal_date, daily_signal_used
+        SELECT primary_niche, selected_niches, daily_signal_pattern_id, daily_signal_date, daily_signal_used
         FROM users WHERE id = ${req.user.id}
       `);
       const u = userResult.rows[0] as any;
       const today = new Date().toISOString().split('T')[0];
+
+      // Normalize date: DB returns date as string 'YYYY-MM-DD' or Date object
       const signalDate = u?.daily_signal_date instanceof Date
         ? u.daily_signal_date.toISOString().split('T')[0]
-        : u?.daily_signal_date?.split?.('T')[0] ?? u?.daily_signal_date;
+        : typeof u?.daily_signal_date === 'string'
+          ? u.daily_signal_date.split('T')[0]
+          : null;
+
+      // Robust niche fallback
+      const selectedNiches: string[] = Array.isArray(u?.selected_niches) ? u.selected_niches : [];
+      const niche = u?.primary_niche || selectedNiches[0] || 'finance';
 
       // Signal du jour déjà utilisé
       if (u?.daily_signal_used && signalDate === today) {
@@ -5563,23 +5574,27 @@ JSON only, no markdown.`;
         return res.json({ signal: existing.rows[0] || null, used: false });
       }
 
-      // Nouveau signal
-      const niche = u?.primary_niche || 'finance';
-      const signal = await db.execute(sql`
+      // Nouveau signal — avoid patterns shown in last 7 days
+      const recentResult = await db.execute(sql`
+        SELECT COALESCE(array_agg(daily_signal_pattern_id) FILTER (WHERE daily_signal_pattern_id IS NOT NULL), ARRAY[]::text[])
+        FROM users WHERE id = ${req.user.id} AND daily_signal_date >= CURRENT_DATE - INTERVAL '7 days'
+      `);
+      const recentIds: string[] = (recentResult.rows[0] as any)?.coalesce || [];
+      const excludeClause = recentIds.length > 0
+        ? `AND p.pattern_id != ALL(ARRAY[${recentIds.map(id => `'${id.replace(/'/g, "''")}'`).join(',')}]::text[])`
+        : '';
+
+      const signal = await db.execute(sql.raw(`
         SELECT p.*, cc.trend_status, cc.velocity_7d
         FROM patterns p
         LEFT JOIN content_clusters cc ON cc.id::text = p.cluster_id
-        WHERE p.topic_cluster = ${niche}
+        WHERE p.topic_cluster = '${niche.replace(/'/g, "''")}'
           AND p.pattern_label IS NOT NULL
           AND p.confidence_score IS NOT NULL
-          AND p.pattern_id != ALL(
-            SELECT COALESCE(array_agg(daily_signal_pattern_id), ARRAY[]::text[])
-            FROM users WHERE id = ${req.user.id}
-              AND daily_signal_date >= NOW() - INTERVAL '7 days'
-          )
+          ${excludeClause}
         ORDER BY p.confidence_score DESC, p.avg_virality_score DESC NULLS LAST
         LIMIT 1
-      `);
+      `));
 
       if (signal.rows.length > 0) {
         const pat = signal.rows[0] as any;
@@ -5595,7 +5610,8 @@ JSON only, no markdown.`;
 
       res.json({ signal: null, used: false });
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error('[daily-signal] error:', error.message);
+      res.json({ signal: null, used: false }); // graceful fallback, never 500
     }
   });
 

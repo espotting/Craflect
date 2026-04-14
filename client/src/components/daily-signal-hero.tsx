@@ -38,7 +38,8 @@ export function DailySignalHero({ signal, niche }: { signal: any; niche: string 
   const [, navigate] = useLocation();
   const nicheLabel = NICHE_LABELS[niche] || niche;
 
-  if (!signal) return <DailySignalSkeleton />;
+  // undefined = still loading → skeleton
+  if (signal === undefined) return <DailySignalSkeleton />;
 
   if (signal.used) return (
     <div style={{
@@ -61,7 +62,19 @@ export function DailySignalHero({ signal, niche }: { signal: any; niche: string 
     </div>
   );
 
-  if (!signal.signal) return <DailySignalSkeleton />;
+  // null signal = no pattern available for this niche yet → compact empty state
+  if (!signal.signal) return (
+    <div style={{
+      height: 100, background: 'linear-gradient(135deg,#080614,#130826)',
+      display: 'flex', alignItems: 'center', padding: '0 40px', gap: 16,
+    }}>
+      <div style={{ fontSize: 24 }}>🔮</div>
+      <div>
+        <div style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.6)' }}>No signal today</div>
+        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>New viral patterns are being analyzed — check back soon.</div>
+      </div>
+    </div>
+  );
 
   const s = signal.signal;
   const gradient = NICHE_GRADIENTS[niche] || NICHE_GRADIENTS.default;

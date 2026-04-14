@@ -32,8 +32,10 @@ export const users = pgTable("users", {
   primaryNiche: text("primary_niche"),
   contentStyle: text("content_style"),
   dailySignalPatternId: text("daily_signal_pattern_id"),
-  dailySignalDate: text("daily_signal_date"),
+  dailySignalDate: varchar("daily_signal_date"),
   dailySignalUsed: boolean("daily_signal_used").default(false),
+  platforms: text("platforms").array().default(sql`'{tiktok}'`),
+  likedVideoIds: text("liked_video_ids").array().default(sql`'{}'`),
 });
 
 export const verificationCodes = pgTable("verification_codes", {

@@ -8,17 +8,20 @@ import { FeedSection } from "@/components/feed-section";
 export default function Dashboard() {
   const { platform, setPlatform } = usePlatform();
 
-  const { data: signal } = useQuery<any>({
+  const { data: signal, isError: signalError } = useQuery<any>({
     queryKey: ['/api/daily-signal'],
+    queryFn: () => fetch('/api/daily-signal', { credentials: 'include' }).then(r => r.json()),
     refetchInterval: 60 * 60 * 1000,
+    retry: 1,
   });
 
-  const { data: feed } = useQuery<any>({
+  const { data: feed, isError: feedError } = useQuery<any>({
     queryKey: ['/api/feed/personalized', platform],
     queryFn: () =>
       fetch(`/api/feed/personalized${platform !== 'all' ? '?platform=' + platform : ''}`, {
         credentials: 'include',
       }).then(r => r.json()),
+    retry: 1,
   });
 
   const { data: prefs } = useQuery<{ primaryNiche: string | null; selectedNiches: string[] }>({
@@ -41,7 +44,7 @@ export default function Dashboard() {
           <PlatformToggle value={platform} onChange={setPlatform} />
         </div>
 
-        <DailySignalHero signal={signal} niche={primaryNiche} />
+        <DailySignalHero signal={signalError ? { signal: null } : signal} niche={primaryNiche} />
         <FeedSection niches={selectedNiches} platform={platform} feedData={feed} />
       </div>
     </DashboardLayout>
