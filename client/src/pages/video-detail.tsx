@@ -233,7 +233,7 @@ export default function VideoDetail({ id: propId }: { id?: string }) {
             {/* CTAs */}
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
               <button
-                onClick={() => navigate('/create?patternId=' + (video.cluster_id || ''))}
+                onClick={() => navigate('/create?patternId=' + (video.pattern_id || video.cluster_id || ''))}
                 style={{
                   background: 'linear-gradient(90deg,#7C5CFF,#c026d3)', border: 'none',
                   color: '#fff', padding: '12px 26px', borderRadius: 10,

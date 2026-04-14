@@ -5369,25 +5369,43 @@ JSON only, no markdown.`;
     try {
       const { db } = await import("./db");
       const { sql } = await import("drizzle-orm");
+      const specificPatternId = (req.query.patternId as string) || '';
+
       const userRes = await db.execute(sql`SELECT selected_niches, primary_niche FROM users WHERE id = ${req.user.id}`);
       const row = userRes.rows[0] as any;
-      const niches: string[] = row?.selected_niches || (row?.primary_niche ? [row.primary_niche] : []);
-      const nicheList = niches.length > 0 ? niches.map((n: string) => `'${n.replace(/'/g, "''")}'`).join(',') : "'general'";
+      const rawSelected: string[] = Array.isArray(row?.selected_niches) ? row.selected_niches : [];
+      const primaryNiche = row?.primary_niche || rawSelected[0] || 'finance';
+      const niches: string[] = rawSelected.length > 0 ? rawSelected : [primaryNiche];
+      const nichesStr = niches.map((n: string) => `'${n.replace(/'/g, "''")}'`).join(',');
+      const specificClause = specificPatternId
+        ? `OR p.pattern_id = '${specificPatternId.replace(/'/g, "''")}'`
+        : '';
+      const orderSpecific = specificPatternId
+        ? `CASE WHEN p.pattern_id = '${specificPatternId.replace(/'/g, "''")}' THEN 0 ELSE 1 END,`
+        : '';
+
       const patterns = await db.execute(sql.raw(`
-        SELECT p.id, p.pattern_label, p.hook_template, p.structure_template,
+        SELECT p.pattern_id as id, p.pattern_id, p.pattern_label, p.hook_template, p.structure_template,
                p.optimal_duration, p.why_it_works, p.best_for, p.cta_suggestion,
-               p.avg_virality_score, p.topic_cluster,
+               p.avg_virality_score, p.topic_cluster, p.video_count,
+               p.predicted_views_min, p.predicted_views_max, p.confidence_score,
                cc.trend_status, cc.velocity_7d
         FROM patterns p
         LEFT JOIN content_clusters cc ON cc.id::text = p.cluster_id
         WHERE p.pattern_label IS NOT NULL AND p.hook_template IS NOT NULL
+          AND (
+            p.topic_cluster = ANY(ARRAY[${nichesStr}]::text[])
+            ${specificClause}
+          )
         ORDER BY
-          CASE WHEN p.topic_cluster = ANY(ARRAY[${nicheList}]::text[]) THEN 0 ELSE 1 END,
+          ${orderSpecific}
+          CASE WHEN p.topic_cluster = '${primaryNiche.replace(/'/g, "''")}' THEN 0 ELSE 1 END,
           p.avg_virality_score DESC NULLS LAST
         LIMIT 20
       `));
       res.json(patterns.rows);
     } catch (error: any) {
+      console.error('[patterns/list] error:', error.message);
       res.status(500).json({ error: error.message });
     }
   });

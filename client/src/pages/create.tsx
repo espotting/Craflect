@@ -99,15 +99,18 @@ export default function StudioPage() {
   const [savedOk, setSavedOk] = useState(false);
 
   const { data: patternsRaw, isLoading } = useQuery({
-    queryKey: ["/api/patterns/list"],
-    queryFn: () => fetch("/api/patterns/list", { credentials: "include" }).then((r) => r.json()),
+    queryKey: ["/api/patterns/list", urlPatternId],
+    queryFn: () => fetch(
+      "/api/patterns/list" + (urlPatternId ? "?patternId=" + encodeURIComponent(urlPatternId) : ""),
+      { credentials: "include" }
+    ).then((r) => r.json()),
   });
   const patterns: Pattern[] = Array.isArray(patternsRaw) ? patternsRaw : [];
 
-  // Pre-select from URL param once patterns load
+  // Pre-select from URL param once patterns load — skip step 1
   useEffect(() => {
     if (urlPatternId && patterns.length > 0 && !selected) {
-      const pre = patterns.find((p) => p.id === urlPatternId);
+      const pre = patterns.find((p) => p.id === urlPatternId || (p as any).pattern_id === urlPatternId);
       if (pre) { setSelected(pre); setVars({}); }
     }
   }, [urlPatternId, patterns, selected]);
