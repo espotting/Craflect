@@ -5084,44 +5084,60 @@ JSON only, no markdown.`;
       const rawPlatform = (req.query.platform as string) || 'all';
       const ALLOWED_PLATFORMS = ['all', 'tiktok', 'instagram', 'youtube'];
       const platformFilter = ALLOWED_PLATFORMS.includes(rawPlatform) ? rawPlatform : 'all';
-      const platformClause = platformFilter !== 'all' ? `AND v.platform = '${platformFilter}'` : '';
 
       const userResult = await db.execute(sql`
         SELECT primary_niche, selected_niches FROM users WHERE id = ${req.user.id}
       `);
-      const userData = userResult.rows[0] as any;
-      const primaryNiche = userData?.primary_niche || null;
-      const niches: string[] = userData?.selected_niches || [];
-      const nicheValues = niches.length > 0 ? niches : [primaryNiche || 'general'];
-      const nicheListSQL = nicheValues.map((n: string) => `'${n.replace(/'/g, "''")}'`).join(',');
-      const primaryVal = primaryNiche || 'general';
+      const u = userResult.rows[0] as any;
+      const primaryNiche = u?.primary_niche || 'finance';
+      const rawSelected: string[] = u?.selected_niches || [];
+      const selectedNiches = rawSelected.length > 0 ? rawSelected : [primaryNiche];
 
+      // Safe SQL injection: escape niche values manually
+      const primaryEsc = primaryNiche.replace(/'/g, "''");
+      const nichesSQL = selectedNiches.map((n: string) => `'${n.replace(/'/g, "''")}'`).join(',');
+      const platformClause = platformFilter !== 'all'
+        ? `AND v.platform = '${platformFilter.replace(/'/g, "''")}'`
+        : '';
+
+      // Score de pertinence :
+      // +50 niche principale, +30 niche secondaire sélectionnée
+      // +20 emerging, +10 trending
+      // +velocity_7d * 2, +virality_score * 0.2
       const feed = await db.execute(sql.raw(`
         SELECT
-          v.id, v.hook_text, v.hook_type_v2, v.structure_type, v.content_format,
+          v.id, v.hook_text, v.hook_type_v2, v.structure_type,
           v.niche_cluster, v.virality_score, v.views, v.thumbnail_url,
-          v.creator_name, v.duration_seconds, v.followers_count,
+          v.creator_name, v.duration_seconds, v.platform,
           cc.trend_status, cc.velocity_7d,
+          p.pattern_id as pattern_id_ref,
+          p.predicted_views_min, p.predicted_views_max, p.confidence_score,
           (
-            CASE WHEN v.niche_cluster = '${primaryVal.replace(/'/g, "''")}' THEN 50
-                 WHEN v.niche_cluster = ANY(ARRAY[${nicheListSQL}]::text[]) THEN 30
+            CASE WHEN v.niche_cluster = '${primaryEsc}' THEN 50
+                 WHEN v.niche_cluster = ANY(ARRAY[${nichesSQL}]::text[]) THEN 30
                  ELSE 0 END +
-            COALESCE(cc.velocity_7d, 0) * 3 +
+            CASE WHEN cc.trend_status = 'emerging' THEN 20
+                 WHEN cc.trend_status = 'trending' THEN 10
+                 ELSE 0 END +
+            COALESCE(cc.velocity_7d, 0) * 2 +
             COALESCE(v.virality_score, 0) * 0.2
-          ) as relevance_score
+          ) AS relevance_score
         FROM videos v
         LEFT JOIN content_clusters cc ON v.id = ANY(cc.video_ids)
+        LEFT JOIN patterns p ON p.cluster_id = cc.id::text
         WHERE v.classification_status = 'completed'
-          AND v.virality_score >= 50
+          AND v.virality_score >= 40
           AND v.hook_text IS NOT NULL
+          AND v.niche_cluster = ANY(ARRAY[${nichesSQL}]::text[])
           ${platformClause}
         ORDER BY relevance_score DESC, v.virality_score DESC NULLS LAST
-        LIMIT 20
+        LIMIT 40
       `));
 
       res.json({
         videos: feed.rows,
-        personalizedFor: primaryNiche,
+        primaryNiche,
+        selectedNiches,
         totalResults: feed.rows.length,
       });
     } catch (error: any) {
