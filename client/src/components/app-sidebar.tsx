@@ -55,13 +55,11 @@ export function AppSidebar() {
     refetchInterval: 5 * 60 * 1000,
   });
 
-  // 5 destinations — architecture cible Craflect
+  // 3 destinations principales — Studio et Opportunities accessibles contextuellement
   const userItems = [
     { title: "Intelligence", url: "/home", icon: LayoutDashboard },
-    { title: "Opportunities", url: "/opportunities", icon: Target },
-    { title: "Studio", url: "/create", icon: Sparkles },
-    { title: "Workspace", url: "/workspace", icon: FolderKanban },
     { title: "Performance", url: "/performance", icon: TrendingUp },
+    { title: "Workspace", url: "/workspace", icon: FolderKanban },
   ];
 
   const userSystemItems = [
@@ -220,7 +218,13 @@ export function AppSidebar() {
                 ? `${user.firstName} ${user.lastName || ""}`
                 : t.common?.creator || "Creator"}
             </p>
-            <p className="text-xs text-muted-foreground truncate">{user?.email || ""}</p>
+            {prefs?.primaryNiche ? (
+              <p className="text-xs font-bold truncate" style={{ color: '#7C5CFF' }}>
+                {prefs.primaryNiche.replace(/_/g, ' ')}
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground truncate">{user?.email || ""}</p>
+            )}
           </div>
           <button
             onClick={() => logout()}
