@@ -106,6 +106,29 @@ export async function registerRoutes(
     await db.execute(sqlRaw`ALTER TABLE users ADD COLUMN IF NOT EXISTS popup_skip_count integer DEFAULT 0`);
     await db.execute(sqlRaw`ALTER TABLE users ADD COLUMN IF NOT EXISTS popup_last_shown timestamp`);
     await db.execute(sqlRaw`ALTER TABLE users ADD COLUMN IF NOT EXISTS first_login boolean DEFAULT true`);
+    await db.execute(sqlRaw`ALTER TABLE users ADD COLUMN IF NOT EXISTS primary_niche text`);
+    await db.execute(sqlRaw`ALTER TABLE users ADD COLUMN IF NOT EXISTS content_style text`);
+    await db.execute(sqlRaw`ALTER TABLE users ADD COLUMN IF NOT EXISTS daily_signal_pattern_id text`);
+    await db.execute(sqlRaw`ALTER TABLE users ADD COLUMN IF NOT EXISTS daily_signal_date date`);
+    await db.execute(sqlRaw`ALTER TABLE users ADD COLUMN IF NOT EXISTS daily_signal_used boolean DEFAULT false`);
+    await db.execute(sqlRaw`ALTER TABLE users ADD COLUMN IF NOT EXISTS platforms text[] DEFAULT '{tiktok}'`);
+    await db.execute(sqlRaw`ALTER TABLE users ADD COLUMN IF NOT EXISTS liked_video_ids text[] DEFAULT '{}'`);
+    // Videos — new columns for Pattern Engine upgrade
+    await db.execute(sqlRaw`ALTER TABLE videos ADD COLUMN IF NOT EXISTS decay_weight float DEFAULT 1.0`);
+    await db.execute(sqlRaw`ALTER TABLE videos ADD COLUMN IF NOT EXISTS sub_niche text`);
+    await db.execute(sqlRaw`ALTER TABLE videos ADD COLUMN IF NOT EXISTS audience_gender text`);
+    await db.execute(sqlRaw`ALTER TABLE videos ADD COLUMN IF NOT EXISTS audience_age_range text`);
+    await db.execute(sqlRaw`ALTER TABLE videos ADD COLUMN IF NOT EXISTS is_faceless boolean DEFAULT false`);
+    // Patterns — signal strength
+    await db.execute(sqlRaw`ALTER TABLE patterns ADD COLUMN IF NOT EXISTS signal_strength text DEFAULT 'emerging'`);
+    // Backfill primary_niche from selected_niches[1] for users who have niches but no primary
+    await db.execute(sqlRaw`
+      UPDATE users
+      SET primary_niche = selected_niches[1]
+      WHERE primary_niche IS NULL
+        AND selected_niches IS NOT NULL
+        AND array_length(selected_niches, 1) > 0
+    `);
     console.log('[Migrations] Phase 4 columns OK');
   }
 

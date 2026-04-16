@@ -682,8 +682,15 @@ export const videos = pgTable("videos", {
   engagementRate: doublePrecision("engagement_rate"),
   viewVelocity: doublePrecision("view_velocity"),
   viralityScore: doublePrecision("virality_score"),
+  decayWeight: doublePrecision("decay_weight").default(1.0),
   trendScoreProcessedAt: timestamp("trend_score_processed_at"),
   patternIdRef: text("pattern_id_ref"),
+
+  // ── Sub-classification (Pattern Engine v2) ──
+  subNiche: text("sub_niche"),
+  audienceGender: text("audience_gender"),
+  audienceAgeRange: text("audience_age_range"),
+  isFaceless: boolean("is_faceless").default(false),
 
   // ── Versioning & Pipeline ──
   taxonomyVersion: text("taxonomy_version").default("1.0"),

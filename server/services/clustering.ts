@@ -15,6 +15,8 @@ export async function clusterVideos(): Promise<number> {
       v.structure_type,
       v.content_format,
       v.virality_score,
+      v.decay_weight,
+      v.virality_score * COALESCE(v.decay_weight, 1.0) as weighted_virality_score,
       v.niche_cluster,
       v.topic_cluster,
       v.duration_bucket
@@ -32,6 +34,8 @@ export async function clusterVideos(): Promise<number> {
     structure_type: string | null;
     format_type: string | null;
     virality_score: number;
+    decay_weight: number | null;
+    weighted_virality_score: number;
     niche_cluster: string | null;
     topic_cluster: string | null;
     duration_bucket: string | null;
@@ -129,9 +133,9 @@ function multiDimScore(a: any, b: any): number {
 
   const normalizedStructural = structuralFactors > 0 ? structuralSim / structuralFactors : 0.5;
 
-  // Dimension 3 : similarité de performance — poids 20%
-  const perfSim = a.virality_score && b.virality_score
-    ? 1 - Math.abs(a.virality_score - b.virality_score) / 100
+  // Dimension 3 : similarité de performance — poids 20% (decay-weighted)
+  const perfSim = a.weighted_virality_score && b.weighted_virality_score
+    ? 1 - Math.abs(a.weighted_virality_score - b.weighted_virality_score) / 100
     : 0.5;
 
   return (semanticSim * 0.50) + (normalizedStructural * 0.30) + (perfSim * 0.20);
