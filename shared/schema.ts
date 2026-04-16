@@ -836,6 +836,8 @@ export const patterns = pgTable("patterns", {
   velocity14d: doublePrecision("velocity_14d").default(0),
   velocity30d: doublePrecision("velocity_30d").default(0),
   trendStatus: text("trend_status").default("stable"),
+  signalStrength: text("signal_strength").default("emerging"),
+  patternWeightAdjustment: doublePrecision("pattern_weight_adjustment").default(1.0),
   lastUpdated: timestamp("last_updated").defaultNow().notNull(),
 }, (table) => [
   uniqueIndex("idx_patterns_dimension_keys_unique").on(table.dimensionKeys),

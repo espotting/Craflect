@@ -1,7 +1,10 @@
 import { Queue } from 'bullmq';
 import { redisConnection } from '../config/redis';
+import { db } from '../db';
+import { sql } from 'drizzle-orm';
 
 export const ingestionQueue = new Queue('ingestion', { connection: redisConnection });
+export const patternDecayQueue = new Queue('pattern-decay', { connection: redisConnection });
 export const transcriptionQueue = new Queue('transcription', { connection: redisConnection });
 export const classificationQueue = new Queue('classification', { connection: redisConnection });
 export const scoringQueue = new Queue('scoring', { connection: redisConnection });
@@ -43,5 +46,12 @@ export async function setupSchedules() {
     removeOnFail: 3,
   });
 
-  console.log('✅ Schedules configurés : Ingestion (2h), Scoring (15min), Patterns (6h), Velocity (6h), Phase Transition (30min), Feedback (1h)');
+  // 30-day decay: weak patterns (video_count < 10) drift back toward neutral weight
+  await patternDecayQueue.add('decay-weak-patterns', {}, {
+    repeat: { cron: '0 3 * * *' },
+    removeOnComplete: 5,
+    removeOnFail: 3,
+  });
+
+  console.log('✅ Schedules configurés : Ingestion (2h), Scoring (15min), Patterns (6h), Velocity (6h), Phase Transition (30min), Feedback (1h), PatternDecay (daily)');
 }

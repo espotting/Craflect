@@ -121,6 +121,7 @@ export async function registerRoutes(
     await db.execute(sqlRaw`ALTER TABLE videos ADD COLUMN IF NOT EXISTS is_faceless boolean DEFAULT false`);
     // Patterns — signal strength
     await db.execute(sqlRaw`ALTER TABLE patterns ADD COLUMN IF NOT EXISTS signal_strength text DEFAULT 'emerging'`);
+    await db.execute(sqlRaw`ALTER TABLE patterns ADD COLUMN IF NOT EXISTS pattern_weight_adjustment float DEFAULT 1.0`);
     // Backfill primary_niche from selected_niches[1] for users who have niches but no primary
     await db.execute(sqlRaw`
       UPDATE users
