@@ -122,6 +122,7 @@ export async function registerRoutes(
     // Patterns — signal strength
     await db.execute(sqlRaw`ALTER TABLE patterns ADD COLUMN IF NOT EXISTS signal_strength text DEFAULT 'emerging'`);
     await db.execute(sqlRaw`ALTER TABLE patterns ADD COLUMN IF NOT EXISTS pattern_weight_adjustment float DEFAULT 1.0`);
+    await db.execute(sqlRaw`ALTER TABLE patterns ADD COLUMN IF NOT EXISTS adjusted_score float`);
     // Backfill primary_niche from selected_niches[1] for users who have niches but no primary
     await db.execute(sqlRaw`
       UPDATE users
@@ -1404,12 +1405,12 @@ The content should directly apply the recommendations from the insight report. W
           LIMIT 5
         `),
         db.execute(sql`
-          SELECT pattern_id, hook_type, structure_type, topic_cluster, 
+          SELECT pattern_id, hook_type, structure_type, topic_cluster,
                  avg_virality_score, video_count, pattern_label, performance_rank,
-                 pattern_score, velocity_mid, pattern_novelty, trend_classification
+                 pattern_score, adjusted_score, signal_strength, velocity_mid, pattern_novelty, trend_classification
           FROM patterns
           WHERE avg_virality_score IS NOT NULL
-          ORDER BY COALESCE(pattern_score, avg_virality_score) DESC
+          ORDER BY COALESCE(adjusted_score, pattern_score, avg_virality_score) DESC
           LIMIT 5
         `),
         db.execute(sql`
@@ -1741,10 +1742,10 @@ The content should directly apply the recommendations from the insight report. W
         const patternsFromTable = await db.execute(sql`
           SELECT pattern_id, hook_type, structure_type, topic_cluster,
                  avg_virality_score, video_count, pattern_label, performance_rank,
-                 pattern_score, velocity_mid, pattern_novelty, trend_classification
+                 pattern_score, adjusted_score, signal_strength, velocity_mid, pattern_novelty, trend_classification
           FROM patterns
           WHERE avg_virality_score IS NOT NULL ${nicheFilter}
-          ORDER BY COALESCE(pattern_score, avg_virality_score) DESC
+          ORDER BY COALESCE(adjusted_score, pattern_score, avg_virality_score) DESC
           LIMIT 30
         `);
         return res.json({ patterns: patternsFromTable.rows });
