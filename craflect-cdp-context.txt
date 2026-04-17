@@ -1,0 +1,813 @@
+
+================================================================
+CRAFLECT — CONTEXT COMPLET POUR CDP EXTERNE
+Généré le : 2026-04-17
+================================================================
+
+
+================================================================
+ZONE 1A — client/src/App.tsx
+================================================================
+
+import { Switch, Route, Redirect } from "wouter";
+import { queryClient } from "./lib/queryClient";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { Toaster } from "@/components/ui/toaster";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import NotFound from "@/pages/not-found";
+import { useTheme } from "@/hooks/use-theme";
+import { LanguageProvider } from "@/hooks/use-language";
+
+import Landing from "@/pages/landing";
+import AuthWelcome from "@/pages/auth/welcome";
+import SignIn from "@/pages/auth/sign-in";
+import SignUp from "@/pages/auth/sign-up";
+import ForgotPassword from "@/pages/auth/forgot-password";
+import EmailConfirmation from "@/pages/auth/email-confirmation";
+import AdminVerification from "@/pages/auth/admin-verification";
+import Dashboard from "@/pages/dashboard";
+import Discover from "@/pages/discover";
+import Opportunities from "@/pages/opportunities";
+import Insights from "@/pages/insights";
+import Create from "@/pages/create";
+import Workspace from "@/pages/workspace";
+import Settings from "@/pages/settings";
+import Onboarding from "@/pages/onboarding";
+import FounderOverview from "@/pages/founder-overview";
+import FounderUsers from "@/pages/founder-users";
+import FounderSubscriptions from "@/pages/founder-subscriptions";
+import FounderLogs from "@/pages/founder-logs";
+import FounderSettings from "@/pages/founder-settings";
+import PlanBilling from "@/pages/plan-billing";
+import PerformancePage from "@/pages/performance";
+import ProofScreen from "@/pages/proof-screen";
+import ClusterDetail from "@/pages/cluster-detail";
+import WaitlistPage from "@/pages/waitlist";
+import FounderWaitlist from "@/pages/founder-waitlist";
+import { TermsPage, BillingPage, PrivacyPage, CookiesPage, DpaPage, SecurityPage, ContactPage } from "@/pages/legal";
+import FaqPage from "@/pages/faq";
+import VideoDetail from "@/pages/video-detail";
+
+function Router() {
+  return (
+    <Switch>
+      <Route path="/" component={Landing} />
+      <Route path="/welcome" component={AuthWelcome} />
+      <Route path="/signin" component={SignIn} />
+      <Route path="/signup" component={SignUp} />
+      <Route path="/forgot-password" component={ForgotPassword} />
+      <Route path="/email-confirmation" component={EmailConfirmation} />
+      <Route path="/admin-verification" component={AdminVerification} />
+      <Route path="/auth">{() => <Redirect to="/welcome" />}</Route>
+      <Route path="/pricing">{() => <Redirect to="/" />}</Route>
+      <Route path="/onboarding" component={Onboarding} />
+      <Route path="/proof" component={ProofScreen} />
+      <Route path="/home" component={Dashboard} />
+      <Route path="/video/:id" component={VideoDetail} />
+      <Route path="/dashboard">{() => <Redirect to="/home" />}</Route>
+      <Route path="/opportunities" component={Opportunities} />
+      <Route path="/opportunities/:id">{() => <Redirect to="/opportunities" />}</Route>
+      <Route path="/intelligence/:id" component={ClusterDetail} />
+      <Route path="/discover">{() => <Redirect to="/opportunities" />}</Route>
+      <Route path="/insights" component={Insights} />
+      <Route path="/create" component={Create} />
+      <Route path="/workspace" component={Workspace} />
+      <Route path="/settings" component={Settings} />
+      <Route path="/system/founder" component={FounderOverview} />
+      <Route path="/system/founder/users" component={FounderUsers} />
+      <Route path="/system/founder/subscriptions" component={FounderSubscriptions} />
+      <Route path="/system/founder/logs" component={FounderLogs} />
+      <Route path="/system/founder/waitlist" component={FounderWaitlist} />
+      <Route path="/system/founder/settings" component={FounderSettings} />
+      <Route path="/system/logs">{() => <Redirect to="/system/founder/logs" />}</Route>
+      <Route path="/system/settings">{() => <Redirect to="/system/founder/settings" />}</Route>
+      <Route path="/plan-billing" component={PlanBilling} />
+      <Route path="/performance" component={PerformancePage} />
+      <Route path="/waitlist" component={WaitlistPage} />
+
+      <Route path="/trend-radar">{() => <Redirect to="/opportunities" />}</Route>
+      <Route path="/library">{() => <Redirect to="/opportunities" />}</Route>
+      <Route path="/ideas">{() => <Redirect to="/workspace" />}</Route>
+      <Route path="/script-generator">{() => <Redirect to="/create" />}</Route>
+      <Route path="/video-builder">{() => <Redirect to="/create" />}</Route>
+      <Route path="/projects">{() => <Redirect to="/workspace" />}</Route>
+      <Route path="/viral-templates">{() => <Redirect to="/workspace" />}</Route>
+      <Route path="/remix-engine">{() => <Redirect to="/create" />}</Route>
+      <Route path="/predicted-views">{() => <Redirect to="/create" />}</Route>
+
+      <Route path="/terms" component={TermsPage} />
+      <Route path="/billing" component={BillingPage} />
+      <Route path="/privacy" component={PrivacyPage} />
+      <Route path="/cookies" component={CookiesPage} />
+      <Route path="/dpa" component={DpaPage} />
+      <Route path="/faq" component={FaqPage} />
+      <Route path="/security" component={SecurityPage} />
+      <Route path="/contact" component={ContactPage} />
+      <Route component={NotFound} />
+    </Switch>
+  );
+}
+
+function App() {
+  useTheme();
+  return (
+    <LanguageProvider>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Router />
+        </TooltipProvider>
+      </QueryClientProvider>
+    </LanguageProvider>
+  );
+}
+
+export default App;
+
+
+================================================================
+ZONE 1B — client/src/components/app-sidebar.tsx
+================================================================
+
+import {
+  LayoutDashboard,
+  Target,
+  Sparkles,
+  FolderKanban,
+  TrendingUp,
+  Settings,
+  LogOut,
+  CreditCard,
+  Crown,
+  ScrollText,
+  Wrench,
+  Users,
+  ClipboardList,
+} from "lucide-react";
+import { useLocation } from "wouter";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarFooter,
+  SidebarHeader,
+} from "@/components/ui/sidebar";
+import { useAuth } from "@/hooks/use-auth";
+import { useLanguage } from "@/hooks/use-language";
+import { LanguageSwitcher } from "@/components/language-switcher";
+import { Progress } from "@/components/ui/progress";
+import { useQuery } from "@tanstack/react-query";
+import logoTransparent from "@/assets/logo-transparent.png";
+
+export function AppSidebar() {
+  const [location, setLocation] = useLocation();
+  const { user, logout } = useAuth();
+  const { t } = useLanguage();
+
+  const isAdmin = (user as any)?.isAdmin === true;
+
+  const { data: prefs } = useQuery<{ primaryNiche: string | null; selectedNiches: string[] }>({
+    queryKey: ["/api/user/preferences"],
+    enabled: !isAdmin,
+  });
+
+  const { data: sidebarStats } = useQuery<{
+    emergingPatterns: number;
+    opportunities: number;
+    trackedVideos: number;
+  }>({
+    queryKey: ["/api/sidebar/stats"],
+    enabled: !isAdmin,
+    refetchInterval: 5 * 60 * 1000,
+  });
+
+  const userItems = [
+    { title: "Intelligence", url: "/home", icon: LayoutDashboard },
+    { title: "Performance", url: "/performance", icon: TrendingUp },
+    { title: "Workspace", url: "/workspace", icon: FolderKanban },
+  ];
+
+  const userSystemItems = [
+    { title: t.sidebar?.settings || "Settings", url: "/settings", icon: Settings },
+    { title: t.sidebar?.planBilling || "Plan & Billing", url: "/plan-billing", icon: CreditCard },
+  ];
+
+  const adminItems = [
+    { title: t.sidebar?.founderDashboard || "Founder Dashboard", url: "/system/founder", icon: Crown },
+    { title: "Users", url: "/system/founder/users", icon: Users },
+    { title: "Waitlist", url: "/system/founder/waitlist", icon: ClipboardList },
+    { title: "Subscriptions", url: "/system/founder/subscriptions", icon: CreditCard },
+    { title: t.sidebar?.logs || "Logs", url: "/system/founder/logs", icon: ScrollText },
+    { title: t.sidebar?.systemSettings || "System Settings", url: "/system/founder/settings", icon: Wrench },
+  ];
+
+  const mainItems = isAdmin ? adminItems : userItems;
+
+  return (
+    <Sidebar variant="inset" className="border-r border-border bg-sidebar">
+      <SidebarHeader className="p-4 flex flex-col gap-2">
+        <div className="flex flex-row items-center justify-between gap-2">
+          <img
+            src={logoTransparent}
+            alt="Craflect"
+            className="h-10 w-auto object-contain"
+            data-testid="logo-sidebar"
+          />
+        </div>
+        {!isAdmin && prefs?.primaryNiche && (
+          <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-primary/10 border border-primary/20 w-fit">
+            <Sparkles className="w-3 h-3 text-primary" />
+            <span className="text-xs font-medium text-primary capitalize" data-testid="text-primary-niche">
+              {prefs.primaryNiche.replace(/_/g, ' ')}
+            </span>
+          </div>
+        )}
+      </SidebarHeader>
+
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {mainItems.map((item) => {
+                const isActive =
+                  location === item.url ||
+                  (!isAdmin && item.url === "/home" && location === "/");
+
+                let counter: number | undefined;
+                if (!isAdmin && sidebarStats) {
+                  if (item.url === "/home") counter = sidebarStats.emergingPatterns || undefined;
+                  if (item.url === "/opportunities") counter = sidebarStats.opportunities || undefined;
+                  if (item.url === "/performance") counter = sidebarStats.trackedVideos || undefined;
+                }
+
+                return (
+                  <SidebarMenuItem key={item.url}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive}
+                      className={isActive ? "bg-primary/10 text-primary" : "text-muted-foreground"}
+                      onClick={() => setLocation(item.url)}
+                    >
+                      <button
+                        className="flex items-center gap-3 w-full"
+                        data-testid={`nav-${item.url.replace(/\//g, "-").replace(/^-/, "")}`}
+                      >
+                        <item.icon className={`w-4 h-4 ${isActive ? "text-primary" : ""}`} />
+                        <span className="font-medium flex-1 text-left">{item.title}</span>
+                        {counter !== undefined && (
+                          <span className="ml-auto text-xs font-semibold px-1.5 py-0.5 rounded-full bg-primary/20 text-primary min-w-[20px] text-center">
+                            {counter}
+                          </span>
+                        )}
+                      </button>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {!isAdmin && !user?.onboardingCompleted && (
+          <SidebarGroup>
+            <SidebarGroupLabel className="text-muted-foreground uppercase tracking-wider text-xs font-semibold mb-2">
+              {t.sidebar?.gettingStarted || "Getting Started"}
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <button
+                onClick={() => setLocation("/onboarding")}
+                className="w-full p-3 rounded-md bg-primary/5 border border-primary/20 space-y-2 text-left hover-elevate"
+                data-testid="button-onboarding-progress"
+              >
+                <div className="flex items-center justify-between gap-1 text-xs">
+                  <span className="text-muted-foreground font-medium">
+                    {t.sidebar?.setupProgress || "Setup Progress"}
+                  </span>
+                  <span className="text-primary font-bold">0%</span>
+                </div>
+                <Progress value={0} className="h-1 bg-muted" />
+                <p className="text-xs text-muted-foreground">
+                  {t.sidebar?.completeOnboarding || "Complete onboarding"}
+                </p>
+              </button>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
+        {!isAdmin && (
+          <SidebarGroup className="mt-auto">
+            <SidebarGroupLabel className="text-muted-foreground uppercase tracking-wider text-xs font-semibold mb-2">
+              {t.sidebar?.system || "System"}
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {userSystemItems.map((item) => {
+                  const isActive = location === item.url;
+                  return (
+                    <SidebarMenuItem key={item.url}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={isActive}
+                        className={isActive ? "bg-primary/10 text-primary" : "text-muted-foreground"}
+                        onClick={() => setLocation(item.url)}
+                      >
+                        <button
+                          className="flex items-center gap-3 w-full"
+                          data-testid={`nav-${item.url.replace("/", "")}`}
+                        >
+                          <item.icon className={`w-4 h-4 ${isActive ? "text-primary" : ""}`} />
+                          <span className="font-medium">{item.title}</span>
+                        </button>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+      </SidebarContent>
+
+      <SidebarFooter className="p-4 border-t border-border">
+        <div className="flex items-center gap-3 px-2 py-2 rounded-md bg-accent/50 border border-border">
+          {user?.profileImageUrl ? (
+            <img src={user.profileImageUrl} alt="" className="w-8 h-8 rounded-full" />
+          ) : (
+            <div className="w-8 h-8 rounded-full bg-gradient-to-r from-secondary to-primary flex items-center justify-center text-white font-bold text-sm">
+              {user?.firstName?.[0] || user?.email?.[0] || "U"}
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-foreground truncate" data-testid="text-username">
+              {user?.firstName
+                ? `${user.firstName} ${user.lastName || ""}`
+                : t.common?.creator || "Creator"}
+            </p>
+            {prefs?.primaryNiche ? (
+              <p className="text-xs font-bold truncate" style={{ color: '#7C5CFF' }}>
+                {prefs.primaryNiche.replace(/_/g, ' ')}
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground truncate">{user?.email || ""}</p>
+            )}
+          </div>
+          <button
+            onClick={() => logout()}
+            className="p-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors"
+            title="Log out"
+            data-testid="button-logout"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="mt-2 flex justify-center">
+          <LanguageSwitcher variant="pill" />
+        </div>
+      </SidebarFooter>
+    </Sidebar>
+  );
+}
+
+
+================================================================
+ZONE 2 — client/src/pages/dashboard.tsx
+================================================================
+
+import { useQuery } from "@tanstack/react-query";
+import { DashboardLayout } from "@/components/layout";
+import { usePlatform } from "@/hooks/use-platform";
+import { PlatformToggle } from "@/components/platform-toggle";
+import { DailySignalHero } from "@/components/daily-signal-hero";
+import { FeedSection } from "@/components/feed-section";
+
+export default function Dashboard() {
+  const { platform, setPlatform } = usePlatform();
+
+  const { data: signal, isError: signalError } = useQuery<any>({
+    queryKey: ['/api/daily-signal'],
+    queryFn: () => fetch('/api/daily-signal', { credentials: 'include' }).then(r => r.json()),
+    refetchInterval: 60 * 60 * 1000,
+    retry: 1,
+  });
+
+  const { data: feed, isError: feedError } = useQuery<any>({
+    queryKey: ['/api/feed/personalized', platform],
+    queryFn: () =>
+      fetch(`/api/feed/personalized${platform !== 'all' ? '?platform=' + platform : ''}`, {
+        credentials: 'include',
+      }).then(r => r.json()),
+    retry: 1,
+  });
+
+  const { data: prefs } = useQuery<{ primaryNiche: string | null; selectedNiches: string[] }>({
+    queryKey: ['/api/user/preferences'],
+  });
+
+  const primaryNiche = prefs?.primaryNiche || feed?.primaryNiche || 'finance';
+  const selectedNiches: string[] =
+    prefs?.selectedNiches?.length ? prefs.selectedNiches :
+    feed?.selectedNiches?.length ? feed.selectedNiches :
+    [primaryNiche];
+
+  return (
+    <DashboardLayout>
+      <div style={{ background: '#08080f', minHeight: '100vh' }} data-testid="page-dashboard">
+        <div style={{
+          display: 'flex', justifyContent: 'flex-end', padding: '14px 28px 0',
+          background: '#08080f',
+        }}>
+          <PlatformToggle value={platform} onChange={setPlatform} />
+        </div>
+
+        <DailySignalHero signal={signalError ? { signal: null } : signal} niche={primaryNiche} />
+        <FeedSection niches={selectedNiches} platform={platform} feedData={feed} />
+      </div>
+    </DashboardLayout>
+  );
+}
+
+
+================================================================
+ZONE 3 — client/src/pages/create.tsx
+================================================================
+
+import { useState, useEffect, useMemo } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useSearch, useLocation } from "wouter";
+import { DashboardLayout } from "@/components/layout";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { Copy, Check, ChevronLeft, Sparkles } from "lucide-react";
+
+interface Pattern {
+  id: string;
+  pattern_label: string | null;
+  hook_template: string | null;
+  structure_template: string | null;
+  optimal_duration: number | null;
+  why_it_works: string | null;
+  best_for: string | null;
+  cta_suggestion: string | null;
+  avg_virality_score: number | null;
+  topic_cluster: string | null;
+  trend_status: string | null;
+  velocity_7d: number | null;
+}
+
+function extractVars(template: string | null): string[] {
+  if (!template) return [];
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const m of template.matchAll(/\[([^\]]+)\]/g)) {
+    if (!seen.has(m[1])) { seen.add(m[1]); out.push(m[1]); }
+  }
+  return out;
+}
+
+function fillTemplate(template: string | null, values: Record<string, string>): string {
+  if (!template) return "";
+  return template.replace(/\[([^\]]+)\]/g, (_, k) => values[k] || `[${k}]`);
+}
+
+function formatDuration(n: number | null): string {
+  return n ? `${n}s` : "47s";
+}
+
+function buildTimeline(duration: number | null) {
+  const d = duration || 47;
+  const h = Math.max(2, Math.round(d * 0.07));
+  const s = Math.round(d * 0.42);
+  const c = Math.round(d * 0.85);
+  return [
+    { n: 1, range: `0-${h}s`, title: "Hook", desc: "Grab attention - the first frame decides everything" },
+    { n: 2, range: `${h}-${s}s`, title: "Setup", desc: "Establish the problem or promise your audience cares about" },
+    { n: 3, range: `${s}-${c}s`, title: "Core Value", desc: "Deliver the insight, proof, or entertainment - the payoff" },
+    { n: 4, range: `${c}-${d}s`, title: "CTA", desc: "Give a clear next action: follow, save, comment, or click" },
+  ];
+}
+
+function HighlightedTemplate({ template, values }: { template: string; values: Record<string, string> }) {
+  const parts: Array<{ text: string; isVar: boolean }> = [];
+  let last = 0;
+  for (const m of template.matchAll(/\[([^\]]+)\]/g)) {
+    if (m.index! > last) parts.push({ text: template.slice(last, m.index), isVar: false });
+    parts.push({ text: values[m[1]] || m[0], isVar: true });
+    last = m.index! + m[0].length;
+  }
+  if (last < template.length) parts.push({ text: template.slice(last), isVar: false });
+  return (
+    <span style={{ fontSize: 22, fontWeight: 700, color: "#fff", lineHeight: 1.5 }}>
+      {parts.map((p, i) =>
+        p.isVar ? (
+          <span key={i} style={{ background: "rgba(124,92,255,0.2)", color: "#a78bfa", borderRadius: 4, padding: "1px 5px" }}>
+            {p.text}
+          </span>
+        ) : (
+          <span key={i}>{p.text}</span>
+        )
+      )}
+    </span>
+  );
+}
+
+export default function StudioPage() {
+  const [, navigate] = useLocation();
+  const search = useSearch();
+  const { toast } = useToast();
+
+  const urlPatternId = new URLSearchParams(search).get("patternId");
+
+  const [selected, setSelected] = useState<Pattern | null>(null);
+  const [vars, setVars] = useState<Record<string, string>>({});
+  const [copied, setCopied] = useState(false);
+  const [savedOk, setSavedOk] = useState(false);
+
+  const { data: patternsRaw, isLoading } = useQuery({
+    queryKey: ["/api/patterns/list", urlPatternId],
+    queryFn: () => fetch(
+      "/api/patterns/list" + (urlPatternId ? "?patternId=" + encodeURIComponent(urlPatternId) : ""),
+      { credentials: "include" }
+    ).then((r) => r.json()),
+  });
+  const patterns: Pattern[] = Array.isArray(patternsRaw) ? patternsRaw : [];
+
+  useEffect(() => {
+    if (urlPatternId && patterns.length > 0 && !selected) {
+      const pre = patterns.find((p) => p.id === urlPatternId || (p as any).pattern_id === urlPatternId);
+      if (pre) { setSelected(pre); setVars({}); }
+    }
+  }, [urlPatternId, patterns, selected]);
+
+  const variables = useMemo(() => extractVars(selected?.hook_template ?? null), [selected]);
+  const hookFinal = useMemo(() => fillTemplate(selected?.hook_template ?? null, vars), [selected, vars]);
+  const allVarsFilled = variables.length === 0 || variables.every((v) => (vars[v] || "").trim().length > 0);
+  const timeline = useMemo(() => buildTimeline(selected?.optimal_duration ?? null), [selected]);
+  const duration = formatDuration(selected?.optimal_duration ?? null);
+
+  const step = !selected ? 0 : !allVarsFilled ? 1 : 2;
+
+  const handleSelect = (p: Pattern) => { setSelected(p); setVars({}); };
+  const handleVarChange = (key: string, val: string) => setVars((prev) => ({ ...prev, [key]: val }));
+
+  const saveMutation = useMutation({
+    mutationFn: () =>
+      apiRequest("POST", "/api/workspace/save-brief", {
+        hookFinal,
+        patternId: selected?.id,
+        duration,
+      }),
+    onSuccess: () => {
+      setSavedOk(true);
+      toast({ title: "Brief saved to workspace!" });
+      setTimeout(() => setSavedOk(false), 2500);
+    },
+    onError: () => toast({ title: "Failed to save", variant: "destructive" }),
+  });
+
+  const copyBrief = () => {
+    if (!selected) return;
+    const steps = timeline.map((t) => `${t.n}. ${t.title} (${t.range})`).join("\n   ");
+    const text = [
+      `HOOK: "${hookFinal || selected.hook_template}"`,
+      `DURATION: ${duration}`,
+      `STRUCTURE:\n   ${steps}`,
+      selected.why_it_works ? `WHY IT WORKS: ${selected.why_it_works}` : null,
+      selected.cta_suggestion ? `CTA: ${selected.cta_suggestion}` : null,
+    ]
+      .filter(Boolean)
+      .join("\n\n");
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const niche =
+    selected?.topic_cluster?.replace(/_/g, " ") ||
+    patterns[0]?.topic_cluster?.replace(/_/g, " ") ||
+    "your niche";
+
+  return (
+    <DashboardLayout>
+      <div style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 130px)", background: "#0a0a0f", overflow: "hidden", borderRadius: 12 }}>
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "0 24px", height: 56, flexShrink: 0,
+          borderBottom: "1px solid rgba(255,255,255,0.06)",
+          background: "rgba(10,10,15,0.98)",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <button
+              onClick={() => navigate("/home")}
+              style={{ background: "none", border: "none", color: "rgba(255,255,255,0.35)", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, fontSize: 13, padding: 0 }}
+            >
+              <ChevronLeft size={15} /> Back
+            </button>
+            <div style={{ width: 1, height: 18, background: "rgba(255,255,255,0.1)" }} />
+            <span style={{ fontSize: 13, fontWeight: 800, color: "#fff", letterSpacing: 0.5 }}>CRAFLECT</span>
+            <span style={{
+              background: "rgba(124,92,255,0.2)", border: "1px solid rgba(124,92,255,0.45)",
+              color: "#a78bfa", borderRadius: 6, padding: "2px 8px", fontSize: 10, fontWeight: 700, letterSpacing: 1.2,
+            }}>
+              STUDIO
+            </span>
+          </div>
+          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+            {[
+              { label: "Pattern", done: step >= 1 },
+              { label: "Hook", done: step >= 2 },
+              { label: "Brief", done: false },
+            ].map((pill, i) => (
+              <div key={i} style={{
+                display: "flex", alignItems: "center", gap: 5,
+                padding: "5px 14px", borderRadius: 20,
+                background: pill.done ? "rgba(124,92,255,0.18)" : i === step ? "rgba(255,255,255,0.07)" : "transparent",
+                border: pill.done ? "1px solid rgba(124,92,255,0.45)" : i === step ? "1px solid rgba(255,255,255,0.14)" : "1px solid transparent",
+                fontSize: 12, fontWeight: 600,
+                color: pill.done ? "#a78bfa" : i === step ? "#fff" : "rgba(255,255,255,0.22)",
+              }}>
+                {pill.done && <span style={{ fontSize: 10 }}>v</span>}
+                {pill.label}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+          <div style={{
+            width: 320, flexShrink: 0,
+            borderRight: "1px solid rgba(255,255,255,0.06)",
+            overflowY: "auto", padding: "16px 12px",
+            background: "rgba(8,8,16,0.8)",
+          }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.22)", letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 12, paddingLeft: 4 }}>
+              Your patterns - {niche}
+            </div>
+            {isLoading ? (
+              Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} style={{ height: 90, background: "rgba(255,255,255,0.03)", borderRadius: 10, marginBottom: 8 }} />
+              ))
+            ) : patterns.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "48px 16px", color: "rgba(255,255,255,0.22)", fontSize: 13 }}>
+                No patterns available yet
+              </div>
+            ) : (
+              patterns.map((p) => {
+                const isSel = selected?.id === p.id;
+                return (
+                  <div key={p.id} onClick={() => handleSelect(p)} style={{
+                    borderRadius: 10, padding: "12px 14px", marginBottom: 8, cursor: "pointer",
+                    border: isSel ? "1px solid #7C5CFF" : "1px solid rgba(255,255,255,0.05)",
+                    background: isSel ? "rgba(124,92,255,0.1)" : "rgba(255,255,255,0.02)",
+                  }}>
+                    {p.trend_status === "emerging" && (
+                      <span style={{ background: "rgba(239,68,68,0.13)", border: "1px solid rgba(239,68,68,0.35)", color: "#ef4444", borderRadius: 20, padding: "2px 8px", fontSize: 10, fontWeight: 700, display: "inline-block", marginBottom: 6 }}>
+                        Emerging
+                      </span>
+                    )}
+                    {p.trend_status === "trending" && (
+                      <span style={{ background: "rgba(124,92,255,0.13)", border: "1px solid rgba(124,92,255,0.35)", color: "#a78bfa", borderRadius: 20, padding: "2px 8px", fontSize: 10, fontWeight: 700, display: "inline-block", marginBottom: 6 }}>
+                        Trending
+                      </span>
+                    )}
+                    <div style={{ fontSize: 13, fontWeight: 600, color: isSel ? "#c4b5fd" : "#a78bfa", marginBottom: 6 }}>
+                      {p.pattern_label || "Pattern"}
+                    </div>
+                    {p.hook_template && (
+                      <div style={{ fontFamily: "monospace", fontSize: 10, color: "rgba(255,255,255,0.45)", background: "rgba(0,0,0,0.28)", borderRadius: 6, padding: "6px 8px", marginBottom: 8 }}>
+                        {p.hook_template}
+                      </div>
+                    )}
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <span style={{ fontSize: 10, color: "rgba(255,255,255,0.25)" }}>Score {Math.round(p.avg_virality_score || 0)}</span>
+                      {p.optimal_duration && <span style={{ fontSize: 10, color: "rgba(255,255,255,0.25)" }}>{p.optimal_duration}s</span>}
+                      {p.velocity_7d && <span style={{ fontSize: 10, color: "#10b981" }}>+{Math.round(p.velocity_7d)}/w</span>}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          <div style={{ flex: 1, overflowY: "auto", padding: "24px 28px 48px" }}>
+            {!selected ? (
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", gap: 16, color: "rgba(255,255,255,0.28)" }}>
+                <Sparkles size={26} color="rgba(124,92,255,0.5)" />
+                <div style={{ fontSize: 16, fontWeight: 600, color: "rgba(255,255,255,0.45)" }}>Select a pattern to start</div>
+              </div>
+            ) : (
+              <div style={{ maxWidth: 700, display: "flex", flexDirection: "column", gap: 18 }}>
+                <div style={{ background: "linear-gradient(135deg, rgba(124,92,255,0.09), rgba(192,38,211,0.04))", border: "1px solid rgba(124,92,255,0.2)", borderRadius: 16, padding: "22px 24px" }}>
+                  <div style={{ marginBottom: 20 }}>
+                    <HighlightedTemplate template={selected.hook_template || ""} values={vars} />
+                  </div>
+                  {variables.length > 0 && (
+                    <div style={{ display: "grid", gridTemplateColumns: variables.length === 1 ? "1fr" : "1fr 1fr", gap: 10 }}>
+                      {variables.map((v) => (
+                        <div key={v}>
+                          <label style={{ fontSize: 11, color: "rgba(255,255,255,0.32)", display: "block", marginBottom: 5 }}>[{v}]</label>
+                          <input
+                            value={vars[v] || ""}
+                            onChange={(e) => handleVarChange(v, e.target.value)}
+                            placeholder={`Your ${v.toLowerCase()}...`}
+                            style={{ width: "100%", background: "rgba(0,0,0,0.45)", border: "1px solid rgba(124,92,255,0.2)", borderRadius: 8, padding: "9px 12px", color: "#fff", fontSize: 13, outline: "none", boxSizing: "border-box" }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ background: "rgba(255,255,255,0.018)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 16, padding: "18px 20px" }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 16 }}>Structure</div>
+                  {timeline.map((t) => (
+                    <div key={t.n} style={{ display: "flex", alignItems: "flex-start", gap: 14, marginBottom: 14 }}>
+                      <div style={{ width: 28, height: 28, borderRadius: 6, flexShrink: 0, background: "rgba(124,92,255,0.18)", border: "1px solid rgba(124,92,255,0.38)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "#a78bfa" }}>{t.n}</div>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: "#fff" }}>{t.title} <span style={{ fontSize: 11, color: "rgba(255,255,255,0.28)", fontFamily: "monospace" }}>{t.range}</span></div>
+                        <div style={{ fontSize: 12, color: "rgba(255,255,255,0.38)" }}>{t.desc}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div style={{ background: "rgba(10,10,22,0.7)", border: "1px solid rgba(255,255,255,0.09)", borderRadius: 16, padding: "22px 24px" }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "#fff", marginBottom: 18 }}>Your filming brief</div>
+                  <div style={{ borderLeft: "3px solid #7C5CFF", paddingLeft: 14, marginBottom: 14 }}>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: "rgba(255,255,255,0.28)", marginBottom: 5 }}>HOOK</div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: "#fff" }}>"{hookFinal || selected.hook_template}"</div>
+                  </div>
+                  {selected.why_it_works && (
+                    <div style={{ background: "rgba(16,185,129,0.06)", border: "1px solid rgba(16,185,129,0.15)", borderRadius: 10, padding: "12px 14px", marginBottom: 10 }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: "#10b981", marginBottom: 5 }}>Why this works</div>
+                      <div style={{ fontSize: 13, color: "rgba(255,255,255,0.5)" }}>{selected.why_it_works}</div>
+                    </div>
+                  )}
+                  {selected.cta_suggestion && (
+                    <div style={{ background: "rgba(124,92,255,0.06)", border: "1px solid rgba(124,92,255,0.16)", borderRadius: 10, padding: "12px 14px", marginBottom: 18 }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: "#a78bfa", marginBottom: 5 }}>Suggested CTA</div>
+                      <div style={{ fontSize: 13, color: "rgba(255,255,255,0.5)" }}>{selected.cta_suggestion}</div>
+                    </div>
+                  )}
+                  <div style={{ display: "flex", gap: 10 }}>
+                    <button onClick={() => { setSelected(null); setVars({}); }} style={{ background: "none", border: "1px solid rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.38)", borderRadius: 10, padding: "10px 16px", fontSize: 13, cursor: "pointer" }}>
+                      Start over
+                    </button>
+                    <button onClick={copyBrief} style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.65)", borderRadius: 10, padding: "10px 16px", fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+                      {copied ? <><Check size={14} /> Copied!</> : <><Copy size={14} /> Copy brief</>}
+                    </button>
+                    <button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending} style={{ background: savedOk ? "rgba(16,185,129,0.18)" : "linear-gradient(90deg, #7C5CFF, #c026d3)", border: "none", color: "#fff", borderRadius: 10, padding: "10px 20px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+                      {savedOk ? "Saved!" : "Save to workspace"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </DashboardLayout>
+  );
+}
+
+
+================================================================
+ZONE 4 — EXEMPLE JSON PATTERN REEL (base de donnees prod)
+================================================================
+
+{
+  "pattern_id": "fa58202e-6003-490f-9ac7-9abd29353710",
+  "pattern_label": "The Shock Factor",
+  "topic_cluster": "ai_tools",
+  "pattern_score": 76,
+  "avg_virality_score": 68.997,
+  "video_count": 4,
+  "trend_classification": "trending",
+  "velocity_7d": 0,
+
+  "hook_template": "This is [ADJECTIVE] [VARIABLE] that will [ACTION]!",
+  "variables": ["ADJECTIVE", "VARIABLE", "ACTION"],
+
+  "structure_template": [
+    "1. Start with a shocking statement or question to grab attention.",
+    "2. Introduce the main topic or tool related to AI.",
+    "3. Share a personal story or anecdote that highlights the shocking aspect.",
+    "4. Provide evidence or demonstration to support the claim.",
+    "5. Conclude with a thought-provoking statement or question."
+  ],
+
+  "optimal_duration": 30,
+  "why_it_works": "This pattern leverages the element of surprise and storytelling, which captivates viewers and encourages them to engage with the content emotionally and intellectually.",
+  "cta_suggestion": "Follow for more shocking insights on AI tools!",
+
+  "cluster": {
+    "trend_status": "declining",
+    "velocity_7d": 0,
+    "dominant_niche": "ai_tools",
+    "dominant_hook_type": "shock"
+  }
+}
