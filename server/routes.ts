@@ -132,6 +132,24 @@ export async function registerRoutes(
         AND array_length(selected_niches, 1) > 0
     `);
     console.log('[Migrations] Phase 4 columns OK');
+
+    // Sprint 5 — Reclassify 50 high-virality videos with taxonomy v5.0 (one-time seed)
+    // Guard: only run when < 5 videos already have taxonomy_version = '5.0'
+    await db.execute(sqlRaw`
+      UPDATE videos
+      SET classification_status = 'pending',
+          classification_attempts = 0
+      WHERE id IN (
+        SELECT id FROM videos
+        WHERE classification_status = 'completed'
+          AND sub_niche IS NULL
+          AND (taxonomy_version IS NULL OR taxonomy_version != '5.0')
+        ORDER BY virality_score DESC NULLS LAST
+        LIMIT 50
+      )
+      AND (SELECT COUNT(*) FROM videos WHERE taxonomy_version = '5.0') < 5
+    `);
+    console.log('[Migrations] Sprint 5 seed: up to 50 videos queued for taxonomy v5.0 reclassification');
   }
 
   // ─── Workspaces ───
