@@ -702,8 +702,15 @@ export const videos = pgTable("videos", {
   engagementRate: doublePrecision("engagement_rate"),
   viewVelocity: doublePrecision("view_velocity"),
   viralityScore: doublePrecision("virality_score"),
+  decayWeight: doublePrecision("decay_weight").default(1.0),
   trendScoreProcessedAt: timestamp("trend_score_processed_at"),
   patternIdRef: text("pattern_id_ref"),
+
+  // ── Sub-classification (Pattern Engine v2) ──
+  subNiche: text("sub_niche"),
+  audienceGender: text("audience_gender"),
+  audienceAgeRange: text("audience_age_range"),
+  isFaceless: boolean("is_faceless").default(false),
 
   // ── Versioning & Pipeline ──
   taxonomyVersion: text("taxonomy_version").default("1.0"),
@@ -849,6 +856,9 @@ export const patterns = pgTable("patterns", {
   velocity14d: doublePrecision("velocity_14d").default(0),
   velocity30d: doublePrecision("velocity_30d").default(0),
   trendStatus: text("trend_status").default("stable"),
+  signalStrength: text("signal_strength").default("emerging"),
+  patternWeightAdjustment: doublePrecision("pattern_weight_adjustment").default(1.0),
+  adjustedScore: doublePrecision("adjusted_score"),
   lastUpdated: timestamp("last_updated").defaultNow().notNull(),
 }, (table) => [
   uniqueIndex("idx_patterns_dimension_keys_unique").on(table.dimensionKeys),

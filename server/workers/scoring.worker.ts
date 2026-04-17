@@ -59,7 +59,21 @@ export const scoringWorker = new Worker('scoring', async () => {
       AND views >= 50000
   `);
 
-  console.log('[Scoring] Batch terminé');
+  // Step 3 — Decay temporel : les vidéos récentes pèsent plus
+  // Seuils : >7j=0.85, >14j=0.70, >30j=0.50, >60j=0.25
+  await db.execute(sql`
+    UPDATE videos
+    SET decay_weight = CASE
+      WHEN EXTRACT(EPOCH FROM (NOW() - COALESCE(collected_at, NOW()))) / 86400 > 60 THEN 0.25
+      WHEN EXTRACT(EPOCH FROM (NOW() - COALESCE(collected_at, NOW()))) / 86400 > 30 THEN 0.50
+      WHEN EXTRACT(EPOCH FROM (NOW() - COALESCE(collected_at, NOW()))) / 86400 > 14 THEN 0.70
+      WHEN EXTRACT(EPOCH FROM (NOW() - COALESCE(collected_at, NOW()))) / 86400 > 7  THEN 0.85
+      ELSE 1.0
+    END
+    WHERE classification_status = 'completed'
+  `);
+
+  console.log('[Scoring] Batch terminé (avec decay)');
 }, {
   connection: redisConnection,
   concurrency: 1,

@@ -113,6 +113,16 @@ export async function registerRoutes(
     await db.execute(sqlRaw`ALTER TABLE users ADD COLUMN IF NOT EXISTS daily_signal_used boolean DEFAULT false`);
     await db.execute(sqlRaw`ALTER TABLE users ADD COLUMN IF NOT EXISTS platforms text[] DEFAULT '{tiktok}'`);
     await db.execute(sqlRaw`ALTER TABLE users ADD COLUMN IF NOT EXISTS liked_video_ids text[] DEFAULT '{}'`);
+    // Videos — new columns for Pattern Engine upgrade
+    await db.execute(sqlRaw`ALTER TABLE videos ADD COLUMN IF NOT EXISTS decay_weight float DEFAULT 1.0`);
+    await db.execute(sqlRaw`ALTER TABLE videos ADD COLUMN IF NOT EXISTS sub_niche text`);
+    await db.execute(sqlRaw`ALTER TABLE videos ADD COLUMN IF NOT EXISTS audience_gender text`);
+    await db.execute(sqlRaw`ALTER TABLE videos ADD COLUMN IF NOT EXISTS audience_age_range text`);
+    await db.execute(sqlRaw`ALTER TABLE videos ADD COLUMN IF NOT EXISTS is_faceless boolean DEFAULT false`);
+    // Patterns — signal strength + feedback loop columns
+    await db.execute(sqlRaw`ALTER TABLE patterns ADD COLUMN IF NOT EXISTS signal_strength text DEFAULT 'emerging'`);
+    await db.execute(sqlRaw`ALTER TABLE patterns ADD COLUMN IF NOT EXISTS pattern_weight_adjustment float DEFAULT 1.0`);
+    await db.execute(sqlRaw`ALTER TABLE patterns ADD COLUMN IF NOT EXISTS adjusted_score float`);
     // Backfill primary_niche from selected_niches[1] for users who have niches but no primary
     await db.execute(sqlRaw`
       UPDATE users
@@ -122,6 +132,24 @@ export async function registerRoutes(
         AND array_length(selected_niches, 1) > 0
     `);
     console.log('[Migrations] Phase 4 columns OK');
+
+    // Sprint 5 — Reclassify 50 high-virality videos with taxonomy v5.0 (one-time seed)
+    // Guard: only run when < 5 videos already have taxonomy_version = '5.0'
+    await db.execute(sqlRaw`
+      UPDATE videos
+      SET classification_status = 'pending',
+          classification_attempts = 0
+      WHERE id IN (
+        SELECT id FROM videos
+        WHERE classification_status = 'completed'
+          AND sub_niche IS NULL
+          AND (taxonomy_version IS NULL OR taxonomy_version != '5.0')
+        ORDER BY virality_score DESC NULLS LAST
+        LIMIT 50
+      )
+      AND (SELECT COUNT(*) FROM videos WHERE taxonomy_version = '5.0') < 5
+    `);
+    console.log('[Migrations] Sprint 5 seed: up to 50 videos queued for taxonomy v5.0 reclassification');
   }
 
   // ─── Workspaces ───
@@ -1395,12 +1423,12 @@ The content should directly apply the recommendations from the insight report. W
           LIMIT 5
         `),
         db.execute(sql`
-          SELECT pattern_id, hook_type, structure_type, topic_cluster, 
+          SELECT pattern_id, hook_type, structure_type, topic_cluster,
                  avg_virality_score, video_count, pattern_label, performance_rank,
-                 pattern_score, velocity_mid, pattern_novelty, trend_classification
+                 pattern_score, adjusted_score, signal_strength, velocity_mid, pattern_novelty, trend_classification
           FROM patterns
           WHERE avg_virality_score IS NOT NULL
-          ORDER BY COALESCE(pattern_score, avg_virality_score) DESC
+          ORDER BY COALESCE(adjusted_score, pattern_score, avg_virality_score) DESC
           LIMIT 5
         `),
         db.execute(sql`
@@ -1732,10 +1760,10 @@ The content should directly apply the recommendations from the insight report. W
         const patternsFromTable = await db.execute(sql`
           SELECT pattern_id, hook_type, structure_type, topic_cluster,
                  avg_virality_score, video_count, pattern_label, performance_rank,
-                 pattern_score, velocity_mid, pattern_novelty, trend_classification
+                 pattern_score, adjusted_score, signal_strength, velocity_mid, pattern_novelty, trend_classification
           FROM patterns
           WHERE avg_virality_score IS NOT NULL ${nicheFilter}
-          ORDER BY COALESCE(pattern_score, avg_virality_score) DESC
+          ORDER BY COALESCE(adjusted_score, pattern_score, avg_virality_score) DESC
           LIMIT 30
         `);
         return res.json({ patterns: patternsFromTable.rows });

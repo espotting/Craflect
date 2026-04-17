@@ -114,7 +114,7 @@ Transcript: {transcript}
 
 RULES:
 - JSON only, no explanation, no markdown
-- null if uncertain
+- null if uncertain or not applicable
 
 FORMAT:
 {
@@ -123,6 +123,11 @@ FORMAT:
   "structure_type": "listicle|storytelling|tutorial|reaction|before_after",
   "format_type": "facecam|broll|captions|mixed",
   "topic_cluster": "ai_tools|finance|online_business|content_creation|productivity|health_wellness|fitness|mindset|digital_marketing|real_estate",
+  "sub_niche": "see taxonomy below",
+  "content_angle": "tutorial|listicle|story|reaction|comparison|transformation|rant|interview|day_in_life|case_study",
+  "audience_gender": "male|female|mixed",
+  "audience_age_range": "18-24|25-34|35-44|45+",
+  "is_faceless": true,
   "emotion_primary": "curiosity|urgency|fear|excitement|surprise",
   "confidence": 0.0
 }
@@ -139,6 +144,16 @@ topic_cluster MUST be one of these exact values:
 - digital_marketing : digital marketing, SEO, email marketing, social media, branding
 - real_estate : real estate, rental property, house flipping, mortgage, landlord
 
+sub_niche taxonomy (pick ONE from the matching topic_cluster):
+- finance → stocks_trading | crypto | real_estate | budgeting | passive_income | investing_101
+- ai_tools → chatgpt_tips | automation | ai_apps | prompt_engineering | ai_business | ai_art
+- online_business → dropshipping | agency_model | saas | freelancing | ecommerce | consulting
+- content_creation → youtube_growth | tiktok_strategy | personal_brand | monetization | video_production
+- productivity → morning_routine | time_management | deep_work | tools_systems | habits
+
+is_faceless = true if no human face appears in the video (screen recordings, animations, text only, broll without presenter)
+audience_gender = best guess based on content theme and creator tone
+audience_age_range = best guess based on content references and platform norms
 confidence = 0.0 to 1.0`;
 
 export const classificationWorker = new Worker('classification', async (job) => {
@@ -218,6 +233,17 @@ export const classificationWorker = new Worker('classification', async (job) => 
       ? dna.topic_cluster
       : (video.topicCluster || null);
 
+    // Validate new dimension fields
+    const VALID_CONTENT_ANGLES = ['tutorial', 'listicle', 'story', 'reaction', 'comparison', 'transformation', 'rant', 'interview', 'day_in_life', 'case_study'];
+    const VALID_GENDERS = ['male', 'female', 'mixed'];
+    const VALID_AGE_RANGES = ['18-24', '25-34', '35-44', '45+'];
+
+    const contentAngle = VALID_CONTENT_ANGLES.includes(dna.content_angle) ? dna.content_angle : null;
+    const audienceGender = VALID_GENDERS.includes(dna.audience_gender) ? dna.audience_gender : null;
+    const audienceAgeRange = VALID_AGE_RANGES.includes(dna.audience_age_range) ? dna.audience_age_range : null;
+    const isFaceless = typeof dna.is_faceless === 'boolean' ? dna.is_faceless : null;
+    const subNiche = typeof dna.sub_niche === 'string' && dna.sub_niche.length > 0 ? dna.sub_niche : null;
+
     await db.update(videos).set({
       hookText: dna.hook_text || null,
       hookMechanismPrimary: dna.hook_type || null,
@@ -228,10 +254,14 @@ export const classificationWorker = new Worker('classification', async (job) => 
       nicheCluster,
       emotionPrimary: dna.emotion_primary || null,
       durationBucket: calculateBucket(video.durationSeconds),
+      subNiche,
+      audienceGender,
+      audienceAgeRange,
+      isFaceless: isFaceless ?? false,
       classificationStatus: 'completed',
       classifiedAt: new Date(),
       classifiedBy: source,
-      taxonomyVersion: '4.0',
+      taxonomyVersion: '5.0',
       confidence: dna.confidence || 0.5
     }).where(eq(videos.id, videoId));
 

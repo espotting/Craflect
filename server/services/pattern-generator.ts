@@ -229,5 +229,27 @@ export async function generateAllPatterns(): Promise<number> {
   }
 
   console.log(`[PatternGen] Done — ${generated}/${clusters.rows.length} patterns generated`);
+
+  await recalibratePatternScores();
+
   return generated;
+}
+
+// Sprint 4: apply feedback-loop weight and update signal_strength for all patterns
+async function recalibratePatternScores(): Promise<void> {
+  await db.execute(sql`
+    UPDATE patterns
+    SET
+      adjusted_score = LEAST(100, GREATEST(0,
+        COALESCE(pattern_score, 0) * COALESCE(pattern_weight_adjustment, 1.0)
+      )),
+      signal_strength = CASE
+        WHEN video_count >= 25 THEN 'strong'
+        WHEN video_count >= 15 THEN 'building'
+        ELSE 'emerging'
+      END,
+      last_updated = NOW()
+    WHERE pattern_score IS NOT NULL
+  `);
+  console.log('[PatternGen] Pattern scores recalibrated (adjusted_score + signal_strength)');
 }

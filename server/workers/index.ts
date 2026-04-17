@@ -12,9 +12,28 @@ import './thumbnail-generator.worker';
 import { checkOllamaHealth } from '../config/ollama';
 import { Worker } from 'bullmq';
 import { redisConnection } from '../config/redis';
+import { db } from '../db';
+import { sql } from 'drizzle-orm';
 
 const phaseTransitionBullWorker = new Worker('phase-transition', async () => {
   await phaseTransitionWorker.checkAndTransition();
+}, { connection: redisConnection, concurrency: 1 });
+
+// 30-day decay: weak patterns (video_count < 10) drift back toward neutral weight (1.0)
+// Formula: new_weight = 0.95 * current_weight + 0.05 * 1.0
+const patternDecayWorker = new Worker('pattern-decay', async () => {
+  await db.execute(sql`
+    UPDATE patterns
+    SET
+      pattern_weight_adjustment = GREATEST(0.5, LEAST(2.0,
+        0.95 * COALESCE(pattern_weight_adjustment, 1.0) + 0.05
+      )),
+      last_updated = NOW()
+    WHERE video_count < 10
+      AND pattern_weight_adjustment IS NOT NULL
+      AND pattern_weight_adjustment != 1.0
+  `);
+  console.log('[PatternDecay] Weak pattern weights decayed toward neutral');
 }, { connection: redisConnection, concurrency: 1 });
 
 async function startWorkers() {
@@ -41,6 +60,7 @@ async function startWorkers() {
     await scoringWorker.close();
     await patternWorker.close();
     await phaseTransitionBullWorker.close();
+    await patternDecayWorker.close();
     process.exit(0);
   });
 }
