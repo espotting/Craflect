@@ -7,13 +7,22 @@ function computeSignalStrength(pattern: {
   video_count: number | null;
   velocity_7d: number | null;
   cluster_level?: 2 | 3 | null;
+  platform?: string | null;
 }): 'strong' | 'building' | 'emerging' {
   const count = pattern.video_count ?? 0;
   const velocity = pattern.velocity_7d ?? 0;
   const level = pattern.cluster_level ?? 2;
+  const platform = pattern.platform ?? 'tiktok';
 
-  const thresholdStrong   = level === 3 ? 25 : 40;
-  const thresholdBuilding = level === 3 ? 10 : 15;
+  const baseStrong   = level === 3 ? 25 : 40;
+  const baseBuilding = level === 3 ? 10 : 15;
+
+  const multiplier =
+    platform === 'tiktok'  ? 1.2 :
+    platform === 'shorts'  ? 0.8 : 1.0;
+
+  const thresholdStrong   = Math.round(baseStrong   * multiplier);
+  const thresholdBuilding = Math.round(baseBuilding * multiplier);
 
   if (count < thresholdBuilding) return 'emerging';
   if (count < thresholdStrong)   return 'building';
@@ -5459,10 +5468,12 @@ JSON only, no markdown.`;
       const enriched = (patterns.rows as any[]).map(p => {
         const clusterLevel = p.sub_niche ? 3 : 2;
         const vel = p.velocity_7d ?? p.cc_velocity_7d ?? 0;
+        const pat_platform = p.platform || 'tiktok';
         return {
           ...p,
-          signal_strength: computeSignalStrength({ video_count: p.video_count, velocity_7d: vel, cluster_level: clusterLevel }),
-          cluster_key: [p.topic_cluster, p.sub_niche, p.hook_type_v2].filter(Boolean).map((s: string) => s.replace(/_/g, ' ')).join(' × '),
+          platform: pat_platform,
+          signal_strength: computeSignalStrength({ video_count: p.video_count, velocity_7d: vel, cluster_level: clusterLevel, platform: pat_platform }),
+          cluster_key: [p.topic_cluster, p.sub_niche, p.hook_type_v2, pat_platform].filter(Boolean).join('|'),
           cluster_level: clusterLevel,
           velocity_7d: vel,
         };
@@ -5686,8 +5697,10 @@ JSON only, no markdown.`;
         const existPat = existing.rows[0] as any || null;
         if (existPat) {
           const clusterLevel = existPat.sub_niche ? 3 : 2;
-          existPat.signal_strength = computeSignalStrength({ video_count: existPat.video_count, velocity_7d: existPat.velocity_7d, cluster_level: clusterLevel });
-          existPat.cluster_key = [existPat.topic_cluster, existPat.sub_niche, existPat.hook_type_v2].filter(Boolean).map((s: string) => s.replace(/_/g, ' ')).join(' × ');
+          const pat_platform = existPat.platform || 'tiktok';
+          existPat.platform = pat_platform;
+          existPat.signal_strength = computeSignalStrength({ video_count: existPat.video_count, velocity_7d: existPat.velocity_7d, cluster_level: clusterLevel, platform: pat_platform });
+          existPat.cluster_key = [existPat.topic_cluster, existPat.sub_niche, existPat.hook_type_v2, pat_platform].filter(Boolean).join('|');
           existPat.cluster_level = clusterLevel;
           existPat.days_since_emerged = existPat.created_at ? Math.floor((Date.now() - new Date(existPat.created_at).getTime()) / 86400000) : null;
           existPat.last_refreshed_at = new Date().toISOString();
@@ -5728,8 +5741,10 @@ JSON only, no markdown.`;
           WHERE id = ${req.user.id}
         `);
         const clusterLevel = pat.sub_niche ? 3 : 2;
-        pat.signal_strength = computeSignalStrength({ video_count: pat.video_count, velocity_7d: pat.velocity_7d, cluster_level: clusterLevel });
-        pat.cluster_key = [pat.topic_cluster, pat.sub_niche, pat.hook_type_v2].filter(Boolean).map((s: string) => s.replace(/_/g, ' ')).join(' × ');
+        const pat_platform = pat.platform || 'tiktok';
+        pat.platform = pat_platform;
+        pat.signal_strength = computeSignalStrength({ video_count: pat.video_count, velocity_7d: pat.velocity_7d, cluster_level: clusterLevel, platform: pat_platform });
+        pat.cluster_key = [pat.topic_cluster, pat.sub_niche, pat.hook_type_v2, pat_platform].filter(Boolean).join('|');
         pat.cluster_level = clusterLevel;
         pat.days_since_emerged = pat.created_at ? Math.floor((Date.now() - new Date(pat.created_at).getTime()) / 86400000) : null;
         pat.last_refreshed_at = new Date().toISOString();
