@@ -12,6 +12,10 @@ import {
   Wrench,
   Users,
   ClipboardList,
+  Home,
+  PenLine,
+  BarChart2,
+  BookOpen,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import {
@@ -55,11 +59,12 @@ export function AppSidebar() {
     refetchInterval: 5 * 60 * 1000,
   });
 
-  // 3 destinations principales — Studio et Opportunities accessibles contextuellement
   const userItems = [
-    { title: "Intelligence", url: "/home", icon: LayoutDashboard },
-    { title: "Performance", url: "/performance", icon: TrendingUp },
-    { title: "Workspace", url: "/workspace", icon: FolderKanban },
+    { title: "Today",    url: "/home",        icon: Home },
+    { title: "Patterns", url: "/patterns",    icon: TrendingUp },
+    { title: "Studio",   url: "/create",      icon: PenLine },
+    { title: "Results",  url: "/performance", icon: BarChart2 },
+    { title: "Playbook", url: "/playbook",    icon: BookOpen },
   ];
 
   const userSystemItems = [
@@ -111,7 +116,7 @@ export function AppSidebar() {
                 let counter: number | undefined;
                 if (!isAdmin && sidebarStats) {
                   if (item.url === "/home") counter = sidebarStats.emergingPatterns || undefined;
-                  if (item.url === "/opportunities") counter = sidebarStats.opportunities || undefined;
+                  if (item.url === "/patterns") counter = sidebarStats.opportunities || undefined;
                   if (item.url === "/performance") counter = sidebarStats.trackedVideos || undefined;
                 }
 
