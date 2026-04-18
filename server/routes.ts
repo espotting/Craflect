@@ -3,6 +3,24 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
 
+function computeSignalStrength(pattern: {
+  video_count: number | null;
+  velocity_7d: number | null;
+  cluster_level?: 2 | 3 | null;
+}): 'strong' | 'building' | 'emerging' {
+  const count = pattern.video_count ?? 0;
+  const velocity = pattern.velocity_7d ?? 0;
+  const level = pattern.cluster_level ?? 2;
+
+  const thresholdStrong   = level === 3 ? 25 : 40;
+  const thresholdBuilding = level === 3 ? 10 : 15;
+
+  if (count < thresholdBuilding) return 'emerging';
+  if (count < thresholdStrong)   return 'building';
+  if (velocity <= 0)             return 'building';
+  return 'strong';
+}
+
 function cleanHookYear(text: string | null | undefined): string | null {
   if (!text) return text as null;
   const currentYear = new Date().getFullYear();
@@ -5423,7 +5441,8 @@ JSON only, no markdown.`;
                p.optimal_duration, p.why_it_works, p.best_for, p.cta_suggestion,
                p.avg_virality_score, p.topic_cluster, p.video_count,
                p.predicted_views_min, p.predicted_views_max, p.confidence_score,
-               cc.trend_status, cc.velocity_7d
+               p.sub_niche, p.hook_type_v2, p.decay_weight, p.created_at, p.velocity_7d,
+               cc.trend_status, cc.velocity_7d as cc_velocity_7d
         FROM patterns p
         LEFT JOIN content_clusters cc ON cc.id::text = p.cluster_id
         WHERE p.pattern_label IS NOT NULL AND p.hook_template IS NOT NULL
@@ -5437,7 +5456,18 @@ JSON only, no markdown.`;
           p.avg_virality_score DESC NULLS LAST
         LIMIT 20
       `));
-      res.json(patterns.rows);
+      const enriched = (patterns.rows as any[]).map(p => {
+        const clusterLevel = p.sub_niche ? 3 : 2;
+        const vel = p.velocity_7d ?? p.cc_velocity_7d ?? 0;
+        return {
+          ...p,
+          signal_strength: computeSignalStrength({ video_count: p.video_count, velocity_7d: vel, cluster_level: clusterLevel }),
+          cluster_key: [p.topic_cluster, p.sub_niche, p.hook_type_v2].filter(Boolean).map((s: string) => s.replace(/_/g, ' ')).join(' × '),
+          cluster_level: clusterLevel,
+          velocity_7d: vel,
+        };
+      });
+      res.json(enriched);
     } catch (error: any) {
       console.error('[patterns/list] error:', error.message);
       res.status(500).json({ error: error.message });
@@ -5653,7 +5683,17 @@ JSON only, no markdown.`;
           LEFT JOIN content_clusters cc ON cc.id::text = p.cluster_id
           WHERE p.pattern_id = ${u.daily_signal_pattern_id}
         `);
-        return res.json({ signal: existing.rows[0] || null, used: false });
+        const existPat = existing.rows[0] as any || null;
+        if (existPat) {
+          const clusterLevel = existPat.sub_niche ? 3 : 2;
+          existPat.signal_strength = computeSignalStrength({ video_count: existPat.video_count, velocity_7d: existPat.velocity_7d, cluster_level: clusterLevel });
+          existPat.cluster_key = [existPat.topic_cluster, existPat.sub_niche, existPat.hook_type_v2].filter(Boolean).map((s: string) => s.replace(/_/g, ' ')).join(' × ');
+          existPat.cluster_level = clusterLevel;
+          existPat.days_since_emerged = existPat.created_at ? Math.floor((Date.now() - new Date(existPat.created_at).getTime()) / 86400000) : null;
+          existPat.last_refreshed_at = new Date().toISOString();
+          existPat.refresh_cycle_hours = 72;
+        }
+        return res.json({ signal: existPat, used: false });
       }
 
       // Nouveau signal — avoid patterns shown in last 7 days
@@ -5687,6 +5727,13 @@ JSON only, no markdown.`;
             daily_signal_used = false
           WHERE id = ${req.user.id}
         `);
+        const clusterLevel = pat.sub_niche ? 3 : 2;
+        pat.signal_strength = computeSignalStrength({ video_count: pat.video_count, velocity_7d: pat.velocity_7d, cluster_level: clusterLevel });
+        pat.cluster_key = [pat.topic_cluster, pat.sub_niche, pat.hook_type_v2].filter(Boolean).map((s: string) => s.replace(/_/g, ' ')).join(' × ');
+        pat.cluster_level = clusterLevel;
+        pat.days_since_emerged = pat.created_at ? Math.floor((Date.now() - new Date(pat.created_at).getTime()) / 86400000) : null;
+        pat.last_refreshed_at = new Date().toISOString();
+        pat.refresh_cycle_hours = 72;
         return res.json({ signal: pat, used: false });
       }
 
