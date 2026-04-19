@@ -322,6 +322,16 @@ export default function StudioPage() {
           {/* RIGHT PANEL */}
           <div style={{ flex: 1, overflowY: "auto", padding: "24px 28px 48px" }}>
             {!selected ? (
+              /* Loading state when patternId is in URL but patterns haven't loaded yet */
+              isLoading && urlPatternId ? (
+                <div style={{
+                  display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+                  height: "100%", gap: 12, color: "rgba(255,255,255,0.28)",
+                }}>
+                  <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#7C5CFF", opacity: 0.7 }} />
+                  <div style={{ fontSize: 13 }}>Loading pattern…</div>
+                </div>
+              ) : (
               /* Empty state */
               <div style={{
                 display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
@@ -343,6 +353,7 @@ export default function StudioPage() {
                   </div>
                 </div>
               </div>
+              )
             ) : (
               <div style={{ maxWidth: 700, display: "flex", flexDirection: "column", gap: 18 }}>
 

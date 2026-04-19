@@ -5456,7 +5456,11 @@ JSON only, no markdown.`;
       console.log(`[patterns/list] user=${req.user.id} primaryNiche=${primaryNiche} niches=${JSON.stringify(niches)}`);
 
       if (niches.length === 0) {
-        // Fallback : retourner les 10 meilleurs patterns toutes niches
+        // Fallback : top 10 toutes niches — specific pattern first if requested
+        const specificSafeId = specificPatternId ? specificPatternId.replace(/'/g, "''") : '';
+        const orderSpecificFallback = specificSafeId
+          ? `CASE WHEN p.pattern_id = '${specificSafeId}' THEN 0 ELSE 1 END,`
+          : '';
         const fallback = await db.execute(sql.raw(`
           SELECT p.pattern_id as id, p.pattern_id, p.pattern_label, p.hook_template, p.structure_template,
                  p.optimal_duration, p.why_it_works, p.best_for, p.cta_suggestion,
@@ -5467,10 +5471,23 @@ JSON only, no markdown.`;
           FROM patterns p
           LEFT JOIN content_clusters cc ON cc.id::text = p.cluster_id
           WHERE p.pattern_label IS NOT NULL AND p.hook_template IS NOT NULL
-          ORDER BY p.avg_virality_score DESC NULLS LAST
+          ORDER BY ${orderSpecificFallback} p.avg_virality_score DESC NULLS LAST
           LIMIT 10
         `));
-        return res.json(fallback.rows);
+        const enrichedFallback = (fallback.rows as any[]).map(p => {
+          const clusterLevel = p.sub_niche ? 3 : 2;
+          const vel = p.velocity_7d ?? p.cc_velocity_7d ?? 0;
+          const pat_platform = p.platform || 'tiktok';
+          return {
+            ...p,
+            platform: pat_platform,
+            signal_strength: computeSignalStrength({ video_count: p.video_count, velocity_7d: vel, cluster_level: clusterLevel, platform: pat_platform }),
+            cluster_key: [p.topic_cluster, p.sub_niche, p.hook_type_v2, pat_platform].filter(Boolean).join('|'),
+            cluster_level: clusterLevel,
+            velocity_7d: vel,
+          };
+        });
+        return res.json(enrichedFallback);
       }
       const nichesStr = niches.map((n: string) => `'${n.replace(/'/g, "''")}'`).join(',');
       const specificClause = specificPatternId

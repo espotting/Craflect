@@ -19,8 +19,9 @@ export default function Dashboard() {
     queryKey: ['/api/daily-signal'],
     queryFn: () => fetch('/api/daily-signal', { credentials: 'include' }).then(r => r.json()),
     refetchInterval: 72 * 60 * 60 * 1000,
-    staleTime: 72 * 60 * 60 * 1000,
-    retry: 1,
+    staleTime: 5 * 60 * 1000,
+    retry: 2,
+    retryDelay: 1000,
   });
 
   const { data: feed, isError: feedError } = useQuery<any>({
