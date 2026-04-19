@@ -5450,13 +5450,13 @@ JSON only, no markdown.`;
       const userRes = await db.execute(sql`SELECT selected_niches, primary_niche FROM users WHERE id = ${req.user.id}`);
       const row = userRes.rows[0] as any;
       const rawSelected: string[] = Array.isArray(row?.selected_niches) ? row.selected_niches : [];
-      const primaryNiche = row?.primary_niche || rawSelected[0] || 'finance';
-      const niches: string[] = rawSelected.length > 0 ? rawSelected : [primaryNiche];
+      const primaryNiche = row?.primary_niche || rawSelected[0] || null;
+      const niches: string[] = rawSelected.length > 0 ? rawSelected : (primaryNiche ? [primaryNiche] : []);
 
       console.log(`[patterns/list] user=${req.user.id} primaryNiche=${primaryNiche} niches=${JSON.stringify(niches)}`);
 
-      // Fallback : niches vides → top 10 toutes niches
-      if (niches.length === 0 || (niches.length === 1 && niches[0] === 'finance' && !row?.primary_niche && rawSelected.length === 0)) {
+      if (niches.length === 0) {
+        // Fallback : retourner les 10 meilleurs patterns toutes niches
         const fallback = await db.execute(sql.raw(`
           SELECT p.pattern_id as id, p.pattern_id, p.pattern_label, p.hook_template, p.structure_template,
                  p.optimal_duration, p.why_it_works, p.best_for, p.cta_suggestion,
@@ -5470,21 +5470,7 @@ JSON only, no markdown.`;
           ORDER BY p.avg_virality_score DESC NULLS LAST
           LIMIT 10
         `));
-        console.log(`[patterns/list] fallback: ${fallback.rows.length} patterns (no niche set)`);
-        const enrichedFallback = (fallback.rows as any[]).map(p => {
-          const clusterLevel = p.sub_niche ? 3 : 2;
-          const vel = p.velocity_7d ?? p.cc_velocity_7d ?? 0;
-          const pat_platform = p.platform || 'tiktok';
-          return {
-            ...p,
-            platform: pat_platform,
-            signal_strength: computeSignalStrength({ video_count: p.video_count, velocity_7d: vel, cluster_level: clusterLevel, platform: pat_platform }),
-            cluster_key: [p.topic_cluster, p.sub_niche, p.hook_type_v2, pat_platform].filter(Boolean).join('|'),
-            cluster_level: clusterLevel,
-            velocity_7d: vel,
-          };
-        });
-        return res.json(enrichedFallback);
+        return res.json(fallback.rows);
       }
       const nichesStr = niches.map((n: string) => `'${n.replace(/'/g, "''")}'`).join(',');
       const specificClause = specificPatternId
