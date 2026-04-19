@@ -61,7 +61,7 @@ function RecommendedRow({ videos }: { videos: any[] }) {
           Recommended for you
         </div>
         <span
-          onClick={() => navigate('/create')}
+          onClick={() => navigate('/patterns')}
           style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', cursor: 'pointer' }}
         >
           See all →
