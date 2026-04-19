@@ -5452,6 +5452,40 @@ JSON only, no markdown.`;
       const rawSelected: string[] = Array.isArray(row?.selected_niches) ? row.selected_niches : [];
       const primaryNiche = row?.primary_niche || rawSelected[0] || 'finance';
       const niches: string[] = rawSelected.length > 0 ? rawSelected : [primaryNiche];
+
+      console.log(`[patterns/list] user=${req.user.id} primaryNiche=${primaryNiche} niches=${JSON.stringify(niches)}`);
+
+      // Fallback : niches vides → top 10 toutes niches
+      if (niches.length === 0 || (niches.length === 1 && niches[0] === 'finance' && !row?.primary_niche && rawSelected.length === 0)) {
+        const fallback = await db.execute(sql.raw(`
+          SELECT p.pattern_id as id, p.pattern_id, p.pattern_label, p.hook_template, p.structure_template,
+                 p.optimal_duration, p.why_it_works, p.best_for, p.cta_suggestion,
+                 p.avg_virality_score, p.topic_cluster, p.video_count,
+                 p.predicted_views_min, p.predicted_views_max, p.confidence_score,
+                 p.sub_niche, p.hook_type_v2, p.decay_weight, p.created_at, p.velocity_7d,
+                 cc.trend_status, cc.velocity_7d as cc_velocity_7d
+          FROM patterns p
+          LEFT JOIN content_clusters cc ON cc.id::text = p.cluster_id
+          WHERE p.pattern_label IS NOT NULL AND p.hook_template IS NOT NULL
+          ORDER BY p.avg_virality_score DESC NULLS LAST
+          LIMIT 10
+        `));
+        console.log(`[patterns/list] fallback: ${fallback.rows.length} patterns (no niche set)`);
+        const enrichedFallback = (fallback.rows as any[]).map(p => {
+          const clusterLevel = p.sub_niche ? 3 : 2;
+          const vel = p.velocity_7d ?? p.cc_velocity_7d ?? 0;
+          const pat_platform = p.platform || 'tiktok';
+          return {
+            ...p,
+            platform: pat_platform,
+            signal_strength: computeSignalStrength({ video_count: p.video_count, velocity_7d: vel, cluster_level: clusterLevel, platform: pat_platform }),
+            cluster_key: [p.topic_cluster, p.sub_niche, p.hook_type_v2, pat_platform].filter(Boolean).join('|'),
+            cluster_level: clusterLevel,
+            velocity_7d: vel,
+          };
+        });
+        return res.json(enrichedFallback);
+      }
       const nichesStr = niches.map((n: string) => `'${n.replace(/'/g, "''")}'`).join(',');
       const specificClause = specificPatternId
         ? `OR p.pattern_id = '${specificPatternId.replace(/'/g, "''")}'`
