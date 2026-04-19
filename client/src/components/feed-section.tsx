@@ -1,27 +1,39 @@
 import { useLocation } from "wouter";
 import { VideoCard, VideoCardSkeleton, NICHE_LABELS } from "./video-card-v3";
+import { PatternConfidenceBadge } from "./pattern-confidence-badge";
 
 const scrollStyle: React.CSSProperties = {
   display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 6,
   scrollbarWidth: 'none',
 };
 
-function NicheRow({ niche, videos, isFirst }: { niche: string; videos: any[]; isFirst: boolean }) {
+function NicheRow({ niche, videos, isFirst, dominantSignal }: {
+  niche: string;
+  videos: any[];
+  isFirst: boolean;
+  dominantSignal?: 'strong' | 'building' | 'emerging';
+}) {
   const [, navigate] = useLocation();
   const dotColor = isFirst ? '#ef4444' : '#7C5CFF';
 
   return (
     <div style={{ marginBottom: 28 }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 14 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 15, fontWeight: 700, color: '#fff' }}>
-          <div style={{ width: 6, height: 6, borderRadius: '50%', background: dotColor, flexShrink: 0 }} />
-          Emerging Now
-          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', fontWeight: 400, marginLeft: 4 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 15, fontWeight: 700, color: '#fff' }}>
+            <div style={{ width: 6, height: 6, borderRadius: '50%', background: dotColor, flexShrink: 0 }} />
             {NICHE_LABELS[niche] || niche}
-          </span>
+          </div>
+          {dominantSignal && (
+            <PatternConfidenceBadge
+              signal_strength={dominantSignal}
+              video_count={videos.length}
+              size="sm"
+            />
+          )}
         </div>
         <span
-          onClick={() => navigate('/opportunities?niche=' + niche)}
+          onClick={() => navigate('/patterns?niche=' + niche)}
           style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', cursor: 'pointer' }}
         >
           See all →
@@ -62,6 +74,12 @@ function RecommendedRow({ videos }: { videos: any[] }) {
   );
 }
 
+function getDominantSignal(videos: any[]): 'strong' | 'building' | 'emerging' {
+  if (videos.some(v => v.signal_strength === 'strong')) return 'strong';
+  if (videos.some(v => v.signal_strength === 'building')) return 'building';
+  return 'emerging';
+}
+
 export function FeedSection({
   niches,
   feedData,
@@ -83,7 +101,13 @@ export function FeedSection({
   return (
     <div style={{ padding: '28px 28px 40px', background: '#08080f' }}>
       {niches.map((niche, idx) => (
-        <NicheRow key={niche} niche={niche} videos={videosByNiche[niche] || []} isFirst={idx === 0} />
+        <NicheRow
+          key={niche}
+          niche={niche}
+          videos={videosByNiche[niche] || []}
+          isFirst={idx === 0}
+          dominantSignal={getDominantSignal(videosByNiche[niche] || [])}
+        />
       ))}
       <RecommendedRow videos={videos} />
     </div>

@@ -268,18 +268,23 @@ export default function StudioPage() {
                       transition: "all 0.15s",
                     }}
                   >
-                    {p.trend_status && (
+                    {(p as any).signal_strength && (
                       <div style={{ marginBottom: 6 }}>
-                        {p.trend_status === "emerging" && (
-                          <span style={{ background: "rgba(239,68,68,0.13)", border: "1px solid rgba(239,68,68,0.35)", color: "#ef4444", borderRadius: 20, padding: "2px 8px", fontSize: 10, fontWeight: 700 }}>
-                            🔥 Emerging
-                          </span>
-                        )}
-                        {p.trend_status === "trending" && (
-                          <span style={{ background: "rgba(124,92,255,0.13)", border: "1px solid rgba(124,92,255,0.35)", color: "#a78bfa", borderRadius: 20, padding: "2px 8px", fontSize: 10, fontWeight: 700 }}>
-                            ⚡ Trending
-                          </span>
-                        )}
+                        <span style={{
+                          background: (p as any).signal_strength === 'strong'
+                            ? 'rgba(34,197,94,0.12)' : (p as any).signal_strength === 'building'
+                            ? 'rgba(245,158,11,0.12)' : 'rgba(124,92,255,0.10)',
+                          border: `1px solid ${(p as any).signal_strength === 'strong'
+                            ? 'rgba(34,197,94,0.3)' : (p as any).signal_strength === 'building'
+                            ? 'rgba(245,158,11,0.3)' : 'rgba(124,92,255,0.25)'}`,
+                          color: (p as any).signal_strength === 'strong' ? '#22c55e'
+                            : (p as any).signal_strength === 'building' ? '#f59e0b' : '#a78bfa',
+                          borderRadius: 20, padding: '2px 8px', fontSize: 10, fontWeight: 700,
+                        }}>
+                          {(p as any).signal_strength === 'strong' ? 'Strong'
+                            : (p as any).signal_strength === 'building' ? 'Building' : 'Emerging'}
+                          {' · '}{(p as any).video_count || 0} videos
+                        </span>
                       </div>
                     )}
 

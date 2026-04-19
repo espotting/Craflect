@@ -1,5 +1,6 @@
 import { useLocation } from "wouter";
 import { NICHE_LABELS, NICHE_EMOJIS, NICHE_GRADIENTS, formatViews, renderHookWithVars } from "./video-card-v3";
+import { PatternConfidenceBadge } from "./pattern-confidence-badge";
 
 function MetricItem({ value, label, color }: { value: string; label: string; color: string }) {
   return (
@@ -112,9 +113,24 @@ export function DailySignalHero({ signal, niche }: { signal: any; niche: string 
           </div>
           <div style={{
             fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.35)',
-            textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 18,
+            textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12,
           }}>
             Today's Signal
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+            <PatternConfidenceBadge
+              signal_strength={s.signal_strength || 'emerging'}
+              video_count={s.video_count || 0}
+              topic_cluster={s.topic_cluster}
+              sub_niche={s.sub_niche}
+              cluster_level={s.cluster_level}
+              platform={s.platform}
+            />
+            {s.last_refreshed_at && (
+              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>
+                Updated {Math.floor((Date.now() - new Date(s.last_refreshed_at).getTime()) / 3600000)}h ago
+              </span>
+            )}
           </div>
           <div style={{
             fontSize: 38, fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.1, marginBottom: 14,
@@ -140,8 +156,8 @@ export function DailySignalHero({ signal, niche }: { signal: any; niche: string 
             />
             <div style={{ width: 1, background: 'rgba(255,255,255,0.08)', height: 36, margin: '0 24px' }} />
             <MetricItem
-              value={Math.round(s.confidence_score || 0) + '%'}
-              label="Confidence"
+              value={String(s.video_count || 0)}
+              label="Videos analyzed"
               color="#10b981"
             />
             <div style={{ width: 1, background: 'rgba(255,255,255,0.08)', height: 36, margin: '0 24px' }} />
@@ -164,7 +180,7 @@ export function DailySignalHero({ signal, niche }: { signal: any; niche: string 
               Create this video →
             </button>
             <button
-              onClick={() => navigate('/opportunities')}
+              onClick={() => navigate('/patterns')}
               style={{
                 background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.09)',
                 color: 'rgba(255,255,255,0.45)', padding: '12px 18px', borderRadius: 10,
@@ -200,13 +216,6 @@ export function DailySignalHero({ signal, niche }: { signal: any; niche: string 
                 </div>
               </div>
             )}
-            <div style={{
-              position: 'absolute', top: 10, left: 10, background: 'rgba(239,68,68,0.92)',
-              color: '#fff', fontSize: 8, fontWeight: 800, padding: '3px 8px',
-              borderRadius: 6, letterSpacing: '0.06em',
-            }}>
-              🔥 HOT
-            </div>
             <div style={{
               position: 'absolute', bottom: 10, right: 10, background: 'rgba(0,0,0,0.72)',
               color: '#a78bfa', fontSize: 10, fontWeight: 800, padding: '3px 9px', borderRadius: 7,
