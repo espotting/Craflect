@@ -1,12 +1,19 @@
 import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { DashboardLayout } from "@/components/layout";
 import { usePlatform } from "@/hooks/use-platform";
 import { PlatformToggle } from "@/components/platform-toggle";
 import { DailySignalHero } from "@/components/daily-signal-hero";
 import { FeedSection } from "@/components/feed-section";
+import { usePlaybook } from "@/hooks/use-playbook";
 
 export default function Dashboard() {
   const { platform, setPlatform } = usePlatform();
+  const { complete } = usePlaybook();
+
+  useEffect(() => {
+    complete('signal');
+  }, []);
 
   const { data: signal, isError: signalError } = useQuery<any>({
     queryKey: ['/api/daily-signal'],

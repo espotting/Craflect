@@ -177,6 +177,21 @@ export async function registerRoutes(
       AND (SELECT COUNT(*) FROM videos WHERE taxonomy_version = '5.0') < 5
     `);
     console.log('[Migrations] Sprint 5 seed: up to 50 videos queued for taxonomy v5.0 reclassification');
+
+    // Sprint 4 — Daily Playbook table
+    await db.execute(sqlRaw`
+      CREATE TABLE IF NOT EXISTS daily_playbook (
+        user_id text NOT NULL,
+        date date NOT NULL DEFAULT CURRENT_DATE,
+        task_signal boolean DEFAULT false,
+        task_patterns boolean DEFAULT false,
+        task_brief boolean DEFAULT false,
+        task_track boolean DEFAULT false,
+        streak_count integer DEFAULT 0,
+        PRIMARY KEY (user_id, date)
+      )
+    `);
+    console.log('[Migrations] daily_playbook table OK');
   }
 
   // ─── Workspaces ───
@@ -5767,6 +5782,88 @@ JSON only, no markdown.`;
       await db.execute(sql`UPDATE users SET daily_signal_used = true WHERE id = ${req.user.id}`);
       res.json({ success: true });
     } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ── GET /api/playbook/today ──────────────────────────────────────────────────
+  app.get('/api/playbook/today', isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const userId = req.user.id;
+      const today = new Date().toISOString().split('T')[0];
+
+      let playbook = await db.execute(sql`
+        SELECT * FROM daily_playbook WHERE user_id = ${userId} AND date = ${today}
+      `);
+
+      if (!playbook.rows.length) {
+        await db.execute(sql`
+          INSERT INTO daily_playbook (user_id, date)
+          VALUES (${userId}, ${today})
+          ON CONFLICT DO NOTHING
+        `);
+        playbook = await db.execute(sql`
+          SELECT * FROM daily_playbook WHERE user_id = ${userId} AND date = ${today}
+        `);
+      }
+
+      const row = playbook.rows[0] as any;
+
+      const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+      const yesterdayRow = await db.execute(sql`
+        SELECT streak_count FROM daily_playbook WHERE user_id = ${userId} AND date = ${yesterday}
+      `);
+      const streak = yesterdayRow.rows.length > 0
+        ? ((yesterdayRow.rows[0] as any).streak_count || 0) + 1
+        : 1;
+
+      const completedCount = [row.task_signal, row.task_patterns, row.task_brief, row.task_track]
+        .filter(Boolean).length;
+
+      res.json({
+        tasks: {
+          signal: row.task_signal,
+          patterns: row.task_patterns,
+          brief: row.task_brief,
+          track: row.task_track,
+        },
+        completedCount,
+        streak,
+      });
+    } catch (error: any) {
+      console.error('[playbook/today] error:', error.message);
+      res.json({ tasks: { signal: false, patterns: false, brief: false, track: false }, completedCount: 0, streak: 1 });
+    }
+  });
+
+  // ── POST /api/playbook/complete ──────────────────────────────────────────────
+  app.post('/api/playbook/complete', isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const userId = req.user.id;
+      const today = new Date().toISOString().split('T')[0];
+      const { task } = req.body as { task: 'signal' | 'patterns' | 'brief' | 'track' };
+
+      const colMap: Record<string, string> = {
+        signal: 'task_signal',
+        patterns: 'task_patterns',
+        brief: 'task_brief',
+        track: 'task_track',
+      };
+      const col = colMap[task];
+      if (!col) return res.status(400).json({ message: 'Invalid task' });
+
+      await db.execute(sql.raw(`
+        UPDATE daily_playbook SET ${col} = true
+        WHERE user_id = '${userId.replace(/'/g, "''")}' AND date = '${today}'
+      `));
+
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error('[playbook/complete] error:', error.message);
       res.status(500).json({ error: error.message });
     }
   });
