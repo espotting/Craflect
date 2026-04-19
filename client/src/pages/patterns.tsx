@@ -1,232 +1,221 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "wouter";
+import { useLocation } from "wouter";
 import { DashboardLayout } from "@/components/layout";
-import { TrendScore } from "@/components/trend-score";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { TOPIC_CLUSTERS, TOPIC_CLUSTER_LABELS } from "@shared/schema";
-import { Layers, Eye, FileText, Video, Sparkles } from "lucide-react";
+import { PatternConfidenceBadge } from "@/components/pattern-confidence-badge";
+import { usePlaybook } from "@/hooks/use-playbook";
 
-interface ExampleVideo {
+interface Pattern {
   id: string;
-  caption: string | null;
-  views: number | null;
-  virality_score: number | null;
-}
-
-interface PatternItem {
-  pattern_hook: string;
-  content_format: string;
-  niche: string | null;
+  pattern_id: string;
+  pattern_label: string | null;
+  hook_template: string | null;
+  structure_template: string | null;
+  optimal_duration: number | null;
+  why_it_works: string | null;
+  best_for: string | null;
+  cta_suggestion: string | null;
+  avg_virality_score: number | null;
+  topic_cluster: string | null;
+  video_count: number | null;
+  predicted_views_min: number | null;
+  predicted_views_max: number | null;
+  confidence_score: number | null;
+  sub_niche: string | null;
+  hook_type_v2: string | null;
+  decay_weight: number | null;
+  velocity_7d: number | null;
+  trend_status: string | null;
+  signal_strength: 'strong' | 'building' | 'emerging';
+  cluster_key: string | null;
+  cluster_level: 2 | 3 | null;
   platform: string | null;
-  video_count: number;
-  growth_score: number | null;
-  avg_engagement: number | null;
-  example_videos: ExampleVideo[];
 }
 
-interface PatternsResponse {
-  patterns: PatternItem[];
+type Tab = 'trending' | 'rising' | 'stable' | 'fading';
+
+const TABS: { key: Tab; label: string }[] = [
+  { key: 'trending', label: 'Trending' },
+  { key: 'rising',   label: 'Rising' },
+  { key: 'stable',   label: 'Stable' },
+  { key: 'fading',   label: 'Fading' },
+];
+
+function getTab(p: Pattern): Tab {
+  const ts = (p.trend_status || '').toLowerCase();
+  if (ts === 'fading' || (p.velocity_7d !== null && p.velocity_7d < 0)) return 'fading';
+  if (ts === 'stable') return 'stable';
+  if (p.signal_strength === 'strong' || ts === 'trending') return 'trending';
+  if (p.signal_strength === 'building' || ts === 'rising') return 'rising';
+  return 'stable';
 }
 
 function formatViews(n: number | null): string {
-  if (n == null) return "—";
+  if (n == null) return '—';
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K`;
   return n.toString();
 }
 
-function formatEngagement(rate: number | null): string {
-  if (rate == null) return "—";
-  return `${(rate * 100).toFixed(2)}%`;
-}
-
-function formatLabel(s: string | null): string {
-  if (!s) return "—";
-  return s
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
-}
-
 export default function Patterns() {
-  const [selectedNiche, setSelectedNiche] = useState<string>("all");
+  const [tab, setTab] = useState<Tab>('trending');
+  const [, navigate] = useLocation();
+  const { complete } = usePlaybook();
 
-  const nicheParam = selectedNiche === "all" ? undefined : selectedNiche;
-  const queryKey = ["/api/patterns/browse" + (nicheParam ? `?niche=${nicheParam}` : "")];
+  useEffect(() => {
+    complete('patterns');
+  }, []);
 
-  const { data, isLoading } = useQuery<PatternsResponse>({
-    queryKey,
+  const { data, isLoading } = useQuery<Pattern[]>({
+    queryKey: ['/api/patterns/list'],
+    queryFn: () => fetch('/api/patterns/list', { credentials: 'include' }).then(r => r.json()),
+    staleTime: 30 * 60 * 1000,
   });
 
-  const patterns = data?.patterns ?? [];
+  const patterns = Array.isArray(data) ? data : [];
+
+  const byTab: Record<Tab, Pattern[]> = {
+    trending: patterns.filter(p => getTab(p) === 'trending'),
+    rising:   patterns.filter(p => getTab(p) === 'rising'),
+    stable:   patterns.filter(p => getTab(p) === 'stable'),
+    fading:   patterns.filter(p => getTab(p) === 'fading'),
+  };
+
+  // If a tab would be empty, show all patterns there so the UI is never a dead end
+  const visible = byTab[tab].length > 0 ? byTab[tab] : patterns;
 
   return (
     <DashboardLayout>
-      <div className="space-y-6" data-testid="page-patterns">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold" data-testid="text-page-title">
-              Patterns
-            </h1>
-            <p className="text-muted-foreground text-sm mt-1">
-              Viral patterns and content strategies detected across niches.
-            </p>
+      <div style={{ background: '#08080f', minHeight: '100vh', padding: '28px 24px' }} data-testid="page-patterns">
+
+        {/* Header */}
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ fontSize: 11, fontWeight: 800, color: '#7C5CFF', textTransform: 'uppercase', letterSpacing: '0.18em', marginBottom: 6 }}>
+            Pattern Feed
           </div>
-          <Select
-            value={selectedNiche}
-            onValueChange={setSelectedNiche}
-          >
-            <SelectTrigger
-              className="w-[220px]"
-              data-testid="select-niche-filter"
-            >
-              <SelectValue placeholder="Filter by niche" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all" data-testid="select-niche-all">
-                All niches
-              </SelectItem>
-              {TOPIC_CLUSTERS.map((cluster) => (
-                <SelectItem
-                  key={cluster}
-                  value={cluster}
-                  data-testid={`select-niche-${cluster}`}
-                >
-                  {TOPIC_CLUSTER_LABELS[cluster] ?? formatLabel(cluster)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div style={{ fontSize: 26, fontWeight: 800, color: '#fff', letterSpacing: '-0.02em' }}>
+            What's working right now
+          </div>
         </div>
 
+        {/* Tabs */}
+        <div style={{ display: 'flex', gap: 6, marginBottom: 24, borderBottom: '1px solid rgba(255,255,255,0.07)', paddingBottom: 0 }}>
+          {TABS.map(t => {
+            const count = byTab[t.key].length;
+            const active = tab === t.key;
+            return (
+              <button
+                key={t.key}
+                onClick={() => setTab(t.key)}
+                style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  padding: '8px 14px', fontSize: 13, fontWeight: active ? 700 : 500,
+                  color: active ? '#fff' : 'rgba(255,255,255,0.4)',
+                  borderBottom: active ? '2px solid #7C5CFF' : '2px solid transparent',
+                  marginBottom: -1, transition: 'color 0.15s',
+                  display: 'flex', alignItems: 'center', gap: 6,
+                }}
+              >
+                {t.label}
+                {count > 0 && (
+                  <span style={{
+                    fontSize: 10, fontWeight: 700,
+                    background: active ? '#7C5CFF' : 'rgba(255,255,255,0.08)',
+                    color: active ? '#fff' : 'rgba(255,255,255,0.4)',
+                    borderRadius: 10, padding: '1px 6px',
+                  }}>
+                    {count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Content */}
         {isLoading ? (
-          <div className="grid gap-4 md:grid-cols-2" data-testid="patterns-loading">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <Card key={i}>
-                <CardHeader>
-                  <Skeleton className="h-5 w-3/4" />
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-4 w-2/3" />
-                  <Skeleton className="h-4 w-1/2" />
-                </CardContent>
-              </Card>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} style={{
+                background: 'rgba(255,255,255,0.04)', borderRadius: 12,
+                height: 100, border: '1px solid rgba(255,255,255,0.06)',
+                animation: 'pulse 1.5s ease-in-out infinite',
+              }} />
             ))}
           </div>
-        ) : patterns.length === 0 ? (
-          <Card data-testid="patterns-empty">
-            <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-              <Layers className="w-12 h-12 text-muted-foreground mb-4" />
-              <p className="text-muted-foreground font-medium">
-                No patterns found for this filter.
-              </p>
-              <p className="text-muted-foreground text-sm mt-1">
-                Try selecting a different niche or check back later.
-              </p>
-            </CardContent>
-          </Card>
+        ) : visible.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '60px 20px', color: 'rgba(255,255,255,0.3)', fontSize: 14 }}>
+            No patterns yet — check back soon.
+          </div>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2" data-testid="patterns-grid">
-            {patterns.map((pattern, index) => (
-              <Card
-                key={`${pattern.pattern_hook}-${pattern.content_format}-${pattern.niche}-${pattern.platform}-${index}`}
-                data-testid={`card-pattern-${index}`}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {visible.map((p, i) => (
+              <div
+                key={p.pattern_id || i}
+                style={{
+                  background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
+                  borderRadius: 14, padding: '16px 18px',
+                  transition: 'border-color 0.15s',
+                }}
+                data-testid={`card-pattern-${i}`}
               >
-                <CardHeader className="flex flex-row items-start justify-between gap-2 space-y-0 pb-3">
-                  <div className="space-y-1 min-w-0">
-                    <CardTitle className="text-base leading-tight" data-testid={`text-hook-${index}`}>
-                      <Sparkles className="inline-block w-4 h-4 mr-1.5 text-primary" />
-                      {formatLabel(pattern.pattern_hook)}
-                    </CardTitle>
-                    <p className="text-sm text-muted-foreground" data-testid={`text-format-${index}`}>
-                      {formatLabel(pattern.content_format)}
-                    </p>
-                  </div>
-                  {pattern.growth_score != null && (
-                    <TrendScore
-                      score={pattern.growth_score}
-                      size="sm"
-                      showLabel
-                      data-testid={`trend-score-pattern-${index}`}
-                    />
-                  )}
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex flex-wrap items-center gap-2">
-                    {pattern.niche && (
-                      <Badge variant="secondary" data-testid={`badge-niche-${index}`}>
-                        {TOPIC_CLUSTER_LABELS[pattern.niche] ?? formatLabel(pattern.niche)}
-                      </Badge>
-                    )}
-                    {pattern.platform && (
-                      <Badge variant="outline" data-testid={`badge-platform-${index}`}>
-                        {formatLabel(pattern.platform)}
-                      </Badge>
-                    )}
-                  </div>
+                {/* Badge */}
+                <div style={{ marginBottom: 10 }}>
+                  <PatternConfidenceBadge
+                    signal_strength={p.signal_strength}
+                    video_count={p.video_count ?? 0}
+                    topic_cluster={p.topic_cluster}
+                    sub_niche={p.sub_niche}
+                    cluster_level={p.cluster_level}
+                    platform={p.platform}
+                    size="sm"
+                  />
+                </div>
 
-                  <div className="flex flex-wrap items-center gap-4 text-sm">
-                    <div className="flex items-center gap-1.5 text-muted-foreground" data-testid={`text-video-count-${index}`}>
-                      <Video className="w-3.5 h-3.5" />
-                      <span>{pattern.video_count} videos</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-muted-foreground" data-testid={`text-engagement-${index}`}>
-                      <Eye className="w-3.5 h-3.5" />
-                      <span>{formatEngagement(pattern.avg_engagement)} eng.</span>
-                    </div>
-                  </div>
+                {/* Label */}
+                <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', marginBottom: 4, lineHeight: 1.3 }}>
+                  {p.pattern_label || '—'}
+                </div>
 
-                  {pattern.example_videos && pattern.example_videos.length > 0 && (
-                    <div className="space-y-2" data-testid={`example-videos-${index}`}>
-                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                        Top examples
-                      </p>
-                      <div className="space-y-1.5">
-                        {pattern.example_videos.slice(0, 3).map((video, vi) => (
-                          <div
-                            key={video.id}
-                            className="flex items-center justify-between gap-2 text-sm rounded-md px-2.5 py-1.5 bg-muted/50"
-                            data-testid={`example-video-${index}-${vi}`}
-                          >
-                            <span className="truncate text-foreground/80 flex-1 min-w-0">
-                              {video.caption || "Untitled"}
-                            </span>
-                            <span className="text-xs text-muted-foreground whitespace-nowrap">
-                              {formatViews(video.views)} views
-                            </span>
-                          </div>
-                        ))}
-                      </div>
+                {/* Hook */}
+                {p.hook_template && (
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 12, lineHeight: 1.5 }}>
+                    {p.hook_template}
+                  </div>
+                )}
+
+                {/* Stats row */}
+                <div style={{ display: 'flex', gap: 16, marginBottom: 14, flexWrap: 'wrap' }}>
+                  {p.predicted_views_min != null && p.predicted_views_max != null && (
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>
+                      <span style={{ color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>
+                        {formatViews(p.predicted_views_min)}–{formatViews(p.predicted_views_max)}
+                      </span>
+                      {' '}predicted views
                     </div>
                   )}
+                  {p.avg_virality_score != null && (
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>
+                      Virality{' '}
+                      <span style={{ color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>
+                        {p.avg_virality_score.toFixed(1)}
+                      </span>
+                    </div>
+                  )}
+                </div>
 
-                  <div className="flex flex-wrap items-center gap-2 pt-1">
-                    <Link href="/script-generator">
-                      <Button variant="outline" size="sm" data-testid={`button-create-script-${index}`}>
-                        <FileText className="w-3.5 h-3.5 mr-1.5" />
-                        Create Script
-                      </Button>
-                    </Link>
-                    <Link href="/video-builder">
-                      <Button variant="outline" size="sm" data-testid={`button-create-video-${index}`}>
-                        <Video className="w-3.5 h-3.5 mr-1.5" />
-                        Create Video
-                      </Button>
-                    </Link>
-                  </div>
-                </CardContent>
-              </Card>
+                {/* CTA */}
+                <button
+                  onClick={() => navigate(`/create?patternId=${p.pattern_id}`)}
+                  style={{
+                    background: 'rgba(124,92,255,0.12)', border: '1px solid rgba(124,92,255,0.3)',
+                    borderRadius: 8, padding: '7px 14px', fontSize: 12, fontWeight: 700,
+                    color: '#a78bfa', cursor: 'pointer', transition: 'background 0.15s',
+                  }}
+                >
+                  Use this pattern →
+                </button>
+              </div>
             ))}
           </div>
         )}
