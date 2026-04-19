@@ -5,6 +5,7 @@ import { DashboardLayout } from "@/components/layout";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Copy, Check, ChevronLeft, Sparkles } from "lucide-react";
+import { PatternConfidenceBadge } from "@/components/pattern-confidence-badge";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -21,6 +22,9 @@ interface Pattern {
   topic_cluster: string | null;
   trend_status: string | null;
   velocity_7d: number | null;
+  signal_strength?: 'strong' | 'building' | 'emerging';
+  video_count?: number;
+  platform?: string;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -268,23 +272,15 @@ export default function StudioPage() {
                       transition: "all 0.15s",
                     }}
                   >
-                    {(p as any).signal_strength && (
+                    {p.signal_strength && (
                       <div style={{ marginBottom: 6 }}>
-                        <span style={{
-                          background: (p as any).signal_strength === 'strong'
-                            ? 'rgba(34,197,94,0.12)' : (p as any).signal_strength === 'building'
-                            ? 'rgba(245,158,11,0.12)' : 'rgba(124,92,255,0.10)',
-                          border: `1px solid ${(p as any).signal_strength === 'strong'
-                            ? 'rgba(34,197,94,0.3)' : (p as any).signal_strength === 'building'
-                            ? 'rgba(245,158,11,0.3)' : 'rgba(124,92,255,0.25)'}`,
-                          color: (p as any).signal_strength === 'strong' ? '#22c55e'
-                            : (p as any).signal_strength === 'building' ? '#f59e0b' : '#a78bfa',
-                          borderRadius: 20, padding: '2px 8px', fontSize: 10, fontWeight: 700,
-                        }}>
-                          {(p as any).signal_strength === 'strong' ? 'Strong'
-                            : (p as any).signal_strength === 'building' ? 'Building' : 'Emerging'}
-                          {' · '}{(p as any).video_count || 0} videos
-                        </span>
+                        <PatternConfidenceBadge
+                          signal_strength={p.signal_strength}
+                          video_count={p.video_count || 0}
+                          topic_cluster={p.topic_cluster}
+                          platform={p.platform}
+                          size="sm"
+                        />
                       </div>
                     )}
 
