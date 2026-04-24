@@ -140,6 +140,7 @@ export async function registerRoutes(
     await db.execute(sqlRaw`ALTER TABLE users ADD COLUMN IF NOT EXISTS daily_signal_used boolean DEFAULT false`);
     await db.execute(sqlRaw`ALTER TABLE users ADD COLUMN IF NOT EXISTS platforms text[] DEFAULT '{tiktok}'`);
     await db.execute(sqlRaw`ALTER TABLE users ADD COLUMN IF NOT EXISTS liked_video_ids text[] DEFAULT '{}'`);
+    await db.execute(sqlRaw`ALTER TABLE users ADD COLUMN IF NOT EXISTS active_platform text DEFAULT 'tiktok'`);
     // Videos — new columns for Pattern Engine upgrade
     await db.execute(sqlRaw`ALTER TABLE videos ADD COLUMN IF NOT EXISTS decay_weight float DEFAULT 1.0`);
     await db.execute(sqlRaw`ALTER TABLE videos ADD COLUMN IF NOT EXISTS sub_niche text`);
@@ -1850,6 +1851,7 @@ The content should directly apply the recommendations from the insight report. W
     try {
       const { db } = await import("./db");
       const { sql } = await import("drizzle-orm");
+      const VALID_PLATFORMS = ['tiktok', 'reels', 'shorts', 'instagram', 'youtube'];
       const input = z.object({
         selectedNiches: z.array(z.string()).max(10).optional(),
         userGoal: z.enum(["content_creator", "marketer", "business", "trend_explorer"]).optional(),
@@ -1861,7 +1863,11 @@ The content should directly apply the recommendations from the insight report. W
         popupSkipCount: z.number().optional(),
         notificationPrefs: z.record(z.boolean()).optional(),
         platforms: z.array(z.string()).optional(),
+        active_platform: z.string().optional(),
       }).parse(req.body);
+      if (input.active_platform !== undefined && !VALID_PLATFORMS.includes(input.active_platform)) {
+        return res.status(400).json({ error: 'Invalid platform' });
+      }
 
       if (input.selectedNiches !== undefined) {
         const nichesArray = `{${input.selectedNiches.join(",")}}`;
@@ -1885,6 +1891,9 @@ The content should directly apply the recommendations from the insight report. W
       if (input.platforms !== undefined && input.platforms.length > 0) {
         const platformsArray = `{${input.platforms.join(',')}}`;
         await db.execute(sql`UPDATE users SET platforms = ${platformsArray}::text[] WHERE id = ${req.user.id}`);
+      }
+      if (input.active_platform !== undefined) {
+        await db.execute(sql`UPDATE users SET active_platform = ${input.active_platform} WHERE id = ${req.user.id}`);
       }
 
       res.json({ success: true });
@@ -4804,7 +4813,7 @@ ${input.cta ? `CTA: ${input.cta}` : ""}`;
       const { db } = await import("./db");
       const { sql } = await import("drizzle-orm");
       const user = await db.execute(sql`
-        SELECT selected_niches, primary_niche, content_style, user_goal, onboarding_completed, platforms
+        SELECT selected_niches, primary_niche, content_style, user_goal, onboarding_completed, platforms, active_platform
         FROM users WHERE id = ${req.user.id}
       `);
       if (!user.rows.length) return res.status(404).json({ error: 'User not found' });
@@ -4816,6 +4825,7 @@ ${input.cta ? `CTA: ${input.cta}` : ""}`;
         userGoal: row.user_goal || null,
         onboardingCompleted: row.onboarding_completed || false,
         platforms: row.platforms || ['tiktok'],
+        active_platform: row.active_platform || 'tiktok',
       });
     } catch (error: any) {
       res.status(500).json({ error: error.message });

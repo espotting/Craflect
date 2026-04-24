@@ -84,18 +84,18 @@ export function AppSidebar() {
   const mainItems = isAdmin ? adminItems : userItems;
 
   return (
-    <Sidebar variant="inset" className="border-r border-border bg-sidebar">
+    <Sidebar variant="inset" collapsible="icon" className="border-r border-border bg-sidebar">
       <SidebarHeader className="p-4 flex flex-col gap-2">
         <div className="flex flex-row items-center justify-between gap-2">
           <img
             src={logoTransparent}
             alt="Craflect"
-            className="h-10 w-auto object-contain"
+            className="h-10 w-auto object-contain group-data-[collapsible=icon]:h-7"
             data-testid="logo-sidebar"
           />
         </div>
         {!isAdmin && prefs?.primaryNiche && (
-          <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-primary/10 border border-primary/20 w-fit">
+          <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-primary/10 border border-primary/20 w-fit group-data-[collapsible=icon]:hidden">
             <Sparkles className="w-3 h-3 text-primary" />
             <span className="text-xs font-medium text-primary capitalize" data-testid="text-primary-niche">
               {prefs.primaryNiche.replace(/_/g, ' ')}
@@ -125,6 +125,7 @@ export function AppSidebar() {
                     <SidebarMenuButton
                       asChild
                       isActive={isActive}
+                      tooltip={item.title}
                       className={isActive ? "bg-primary/10 text-primary" : "text-muted-foreground"}
                       onClick={() => setLocation(item.url)}
                     >
@@ -133,9 +134,9 @@ export function AppSidebar() {
                         data-testid={`nav-${item.url.replace(/\//g, "-").replace(/^-/, "")}`}
                       >
                         <item.icon className={`w-4 h-4 ${isActive ? "text-primary" : ""}`} />
-                        <span className="font-medium flex-1 text-left">{item.title}</span>
+                        <span className="font-medium flex-1 text-left group-data-[collapsible=icon]:hidden">{item.title}</span>
                         {counter !== undefined && (
-                          <span className="ml-auto text-xs font-semibold px-1.5 py-0.5 rounded-full bg-primary/20 text-primary min-w-[20px] text-center">
+                          <span className="ml-auto text-xs font-semibold px-1.5 py-0.5 rounded-full bg-primary/20 text-primary min-w-[20px] text-center group-data-[collapsible=icon]:hidden">
                             {counter}
                           </span>
                         )}
@@ -149,7 +150,7 @@ export function AppSidebar() {
         </SidebarGroup>
 
         {!isAdmin && !user?.onboardingCompleted && (
-          <SidebarGroup>
+          <SidebarGroup className="group-data-[collapsible=icon]:hidden">
             <SidebarGroupLabel className="text-muted-foreground uppercase tracking-wider text-xs font-semibold mb-2">
               {t.sidebar?.gettingStarted || "Getting Started"}
             </SidebarGroupLabel>
@@ -176,7 +177,7 @@ export function AppSidebar() {
 
         {!isAdmin && (
           <SidebarGroup className="mt-auto">
-            <SidebarGroupLabel className="text-muted-foreground uppercase tracking-wider text-xs font-semibold mb-2">
+            <SidebarGroupLabel className="text-muted-foreground uppercase tracking-wider text-xs font-semibold mb-2 group-data-[collapsible=icon]:hidden">
               {t.sidebar?.system || "System"}
             </SidebarGroupLabel>
             <SidebarGroupContent>
@@ -188,6 +189,7 @@ export function AppSidebar() {
                       <SidebarMenuButton
                         asChild
                         isActive={isActive}
+                        tooltip={item.title}
                         className={isActive ? "bg-primary/10 text-primary" : "text-muted-foreground"}
                         onClick={() => setLocation(item.url)}
                       >
@@ -196,7 +198,7 @@ export function AppSidebar() {
                           data-testid={`nav-${item.url.replace("/", "")}`}
                         >
                           <item.icon className={`w-4 h-4 ${isActive ? "text-primary" : ""}`} />
-                          <span className="font-medium">{item.title}</span>
+                          <span className="font-medium group-data-[collapsible=icon]:hidden">{item.title}</span>
                         </button>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -211,13 +213,13 @@ export function AppSidebar() {
       <SidebarFooter className="p-4 border-t border-border">
         <div className="flex items-center gap-3 px-2 py-2 rounded-md bg-accent/50 border border-border">
           {user?.profileImageUrl ? (
-            <img src={user.profileImageUrl} alt="" className="w-8 h-8 rounded-full" />
+            <img src={user.profileImageUrl} alt="" className="w-8 h-8 rounded-full flex-shrink-0" />
           ) : (
-            <div className="w-8 h-8 rounded-full bg-gradient-to-r from-secondary to-primary flex items-center justify-center text-white font-bold text-sm">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-r from-secondary to-primary flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
               {user?.firstName?.[0] || user?.email?.[0] || "U"}
             </div>
           )}
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0 group-data-[collapsible=icon]:hidden">
             <p className="text-sm font-medium text-foreground truncate" data-testid="text-username">
               {user?.firstName
                 ? `${user.firstName} ${user.lastName || ""}`
@@ -240,7 +242,7 @@ export function AppSidebar() {
             <LogOut className="w-4 h-4" />
           </button>
         </div>
-        <div className="mt-2 flex justify-center">
+        <div className="mt-2 flex justify-center group-data-[collapsible=icon]:hidden">
           <LanguageSwitcher variant="pill" />
         </div>
       </SidebarFooter>

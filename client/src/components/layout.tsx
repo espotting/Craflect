@@ -7,6 +7,10 @@ import { Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useLanguage } from "@/hooks/use-language";
 import { SmartPopup } from "./smart-popup";
+import { PlatformToggle } from "@/components/platform-toggle";
+import { usePlatform } from "@/hooks/use-platform";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 
 class PopupErrorBoundary extends Component<{ children: ReactNode }, { crashed: boolean }> {
   state = { crashed: false };
@@ -28,8 +32,25 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading, user } = useAuth();
   const [location, setLocation] = useLocation();
   const { t } = useLanguage();
+  const { platform, setPlatform } = usePlatform();
+  const queryClient = useQueryClient();
 
   const isAdmin = (user as any)?.isAdmin === true;
+
+  const updatePlatformMutation = useMutation({
+    mutationFn: (newPlatform: string) =>
+      apiRequest("PATCH", "/api/user/preferences", { active_platform: newPlatform }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/user/preferences"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/daily-signal"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/feed/personalized"] });
+    },
+  });
+
+  const handlePlatformChange = (p: any) => {
+    setPlatform(p);
+    updatePlatformMutation.mutate(p);
+  };
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -81,6 +102,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             <SidebarTrigger className="text-muted-foreground hover:text-foreground hover:bg-accent -ml-2 mr-4" />
             <div className="flex-1" />
             <div className="flex items-center gap-4">
+              {!isAdmin && <PlatformToggle value={platform} onChange={handlePlatformChange} />}
               {user?.firstName && (
                 <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', fontWeight: 400 }} data-testid="status-system">
                   {getGreeting(user.firstName)}
