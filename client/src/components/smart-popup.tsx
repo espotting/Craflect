@@ -8,7 +8,13 @@ const SESSION_KEY = "smart_popup_shown";
 
 interface ImportStatus {
   profileConnected: boolean;
-  platforms: Array<{ platform: string; connectedAt: string; videoCount: number }>;
+  platforms: Array<{
+    platform: string;
+    connectedAt: string;
+    videoCount: number;
+    accountHandle: string;
+    isPrimary: boolean;
+  }>;
   lastImportedAt: string | null;
   popupSkipCount?: number;
   popupLastShown?: string | null;
@@ -25,13 +31,26 @@ export function SmartPopup() {
     staleTime: 5 * 60 * 1000,
   });
 
+  const { data: prefs } = useQuery<{ platforms?: string[] }>({
+    queryKey: ["/api/user/preferences"],
+    staleTime: 5 * 60 * 1000,
+  });
+
   const skipMutation = useMutation({
     mutationFn: (count: number) => apiRequest("PATCH", "/api/user/preferences", { popupSkipCount: count }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/user/import-status"] }),
   });
 
+  const connectedPlatforms = status?.platforms.map(p => p.platform) ?? [];
+  const selectedPlatforms: string[] = prefs?.platforms?.length ? prefs.platforms : ['tiktok'];
+  const missingPlatforms = selectedPlatforms.filter(p => !connectedPlatforms.includes(p));
+
+  const isFirstConnect = connectedPlatforms.length === 0;
+  const isExpand = !isFirstConnect && missingPlatforms.length > 0;
+  const allCovered = !isFirstConnect && missingPlatforms.length === 0;
+
   useEffect(() => {
-    if (!status || dismissed) return;
+    if (!status || dismissed || allCovered) return;
     if (sessionStorage.getItem(SESSION_KEY)) return;
 
     const skipCount = status.popupSkipCount || 0;
@@ -39,19 +58,13 @@ export function SmartPopup() {
 
     const lastShown = status.popupLastShown ? new Date(status.popupLastShown) : null;
     const daysSince = lastShown ? (Date.now() - lastShown.getTime()) / (1000 * 60 * 60 * 24) : 999;
-    const platforms = status.platforms || [];
-    const noProfile = !status.profileConnected;
-    const singlePlatform = platforms.length === 1;
 
-    // Show on first 3 skips always; thereafter once/week
-    const shouldShow = (noProfile || (singlePlatform))
-      && (skipCount < 3 || daysSince >= 7);
-
+    const shouldShow = (isFirstConnect || isExpand) && (skipCount < 3 || daysSince >= 7);
     if (shouldShow) {
       const timer = setTimeout(() => setVisible(true), 2500);
       return () => clearTimeout(timer);
     }
-  }, [status, dismissed]);
+  }, [status, prefs, dismissed, isFirstConnect, isExpand, allCovered]);
 
   const handleDismiss = () => {
     setDismissed(true);
@@ -64,18 +77,24 @@ export function SmartPopup() {
 
   const handleConnect = () => {
     setVisible(false);
-    window.location.href = "/settings?tab=accounts";
+    window.location.href = '/settings?tab=accounts';
   };
 
   if (!visible || !status) return null;
 
-  const platforms = status.platforms || [];
-  const isExpand = status.profileConnected && platforms.length === 1;
-  const title = isExpand ? "Expand your analysis" : "Connect your profile";
-  const desc = isExpand
-    ? "You're connected to one platform. Add more to unlock cross-platform viral patterns."
-    : "Craflect can analyze your existing videos to personalize your content signals. Takes 30 seconds.";
-  const cta = isExpand ? "Connect another platform →" : "Connect now →";
+  const firstMissing = missingPlatforms[0] || 'reels';
+
+  const title = isFirstConnect
+    ? "Connect your account"
+    : `Add your ${firstMissing} account`;
+
+  const desc = isFirstConnect
+    ? "Craflect analyzes your existing videos to personalize your signals. Takes 30 seconds."
+    : `You're on ${connectedPlatforms[0] || 'TikTok'}. Add your ${firstMissing} account to unlock cross-platform patterns.`;
+
+  const cta = isFirstConnect
+    ? "Connect now →"
+    : `Connect ${firstMissing} →`;
 
   const valueProps = [
     { icon: BarChart2, label: "Better matches", desc: "Personalized to your content" },
@@ -128,7 +147,7 @@ export function SmartPopup() {
         {/* Title */}
         <h2 style={{
           fontSize: 22, fontWeight: 800, color: '#fff',
-          letterSpacing: '-0.02em', marginBottom: 10, margin: '0 0 10px',
+          letterSpacing: '-0.02em', margin: '0 0 10px',
         }}>
           {title}
         </h2>
@@ -136,7 +155,7 @@ export function SmartPopup() {
         {/* Description */}
         <p style={{
           fontSize: 14, color: 'rgba(255,255,255,0.45)', lineHeight: 1.6,
-          marginBottom: 24, margin: '0 0 24px',
+          margin: '0 0 24px',
         }}>
           {desc}
         </p>

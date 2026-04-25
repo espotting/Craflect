@@ -159,6 +159,23 @@ export async function registerRoutes(
         AND selected_niches IS NOT NULL
         AND array_length(selected_niches, 1) > 0
     `);
+    // user_connected_accounts table
+    await db.execute(sqlRaw`
+      CREATE TABLE IF NOT EXISTS user_connected_accounts (
+        id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id VARCHAR NOT NULL,
+        platform TEXT NOT NULL CHECK (platform IN ('tiktok', 'reels', 'shorts')),
+        account_handle TEXT NOT NULL,
+        account_url TEXT,
+        followers_count INTEGER,
+        is_primary BOOLEAN NOT NULL DEFAULT false,
+        connected_at TIMESTAMP NOT NULL DEFAULT NOW(),
+        last_synced_at TIMESTAMP,
+        created_at TIMESTAMP NOT NULL DEFAULT NOW()
+      )
+    `);
+    await db.execute(sqlRaw`CREATE INDEX IF NOT EXISTS idx_user_connected_accounts_user_id ON user_connected_accounts(user_id)`);
+    await db.execute(sqlRaw`CREATE INDEX IF NOT EXISTS idx_user_connected_accounts_platform ON user_connected_accounts(platform)`);
     console.log('[Migrations] Phase 4 columns OK');
 
     // Sprint 5 — Reclassify 50 high-virality videos with taxonomy v5.0 (one-time seed)
@@ -5461,25 +5478,103 @@ JSON only, no markdown.`;
     try {
       const { db } = await import("./db");
       const { sql } = await import("drizzle-orm");
-      const result = await db.execute(sql`
-        SELECT profile_connected, profile_imported_at, profile_videos_count,
-               profile_url_tiktok, profile_url_instagram, profile_url_youtube,
-               popup_skip_count
-        FROM users WHERE id = ${req.user.id}
-      `);
-      const row = result.rows[0] as any;
-      const platforms: Array<{ platform: string; connectedAt: string; videoCount: number }> = [];
-      if (row?.profile_url_tiktok) platforms.push({ platform: 'tiktok', connectedAt: row.profile_imported_at || new Date().toISOString(), videoCount: row.profile_videos_count || 0 });
-      if (row?.profile_url_instagram) platforms.push({ platform: 'instagram', connectedAt: row.profile_imported_at || new Date().toISOString(), videoCount: row.profile_videos_count || 0 });
-      if (row?.profile_url_youtube) platforms.push({ platform: 'youtube', connectedAt: row.profile_imported_at || new Date().toISOString(), videoCount: row.profile_videos_count || 0 });
-      res.json({
-        profileConnected: platforms.length > 0,
-        platforms,
-        lastImportedAt: row?.profile_imported_at || null,
-        popupSkipCount: row?.popup_skip_count || 0,
+      const [accountsRes, userRes] = await Promise.all([
+        db.execute(sql`
+          SELECT id, platform, account_handle, connected_at, last_synced_at, is_primary
+          FROM user_connected_accounts WHERE user_id = ${req.user.id}
+          ORDER BY connected_at DESC
+        `),
+        db.execute(sql`SELECT popup_skip_count, popup_last_shown FROM users WHERE id = ${req.user.id}`),
+      ]);
+      const accounts = accountsRes.rows as any[];
+      const userRow = userRes.rows[0] as any;
+      return res.json({
+        profileConnected: accounts.length > 0,
+        platforms: accounts.map(a => ({
+          platform: a.platform,
+          connectedAt: a.connected_at,
+          videoCount: 0,
+          accountHandle: a.account_handle,
+          isPrimary: a.is_primary,
+        })),
+        lastImportedAt: accounts[0]?.last_synced_at || null,
+        popupSkipCount: userRow?.popup_skip_count || 0,
+        popupLastShown: userRow?.popup_last_shown || null,
       });
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ profileConnected: false, platforms: [], lastImportedAt: null });
+    }
+  });
+
+  // ── GET /api/user/accounts ────────────────────────────────────────────────
+  app.get('/api/user/accounts', isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const result = await db.execute(sql`
+        SELECT id, user_id, platform, account_handle, account_url, followers_count,
+               is_primary, connected_at, last_synced_at, created_at
+        FROM user_connected_accounts WHERE user_id = ${req.user.id}
+        ORDER BY connected_at DESC
+      `);
+      return res.json(result.rows);
+    } catch (error: any) {
+      console.error('[/api/user/accounts]', error.message);
+      return res.status(500).json({ error: 'Failed to fetch accounts' });
+    }
+  });
+
+  // ── POST /api/user/accounts ───────────────────────────────────────────────
+  app.post('/api/user/accounts', isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const VALID_PLATFORMS = ['tiktok', 'reels', 'shorts'];
+      const { platform, accountHandle, accountUrl, followersCount, isPrimary } = req.body;
+      if (!platform || !VALID_PLATFORMS.includes(platform)) {
+        return res.status(400).json({ error: 'Invalid platform' });
+      }
+      if (!accountHandle || typeof accountHandle !== 'string') {
+        return res.status(400).json({ error: 'accountHandle required' });
+      }
+      if (isPrimary) {
+        await db.execute(sql`
+          UPDATE user_connected_accounts SET is_primary = false
+          WHERE user_id = ${req.user.id} AND platform = ${platform}
+        `);
+      }
+      const handle = (accountHandle as string).replace('@', '');
+      const result = await db.execute(sql`
+        INSERT INTO user_connected_accounts
+          (user_id, platform, account_handle, account_url, followers_count, is_primary)
+        VALUES
+          (${req.user.id}, ${platform}, ${handle}, ${accountUrl || null}, ${followersCount || null}, ${isPrimary || false})
+        RETURNING *
+      `);
+      // Ensure platform is in user active_platform if not already set
+      await db.execute(sql`
+        UPDATE users SET active_platform = ${platform}
+        WHERE id = ${req.user.id} AND (active_platform IS NULL OR active_platform = 'tiktok')
+      `);
+      return res.json(result.rows[0]);
+    } catch (error: any) {
+      console.error('[POST /api/user/accounts]', error.message);
+      return res.status(500).json({ error: 'Failed to connect account' });
+    }
+  });
+
+  // ── DELETE /api/user/accounts/:id ────────────────────────────────────────
+  app.delete('/api/user/accounts/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      await db.execute(sql`
+        DELETE FROM user_connected_accounts
+        WHERE id = ${req.params.id} AND user_id = ${req.user.id}
+      `);
+      return res.json({ success: true });
+    } catch (error: any) {
+      return res.status(500).json({ error: 'Failed to delete account' });
     }
   });
 

@@ -1188,6 +1188,26 @@ export const userContentDna = pgTable("user_content_dna", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const userConnectedAccounts = pgTable("user_connected_accounts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  platform: text("platform").notNull(),
+  accountHandle: text("account_handle").notNull(),
+  accountUrl: text("account_url"),
+  followersCount: integer("followers_count"),
+  isPrimary: boolean("is_primary").notNull().default(false),
+  connectedAt: timestamp("connected_at").notNull().defaultNow(),
+  lastSyncedAt: timestamp("last_synced_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => [
+  index("idx_user_connected_accounts_user_id").on(table.userId),
+  index("idx_user_connected_accounts_platform").on(table.platform),
+]);
+
+export const insertUserConnectedAccountSchema = createInsertSchema(userConnectedAccounts).omit({ id: true, createdAt: true });
+export type UserConnectedAccount = typeof userConnectedAccounts.$inferSelect;
+export type InsertUserConnectedAccount = z.infer<typeof insertUserConnectedAccountSchema>;
+
 export type Niche = typeof niches.$inferSelect;
 export type InsertNiche = z.infer<typeof insertNicheSchema>;
 export type Creator = typeof creators.$inferSelect;
