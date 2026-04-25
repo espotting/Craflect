@@ -8,16 +8,49 @@ const scrollStyle: React.CSSProperties = {
   scrollbarWidth: 'none',
 };
 
+type RawPattern = {
+  pattern_id: string;
+  hook_template: string | null;
+  why_it_works: string | null;
+  signal_strength: 'strong' | 'building' | 'emerging';
+  video_count: number | null;
+  predicted_views_min: number | null;
+  predicted_views_max: number | null;
+  velocity_7d: number | null;
+  avg_virality_score: number | null;
+  avg_engagement_rate: number | null;
+  topic_cluster: string | null;
+  platform: string | null;
+  [key: string]: any;
+};
+
+function toCard(p: RawPattern): PatternCardPattern {
+  return {
+    patternId: p.pattern_id,
+    hookTemplate: p.hook_template,
+    whyItWorks: p.why_it_works,
+    signalStrength: p.signal_strength ?? 'emerging',
+    videoCount: p.video_count,
+    predictedViewsMin: p.predicted_views_min,
+    predictedViewsMax: p.predicted_views_max,
+    velocity7d: p.velocity_7d,
+    avgViralityScore: p.avg_virality_score,
+    avgEngagementRate: p.avg_engagement_rate,
+    topicCluster: p.topic_cluster,
+    platform: p.platform,
+  };
+}
+
 function getDominantSignal(patterns: PatternCardPattern[]): 'strong' | 'building' | 'emerging' {
-  if (patterns.some(p => p.signal_strength === 'strong')) return 'strong';
-  if (patterns.some(p => p.signal_strength === 'building')) return 'building';
+  if (patterns.some(p => p.signalStrength === 'strong')) return 'strong';
+  if (patterns.some(p => p.signalStrength === 'building')) return 'building';
   return 'emerging';
 }
 
 function PatternCardSkeleton() {
   return (
     <div style={{
-      flex: '0 0 186px', height: 160,
+      flex: '0 0 196px', height: 220,
       background: 'rgba(255,255,255,0.03)',
       border: '1px solid rgba(255,255,255,0.06)',
       borderRadius: 12, padding: '11px 13px',
@@ -51,7 +84,7 @@ function NicheRow({ niche, patterns, isFirst }: {
           {patterns.length > 0 && (
             <PatternConfidenceBadge
               signal_strength={dominantSignal}
-              video_count={patterns.reduce((s, p) => s + (p.video_count ?? 0), 0)}
+              video_count={patterns.reduce((s, p) => s + (p.videoCount ?? 0), 0)}
               size="sm"
             />
           )}
@@ -65,7 +98,7 @@ function NicheRow({ niche, patterns, isFirst }: {
       </div>
       <div style={scrollStyle}>
         {patterns.length > 0
-          ? patterns.slice(0, 6).map(p => <PatternCard key={p.pattern_id} pattern={p} />)
+          ? patterns.slice(0, 6).map(p => <PatternCard key={p.patternId} pattern={p} />)
           : Array.from({ length: 3 }).map((_, i) => <PatternCardSkeleton key={i} />)
         }
       </div>
@@ -76,19 +109,20 @@ function NicheRow({ niche, patterns, isFirst }: {
 export function FeedSection({
   niches,
   platform: _platform,
-  patterns,
+  patterns: rawPatterns,
 }: {
   niches: string[];
   platform: string;
-  patterns: PatternCardPattern[];
+  patterns: RawPattern[];
 }) {
+  const patterns = rawPatterns.map(toCard);
+
   const patternsByNiche: Record<string, PatternCardPattern[]> = {};
   niches.forEach(n => { patternsByNiche[n] = []; });
   patterns.forEach(p => {
-    if (p.topic_cluster && patternsByNiche[p.topic_cluster]) {
-      patternsByNiche[p.topic_cluster].push(p);
-    } else if (p.topic_cluster && niches.length > 0) {
-      // fallback: add to first niche if cluster not matched
+    if (p.topicCluster && patternsByNiche[p.topicCluster]) {
+      patternsByNiche[p.topicCluster].push(p);
+    } else if (p.topicCluster && niches.length > 0) {
       if (!patternsByNiche[niches[0]]) patternsByNiche[niches[0]] = [];
       patternsByNiche[niches[0]].push(p);
     }

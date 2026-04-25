@@ -5474,7 +5474,7 @@ JSON only, no markdown.`;
         const fallback = await db.execute(sql.raw(`
           SELECT p.pattern_id as id, p.pattern_id, p.pattern_label, p.hook_template, p.structure_template,
                  p.optimal_duration, p.why_it_works, p.best_for, p.cta_suggestion,
-                 p.avg_virality_score, p.topic_cluster, p.video_count,
+                 p.avg_virality_score, p.avg_engagement_rate, p.topic_cluster, p.video_count,
                  p.predicted_views_min, p.predicted_views_max, p.confidence_score,
                  p.sub_niche, p.hook_type_v2, p.decay_weight, p.created_at, p.velocity_7d,
                  cc.trend_status, cc.velocity_7d as cc_velocity_7d
@@ -5510,7 +5510,7 @@ JSON only, no markdown.`;
       const patterns = await db.execute(sql.raw(`
         SELECT p.pattern_id as id, p.pattern_id, p.pattern_label, p.hook_template, p.structure_template,
                p.optimal_duration, p.why_it_works, p.best_for, p.cta_suggestion,
-               p.avg_virality_score, p.topic_cluster, p.video_count,
+               p.avg_virality_score, p.avg_engagement_rate, p.topic_cluster, p.video_count,
                p.predicted_views_min, p.predicted_views_max, p.confidence_score,
                p.sub_niche, p.hook_type_v2, p.decay_weight, p.created_at, p.velocity_7d,
                cc.trend_status, cc.velocity_7d as cc_velocity_7d
