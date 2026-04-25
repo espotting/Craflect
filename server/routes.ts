@@ -4602,15 +4602,102 @@ ${input.cta ? `CTA: ${input.cta}` : ""}`;
       const { db } = await import("./db");
       const { sql } = await import("drizzle-orm");
       const result = await db.execute(sql`
-        SELECT p.*, cc.trend_status, cc.velocity_7d
+        SELECT p.*, cc.trend_status, cc.velocity_7d as cc_velocity_7d
         FROM patterns p
         LEFT JOIN content_clusters cc ON cc.id::text = p.cluster_id
         WHERE p.pattern_id = ${req.params.id}
       `);
       if (!result.rows.length) return res.status(404).json({ error: 'Not found' });
-      res.json(result.rows[0]);
+      const p = result.rows[0] as any;
+      const vel = p.velocity_7d ?? p.cc_velocity_7d ?? 0;
+      const pat_platform = p.platform || 'tiktok';
+      res.json({
+        ...p,
+        platform: pat_platform,
+        signal_strength: computeSignalStrength({ video_count: p.video_count, velocity_7d: vel, cluster_level: p.sub_niche ? 3 : 2, platform: pat_platform }),
+        velocity_7d: vel,
+      });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get('/api/patterns/:id/similar', isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const patternRes = await db.execute(sql`
+        SELECT topic_cluster, hook_type_v2 FROM patterns WHERE pattern_id = ${req.params.id}
+      `);
+      if (!patternRes.rows.length) return res.json([]);
+      const row = patternRes.rows[0] as any;
+      const similar = await db.execute(sql.raw(`
+        SELECT p.*, cc.trend_status, cc.velocity_7d
+        FROM patterns p
+        LEFT JOIN content_clusters cc ON cc.id::text = p.cluster_id
+        WHERE p.hook_template IS NOT NULL
+          AND p.pattern_label IS NOT NULL
+          AND p.pattern_id != '${(req.params.id as string).replace(/'/g, "''")}'
+          AND (
+            p.topic_cluster = '${(row.topic_cluster || '').replace(/'/g, "''")}'
+            OR p.hook_type_v2 = '${(row.hook_type_v2 || '').replace(/'/g, "''")}'
+          )
+        ORDER BY p.avg_virality_score DESC NULLS LAST
+        LIMIT 5
+      `));
+      const enriched = (similar.rows as any[]).map(p => {
+        const vel = p.velocity_7d ?? 0;
+        const pat_platform = p.platform || 'tiktok';
+        return {
+          ...p,
+          platform: pat_platform,
+          signal_strength: computeSignalStrength({ video_count: p.video_count, velocity_7d: vel, cluster_level: p.sub_niche ? 3 : 2, platform: pat_platform }),
+          velocity_7d: vel,
+          patternId: p.pattern_id,
+          hookTemplate: p.hook_template,
+          whyItWorks: p.why_it_works,
+          signalStrength: computeSignalStrength({ video_count: p.video_count, velocity_7d: vel, cluster_level: p.sub_niche ? 3 : 2, platform: pat_platform }),
+          videoCount: p.video_count,
+          predictedViewsMin: p.predicted_views_min,
+          predictedViewsMax: p.predicted_views_max,
+          velocity7d: vel,
+          avgViralityScore: p.avg_virality_score,
+          avgEngagementRate: p.avg_engagement_rate,
+          topicCluster: p.topic_cluster,
+        };
+      });
+      res.json(enriched);
+    } catch (error: any) {
+      console.error('[/api/patterns/:id/similar]', error.message);
+      res.json([]);
+    }
+  });
+
+  app.get('/api/patterns/:id/source-video', isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const patternRes = await db.execute(sql`
+        SELECT topic_cluster FROM patterns WHERE pattern_id = ${req.params.id}
+      `);
+      if (!patternRes.rows.length) return res.json(null);
+      const topicCluster = (patternRes.rows[0] as any).topic_cluster;
+      if (!topicCluster) return res.json(null);
+      const videoRes = await db.execute(sql.raw(`
+        SELECT id, caption, platform, creator_name, views, likes, comments, shares,
+               engagement_rate, virality_score, topic_cluster, published_at,
+               duration_seconds, transcript, followers_count
+        FROM videos
+        WHERE topic_cluster = '${topicCluster.replace(/'/g, "''")}'
+          AND classification_status = 'completed'
+          AND virality_score IS NOT NULL
+        ORDER BY virality_score DESC NULLS LAST
+        LIMIT 1
+      `));
+      res.json(videoRes.rows[0] || null);
+    } catch (error: any) {
+      console.error('[/api/patterns/:id/source-video]', error.message);
+      res.json(null);
     }
   });
 

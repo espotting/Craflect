@@ -141,7 +141,7 @@ export function PatternCard({
   const viralityRaw = pattern.avgViralityScore ?? 0;
   const viralityPct = Math.min(100, Math.max(0, viralityRaw));
 
-  const handleCardClick = () => navigate(`/create?patternId=${pattern.patternId}`);
+  const handleCardClick = () => navigate(`/video/${pattern.patternId}`);
   const handleCTAClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (onCreateClick) onCreateClick(pattern);
