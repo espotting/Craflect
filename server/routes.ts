@@ -6002,9 +6002,6 @@ JSON only, no markdown.`;
     }
   });
 
-  return httpServer;
-}
-
   app.get('/api/user/streak', isAuthenticated, async (req: any, res) => {
     try {
       const { db } = await import("./db");
@@ -6020,6 +6017,9 @@ JSON only, no markdown.`;
       return res.json({ streak: 0 });
     }
   });
+
+  return httpServer;
+}
 
 function formatViewCount(num: number): string {
   if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(0)}M`;
