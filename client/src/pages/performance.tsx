@@ -19,6 +19,15 @@ import {
   AlertTriangle,
 } from "lucide-react";
 
+interface PendingEntryData {
+  id: string;
+  platform: string;
+  hook_used: string | null;
+  niche: string | null;
+  pattern_id: string | null;
+  created_at: string;
+}
+
 interface TrackedVideo {
   id: string;
   platform_video_url: string;
@@ -66,6 +75,81 @@ function getPerformanceBadge(predicted: number | null, actual: number | null): {
   return { label: "✓ As Expected", color: "#94a3b8", bg: "rgba(148,163,184,0.1)" };
 }
 
+function PendingEntry({ entry, onTrack }: {
+  entry: PendingEntryData;
+  onTrack: (id: string, url: string) => void;
+}) {
+  const [url, setUrl] = useState("");
+
+  const platformLabel: Record<string, string> = { tiktok: 'TikTok', reels: 'Reels', shorts: 'Shorts' };
+
+  return (
+    <div style={{
+      background: 'rgba(124,92,255,0.05)', border: '1px solid rgba(124,92,255,0.2)',
+      borderRadius: 12, padding: '16px 20px',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+            <span style={{
+              background: 'rgba(124,92,255,0.18)', border: '1px solid rgba(124,92,255,0.35)',
+              color: '#a78bfa', borderRadius: 4, padding: '2px 8px', fontSize: 10, fontWeight: 700, textTransform: 'uppercase' as const,
+            }}>
+              {platformLabel[entry.platform] || entry.platform}
+            </span>
+            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>
+              {new Date(entry.created_at).toLocaleDateString()}
+            </span>
+          </div>
+          {entry.hook_used && (
+            <div style={{
+              fontSize: 13, color: 'rgba(255,255,255,0.7)', lineHeight: 1.4,
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const,
+            }}>
+              "{entry.hook_used}"
+            </div>
+          )}
+          {entry.niche && (
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>
+              {entry.niche.replace(/_/g, ' ')}
+            </div>
+          )}
+        </div>
+        <span style={{
+          background: 'rgba(251,146,60,0.12)', border: '1px solid rgba(251,146,60,0.25)',
+          color: '#fb923c', borderRadius: 20, padding: '3px 10px', fontSize: 11, fontWeight: 600, flexShrink: 0,
+        }}>
+          Not published yet
+        </span>
+      </div>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <input
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          placeholder="Paste your video URL after publishing…"
+          style={{
+            flex: 1, background: 'rgba(0,0,0,0.35)', border: '1px solid rgba(124,92,255,0.25)',
+            borderRadius: 8, padding: '8px 12px', color: '#fff', fontSize: 13, outline: 'none',
+          }}
+          onKeyDown={(e) => e.key === 'Enter' && url.trim() && onTrack(entry.id, url.trim())}
+        />
+        <button
+          onClick={() => url.trim() && onTrack(entry.id, url.trim())}
+          disabled={!url.trim()}
+          style={{
+            background: url.trim() ? 'linear-gradient(90deg, #7C5CFF, #c026d3)' : 'rgba(255,255,255,0.06)',
+            border: 'none', color: '#fff', borderRadius: 8, padding: '8px 16px',
+            fontSize: 13, fontWeight: 600, cursor: url.trim() ? 'pointer' : 'not-allowed',
+            opacity: url.trim() ? 1 : 0.4, whiteSpace: 'nowrap' as const,
+          }}
+        >
+          Start tracking →
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function StatCard({ icon: Icon, label, value, color }: {
   icon: React.ElementType; label: string; value: string | number; color?: string;
 }) {
@@ -91,6 +175,23 @@ export default function PerformancePage() {
   const [predictedViews, setPredictedViews] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [refreshingId, setRefreshingId] = useState<string | null>(null);
+
+  const { data: pendingEntries = [] } = useQuery<PendingEntryData[]>({
+    queryKey: ["/api/video-performance/pending"],
+    refetchInterval: 30_000,
+  });
+
+  const activateMutation = useMutation({
+    mutationFn: ({ id, platformVideoUrl }: { id: string; platformVideoUrl: string }) =>
+      apiRequest("PATCH", `/api/video-performance/${id}`, { platformVideoUrl, status: 'published' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/video-performance/pending"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/performance"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/performance/stats"] });
+      toast({ title: "Video is now being tracked!" });
+    },
+    onError: () => toast({ title: "Could not start tracking", variant: "destructive" }),
+  });
 
   const { data: tracked, isLoading } = useQuery<TrackedVideo[]>({
     queryKey: ["/api/performance"],
@@ -178,6 +279,33 @@ export default function PerformancePage() {
             Track a Video
           </button>
         </div>
+
+        {/* Section P — Pending entries (created from Studio) */}
+        {pendingEntries.length > 0 && (
+          <div style={{ marginBottom: 32 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+              <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>Ready to track</h2>
+              <span style={{
+                background: 'rgba(251,146,60,0.14)', border: '1px solid rgba(251,146,60,0.28)',
+                color: '#fb923c', borderRadius: 20, padding: '2px 10px', fontSize: 11, fontWeight: 700,
+              }}>
+                {pendingEntries.length}
+              </span>
+            </div>
+            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginTop: 0, marginBottom: 16 }}>
+              Paste the URL once your video is live to start tracking performance.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {pendingEntries.map((entry) => (
+                <PendingEntry
+                  key={entry.id}
+                  entry={entry}
+                  onTrack={(id, url) => activateMutation.mutate({ id, platformVideoUrl: url })}
+                />
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Section D — Prediction Stats */}
         {totalTracked > 0 && (

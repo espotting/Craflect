@@ -97,6 +97,7 @@ export default function StudioPage() {
   const [vars, setVars] = useState<Record<string, string>>({});
   const [copied, setCopied] = useState(false);
   const [savedOk, setSavedOk] = useState(false);
+  const [entryId, setEntryId] = useState<string | null>(null);
 
   const { data: patternsRaw, isLoading } = useQuery({
     queryKey: ["/api/patterns/list"],
@@ -124,6 +125,12 @@ export default function StudioPage() {
   const handleSelect = (p: Pattern) => { setSelected(p); setVars({}); };
   const handleVarChange = (key: string, val: string) => setVars((prev) => ({ ...prev, [key]: val }));
 
+  const briefGeneratedMutation = useMutation({
+    mutationFn: (data: { patternId?: string; hookUsed?: string; platform?: string; niche?: string }) =>
+      apiRequest("POST", "/api/studio/brief-generated", data).then((r) => r.json()),
+    onSuccess: (data: { id: string }) => setEntryId(data.id),
+  });
+
   const saveMutation = useMutation({
     mutationFn: () =>
       apiRequest("POST", "/api/workspace/save-brief", {
@@ -135,6 +142,12 @@ export default function StudioPage() {
       setSavedOk(true);
       toast({ title: "Brief saved to workspace!" });
       setTimeout(() => setSavedOk(false), 2500);
+      briefGeneratedMutation.mutate({
+        patternId: selected?.id,
+        hookUsed: hookFinal || selected?.hook_template || undefined,
+        platform: selected?.platform || 'tiktok',
+        niche: selected?.topic_cluster || undefined,
+      });
     },
     onError: () => toast({ title: "Failed to save", variant: "destructive" }),
   });
@@ -494,7 +507,7 @@ export default function StudioPage() {
                   {/* Actions */}
                   <div style={{ display: "flex", gap: 10, flexWrap: "wrap" as const }}>
                     <button
-                      onClick={() => { setSelected(null); setVars({}); }}
+                      onClick={() => { setSelected(null); setVars({}); setEntryId(null); }}
                       style={{
                         background: "none", border: "1px solid rgba(255,255,255,0.12)",
                         color: "rgba(255,255,255,0.38)", borderRadius: 10, padding: "10px 16px",
@@ -531,6 +544,35 @@ export default function StudioPage() {
                       {savedOk ? "✓ Saved!" : "Save to workspace →"}
                     </button>
                   </div>
+
+                  {/* Performance tracking banner */}
+                  {entryId && (
+                    <div style={{
+                      marginTop: 14,
+                      background: "rgba(16,185,129,0.07)", border: "1px solid rgba(16,185,129,0.22)",
+                      borderRadius: 10, padding: "12px 16px",
+                      display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
+                    }}>
+                      <div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: "#10b981", marginBottom: 2 }}>
+                          Performance tracking ready
+                        </div>
+                        <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>
+                          After you publish, paste the URL in Performance to track your results.
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => navigate("/performance")}
+                        style={{
+                          background: "rgba(16,185,129,0.14)", border: "1px solid rgba(16,185,129,0.3)",
+                          color: "#10b981", borderRadius: 8, padding: "7px 14px",
+                          fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" as const,
+                        }}
+                      >
+                        Go to Performance →
+                      </button>
+                    </div>
+                  )}
                 </div>
 
               </div>

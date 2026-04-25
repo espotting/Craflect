@@ -131,6 +131,30 @@ export async function registerRoutes(
         AND selected_niches IS NOT NULL
         AND array_length(selected_niches, 1) > 0
     `);
+    // user_connected_accounts table
+    await db.execute(sqlRaw`
+      CREATE TABLE IF NOT EXISTS user_connected_accounts (
+        id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id VARCHAR NOT NULL,
+        platform TEXT NOT NULL CHECK (platform IN ('tiktok', 'reels', 'shorts')),
+        account_handle TEXT NOT NULL,
+        account_url TEXT,
+        followers_count INTEGER,
+        is_primary BOOLEAN NOT NULL DEFAULT false,
+        connected_at TIMESTAMP NOT NULL DEFAULT NOW(),
+        last_synced_at TIMESTAMP,
+        created_at TIMESTAMP NOT NULL DEFAULT NOW()
+      )
+    `);
+    await db.execute(sqlRaw`CREATE INDEX IF NOT EXISTS idx_user_connected_accounts_user_id ON user_connected_accounts(user_id)`);
+    await db.execute(sqlRaw`CREATE INDEX IF NOT EXISTS idx_user_connected_accounts_platform ON user_connected_accounts(platform)`);
+    // video_performance — Studio→Results loop columns
+    await db.execute(sqlRaw`ALTER TABLE video_performance ALTER COLUMN platform_video_url DROP NOT NULL`);
+    await db.execute(sqlRaw`ALTER TABLE video_performance ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'pending'`);
+    await db.execute(sqlRaw`ALTER TABLE video_performance ADD COLUMN IF NOT EXISTS pattern_id VARCHAR`);
+    await db.execute(sqlRaw`ALTER TABLE video_performance ADD COLUMN IF NOT EXISTS hook_used TEXT`);
+    await db.execute(sqlRaw`ALTER TABLE video_performance ADD COLUMN IF NOT EXISTS niche TEXT`);
+    await db.execute(sqlRaw`ALTER TABLE video_performance ADD COLUMN IF NOT EXISTS notes TEXT`);
     console.log('[Migrations] Phase 4 columns OK');
 
     // Sprint 5 — Reclassify 50 high-virality videos with taxonomy v5.0 (one-time seed)
@@ -5428,6 +5452,80 @@ JSON only, no markdown.`;
     } catch (error: any) {
       if (error instanceof z.ZodError) return res.status(400).json({ error: error.errors[0].message });
       console.error("Save brief error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ── POST /api/studio/brief-generated — create pending video_performance entry ──
+  app.post('/api/studio/brief-generated', isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const input = z.object({
+        patternId: z.string().optional(),
+        hookUsed: z.string().optional(),
+        platform: z.string().optional(),
+        niche: z.string().optional(),
+      }).parse(req.body);
+
+      const result = await db.execute(sql`
+        INSERT INTO video_performance (user_id, platform_video_url, platform, status, pattern_id, hook_used, niche)
+        VALUES (
+          ${req.user.id},
+          '',
+          ${input.platform || 'tiktok'},
+          'pending',
+          ${input.patternId || null},
+          ${input.hookUsed || null},
+          ${input.niche || null}
+        )
+        RETURNING id
+      `);
+      res.status(201).json({ success: true, id: result.rows[0]?.id });
+    } catch (error: any) {
+      if (error instanceof z.ZodError) return res.status(400).json({ error: error.errors[0].message });
+      console.error("Brief generated error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ── GET /api/video-performance/pending — list pending entries for current user ──
+  app.get('/api/video-performance/pending', isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const rows = await db.execute(sql`
+        SELECT id, platform, hook_used, niche, pattern_id, created_at
+        FROM video_performance
+        WHERE user_id = ${req.user.id} AND status = 'pending'
+        ORDER BY created_at DESC
+      `);
+      res.json(rows.rows);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ── PATCH /api/video-performance/:id — update URL + status ──
+  app.patch('/api/video-performance/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const input = z.object({
+        platformVideoUrl: z.string().optional(),
+        status: z.enum(['pending', 'published', 'tracked', 'archived']).optional(),
+      }).parse(req.body);
+
+      await db.execute(sql`
+        UPDATE video_performance
+        SET
+          platform_video_url = COALESCE(${input.platformVideoUrl ?? null}, platform_video_url),
+          status = COALESCE(${input.status ?? null}, status)
+        WHERE id = ${req.params.id} AND user_id = ${req.user.id}
+      `);
+      res.json({ success: true });
+    } catch (error: any) {
+      if (error instanceof z.ZodError) return res.status(400).json({ error: error.errors[0].message });
       res.status(500).json({ error: error.message });
     }
   });
