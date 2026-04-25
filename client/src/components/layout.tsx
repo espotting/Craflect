@@ -9,7 +9,7 @@ import { useLanguage } from "@/hooks/use-language";
 import { SmartPopup } from "./smart-popup";
 import { PlatformToggle } from "@/components/platform-toggle";
 import { usePlatform } from "@/hooks/use-platform";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 
 class PopupErrorBoundary extends Component<{ children: ReactNode }, { crashed: boolean }> {
@@ -21,12 +21,6 @@ class PopupErrorBoundary extends Component<{ children: ReactNode }, { crashed: b
 const userRoutes = ["/home", "/opportunities", "/create", "/workspace", "/insights", "/settings", "/plan-billing", "/onboarding"];
 const adminRoutes = ["/system/founder", "/system/founder/waitlist", "/system/logs", "/system/settings"];
 
-function getGreeting(name: string): string {
-  const hour = new Date().getHours();
-  if (hour < 12) return 'Good morning, ' + name;
-  if (hour < 18) return 'Good afternoon, ' + name;
-  return 'Good evening, ' + name;
-}
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -36,6 +30,12 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
 
   const isAdmin = (user as any)?.isAdmin === true;
+
+  const { data: streakData } = useQuery<{ streak: number }>({
+    queryKey: ['/api/user/streak'],
+    staleTime: 10 * 60 * 1000,
+    enabled: !isAdmin,
+  });
 
   const updatePlatformMutation = useMutation({
     mutationFn: (newPlatform: string) =>
@@ -102,12 +102,19 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             <SidebarTrigger className="text-muted-foreground hover:text-foreground hover:bg-accent -ml-2 mr-4" />
             <div className="flex-1" />
             <div className="flex items-center gap-4">
-              {!isAdmin && <PlatformToggle value={platform} onChange={handlePlatformChange} />}
-              {user?.firstName && (
-                <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', fontWeight: 400 }} data-testid="status-system">
-                  {getGreeting(user.firstName)}
-                </span>
+              {!isAdmin && (streakData?.streak ?? 0) > 0 && (
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 5,
+                  padding: '5px 12px', borderRadius: 8,
+                  background: 'rgba(245,158,11,0.08)',
+                  border: '1px solid rgba(245,158,11,0.15)',
+                }}>
+                  <span style={{ fontSize: 12 }}>🔥</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b' }}>{streakData!.streak}</span>
+                  <span style={{ fontSize: 10, color: 'rgba(245,158,11,0.5)' }}>day streak</span>
+                </div>
               )}
+              {!isAdmin && <PlatformToggle value={platform} onChange={handlePlatformChange} />}
             </div>
           </header>
           

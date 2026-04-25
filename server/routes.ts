@@ -5918,6 +5918,22 @@ JSON only, no markdown.`;
   return httpServer;
 }
 
+  app.get('/api/user/streak', isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const today = new Date().toISOString().split('T')[0];
+      const row = await db.execute(sql`
+        SELECT streak_count FROM daily_playbook
+        WHERE user_id = ${req.user.id} AND date = ${today}
+      `);
+      const streak = (row.rows[0] as any)?.streak_count ?? 0;
+      return res.json({ streak });
+    } catch {
+      return res.json({ streak: 0 });
+    }
+  });
+
 function formatViewCount(num: number): string {
   if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(0)}M`;
   if (num >= 1_000) return `${(num / 1_000).toFixed(0)}k`;
