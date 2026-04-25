@@ -5907,6 +5907,11 @@ JSON only, no markdown.`;
       const { db } = await import("./db");
       const { sql } = await import("drizzle-orm");
 
+      // Query param overrides (used during onboarding before prefs saved to DB)
+      const nicheOverride = (req.query.niche as string) || null;
+      const platformOverride = (req.query.platform as string) || null;
+      const isOnboardingPreview = !!nicheOverride;
+
       const userResult = await db.execute(sql`
         SELECT primary_niche, selected_niches, daily_signal_pattern_id, daily_signal_date, daily_signal_used
         FROM users WHERE id = ${req.user.id}
@@ -5921,17 +5926,17 @@ JSON only, no markdown.`;
           ? u.daily_signal_date.split('T')[0]
           : null;
 
-      // Robust niche fallback
+      // Robust niche fallback — req.query.niche takes priority
       const selectedNiches: string[] = Array.isArray(u?.selected_niches) ? u.selected_niches : [];
-      const niche = u?.primary_niche || selectedNiches[0] || 'finance';
+      const niche = nicheOverride || u?.primary_niche || selectedNiches[0] || 'finance';
 
-      // Signal du jour déjà utilisé
-      if (u?.daily_signal_used && signalDate === today) {
+      // Signal du jour déjà utilisé (skip cache for onboarding preview)
+      if (!isOnboardingPreview && u?.daily_signal_used && signalDate === today) {
         return res.json({ used: true, message: "Come back tomorrow for your next signal 🔥" });
       }
 
-      // Signal du jour déjà assigné (pas encore utilisé)
-      if (u?.daily_signal_pattern_id && signalDate === today) {
+      // Signal du jour déjà assigné (skip cache for onboarding preview)
+      if (!isOnboardingPreview && u?.daily_signal_pattern_id && signalDate === today) {
         const existing = await db.execute(sql`
           SELECT p.*, cc.trend_status, cc.velocity_7d
           FROM patterns p
@@ -5977,15 +5982,18 @@ JSON only, no markdown.`;
 
       if (signal.rows.length > 0) {
         const pat = signal.rows[0] as any;
-        await db.execute(sql`
-          UPDATE users SET
-            daily_signal_pattern_id = ${pat.pattern_id},
-            daily_signal_date = CURRENT_DATE,
-            daily_signal_used = false
-          WHERE id = ${req.user.id}
-        `);
+        // Only persist the signal cache when not an onboarding preview
+        if (!isOnboardingPreview) {
+          await db.execute(sql`
+            UPDATE users SET
+              daily_signal_pattern_id = ${pat.pattern_id},
+              daily_signal_date = CURRENT_DATE,
+              daily_signal_used = false
+            WHERE id = ${req.user.id}
+          `);
+        }
         const clusterLevel = pat.sub_niche ? 3 : 2;
-        const pat_platform = pat.platform || 'tiktok';
+        const pat_platform = platformOverride || pat.platform || 'tiktok';
         pat.platform = pat_platform;
         pat.signal_strength = computeSignalStrength({ video_count: pat.video_count, velocity_7d: pat.velocity_7d, cluster_level: clusterLevel, platform: pat_platform });
         pat.cluster_key = [pat.topic_cluster, pat.sub_niche, pat.hook_type_v2, pat_platform].filter(Boolean).join('|');
@@ -6094,6 +6102,35 @@ JSON only, no markdown.`;
     } catch (error: any) {
       console.error('[playbook/complete] error:', error.message);
       res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ── POST /api/onboarding/complete ────────────────────────────────────────────
+  app.post('/api/onboarding/complete', isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const { primaryNiche, platforms, activePlatform } = req.body;
+      if (!primaryNiche || typeof primaryNiche !== 'string') {
+        return res.status(400).json({ error: 'primaryNiche required' });
+      }
+      const plats: string[] = Array.isArray(platforms) && platforms.length > 0 ? platforms : ['tiktok'];
+      const active = activePlatform || plats[0] || 'tiktok';
+      const nichesArray = `{${[primaryNiche].join(',')}}`;
+      const platsArray = `{${plats.join(',')}}`;
+      await db.execute(sql.raw(`
+        UPDATE users SET
+          primary_niche = '${primaryNiche.replace(/'/g, "''")}',
+          selected_niches = '${nichesArray}'::text[],
+          platforms = '${platsArray}'::text[],
+          active_platform = '${active.replace(/'/g, "''")}',
+          onboarding_completed = true
+        WHERE id = '${(req.user.id as string).replace(/'/g, "''")}'
+      `));
+      return res.json({ success: true });
+    } catch (error: any) {
+      console.error('[/api/onboarding/complete]', error.message);
+      return res.status(500).json({ error: 'Failed to complete onboarding' });
     }
   });
 

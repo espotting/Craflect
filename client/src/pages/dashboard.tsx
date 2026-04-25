@@ -15,28 +15,36 @@ export default function Dashboard() {
     complete('signal');
   }, []);
 
+  const { data: prefs } = useQuery<{ primaryNiche: string | null; selectedNiches: string[]; active_platform?: string }>({
+    queryKey: ['/api/user/preferences'],
+  });
+
+  const primaryNiche = prefs?.primaryNiche || 'finance';
+  const activePlatform = prefs?.active_platform || platform || 'tiktok';
+  const selectedNiches: string[] = prefs?.selectedNiches?.length ? prefs.selectedNiches : [primaryNiche];
+
   const { data: signal, isError: signalError } = useQuery<any>({
-    queryKey: ['/api/daily-signal'],
-    queryFn: () => fetch('/api/daily-signal', { credentials: 'include' }).then(r => r.json()),
+    queryKey: ['/api/daily-signal', activePlatform],
+    queryFn: () => fetch(
+      `/api/daily-signal?platform=${encodeURIComponent(activePlatform)}`,
+      { credentials: 'include' }
+    ).then(r => r.json()),
     refetchInterval: 72 * 60 * 60 * 1000,
     staleTime: 5 * 60 * 1000,
     retry: 2,
     retryDelay: 1000,
-  });
-
-  const { data: prefs } = useQuery<{ primaryNiche: string | null; selectedNiches: string[] }>({
-    queryKey: ['/api/user/preferences'],
+    enabled: !!primaryNiche,
   });
 
   const { data: patternsRaw } = useQuery<any[]>({
-    queryKey: ['/api/patterns/list'],
-    queryFn: () => fetch('/api/patterns/list', { credentials: 'include' }).then(r => r.json()),
+    queryKey: ['/api/patterns/list', activePlatform],
+    queryFn: () => fetch(
+      `/api/patterns/list?platform=${encodeURIComponent(activePlatform)}`,
+      { credentials: 'include' }
+    ).then(r => r.json()),
     staleTime: 30 * 60 * 1000,
   });
   const patterns = Array.isArray(patternsRaw) ? patternsRaw : [];
-
-  const primaryNiche = prefs?.primaryNiche || 'finance';
-  const selectedNiches: string[] = prefs?.selectedNiches?.length ? prefs.selectedNiches : [primaryNiche];
 
   return (
     <DashboardLayout>
@@ -47,7 +55,7 @@ export default function Dashboard() {
             Today's Intelligence
           </div>
           <DailySignalHero signal={signalError ? { signal: null } : signal} niche={primaryNiche} />
-          <FeedSection niches={selectedNiches} platform={platform} patterns={patterns} />
+          <FeedSection niches={selectedNiches} platform={activePlatform} patterns={patterns} />
         </div>
         {/* Right panel */}
         <RightPanel />
