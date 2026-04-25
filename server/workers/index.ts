@@ -8,6 +8,7 @@ import { phaseTransitionWorker } from './phase-transition.worker';
 import './sync-to-replit.worker';
 import './velocity.worker';
 import './feedback.worker';
+import './thumbnail-generator.worker';
 import { checkOllamaHealth } from '../config/ollama';
 import { Worker } from 'bullmq';
 import { redisConnection } from '../config/redis';

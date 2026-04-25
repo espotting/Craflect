@@ -15,11 +15,8 @@ import ForgotPassword from "@/pages/auth/forgot-password";
 import EmailConfirmation from "@/pages/auth/email-confirmation";
 import AdminVerification from "@/pages/auth/admin-verification";
 import Dashboard from "@/pages/dashboard";
-import Discover from "@/pages/discover";
-import Opportunities from "@/pages/opportunities";
 import Insights from "@/pages/insights";
 import Create from "@/pages/create";
-import Workspace from "@/pages/workspace";
 import Settings from "@/pages/settings";
 import Onboarding from "@/pages/onboarding";
 import FounderOverview from "@/pages/founder-overview";
@@ -35,6 +32,9 @@ import WaitlistPage from "@/pages/waitlist";
 import FounderWaitlist from "@/pages/founder-waitlist";
 import { TermsPage, BillingPage, PrivacyPage, CookiesPage, DpaPage, SecurityPage, ContactPage } from "@/pages/legal";
 import FaqPage from "@/pages/faq";
+import VideoDetail from "@/pages/video-detail";
+import Patterns from "@/pages/patterns";
+import Playbook from "@/pages/playbook";
 
 function Router() {
   return (
@@ -51,14 +51,17 @@ function Router() {
       <Route path="/onboarding" component={Onboarding} />
       <Route path="/proof" component={ProofScreen} />
       <Route path="/home" component={Dashboard} />
+      <Route path="/video/:id" component={VideoDetail} />
       <Route path="/dashboard">{() => <Redirect to="/home" />}</Route>
-      <Route path="/opportunities" component={Opportunities} />
-      <Route path="/opportunities/:id">{() => <Redirect to="/opportunities" />}</Route>
+      <Route path="/patterns" component={Patterns} />
+      <Route path="/playbook" component={Playbook} />
+      <Route path="/opportunities">{() => <Redirect to="/patterns" />}</Route>
+      <Route path="/opportunities/:id">{() => <Redirect to="/patterns" />}</Route>
+      <Route path="/workspace">{() => <Redirect to="/home" />}</Route>
+      <Route path="/discover">{() => <Redirect to="/patterns" />}</Route>
       <Route path="/intelligence/:id" component={ClusterDetail} />
-      <Route path="/discover">{() => <Redirect to="/opportunities" />}</Route>
       <Route path="/insights" component={Insights} />
       <Route path="/create" component={Create} />
-      <Route path="/workspace" component={Workspace} />
       <Route path="/settings" component={Settings} />
       <Route path="/system/founder" component={FounderOverview} />
       <Route path="/system/founder/users" component={FounderUsers} />
@@ -71,16 +74,6 @@ function Router() {
       <Route path="/plan-billing" component={PlanBilling} />
       <Route path="/performance" component={PerformancePage} />
       <Route path="/waitlist" component={WaitlistPage} />
-
-      <Route path="/trend-radar">{() => <Redirect to="/opportunities" />}</Route>
-      <Route path="/library">{() => <Redirect to="/opportunities" />}</Route>
-      <Route path="/ideas">{() => <Redirect to="/workspace" />}</Route>
-      <Route path="/script-generator">{() => <Redirect to="/create" />}</Route>
-      <Route path="/video-builder">{() => <Redirect to="/create" />}</Route>
-      <Route path="/projects">{() => <Redirect to="/workspace" />}</Route>
-      <Route path="/viral-templates">{() => <Redirect to="/workspace" />}</Route>
-      <Route path="/remix-engine">{() => <Redirect to="/create" />}</Route>
-      <Route path="/predicted-views">{() => <Redirect to="/create" />}</Route>
 
       <Route path="/terms" component={TermsPage} />
       <Route path="/billing" component={BillingPage} />
@@ -110,3 +103,4 @@ function App() {
 }
 
 export default App;
+

@@ -1,26 +1,38 @@
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { X, Link, TrendingUp } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { X, Link, TrendingUp, BarChart2, Zap } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
 
 const SESSION_KEY = "smart_popup_shown";
 
 interface ImportStatus {
   profileConnected: boolean;
-  platforms: Array<{ platform: string; connectedAt: string; videoCount: number }>;
+  platforms: Array<{
+    platform: string;
+    connectedAt: string;
+    videoCount: number;
+    accountHandle: string;
+    isPrimary: boolean;
+  }>;
   lastImportedAt: string | null;
   popupSkipCount?: number;
+  popupLastShown?: string | null;
 }
 
 export function SmartPopup() {
   const [visible, setVisible] = useState(false);
   const [dismissed, setDismissed] = useState(false);
+  const { user } = useAuth();
 
   const { data: status } = useQuery<ImportStatus>({
     queryKey: ["/api/user/import-status"],
     queryFn: () => fetch("/api/user/import-status", { credentials: "include" }).then(r => r.json()),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const { data: prefs } = useQuery<{ platforms?: string[] }>({
+    queryKey: ["/api/user/preferences"],
     staleTime: 5 * 60 * 1000,
   });
 
@@ -29,24 +41,30 @@ export function SmartPopup() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/user/import-status"] }),
   });
 
+  const connectedPlatforms = status?.platforms.map(p => p.platform) ?? [];
+  const selectedPlatforms: string[] = prefs?.platforms?.length ? prefs.platforms : ['tiktok'];
+  const missingPlatforms = selectedPlatforms.filter(p => !connectedPlatforms.includes(p));
+
+  const isFirstConnect = connectedPlatforms.length === 0;
+  const isExpand = !isFirstConnect && missingPlatforms.length > 0;
+  const allCovered = !isFirstConnect && missingPlatforms.length === 0;
+
   useEffect(() => {
-    if (!status || dismissed) return;
+    if (!status || dismissed || allCovered) return;
     if (sessionStorage.getItem(SESSION_KEY)) return;
 
     const skipCount = status.popupSkipCount || 0;
     if (skipCount >= 5) return;
 
-    const platforms = status.platforms || [];
-    const noProfile = !status.profileConnected;
-    const singlePlatform = platforms.length === 1;
-    const lastImport = status.lastImportedAt ? new Date(status.lastImportedAt) : null;
-    const hoursAgo = lastImport ? (Date.now() - lastImport.getTime()) / 3600000 : Infinity;
+    const lastShown = status.popupLastShown ? new Date(status.popupLastShown) : null;
+    const daysSince = lastShown ? (Date.now() - lastShown.getTime()) / (1000 * 60 * 60 * 24) : 999;
 
-    if (noProfile || (singlePlatform && hoursAgo >= 48)) {
-      const timer = setTimeout(() => setVisible(true), 3000);
+    const shouldShow = (isFirstConnect || isExpand) && (skipCount < 3 || daysSince >= 7);
+    if (shouldShow) {
+      const timer = setTimeout(() => setVisible(true), 2500);
       return () => clearTimeout(timer);
     }
-  }, [status, dismissed]);
+  }, [status, prefs, dismissed, isFirstConnect, isExpand, allCovered]);
 
   const handleDismiss = () => {
     setDismissed(true);
@@ -58,77 +76,135 @@ export function SmartPopup() {
   };
 
   const handleConnect = () => {
-    window.location.href = "/settings?tab=accounts";
+    setVisible(false);
+    window.location.href = '/settings?tab=accounts';
   };
 
   if (!visible || !status) return null;
 
-  const platforms = status.platforms || [];
-  const isExpand = status.profileConnected && platforms.length === 1;
-  const title = isExpand ? "Expand your analysis" : "Connect your profile";
-  const desc = isExpand
-    ? "You're only connected to one platform. Add more to unlock cross-platform viral patterns."
-    : "Craflect can analyze your existing videos to personalize your feed. Takes 30 seconds.";
-  const cta = isExpand ? "Connect another platform →" : "Connect now →";
+  const firstMissing = missingPlatforms[0] || 'reels';
+
+  const title = isFirstConnect
+    ? "Connect your account"
+    : `Add your ${firstMissing} account`;
+
+  const desc = isFirstConnect
+    ? "Craflect analyzes your existing videos to personalize your signals. Takes 30 seconds."
+    : `You're on ${connectedPlatforms[0] || 'TikTok'}. Add your ${firstMissing} account to unlock cross-platform patterns.`;
+
+  const cta = isFirstConnect
+    ? "Connect now →"
+    : `Connect ${firstMissing} →`;
+
+  const valueProps = [
+    { icon: BarChart2, label: "Better matches", desc: "Personalized to your content" },
+    { icon: Zap, label: "Viral hooks", desc: "Based on your performance" },
+    { icon: TrendingUp, label: "Higher relevance", desc: "Patterns that fit you" },
+    { icon: Link, label: "Cross-platform", desc: "TikTok · Reels · Shorts" },
+  ];
 
   return (
-    <AnimatePresence>
-      <motion.div
-        initial={{ opacity: 0, y: 20, scale: 0.97 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: 20, scale: 0.97 }}
-        transition={{ duration: 0.3, ease: "easeOut" }}
+    <div
+      style={{
+        position: 'fixed', inset: 0, zIndex: 1000,
+        background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}
+      onClick={handleDismiss}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
         style={{
-          position: "fixed",
-          bottom: 24,
-          right: 24,
-          width: 320,
-          background: "rgba(15,15,28,0.97)",
-          border: "1px solid rgba(124,92,255,0.3)",
-          borderRadius: 16,
-          padding: "20px 20px 16px",
-          boxShadow: "0 8px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(124,92,255,0.1)",
-          zIndex: 9999,
-          color: "#fff",
-          fontFamily: "system-ui, sans-serif",
+          background: '#13131f', border: '1px solid rgba(124,92,255,0.25)',
+          borderRadius: 20, padding: '40px 48px', maxWidth: 520, width: '90%',
+          textAlign: 'center', position: 'relative',
+          boxShadow: '0 40px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(124,92,255,0.1)',
         }}
       >
+        {/* Close */}
         <button
           onClick={handleDismiss}
-          style={{ position: "absolute", top: 12, right: 12, background: "none", border: "none", color: "rgba(255,255,255,0.3)", cursor: "pointer", padding: 4, borderRadius: 6 }}
+          style={{
+            position: 'absolute', top: 16, right: 16,
+            background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+            color: 'rgba(255,255,255,0.4)', cursor: 'pointer',
+            borderRadius: 8, padding: '4px 8px', display: 'flex', alignItems: 'center',
+          }}
         >
-          <X size={16} />
+          <X size={14} />
         </button>
 
-        <div style={{ display: "flex", alignItems: "flex-start", gap: 14, marginBottom: 12 }}>
-          <div style={{ width: 38, height: 38, background: "rgba(124,92,255,0.15)", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-            {isExpand ? <TrendingUp size={18} color="#7C5CFF" /> : <Link size={18} color="#7C5CFF" />}
-          </div>
-          <div>
-            <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>{title}</div>
-            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.45)", lineHeight: 1.5 }}>{desc}</div>
-          </div>
+        {/* Icon */}
+        <div style={{
+          width: 56, height: 56, borderRadius: 16, margin: '0 auto 20px',
+          background: 'linear-gradient(135deg,rgba(124,92,255,0.25),rgba(192,38,211,0.15))',
+          border: '1px solid rgba(124,92,255,0.3)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          {isExpand ? <TrendingUp size={26} color="#a78bfa" /> : <Link size={26} color="#a78bfa" />}
         </div>
 
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" as const, marginBottom: 16 }}>
-          {["Better matches", "Personalized hooks", "Higher relevance"].map(b => (
-            <span key={b} style={{ fontSize: 11, padding: "4px 8px", background: "rgba(124,92,255,0.1)", border: "1px solid rgba(124,92,255,0.2)", borderRadius: 20, color: "rgba(255,255,255,0.5)" }}>{b}</span>
+        {/* Title */}
+        <h2 style={{
+          fontSize: 22, fontWeight: 800, color: '#fff',
+          letterSpacing: '-0.02em', margin: '0 0 10px',
+        }}>
+          {title}
+        </h2>
+
+        {/* Description */}
+        <p style={{
+          fontSize: 14, color: 'rgba(255,255,255,0.45)', lineHeight: 1.6,
+          margin: '0 0 24px',
+        }}>
+          {desc}
+        </p>
+
+        {/* Value props 2×2 */}
+        <div style={{
+          display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 28,
+        }}>
+          {valueProps.map(vp => (
+            <div key={vp.label} style={{
+              background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
+              borderRadius: 10, padding: '12px 14px', textAlign: 'left',
+              display: 'flex', alignItems: 'flex-start', gap: 10,
+            }}>
+              <vp.icon size={16} color="#7C5CFF" style={{ flexShrink: 0, marginTop: 2 }} />
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.8)', marginBottom: 2 }}>
+                  {vp.label}
+                </div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>
+                  {vp.desc}
+                </div>
+              </div>
+            </div>
           ))}
         </div>
 
-        <Button
+        {/* CTAs */}
+        <button
           onClick={handleConnect}
-          style={{ width: "100%", background: "linear-gradient(90deg,#7C5CFF,#c026d3)", color: "#fff", border: "none", padding: "11px 0", borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: "pointer", marginBottom: 8 }}
+          style={{
+            width: '100%', background: 'linear-gradient(90deg,#7C5CFF,#c026d3)',
+            border: 'none', color: '#fff', padding: '13px 0', borderRadius: 10,
+            fontSize: 14, fontWeight: 700, cursor: 'pointer', marginBottom: 10,
+          }}
         >
           {cta}
-        </Button>
+        </button>
         <button
           onClick={handleDismiss}
-          style={{ width: "100%", background: "none", border: "none", color: "rgba(255,255,255,0.25)", fontSize: 13, cursor: "pointer", padding: "4px 0" }}
+          style={{
+            width: '100%', background: 'none', border: 'none',
+            color: 'rgba(255,255,255,0.25)', fontSize: 13,
+            cursor: 'pointer', padding: '6px 0',
+          }}
         >
-          Remind me later
+          Later
         </button>
-      </motion.div>
-    </AnimatePresence>
+      </div>
+    </div>
   );
 }

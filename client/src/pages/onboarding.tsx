@@ -1,508 +1,449 @@
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { useLocation } from "wouter";
-import { motion, AnimatePresence } from "framer-motion";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
-import { Button } from "@/components/ui/button";
-import { Check, Loader2, TrendingUp, RefreshCw, LogOut, Link, SkipForward } from "lucide-react";
+import { DailySignalHero } from "@/components/daily-signal-hero";
 
-const ALL_NICHES = [
-  { value: "ai_tools", label: "AI Tools" },
-  { value: "finance", label: "Finance" },
-  { value: "productivity", label: "Productivity" },
-  { value: "online_business", label: "Online Business" },
-  { value: "content_creation", label: "Content Creation" },
-  { value: "entrepreneurship", label: "Entrepreneurship" },
-  { value: "digital_marketing", label: "Digital Marketing" },
-  { value: "ecommerce", label: "Ecommerce" },
-  { value: "saas", label: "SaaS" },
-  { value: "real_estate", label: "Real Estate" },
-  { value: "crypto", label: "Crypto" },
-  { value: "fitness", label: "Fitness" },
-  { value: "mindset", label: "Mindset" },
-  { value: "health", label: "Health" },
-  { value: "travel", label: "Travel" },
-  { value: "cooking", label: "Cooking" },
-  { value: "education", label: "Education" },
-  { value: "personal_development", label: "Personal Development" },
-  { value: "marketing", label: "Marketing" },
-  { value: "gaming", label: "Gaming" },
-];
+// ── Data ─────────────────────────────────────────────────────────────────────
 
-const CONTENT_STYLES = [
-  { value: "educational", label: "Educational", emoji: "📚", desc: "Teach and inform" },
-  { value: "motivational", label: "Motivational", emoji: "🔥", desc: "Inspire and push" },
-  { value: "entertainment", label: "Entertainment", emoji: "🎭", desc: "Engage and entertain" },
-  { value: "storytelling", label: "Storytelling", emoji: "🎬", desc: "Narrative and depth" },
-];
-
-const ANALYSIS_STEPS = [
-  "Filtering videos matching your niche profile",
-  "Ranking top viral patterns by engagement",
-  "Calibrating hook performance for your style",
-  "Generating your personalized opportunity score",
+const NICHES = [
+  { id: 'finance',           label: 'Finance',           emoji: '💰' },
+  { id: 'ai_tools',          label: 'AI Tools',          emoji: '🤖' },
+  { id: 'online_business',   label: 'Online Business',   emoji: '📈' },
+  { id: 'content_creation',  label: 'Content Creation',  emoji: '🎬' },
+  { id: 'productivity',      label: 'Productivity',      emoji: '✅' },
+  { id: 'health_wellness',   label: 'Health & Wellness', emoji: '🌿' },
+  { id: 'fitness',           label: 'Fitness',           emoji: '💪' },
+  { id: 'mindset',           label: 'Mindset',           emoji: '🧠' },
+  { id: 'digital_marketing', label: 'Digital Marketing', emoji: '📱' },
+  { id: 'real_estate',       label: 'Real Estate',       emoji: '🏠' },
 ];
 
 const PLATFORMS = [
-  { value: "tiktok", label: "TikTok", color: "#69C9D0", placeholder: "https://www.tiktok.com/@yourhandle" },
-  { value: "instagram", label: "Instagram", color: "#E1306C", placeholder: "https://www.instagram.com/yourhandle" },
-  { value: "youtube", label: "YouTube", color: "#FF0000", placeholder: "https://www.youtube.com/@yourchannel" },
+  {
+    id: 'tiktok',
+    label: 'TikTok',
+    emoji: '🎵',
+    desc: 'Strong signal — 6,000+ videos analyzed',
+    badge: 'Most data',
+    badgeColor: '#22c55e',
+  },
+  {
+    id: 'reels',
+    label: 'Instagram Reels',
+    emoji: '📸',
+    desc: 'Growing signal — patterns being built',
+    badge: 'Coming soon',
+    badgeColor: '#f59e0b',
+  },
+  {
+    id: 'shorts',
+    label: 'YouTube Shorts',
+    emoji: '▶️',
+    desc: 'Growing signal — patterns being built',
+    badge: 'Coming soon',
+    badgeColor: '#f59e0b',
+  },
 ];
 
-const slideVariants = {
-  enter: { opacity: 0, x: 50 },
-  center: { opacity: 1, x: 0 },
-  exit: { opacity: 0, x: -50 },
-};
+const PLAYBOOK_ITEMS = [
+  { label: "Check today's signal",  done: true  },
+  { label: 'Pick a pattern',        done: true  },
+  { label: 'Create your video',     done: false },
+  { label: 'Track performance',     done: false },
+];
 
-function NicheSearchInput({ placeholder, exclude, selected, onSelect, max = 1 }: {
-  placeholder: string; exclude: string[]; selected: string[]; onSelect: (value: string) => void; max?: number;
-}) {
-  const [query, setQuery] = useState("");
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+const DAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
-  const filtered = query ? ALL_NICHES.filter(n =>
-    !exclude.includes(n.value) && !selected.includes(n.value) &&
-    n.label.toLowerCase().includes(query.toLowerCase())
-  ) : [];
+// ── State ─────────────────────────────────────────────────────────────────────
 
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
+interface OnboardingState {
+  step: 1 | 2 | 3 | 4;
+  primaryNiche: string | null;
+  selectedPlatforms: string[];
+  activePlatform: string;
+}
 
+// ── Progress dots ─────────────────────────────────────────────────────────────
+
+function ProgressDots({ step }: { step: number }) {
   return (
-    <div ref={ref} style={{ position: "relative" }}>
-      <div style={{ position: "relative" }}>
-        <svg style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", opacity: 0.35 }}
-          width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
-          <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-        </svg>
-        <input type="text" placeholder={placeholder} value={query}
-          onChange={e => { setQuery(e.target.value); setOpen(true); }}
-          onFocus={() => setOpen(true)}
-          style={{ width: "100%", padding: "14px 18px 14px 44px", borderRadius: 12, border: "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.07)", color: "#fff", fontSize: 17, boxSizing: "border-box" as const, outline: "none" }}
-        />
-      </div>
-      {open && filtered.length > 0 && (
-        <div style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0, background: "#1a1a2e", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 12, maxHeight: 220, overflowY: "auto" as const, zIndex: 50 }}>
-          {filtered.map(n => (
-            <div key={n.value}
-              onClick={() => { if (selected.length < max) { onSelect(n.value); setQuery(""); setOpen(false); } }}
-              style={{ padding: "12px 18px", cursor: selected.length >= max ? "not-allowed" : "pointer", fontSize: 17, color: "rgba(255,255,255,0.8)", borderBottom: "1px solid rgba(255,255,255,0.06)" }}
-              onMouseEnter={e => (e.currentTarget.style.background = "rgba(124,92,255,0.1)")}
-              onMouseLeave={e => (e.currentTarget.style.background = "")}
-            >{n.label}</div>
-          ))}
-        </div>
-      )}
+    <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginBottom: 32 }}>
+      {[1, 2, 3, 4].map(i => (
+        <div key={i} style={{
+          width: i === step ? 20 : 7, height: 7, borderRadius: 4,
+          background: i < step ? '#22c55e' : i === step ? '#7C5CFF' : 'rgba(255,255,255,0.15)',
+          transition: 'all 0.3s',
+        }} />
+      ))}
     </div>
   );
 }
 
-// Steps: 0=Welcome, 1=ConnectProfile, 2=PrimaryNiche, 3=SecondaryNiches, 4=ContentStyle, 5=BuildingFeed, 6=Ready
-const TOTAL_STEPS = 7;
+// ── Main component ─────────────────────────────────────────────────────────────
 
 export default function Onboarding() {
-  const [, setLocation] = useLocation();
+  const [, navigate] = useLocation();
   const { user } = useAuth();
-  const [step, setStep] = useState(0);
+  const [state, setState] = useState<OnboardingState>({
+    step: 1,
+    primaryNiche: null,
+    selectedPlatforms: ['tiktok'],
+    activePlatform: 'tiktok',
+  });
+  const [saving, setSaving] = useState(false);
 
-  // Profile import state (T15)
-  const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
-  const [profileUrl, setProfileUrl] = useState("");
-  const [isImporting, setIsImporting] = useState(false);
-  const [profileImported, setProfileImported] = useState(false);
-  const [importError, setImportError] = useState<string | null>(null);
+  const setStep = (step: 1 | 2 | 3 | 4) => setState(s => ({ ...s, step }));
 
-  // Niche state
-  const [primaryNiche, setPrimaryNiche] = useState<string | null>(null);
-  const [secondaryNiches, setSecondaryNiches] = useState<string[]>([]);
-  const [contentStyle, setContentStyle] = useState<string | null>(null);
-  const [analysisStep, setAnalysisStep] = useState(-1);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  // ── Screen 3 signal fetch ──
+  const { data: signalData } = useQuery<any>({
+    queryKey: ['/api/daily-signal', state.primaryNiche, state.activePlatform],
+    queryFn: () => fetch(
+      `/api/daily-signal?niche=${encodeURIComponent(state.primaryNiche || 'finance')}&platform=${state.activePlatform}`,
+      { credentials: 'include' }
+    ).then(r => r.json()),
+    enabled: state.step >= 3 && !!state.primaryNiche,
+    staleTime: 10 * 60 * 1000,
+  });
 
-  useEffect(() => {
-    if ((user as any)?.isAdmin) setLocation("/system/founder");
-  }, [user, setLocation]);
-
-  const progress = ((step + 1) / TOTAL_STEPS) * 100;
-
-  const toggleSecondary = (value: string) => {
-    setSecondaryNiches(prev => {
-      if (prev.includes(value)) return prev.filter(n => n !== value);
-      if (prev.length >= 2) return prev;
-      return [...prev, value];
-    });
-  };
-
-  const handleLogout = async () => {
-    try { await fetch("/api/logout"); } catch {}
-    window.location.href = "/";
-  };
-
-  const handleProfileImport = async () => {
-    if (!selectedPlatform || !profileUrl.trim()) return;
-    setIsImporting(true);
-    setImportError(null);
+  const handleStart = async () => {
+    if (saving) return;
+    setSaving(true);
     try {
-      await apiRequest("POST", "/api/user/import-profile", {
-        platform: selectedPlatform,
-        profileUrl: profileUrl.trim(),
+      await apiRequest('POST', '/api/onboarding/complete', {
+        primaryNiche: state.primaryNiche,
+        platforms: state.selectedPlatforms,
+        activePlatform: state.activePlatform,
       });
-      setProfileImported(true);
-      setTimeout(() => setStep(2), 800);
-    } catch (err: any) {
-      setImportError(err?.message || "Import failed. You can skip this step.");
-    } finally {
-      setIsImporting(false);
-    }
-  };
-
-  const handleSkipProfile = () => {
-    setStep(2);
-  };
-
-  const savePreferences = async () => {
-    await apiRequest("PATCH", "/api/user/preferences", {
-      selectedNiches: [primaryNiche!, ...secondaryNiches],
-      primaryNiche: primaryNiche!,
-      secondaryNiches,
-      contentStyle: contentStyle || "educational",
-      userGoal: "content_creator",
-      onboardingCompleted: true,
-    });
-  };
-
-  const handleSubmit = async () => {
-    if (!primaryNiche) return;
-    setIsSubmitting(true);
-    setStep(5);
-    // Try to save, retry once on failure
-    try {
-      await savePreferences();
     } catch {
-      try { await savePreferences(); } catch {}
+      // Fallback: try PATCH preferences
+      try {
+        await apiRequest('PATCH', '/api/user/preferences', {
+          primaryNiche: state.primaryNiche,
+          selectedNiches: [state.primaryNiche],
+          platforms: state.selectedPlatforms,
+          active_platform: state.activePlatform,
+          onboardingCompleted: true,
+        });
+      } catch {}
     }
-    setIsSubmitting(false);
-    [600, 1200, 1900, 2600].forEach((d, i) => setTimeout(() => setAnalysisStep(i), d));
-    setTimeout(() => setStep(6), 3800);
+    navigate('/home');
   };
 
-  const handleEnterDashboard = async () => {
-    // Final safety: ensure onboardingCompleted=true is saved before hard navigation
-    try {
-      await apiRequest("PATCH", "/api/user/preferences", { onboardingCompleted: true });
-    } catch {}
-    const seenKey = `proof_seen_${(user as any)?.id || 'anon'}`;
-    if (!localStorage.getItem(seenKey)) {
-      localStorage.setItem(seenKey, '1');
-      window.location.href = "/proof";
-    } else {
-      window.location.href = "/home";
-    }
+  const container: React.CSSProperties = {
+    minHeight: '100vh',
+    background: '#08080f',
+    color: '#fff',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '40px 20px',
+    fontFamily: 'system-ui, sans-serif',
+    position: 'relative',
   };
 
-  const suggestedNiches = ALL_NICHES.slice(0, 10);
-  const secondarySuggestions = ALL_NICHES.filter(n => n.value !== primaryNiche).slice(0, 12);
-  const activePlatform = PLATFORMS.find(p => p.value === selectedPlatform);
+  const card: React.CSSProperties = {
+    width: '100%',
+    maxWidth: 460,
+  };
 
+  const title: React.CSSProperties = {
+    fontSize: 28, fontWeight: 800, color: '#fff',
+    letterSpacing: '-0.02em', marginBottom: 8, margin: '0 0 8px',
+  };
+
+  const subtitle: React.CSSProperties = {
+    fontSize: 14, color: 'rgba(255,255,255,0.4)',
+    lineHeight: 1.6, marginBottom: 28, margin: '0 0 28px',
+  };
+
+  const btn: React.CSSProperties = {
+    width: '100%', padding: '12px 0', borderRadius: 10, border: 'none',
+    background: 'linear-gradient(90deg,#7C5CFF,#c026d3)',
+    color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+  };
+
+  const btnDisabled: React.CSSProperties = {
+    ...btn, opacity: 0.4, cursor: 'not-allowed',
+    background: 'rgba(255,255,255,0.08)',
+  };
+
+  // ── Glow blob ──
   return (
-    <div style={{ minHeight: "100vh", background: "#0a0a0f", color: "#fff", fontFamily: "system-ui, sans-serif", display: "flex", flexDirection: "column" as const, overflow: "hidden", position: "relative" as const }}>
-      <div style={{ position: "absolute" as const, top: 0, left: "50%", transform: "translateX(-50%)", width: 900, height: 500, background: "rgba(124,92,255,0.06)", borderRadius: "50%", filter: "blur(160px)", pointerEvents: "none" as const }} />
+    <div style={container}>
+      <div style={{
+        position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)',
+        width: 800, height: 400, background: 'rgba(124,92,255,0.07)',
+        borderRadius: '50%', filter: 'blur(160px)', pointerEvents: 'none',
+      }} />
 
-      <div style={{ width: "100%", height: 3, background: "#1a1a2e" }}>
-        <motion.div style={{ height: "100%", background: "linear-gradient(90deg,#7C5CFF,#c026d3)" }}
-          initial={{ width: 0 }} animate={{ width: `${progress}%` }} transition={{ duration: 0.5 }} />
-      </div>
+      <div style={card}>
+        <ProgressDots step={state.step} />
 
-      {step < 6 && (
-        <div style={{ position: "absolute" as const, top: 16, right: 20, zIndex: 20 }}>
-          <button onClick={handleLogout}
-            style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, padding: "10px 16px", color: "rgba(255,255,255,0.4)", fontSize: 15, cursor: "pointer" }}>
-            <LogOut size={16} />
-            Sign out
-          </button>
-        </div>
-      )}
+        {/* ── STEP 1 — Niche ── */}
+        {state.step === 1 && (
+          <div>
+            <h2 style={title}>What's your niche?</h2>
+            <p style={subtitle}>We'll personalize your signals based on your content focus.</p>
 
-      <main style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "48px 20px" }}>
-        <div style={{ width: "100%", maxWidth: 540, position: "relative" as const, zIndex: 10 }}>
-          <AnimatePresence mode="wait">
-
-            {/* STEP 0 — Welcome */}
-            {step === 0 && (
-              <motion.div key="s0" variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.35 }} style={{ textAlign: "center" as const }}>
-                <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.2, type: "spring" }}
-                  style={{ width: 88, height: 88, background: "rgba(124,92,255,0.12)", borderRadius: 22, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 36px" }}>
-                  <TrendingUp size={44} color="#7C5CFF" />
-                </motion.div>
-                <h1 style={{ fontSize: 48, fontWeight: 700, margin: "0 0 20px", lineHeight: 1.15 }}>
-                  The intelligence layer that top creators don't talk about.
-                </h1>
-                <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 20, margin: "0 0 16px", lineHeight: 1.7, maxWidth: 460, marginLeft: "auto", marginRight: "auto" }}>
-                  Answer 4 questions. Get a personalized feed of viral patterns matched to your niche.
-                </p>
-                <div style={{ display: "flex", justifyContent: "center", gap: 36, margin: "0 0 44px" }}>
-                  {[["83", "patterns detected"], ["5", "niches analyzed"], ["Daily", "updated"]].map(([val, label]) => (
-                    <div key={label} style={{ textAlign: "center" as const }}>
-                      <div style={{ fontSize: 24, fontWeight: 700, color: "#7C5CFF" }}>{val}</div>
-                      <div style={{ fontSize: 15, color: "rgba(255,255,255,0.35)" }}>{label}</div>
-                    </div>
-                  ))}
-                </div>
-                <Button onClick={() => setStep(1)} style={{ height: 60, padding: "0 48px", background: "linear-gradient(90deg,#7C5CFF,#c026d3)", border: "none", borderRadius: 14, fontSize: 19, fontWeight: 600, cursor: "pointer", color: "#fff" }}>
-                  Get started →
-                </Button>
-              </motion.div>
-            )}
-
-            {/* STEP 1 — Connect Profile */}
-            {step === 1 && (
-              <motion.div key="s1" variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.35 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
-                  <div style={{ width: 40, height: 40, background: "rgba(124,92,255,0.15)", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <Link size={20} color="#7C5CFF" />
-                  </div>
-                  <div style={{ fontSize: 13, color: "rgba(255,255,255,0.35)", textTransform: "uppercase" as const, letterSpacing: "0.07em" }}>Optional · 30 seconds</div>
-                </div>
-                <h2 style={{ fontSize: 36, fontWeight: 700, margin: "0 0 10px" }}>Connect your profile</h2>
-                <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 18, margin: "0 0 28px", lineHeight: 1.6 }}>
-                  Craflect will analyze your existing content to personalize your feed even further.
-                </p>
-
-                {/* Platform selector */}
-                <div style={{ display: "flex", gap: 12, marginBottom: 24 }}>
-                  {PLATFORMS.map(p => (
-                    <button key={p.value} onClick={() => { setSelectedPlatform(p.value); setProfileUrl(""); setImportError(null); }}
-                      style={{ flex: 1, padding: "14px 10px", borderRadius: 12, border: selectedPlatform === p.value ? `1px solid ${p.color}` : "1px solid rgba(255,255,255,0.12)", background: selectedPlatform === p.value ? `${p.color}18` : "rgba(255,255,255,0.04)", cursor: "pointer", textAlign: "center" as const, transition: "all 0.2s" }}>
-                      <div style={{ fontSize: 15, fontWeight: 600, color: selectedPlatform === p.value ? p.color : "rgba(255,255,255,0.6)" }}>{p.label}</div>
-                    </button>
-                  ))}
-                </div>
-
-                {/* URL input */}
-                {selectedPlatform && !profileImported && (
-                  <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
-                    <input
-                      type="url"
-                      value={profileUrl}
-                      onChange={e => { setProfileUrl(e.target.value); setImportError(null); }}
-                      placeholder={activePlatform?.placeholder || ""}
-                      style={{ width: "100%", padding: "14px 18px", borderRadius: 12, border: importError ? "1px solid #ef4444" : "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.07)", color: "#fff", fontSize: 16, boxSizing: "border-box" as const, outline: "none", marginBottom: 12 }}
-                    />
-                    {importError && <p style={{ color: "#ef4444", fontSize: 14, margin: "0 0 12px" }}>{importError}</p>}
-                    <Button
-                      onClick={handleProfileImport}
-                      disabled={!profileUrl.trim() || isImporting}
-                      style={{ width: "100%", background: "linear-gradient(90deg,#7C5CFF,#c026d3)", color: "#fff", border: "none", padding: "15px 0", borderRadius: 12, fontSize: 17, fontWeight: 600, cursor: profileUrl.trim() && !isImporting ? "pointer" : "not-allowed", opacity: profileUrl.trim() && !isImporting ? 1 : 0.5, marginBottom: 12 }}>
-                      {isImporting ? <><Loader2 size={17} className="animate-spin" style={{ marginRight: 8, display: "inline" }} />Importing...</> : "Import my profile →"}
-                    </Button>
-                  </motion.div>
-                )}
-
-                {/* Success state */}
-                {profileImported && (
-                  <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px 20px", background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.3)", borderRadius: 12, marginBottom: 16 }}>
-                    <Check size={20} color="#10b981" />
-                    <span style={{ fontSize: 16, color: "#10b981", fontWeight: 600 }}>Profile imported — personalizing your feed</span>
-                  </motion.div>
-                )}
-
-                {/* Benefit hint */}
-                {!profileImported && (
-                  <div style={{ background: "rgba(124,92,255,0.06)", border: "1px solid rgba(124,92,255,0.15)", borderRadius: 10, padding: "12px 16px", marginBottom: 24 }}>
-                    <p style={{ margin: 0, fontSize: 14, color: "rgba(255,255,255,0.45)", lineHeight: 1.6 }}>
-                      ✨ <strong style={{ color: "rgba(255,255,255,0.6)" }}>Why connect?</strong> We analyze your top videos to detect your hook style, format, and audience — then filter opportunities that match YOUR proven patterns.
-                    </p>
-                  </div>
-                )}
-
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <button onClick={() => setStep(0)} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.4)", fontSize: 17, cursor: "pointer" }}>← Back</button>
-                  <button onClick={handleSkipProfile}
-                    style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", color: "rgba(255,255,255,0.35)", fontSize: 16, cursor: "pointer" }}>
-                    <SkipForward size={15} />
-                    Skip for now
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 24 }}>
+              {NICHES.map(n => {
+                const selected = state.primaryNiche === n.id;
+                return (
+                  <button
+                    key={n.id}
+                    onClick={() => setState(s => ({ ...s, primaryNiche: n.id }))}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 9,
+                      padding: '11px 14px', borderRadius: 9, cursor: 'pointer',
+                      background: selected ? 'rgba(124,92,255,0.12)' : 'rgba(255,255,255,0.04)',
+                      border: selected ? '1px solid rgba(124,92,255,0.4)' : '1px solid rgba(255,255,255,0.08)',
+                      color: selected ? '#a78bfa' : 'rgba(255,255,255,0.65)',
+                      transition: 'all 0.15s', textAlign: 'left',
+                    }}
+                  >
+                    <span style={{ fontSize: 16, flexShrink: 0 }}>{n.emoji}</span>
+                    <span style={{ fontSize: 13, fontWeight: selected ? 600 : 400 }}>{n.label}</span>
                   </button>
-                </div>
-              </motion.div>
-            )}
+                );
+              })}
+            </div>
 
-            {/* STEP 2 — Primary Niche */}
-            {step === 2 && (
-              <motion.div key="s2" variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.35 }}>
-                <h2 style={{ fontSize: 36, fontWeight: 700, margin: "0 0 10px" }}>What's your primary niche?</h2>
-                <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 20, margin: "0 0 28px" }}>Your main content topic. Choose one.</p>
-                <div style={{ marginBottom: 20 }}>
-                  <NicheSearchInput placeholder="Search niches..." exclude={[]} selected={primaryNiche ? [primaryNiche] : []} onSelect={v => setPrimaryNiche(v)} max={1} />
-                </div>
-                {primaryNiche && (
-                  <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 18px", background: "rgba(124,92,255,0.15)", border: "1px solid #7C5CFF", borderRadius: 12, marginBottom: 20 }}>
-                    <Check size={18} color="#7C5CFF" />
-                    <span style={{ fontSize: 17, fontWeight: 600, flex: 1 }}>{ALL_NICHES.find(n => n.value === primaryNiche)?.label}</span>
-                    <button onClick={() => setPrimaryNiche(null)} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.4)", cursor: "pointer", fontSize: 22 }}>×</button>
-                  </div>
-                )}
-                <p style={{ fontSize: 14, color: "rgba(255,255,255,0.3)", margin: "0 0 14px", textTransform: "uppercase" as const, letterSpacing: "0.05em" }}>Popular niches</p>
-                <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 12, marginBottom: 32 }}>
-                  {suggestedNiches.map(n => (
-                    <button key={n.value} onClick={() => setPrimaryNiche(n.value === primaryNiche ? null : n.value)}
-                      style={{ padding: "11px 20px", borderRadius: 28, fontSize: 16, cursor: "pointer", border: primaryNiche === n.value ? "1px solid #7C5CFF" : "1px solid rgba(255,255,255,0.15)", background: primaryNiche === n.value ? "rgba(124,92,255,0.15)" : "rgba(255,255,255,0.05)", color: primaryNiche === n.value ? "#fff" : "rgba(255,255,255,0.6)" }}>
-                      {primaryNiche === n.value && "✓ "}{n.label}
-                    </button>
-                  ))}
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <button onClick={() => setStep(1)} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.4)", fontSize: 17, cursor: "pointer" }}>← Back</button>
-                  <Button onClick={() => setStep(3)} disabled={!primaryNiche}
-                    style={{ background: "#7C5CFF", color: "#fff", border: "none", padding: "14px 32px", borderRadius: 12, fontSize: 18, fontWeight: 600, cursor: primaryNiche ? "pointer" : "not-allowed", opacity: primaryNiche ? 1 : 0.4 }}>
-                    Continue →
-                  </Button>
-                </div>
-              </motion.div>
-            )}
+            <button
+              onClick={() => state.primaryNiche && setStep(2)}
+              style={state.primaryNiche ? btn : btnDisabled}
+            >
+              Continue →
+            </button>
+          </div>
+        )}
 
-            {/* STEP 3 — Secondary Niches */}
-            {step === 3 && (
-              <motion.div key="s3" variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.35 }}>
-                <h2 style={{ fontSize: 36, fontWeight: 700, margin: "0 0 10px" }}>Any secondary topics?</h2>
-                <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 20, margin: "0 0 6px" }}>Topics you also cover — up to 2. <span style={{ color: "#7C5CFF", fontSize: 16 }}>Optional</span></p>
-                <p style={{ color: "rgba(255,255,255,0.25)", fontSize: 16, margin: "0 0 24px" }}>Cross-niche patterns are often the most viral.</p>
-                <div style={{ marginBottom: 20 }}>
-                  <NicheSearchInput placeholder="Search secondary topics..." exclude={primaryNiche ? [primaryNiche] : []} selected={secondaryNiches} onSelect={toggleSecondary} max={2} />
-                </div>
-                {secondaryNiches.length > 0 && (
-                  <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 10, marginBottom: 20 }}>
-                    {secondaryNiches.map(v => (
-                      <div key={v} style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 16px", background: "rgba(124,92,255,0.15)", border: "1px solid #7C5CFF", borderRadius: 28, fontSize: 16, fontWeight: 600 }}>
-                        {ALL_NICHES.find(n => n.value === v)?.label}
-                        <button onClick={() => toggleSecondary(v)} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.4)", cursor: "pointer", fontSize: 18, padding: 0 }}>×</button>
+        {/* ── STEP 2 — Platforms ── */}
+        {state.step === 2 && (
+          <div>
+            <h2 style={title}>Where do you create?</h2>
+            <p style={subtitle}>Select the platforms you post on. TikTok has the most data.</p>
+
+            <div style={{ marginBottom: 24 }}>
+              {PLATFORMS.map(p => {
+                const selected = state.selectedPlatforms.includes(p.id);
+                return (
+                  <div
+                    key={p.id}
+                    onClick={() => {
+                      setState(s => {
+                        const next = selected
+                          ? s.selectedPlatforms.length > 1
+                            ? s.selectedPlatforms.filter(x => x !== p.id)
+                            : s.selectedPlatforms
+                          : [...s.selectedPlatforms, p.id];
+                        return {
+                          ...s,
+                          selectedPlatforms: next,
+                          activePlatform: next[0] || 'tiktok',
+                        };
+                      });
+                    }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 14,
+                      padding: '14px 16px', borderRadius: 10,
+                      border: selected ? '1px solid rgba(124,92,255,0.4)' : '1px solid rgba(255,255,255,0.08)',
+                      background: selected ? 'rgba(124,92,255,0.08)' : 'rgba(255,255,255,0.03)',
+                      cursor: 'pointer', marginBottom: 8,
+                    }}
+                  >
+                    <div style={{ fontSize: 24, flexShrink: 0 }}>{p.emoji}</div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+                        <span style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>{p.label}</span>
+                        <span style={{
+                          fontSize: 9, padding: '2px 7px', borderRadius: 10, fontWeight: 700,
+                          background: `${p.badgeColor}20`,
+                          border: `1px solid ${p.badgeColor}50`,
+                          color: p.badgeColor,
+                        }}>{p.badge}</span>
                       </div>
-                    ))}
-                  </div>
-                )}
-                {secondaryNiches.length === 0 && <p style={{ fontSize: 16, color: "rgba(255,255,255,0.25)", marginBottom: 20 }}>None selected — you can skip this step</p>}
-                <p style={{ fontSize: 14, color: "rgba(255,255,255,0.3)", margin: "0 0 14px", textTransform: "uppercase" as const, letterSpacing: "0.05em" }}>Suggestions</p>
-                <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 12, marginBottom: 32 }}>
-                  {secondarySuggestions.slice(0, 9).map(n => {
-                    const sel = secondaryNiches.includes(n.value);
-                    const disabled = !sel && secondaryNiches.length >= 2;
-                    return (
-                      <button key={n.value} onClick={() => !disabled && toggleSecondary(n.value)}
-                        style={{ padding: "11px 20px", borderRadius: 28, fontSize: 16, cursor: disabled ? "not-allowed" : "pointer", border: sel ? "1px solid #7C5CFF" : "1px solid rgba(255,255,255,0.15)", background: sel ? "rgba(124,92,255,0.15)" : "rgba(255,255,255,0.05)", color: sel ? "#fff" : disabled ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.6)", opacity: disabled ? 0.5 : 1 }}>
-                        {sel && "✓ "}{n.label}
-                      </button>
-                    );
-                  })}
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <button onClick={() => setStep(2)} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.4)", fontSize: 17, cursor: "pointer" }}>← Back</button>
-                  <Button onClick={() => setStep(4)} style={{ background: "#7C5CFF", color: "#fff", border: "none", padding: "14px 32px", borderRadius: 12, fontSize: 18, fontWeight: 600, cursor: "pointer" }}>Continue →</Button>
-                </div>
-              </motion.div>
-            )}
-
-            {/* STEP 4 — Content Style */}
-            {step === 4 && (
-              <motion.div key="s4" variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.35 }}>
-                <h2 style={{ fontSize: 36, fontWeight: 700, margin: "0 0 10px" }}>Your content style</h2>
-                <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 20, margin: "0 0 28px" }}>Helps us weight the most relevant patterns for your audience.</p>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 32 }}>
-                  {CONTENT_STYLES.map(s => (
-                    <button key={s.value} onClick={() => setContentStyle(s.value)}
-                      style={{ padding: "24px 20px", borderRadius: 14, textAlign: "left" as const, cursor: "pointer", border: contentStyle === s.value ? "1px solid #7C5CFF" : "1px solid rgba(255,255,255,0.1)", background: contentStyle === s.value ? "rgba(124,92,255,0.15)" : "rgba(255,255,255,0.05)" }}>
-                      <div style={{ fontSize: 32, marginBottom: 12 }}>{s.emoji}</div>
-                      <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 6, color: "#fff" }}>{s.label}</div>
-                      <div style={{ fontSize: 15, color: "rgba(255,255,255,0.4)" }}>{s.desc}</div>
-                    </button>
-                  ))}
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <button onClick={() => setStep(3)} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.4)", fontSize: 17, cursor: "pointer" }}>← Back</button>
-                  <Button onClick={handleSubmit} disabled={!contentStyle || isSubmitting}
-                    style={{ background: "linear-gradient(90deg,#7C5CFF,#c026d3)", color: "#fff", border: "none", padding: "14px 32px", borderRadius: 12, fontSize: 18, fontWeight: 600, cursor: contentStyle ? "pointer" : "not-allowed", opacity: contentStyle ? 1 : 0.4 }}>
-                    {isSubmitting && <Loader2 size={18} className="animate-spin" style={{ marginRight: 8 }} />}
-                    Build my feed →
-                  </Button>
-                </div>
-              </motion.div>
-            )}
-
-            {/* STEP 5 — Building Feed */}
-            {step === 5 && (
-              <motion.div key="s5" variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.35 }} style={{ textAlign: "center" as const }}>
-                <div style={{ width: 80, height: 80, background: "rgba(124,92,255,0.12)", borderRadius: 20, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 32px" }}>
-                  <RefreshCw size={36} color="#7C5CFF" className="animate-spin" />
-                </div>
-                <h2 style={{ fontSize: 36, fontWeight: 700, margin: "0 0 12px" }}>Building your intelligence feed...</h2>
-                <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 20, margin: "0 0 36px" }}>Analyzing viral patterns matched to your profile</p>
-                <div style={{ textAlign: "left" as const }}>
-                  {ANALYSIS_STEPS.map((label, idx) => (
-                    <motion.div key={idx} initial={{ opacity: 0.2 }} animate={{ opacity: analysisStep >= idx ? 1 : 0.2 }} transition={{ duration: 0.4 }}
-                      style={{ display: "flex", alignItems: "center", gap: 16, padding: "14px 0", borderBottom: idx < ANALYSIS_STEPS.length - 1 ? "1px solid rgba(255,255,255,0.06)" : "none" }}>
-                      <div style={{ width: 28, height: 28, borderRadius: "50%", background: "rgba(16,185,129,0.2)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                        {analysisStep >= idx ? <Check size={14} color="#10b981" /> : <Loader2 size={14} color="rgba(255,255,255,0.3)" className="animate-spin" />}
-                      </div>
-                      <span style={{ fontSize: 17, color: "rgba(255,255,255,0.7)" }}>{label}</span>
-                    </motion.div>
-                  ))}
-                </div>
-              </motion.div>
-            )}
-
-            {/* STEP 6 — Ready */}
-            {step === 6 && (
-              <motion.div key="s6" variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.35 }} style={{ textAlign: "center" as const }}>
-                <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", delay: 0.1 }}
-                  style={{ width: 80, height: 80, background: "rgba(16,185,129,0.12)", borderRadius: 20, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 28px" }}>
-                  <Check size={40} color="#10b981" />
-                </motion.div>
-                <h2 style={{ fontSize: 36, fontWeight: 700, margin: "0 0 12px" }}>Your feed is ready</h2>
-                <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 20, margin: "0 0 32px" }}>Here's your intelligence profile</p>
-                <div style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16, padding: 24, marginBottom: 32, textAlign: "left" as const }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16, paddingBottom: 16, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-                    <span style={{ fontSize: 14, color: "rgba(255,255,255,0.4)", textTransform: "uppercase" as const, letterSpacing: "0.05em" }}>Primary niche</span>
-                    <span style={{ fontSize: 17, fontWeight: 600, color: "#7C5CFF" }}>{ALL_NICHES.find(n => n.value === primaryNiche)?.label}</span>
-                  </div>
-                  {secondaryNiches.length > 0 && (
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16, paddingBottom: 16, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-                      <span style={{ fontSize: 14, color: "rgba(255,255,255,0.4)", textTransform: "uppercase" as const, letterSpacing: "0.05em" }}>Secondary topics</span>
-                      <span style={{ fontSize: 17, fontWeight: 600, color: "rgba(255,255,255,0.7)" }}>{secondaryNiches.map(v => ALL_NICHES.find(n => n.value === v)?.label).join(", ")}</span>
+                      <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>{p.desc}</div>
                     </div>
-                  )}
-                  {profileImported && (
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16, paddingBottom: 16, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-                      <span style={{ fontSize: 14, color: "rgba(255,255,255,0.4)", textTransform: "uppercase" as const, letterSpacing: "0.05em" }}>Profile</span>
-                      <span style={{ fontSize: 17, fontWeight: 600, color: "#10b981" }}>✓ {PLATFORMS.find(p => p.value === selectedPlatform)?.label} connected</span>
+                    <div style={{
+                      width: 18, height: 18, borderRadius: 5, flexShrink: 0,
+                      background: selected ? '#7C5CFF' : 'transparent',
+                      border: selected ? '1px solid #7C5CFF' : '1px solid rgba(255,255,255,0.2)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      {selected && <span style={{ color: '#fff', fontSize: 10 }}>✓</span>}
                     </div>
-                  )}
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16, paddingBottom: 16, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-                    <span style={{ fontSize: 14, color: "rgba(255,255,255,0.4)", textTransform: "uppercase" as const, letterSpacing: "0.05em" }}>Content style</span>
-                    <span style={{ fontSize: 17, fontWeight: 600, color: "rgba(255,255,255,0.7)" }}>{CONTENT_STYLES.find(s => s.value === contentStyle)?.label}</span>
                   </div>
-                  <div style={{ display: "flex", justifyContent: "space-between" }}>
-                    <span style={{ fontSize: 14, color: "rgba(255,255,255,0.4)", textTransform: "uppercase" as const, letterSpacing: "0.05em" }}>Status</span>
-                    <span style={{ fontSize: 17, fontWeight: 600, color: "#10b981" }}>✓ Feed personalized</span>
-                  </div>
+                );
+              })}
+            </div>
+
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                onClick={() => setStep(1)}
+                style={{
+                  padding: '12px 20px', borderRadius: 10,
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  background: 'transparent', color: 'rgba(255,255,255,0.4)',
+                  fontSize: 13, cursor: 'pointer',
+                }}
+              >
+                ← Back
+              </button>
+              <button onClick={() => setStep(3)} style={{ ...btn, flex: 1 }}>
+                Continue →
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── STEP 3 — Signal preview ── */}
+        {state.step === 3 && (
+          <div>
+            <h2 style={title}>Your first signal</h2>
+            <p style={subtitle}>
+              This is the kind of intelligence you'll get every day for{' '}
+              <span style={{ color: '#a78bfa', fontWeight: 600 }}>
+                {NICHES.find(n => n.id === state.primaryNiche)?.label || state.primaryNiche}
+              </span>.
+            </p>
+
+            {signalData?.signal ? (
+              <div style={{ marginBottom: 20, borderRadius: 12, overflow: 'hidden' }}>
+                <DailySignalHero signal={signalData} niche={state.primaryNiche || 'finance'} />
+              </div>
+            ) : (
+              <div style={{
+                textAlign: 'center', padding: '40px 20px', marginBottom: 20,
+                background: 'rgba(255,255,255,0.03)',
+                border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12,
+              }}>
+                <div style={{ fontSize: 32, marginBottom: 12 }}>🔮</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: '#fff', marginBottom: 8 }}>
+                  Signal incoming
                 </div>
-                <Button onClick={handleEnterDashboard}
-                  style={{ width: "100%", background: "linear-gradient(90deg,#7C5CFF,#c026d3)", color: "#fff", border: "none", padding: "18px 0", borderRadius: 14, fontSize: 19, fontWeight: 600, cursor: "pointer" }}>
-                  Enter my intelligence feed →
-                </Button>
-                <button onClick={() => setStep(2)} style={{ marginTop: 16, background: "none", border: "none", color: "rgba(255,255,255,0.3)", fontSize: 16, cursor: "pointer" }}>
-                  Edit my profile
-                </button>
-              </motion.div>
+                <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', lineHeight: 1.6 }}>
+                  We're analyzing{' '}
+                  {NICHES.find(n => n.id === state.primaryNiche)?.label || state.primaryNiche?.replace(/_/g, ' ')}{' '}
+                  content right now. Your first signal will be ready within 24 hours.
+                </div>
+              </div>
             )}
 
-          </AnimatePresence>
-        </div>
-      </main>
+            <div style={{
+              fontSize: 11, color: 'rgba(255,255,255,0.22)',
+              textAlign: 'center', marginBottom: 20,
+            }}>
+              This is your daily signal. It refreshes every 72 hours.
+            </div>
+
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                onClick={() => setStep(2)}
+                style={{
+                  padding: '12px 20px', borderRadius: 10,
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  background: 'transparent', color: 'rgba(255,255,255,0.4)',
+                  fontSize: 13, cursor: 'pointer',
+                }}
+              >
+                ← Back
+              </button>
+              <button onClick={() => setStep(4)} style={{ ...btn, flex: 1 }}>
+                Continue →
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── STEP 4 — Playbook ready ── */}
+        {state.step === 4 && (
+          <div>
+            <h2 style={title}>Your daily playbook is ready</h2>
+            <p style={subtitle}>2 tasks already done. Complete the rest to build your streak.</p>
+
+            {/* Playbook items */}
+            <div style={{ marginBottom: 22 }}>
+              {PLAYBOOK_ITEMS.map((item, i) => (
+                <div key={i} style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '11px 14px', borderRadius: 8, marginBottom: 6,
+                  background: item.done ? 'rgba(34,197,94,0.06)' : 'rgba(255,255,255,0.03)',
+                  border: item.done ? '1px solid rgba(34,197,94,0.18)' : '1px solid rgba(255,255,255,0.07)',
+                }}>
+                  <div style={{
+                    width: 18, height: 18, borderRadius: '50%', flexShrink: 0,
+                    background: item.done ? '#22c55e' : 'rgba(255,255,255,0.1)',
+                    border: item.done ? 'none' : '1px solid rgba(255,255,255,0.2)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    {item.done && <span style={{ color: '#fff', fontSize: 10 }}>✓</span>}
+                  </div>
+                  <span style={{
+                    fontSize: 13, fontWeight: 500,
+                    color: item.done ? '#22c55e' : 'rgba(255,255,255,0.55)',
+                    textDecoration: item.done ? 'line-through' : 'none',
+                  }}>
+                    {item.label}
+                  </span>
+                  {item.done && (
+                    <span style={{
+                      marginLeft: 'auto', fontSize: 9, fontWeight: 700,
+                      color: '#22c55e', textTransform: 'uppercase', letterSpacing: '0.06em',
+                    }}>done</span>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* 7-day streak visual */}
+            <div style={{
+              padding: '14px 16px', borderRadius: 10,
+              background: 'rgba(245,158,11,0.06)',
+              border: '1px solid rgba(245,158,11,0.15)',
+              marginBottom: 22,
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
+                {DAYS.map((d, i) => (
+                  <div key={i} style={{ textAlign: 'center' }}>
+                    <div style={{
+                      fontSize: 9, color: 'rgba(255,255,255,0.25)',
+                      marginBottom: 5, textTransform: 'uppercase',
+                    }}>{d}</div>
+                    <div style={{
+                      width: 28, height: 28, borderRadius: 7,
+                      background: i === new Date().getDay()
+                        ? 'rgba(245,158,11,0.3)'
+                        : 'rgba(255,255,255,0.04)',
+                      border: i === new Date().getDay()
+                        ? '1px solid rgba(245,158,11,0.5)'
+                        : '1px solid rgba(255,255,255,0.07)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      {i === new Date().getDay() && (
+                        <span style={{ fontSize: 14 }}>🔥</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b' }}>
+                Day 1 streak started 🔥
+              </div>
+            </div>
+
+            <button
+              onClick={handleStart}
+              disabled={saving}
+              style={saving ? { ...btn, opacity: 0.6 } : btn}
+            >
+              {saving ? 'Setting up your feed...' : 'Start creating →'}
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

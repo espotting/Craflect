@@ -12,6 +12,8 @@ export const patternQueue = new Queue('pattern', { connection: redisConnection }
 export const phaseTransitionQueue = new Queue('phase-transition', { connection: redisConnection });
 export const velocityQueue = new Queue('velocity', { connection: redisConnection });
 export const feedbackQueue = new Queue('feedback', { connection: redisConnection });
+export const thumbnailQueue = new Queue('thumbnail-generator', { connection: redisConnection });
+export const predictionsQueue = new Queue('compute-predictions', { connection: redisConnection });
 
 export async function setupSchedules() {
   await ingestionQueue.add('cycle-zones', {}, {
@@ -46,12 +48,25 @@ export async function setupSchedules() {
     removeOnFail: 3,
   });
 
-  // 30-day decay: weak patterns (video_count < 10) drift back toward neutral weight
-  await patternDecayQueue.add('decay-weak-patterns', {}, {
+  await thumbnailQueue.add('generate', {}, {
+    repeat: { cron: '0 */6 * * *' },
+    removeOnComplete: 5,
+    removeOnFail: 3,
+  });
+
+  // Compute view predictions every 24h
+  await predictionsQueue.add('compute', {}, {
     repeat: { cron: '0 3 * * *' },
     removeOnComplete: 5,
     removeOnFail: 3,
   });
 
-  console.log('✅ Schedules configurés : Ingestion (2h), Scoring (15min), Patterns (6h), Velocity (6h), Phase Transition (30min), Feedback (1h), PatternDecay (daily)');
+  // 30-day decay: weak patterns (video_count < 10) drift back toward neutral weight
+  await patternDecayQueue.add('decay-weak-patterns', {}, {
+    repeat: { cron: '0 4 * * *' },
+    removeOnComplete: 5,
+    removeOnFail: 3,
+  });
+
+  console.log('✅ Schedules configurés : Ingestion (6h), Scoring (15min), Patterns (6h), Velocity (6h), Phase Transition (30min), Feedback (1h), Thumbnails (6h), Predictions (24h), PatternDecay (daily)');
 }

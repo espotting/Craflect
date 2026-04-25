@@ -362,8 +362,9 @@ export const TOPIC_CLUSTERS = [
   "digital_marketing", "ecommerce", "saas", "real_estate",
   "finance", "crypto", "productivity", "education",
   "tech", "personal_branding", "coaching", "motivation",
-  "lifestyle", "fitness", "health", "beauty",
+  "lifestyle", "fitness", "health", "health_wellness", "beauty",
   "food", "travel", "relationships", "entertainment", "gaming",
+  "mindset",
 ] as const;
 
 export const NICHE_CLUSTERS = [
@@ -372,6 +373,11 @@ export const NICHE_CLUSTERS = [
   "online_business",
   "content_creation",
   "productivity",
+  "health_wellness",
+  "fitness",
+  "mindset",
+  "digital_marketing",
+  "real_estate",
 ] as const;
 
 export const NICHE_CLUSTER_LABELS: Record<string, string> = {
@@ -380,6 +386,11 @@ export const NICHE_CLUSTER_LABELS: Record<string, string> = {
   online_business: "Online Business",
   content_creation: "Content Creation",
   productivity: "Productivity",
+  health_wellness: "Health & Wellness",
+  fitness: "Fitness",
+  mindset: "Mindset",
+  digital_marketing: "Digital Marketing",
+  real_estate: "Real Estate",
 };
 
 export const TOPIC_TO_NICHE_CLUSTER: Record<string, string> = {
@@ -391,12 +402,10 @@ export const TOPIC_TO_NICHE_CLUSTER: Record<string, string> = {
   // Finance
   finance: "finance",
   crypto: "finance",
-  real_estate: "finance",
   // Online business
   online_business: "online_business",
   entrepreneurship: "online_business",
   ecommerce: "online_business",
-  digital_marketing: "online_business",
   // Content creation
   content_creation: "content_creation",
   personal_branding: "content_creation",
@@ -404,16 +413,25 @@ export const TOPIC_TO_NICHE_CLUSTER: Record<string, string> = {
   coaching: "content_creation",
   entertainment: "content_creation",
   gaming: "content_creation",
-  // Productivity (catch-all for lifestyle-adjacent)
+  // Productivity
   productivity: "productivity",
-  motivation: "productivity",
   lifestyle: "productivity",
-  fitness: "productivity",
-  health: "productivity",
-  beauty: "productivity",
   food: "productivity",
   travel: "productivity",
   relationships: "productivity",
+  // Health & Wellness
+  health_wellness: "health_wellness",
+  health: "health_wellness",
+  beauty: "health_wellness",
+  // Fitness
+  fitness: "fitness",
+  // Mindset
+  mindset: "mindset",
+  motivation: "mindset",
+  // Digital Marketing
+  digital_marketing: "digital_marketing",
+  // Real Estate
+  real_estate: "real_estate",
 };
 
 export function resolveNicheCluster(topicCluster: string | null | undefined): string | null {
@@ -441,12 +459,14 @@ export const TOPIC_CLUSTER_LABELS: Record<string, string> = {
   lifestyle: "Lifestyle",
   fitness: "Fitness",
   health: "Health",
+  health_wellness: "Health & Wellness",
   beauty: "Beauty",
   food: "Food",
   travel: "Travel",
   relationships: "Relationships",
   entertainment: "Entertainment",
   gaming: "Gaming",
+  mindset: "Mindset",
   unknown: "General",
 };
 
@@ -1167,6 +1187,26 @@ export const userContentDna = pgTable("user_content_dna", {
   updatedAt: timestamp("updated_at").defaultNow(),
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+export const userConnectedAccounts = pgTable("user_connected_accounts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  platform: text("platform").notNull(),
+  accountHandle: text("account_handle").notNull(),
+  accountUrl: text("account_url"),
+  followersCount: integer("followers_count"),
+  isPrimary: boolean("is_primary").notNull().default(false),
+  connectedAt: timestamp("connected_at").notNull().defaultNow(),
+  lastSyncedAt: timestamp("last_synced_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => [
+  index("idx_user_connected_accounts_user_id").on(table.userId),
+  index("idx_user_connected_accounts_platform").on(table.platform),
+]);
+
+export const insertUserConnectedAccountSchema = createInsertSchema(userConnectedAccounts).omit({ id: true, createdAt: true });
+export type UserConnectedAccount = typeof userConnectedAccounts.$inferSelect;
+export type InsertUserConnectedAccount = z.infer<typeof insertUserConnectedAccountSchema>;
 
 export type Niche = typeof niches.$inferSelect;
 export type InsertNiche = z.infer<typeof insertNicheSchema>;

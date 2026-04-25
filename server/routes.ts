@@ -3,6 +3,33 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
 
+function computeSignalStrength(pattern: {
+  video_count: number | null;
+  velocity_7d: number | null;
+  cluster_level?: 2 | 3 | null;
+  platform?: string | null;
+}): 'strong' | 'building' | 'emerging' {
+  const count = pattern.video_count ?? 0;
+  const velocity = pattern.velocity_7d ?? 0;
+  const level = pattern.cluster_level ?? 2;
+  const platform = pattern.platform ?? 'tiktok';
+
+  const baseStrong   = level === 3 ? 25 : 40;
+  const baseBuilding = level === 3 ? 10 : 15;
+
+  const multiplier =
+    platform === 'tiktok'  ? 1.2 :
+    platform === 'shorts'  ? 0.8 : 1.0;
+
+  const thresholdStrong   = Math.round(baseStrong   * multiplier);
+  const thresholdBuilding = Math.round(baseBuilding * multiplier);
+
+  if (count < thresholdBuilding) return 'emerging';
+  if (count < thresholdStrong)   return 'building';
+  if (velocity <= 0)             return 'building';
+  return 'strong';
+}
+
 function cleanHookYear(text: string | null | undefined): string | null {
   if (!text) return text as null;
   const currentYear = new Date().getFullYear();
@@ -113,13 +140,14 @@ export async function registerRoutes(
     await db.execute(sqlRaw`ALTER TABLE users ADD COLUMN IF NOT EXISTS daily_signal_used boolean DEFAULT false`);
     await db.execute(sqlRaw`ALTER TABLE users ADD COLUMN IF NOT EXISTS platforms text[] DEFAULT '{tiktok}'`);
     await db.execute(sqlRaw`ALTER TABLE users ADD COLUMN IF NOT EXISTS liked_video_ids text[] DEFAULT '{}'`);
+    await db.execute(sqlRaw`ALTER TABLE users ADD COLUMN IF NOT EXISTS active_platform text DEFAULT 'tiktok'`);
     // Videos — new columns for Pattern Engine upgrade
     await db.execute(sqlRaw`ALTER TABLE videos ADD COLUMN IF NOT EXISTS decay_weight float DEFAULT 1.0`);
     await db.execute(sqlRaw`ALTER TABLE videos ADD COLUMN IF NOT EXISTS sub_niche text`);
     await db.execute(sqlRaw`ALTER TABLE videos ADD COLUMN IF NOT EXISTS audience_gender text`);
     await db.execute(sqlRaw`ALTER TABLE videos ADD COLUMN IF NOT EXISTS audience_age_range text`);
     await db.execute(sqlRaw`ALTER TABLE videos ADD COLUMN IF NOT EXISTS is_faceless boolean DEFAULT false`);
-    // Patterns — signal strength
+    // Patterns — signal strength + feedback loop columns
     await db.execute(sqlRaw`ALTER TABLE patterns ADD COLUMN IF NOT EXISTS signal_strength text DEFAULT 'emerging'`);
     await db.execute(sqlRaw`ALTER TABLE patterns ADD COLUMN IF NOT EXISTS pattern_weight_adjustment float DEFAULT 1.0`);
     await db.execute(sqlRaw`ALTER TABLE patterns ADD COLUMN IF NOT EXISTS adjusted_score float`);
@@ -174,6 +202,21 @@ export async function registerRoutes(
       AND (SELECT COUNT(*) FROM videos WHERE taxonomy_version = '5.0') < 5
     `);
     console.log('[Migrations] Sprint 5 seed: up to 50 videos queued for taxonomy v5.0 reclassification');
+
+    // Sprint 4 — Daily Playbook table
+    await db.execute(sqlRaw`
+      CREATE TABLE IF NOT EXISTS daily_playbook (
+        user_id text NOT NULL,
+        date date NOT NULL DEFAULT CURRENT_DATE,
+        task_signal boolean DEFAULT false,
+        task_patterns boolean DEFAULT false,
+        task_brief boolean DEFAULT false,
+        task_track boolean DEFAULT false,
+        streak_count integer DEFAULT 0,
+        PRIMARY KEY (user_id, date)
+      )
+    `);
+    console.log('[Migrations] daily_playbook table OK');
   }
 
   // ─── Workspaces ───
@@ -1832,6 +1875,7 @@ The content should directly apply the recommendations from the insight report. W
     try {
       const { db } = await import("./db");
       const { sql } = await import("drizzle-orm");
+      const VALID_PLATFORMS = ['tiktok', 'reels', 'shorts', 'instagram', 'youtube'];
       const input = z.object({
         selectedNiches: z.array(z.string()).max(10).optional(),
         userGoal: z.enum(["content_creator", "marketer", "business", "trend_explorer"]).optional(),
@@ -1842,7 +1886,12 @@ The content should directly apply the recommendations from the insight report. W
         profileSkipped: z.boolean().optional(),
         popupSkipCount: z.number().optional(),
         notificationPrefs: z.record(z.boolean()).optional(),
+        platforms: z.array(z.string()).optional(),
+        active_platform: z.string().optional(),
       }).parse(req.body);
+      if (input.active_platform !== undefined && !VALID_PLATFORMS.includes(input.active_platform)) {
+        return res.status(400).json({ error: 'Invalid platform' });
+      }
 
       if (input.selectedNiches !== undefined) {
         const nichesArray = `{${input.selectedNiches.join(",")}}`;
@@ -1862,6 +1911,13 @@ The content should directly apply the recommendations from the insight report. W
       }
       if (input.popupSkipCount !== undefined) {
         await db.execute(sql`UPDATE users SET popup_skip_count = ${input.popupSkipCount}, popup_last_shown = NOW() WHERE id = ${req.user.id}`);
+      }
+      if (input.platforms !== undefined && input.platforms.length > 0) {
+        const platformsArray = `{${input.platforms.join(',')}}`;
+        await db.execute(sql`UPDATE users SET platforms = ${platformsArray}::text[] WHERE id = ${req.user.id}`);
+      }
+      if (input.active_platform !== undefined) {
+        await db.execute(sql`UPDATE users SET active_platform = ${input.active_platform} WHERE id = ${req.user.id}`);
       }
 
       res.json({ success: true });
@@ -4570,15 +4626,102 @@ ${input.cta ? `CTA: ${input.cta}` : ""}`;
       const { db } = await import("./db");
       const { sql } = await import("drizzle-orm");
       const result = await db.execute(sql`
-        SELECT p.*, cc.trend_status, cc.velocity_7d
+        SELECT p.*, cc.trend_status, cc.velocity_7d as cc_velocity_7d
         FROM patterns p
         LEFT JOIN content_clusters cc ON cc.id::text = p.cluster_id
         WHERE p.pattern_id = ${req.params.id}
       `);
       if (!result.rows.length) return res.status(404).json({ error: 'Not found' });
-      res.json(result.rows[0]);
+      const p = result.rows[0] as any;
+      const vel = p.velocity_7d ?? p.cc_velocity_7d ?? 0;
+      const pat_platform = p.platform || 'tiktok';
+      res.json({
+        ...p,
+        platform: pat_platform,
+        signal_strength: computeSignalStrength({ video_count: p.video_count, velocity_7d: vel, cluster_level: p.sub_niche ? 3 : 2, platform: pat_platform }),
+        velocity_7d: vel,
+      });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get('/api/patterns/:id/similar', isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const patternRes = await db.execute(sql`
+        SELECT topic_cluster, hook_type_v2 FROM patterns WHERE pattern_id = ${req.params.id}
+      `);
+      if (!patternRes.rows.length) return res.json([]);
+      const row = patternRes.rows[0] as any;
+      const similar = await db.execute(sql.raw(`
+        SELECT p.*, cc.trend_status, cc.velocity_7d
+        FROM patterns p
+        LEFT JOIN content_clusters cc ON cc.id::text = p.cluster_id
+        WHERE p.hook_template IS NOT NULL
+          AND p.pattern_label IS NOT NULL
+          AND p.pattern_id != '${(req.params.id as string).replace(/'/g, "''")}'
+          AND (
+            p.topic_cluster = '${(row.topic_cluster || '').replace(/'/g, "''")}'
+            OR p.hook_type_v2 = '${(row.hook_type_v2 || '').replace(/'/g, "''")}'
+          )
+        ORDER BY p.avg_virality_score DESC NULLS LAST
+        LIMIT 5
+      `));
+      const enriched = (similar.rows as any[]).map(p => {
+        const vel = p.velocity_7d ?? 0;
+        const pat_platform = p.platform || 'tiktok';
+        return {
+          ...p,
+          platform: pat_platform,
+          signal_strength: computeSignalStrength({ video_count: p.video_count, velocity_7d: vel, cluster_level: p.sub_niche ? 3 : 2, platform: pat_platform }),
+          velocity_7d: vel,
+          patternId: p.pattern_id,
+          hookTemplate: p.hook_template,
+          whyItWorks: p.why_it_works,
+          signalStrength: computeSignalStrength({ video_count: p.video_count, velocity_7d: vel, cluster_level: p.sub_niche ? 3 : 2, platform: pat_platform }),
+          videoCount: p.video_count,
+          predictedViewsMin: p.predicted_views_min,
+          predictedViewsMax: p.predicted_views_max,
+          velocity7d: vel,
+          avgViralityScore: p.avg_virality_score,
+          avgEngagementRate: p.avg_engagement_rate,
+          topicCluster: p.topic_cluster,
+        };
+      });
+      res.json(enriched);
+    } catch (error: any) {
+      console.error('[/api/patterns/:id/similar]', error.message);
+      res.json([]);
+    }
+  });
+
+  app.get('/api/patterns/:id/source-video', isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const patternRes = await db.execute(sql`
+        SELECT topic_cluster FROM patterns WHERE pattern_id = ${req.params.id}
+      `);
+      if (!patternRes.rows.length) return res.json(null);
+      const topicCluster = (patternRes.rows[0] as any).topic_cluster;
+      if (!topicCluster) return res.json(null);
+      const videoRes = await db.execute(sql.raw(`
+        SELECT id, caption, platform, creator_name, views, likes, comments, shares,
+               engagement_rate, virality_score, topic_cluster, published_at,
+               duration_seconds, transcript, followers_count
+        FROM videos
+        WHERE topic_cluster = '${topicCluster.replace(/'/g, "''")}'
+          AND classification_status = 'completed'
+          AND virality_score IS NOT NULL
+        ORDER BY virality_score DESC NULLS LAST
+        LIMIT 1
+      `));
+      res.json(videoRes.rows[0] || null);
+    } catch (error: any) {
+      console.error('[/api/patterns/:id/source-video]', error.message);
+      res.json(null);
     }
   });
 
@@ -4781,7 +4924,7 @@ ${input.cta ? `CTA: ${input.cta}` : ""}`;
       const { db } = await import("./db");
       const { sql } = await import("drizzle-orm");
       const user = await db.execute(sql`
-        SELECT selected_niches, primary_niche, content_style, user_goal, onboarding_completed
+        SELECT selected_niches, primary_niche, content_style, user_goal, onboarding_completed, platforms, active_platform
         FROM users WHERE id = ${req.user.id}
       `);
       if (!user.rows.length) return res.status(404).json({ error: 'User not found' });
@@ -4792,6 +4935,8 @@ ${input.cta ? `CTA: ${input.cta}` : ""}`;
         contentStyle: row.content_style || null,
         userGoal: row.user_goal || null,
         onboardingCompleted: row.onboarding_completed || false,
+        platforms: row.platforms || ['tiktok'],
+        active_platform: row.active_platform || 'tiktok',
       });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -5151,47 +5296,65 @@ JSON only, no markdown.`;
       const rawPlatform = (req.query.platform as string) || 'all';
       const ALLOWED_PLATFORMS = ['all', 'tiktok', 'instagram', 'youtube'];
       const platformFilter = ALLOWED_PLATFORMS.includes(rawPlatform) ? rawPlatform : 'all';
-      const platformClause = platformFilter !== 'all' ? `AND v.platform = '${platformFilter}'` : '';
 
       const userResult = await db.execute(sql`
         SELECT primary_niche, selected_niches FROM users WHERE id = ${req.user.id}
       `);
-      const userData = userResult.rows[0] as any;
-      const primaryNiche = userData?.primary_niche || null;
-      const niches: string[] = userData?.selected_niches || [];
-      const nichesArr = `{${niches.length > 0 ? niches.join(',') : (primaryNiche || 'general')}}`;
-      const primaryVal = primaryNiche || 'general';
+      const u = userResult.rows[0] as any;
+      const rawSelected: string[] = Array.isArray(u?.selected_niches) ? u.selected_niches : [];
+      const primaryNiche = u?.primary_niche || rawSelected[0] || 'finance';
+      const selectedNiches = rawSelected.length > 0 ? rawSelected : [primaryNiche];
 
+      // Safe SQL injection: escape niche values manually
+      const primaryEsc = primaryNiche.replace(/'/g, "''");
+      const nichesSQL = selectedNiches.map((n: string) => `'${n.replace(/'/g, "''")}'`).join(',');
+      const platformClause = platformFilter !== 'all'
+        ? `AND v.platform = '${platformFilter.replace(/'/g, "''")}'`
+        : '';
+
+      // Score de pertinence :
+      // +50 niche principale, +30 niche secondaire sélectionnée
+      // +20 emerging, +10 trending
+      // +velocity_7d * 2, +virality_score * 0.2
       const feed = await db.execute(sql.raw(`
         SELECT
-          v.id, v.hook_text, v.hook_type_v2, v.structure_type, v.content_format,
+          v.id, v.hook_text, v.hook_type_v2, v.structure_type,
           v.niche_cluster, v.virality_score, v.views, v.thumbnail_url,
-          v.creator_name, v.duration_seconds, v.followers_count,
+          v.creator_name, v.duration_seconds, v.platform,
           cc.trend_status, cc.velocity_7d,
+          p.pattern_id as pattern_id_ref,
+          p.predicted_views_min, p.predicted_views_max, p.confidence_score,
           (
-            CASE WHEN v.niche_cluster = '${primaryVal.replace(/'/g, "''")}' THEN 50
-                 WHEN v.niche_cluster = ANY(ARRAY${nichesArr.replace(/\{/,'[').replace(/\}/,']').split(',').map((n: string) => `'${n.trim().replace(/'/g, "''")}'`).join(',').replace(/\[/, '[').replace(/\]/, ']')}::text[]) THEN 30
+            CASE WHEN v.niche_cluster = '${primaryEsc}' THEN 50
+                 WHEN v.niche_cluster = ANY(ARRAY[${nichesSQL}]::text[]) THEN 30
                  ELSE 0 END +
-            COALESCE(cc.velocity_7d, 0) * 3 +
+            CASE WHEN cc.trend_status = 'emerging' THEN 20
+                 WHEN cc.trend_status = 'trending' THEN 10
+                 ELSE 0 END +
+            COALESCE(cc.velocity_7d, 0) * 2 +
             COALESCE(v.virality_score, 0) * 0.2
-          ) as relevance_score
+          ) AS relevance_score
         FROM videos v
         LEFT JOIN content_clusters cc ON v.id = ANY(cc.video_ids)
+        LEFT JOIN patterns p ON p.cluster_id = cc.id::text
         WHERE v.classification_status = 'completed'
-          AND v.virality_score >= 50
+          AND v.virality_score >= 40
           AND v.hook_text IS NOT NULL
+          AND v.niche_cluster = ANY(ARRAY[${nichesSQL}]::text[])
           ${platformClause}
         ORDER BY relevance_score DESC, v.virality_score DESC NULLS LAST
-        LIMIT 20
+        LIMIT 40
       `));
 
       res.json({
         videos: feed.rows,
-        personalizedFor: primaryNiche,
+        primaryNiche,
+        selectedNiches,
         totalResults: feed.rows.length,
       });
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error('[feed/personalized] error:', error.message);
+      res.json({ videos: [], primaryNiche: 'finance', selectedNiches: ['finance'], totalResults: 0 });
     }
   });
 
@@ -5322,25 +5485,103 @@ JSON only, no markdown.`;
     try {
       const { db } = await import("./db");
       const { sql } = await import("drizzle-orm");
-      const result = await db.execute(sql`
-        SELECT profile_connected, profile_imported_at, profile_videos_count,
-               profile_url_tiktok, profile_url_instagram, profile_url_youtube,
-               popup_skip_count
-        FROM users WHERE id = ${req.user.id}
-      `);
-      const row = result.rows[0] as any;
-      const platforms: Array<{ platform: string; connectedAt: string; videoCount: number }> = [];
-      if (row?.profile_url_tiktok) platforms.push({ platform: 'tiktok', connectedAt: row.profile_imported_at || new Date().toISOString(), videoCount: row.profile_videos_count || 0 });
-      if (row?.profile_url_instagram) platforms.push({ platform: 'instagram', connectedAt: row.profile_imported_at || new Date().toISOString(), videoCount: row.profile_videos_count || 0 });
-      if (row?.profile_url_youtube) platforms.push({ platform: 'youtube', connectedAt: row.profile_imported_at || new Date().toISOString(), videoCount: row.profile_videos_count || 0 });
-      res.json({
-        profileConnected: platforms.length > 0,
-        platforms,
-        lastImportedAt: row?.profile_imported_at || null,
-        popupSkipCount: row?.popup_skip_count || 0,
+      const [accountsRes, userRes] = await Promise.all([
+        db.execute(sql`
+          SELECT id, platform, account_handle, connected_at, last_synced_at, is_primary
+          FROM user_connected_accounts WHERE user_id = ${req.user.id}
+          ORDER BY connected_at DESC
+        `),
+        db.execute(sql`SELECT popup_skip_count, popup_last_shown FROM users WHERE id = ${req.user.id}`),
+      ]);
+      const accounts = accountsRes.rows as any[];
+      const userRow = userRes.rows[0] as any;
+      return res.json({
+        profileConnected: accounts.length > 0,
+        platforms: accounts.map(a => ({
+          platform: a.platform,
+          connectedAt: a.connected_at,
+          videoCount: 0,
+          accountHandle: a.account_handle,
+          isPrimary: a.is_primary,
+        })),
+        lastImportedAt: accounts[0]?.last_synced_at || null,
+        popupSkipCount: userRow?.popup_skip_count || 0,
+        popupLastShown: userRow?.popup_last_shown || null,
       });
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ profileConnected: false, platforms: [], lastImportedAt: null });
+    }
+  });
+
+  // ── GET /api/user/accounts ────────────────────────────────────────────────
+  app.get('/api/user/accounts', isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const result = await db.execute(sql`
+        SELECT id, user_id, platform, account_handle, account_url, followers_count,
+               is_primary, connected_at, last_synced_at, created_at
+        FROM user_connected_accounts WHERE user_id = ${req.user.id}
+        ORDER BY connected_at DESC
+      `);
+      return res.json(result.rows);
+    } catch (error: any) {
+      console.error('[/api/user/accounts]', error.message);
+      return res.status(500).json({ error: 'Failed to fetch accounts' });
+    }
+  });
+
+  // ── POST /api/user/accounts ───────────────────────────────────────────────
+  app.post('/api/user/accounts', isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const VALID_PLATFORMS = ['tiktok', 'reels', 'shorts'];
+      const { platform, accountHandle, accountUrl, followersCount, isPrimary } = req.body;
+      if (!platform || !VALID_PLATFORMS.includes(platform)) {
+        return res.status(400).json({ error: 'Invalid platform' });
+      }
+      if (!accountHandle || typeof accountHandle !== 'string') {
+        return res.status(400).json({ error: 'accountHandle required' });
+      }
+      if (isPrimary) {
+        await db.execute(sql`
+          UPDATE user_connected_accounts SET is_primary = false
+          WHERE user_id = ${req.user.id} AND platform = ${platform}
+        `);
+      }
+      const handle = (accountHandle as string).replace('@', '');
+      const result = await db.execute(sql`
+        INSERT INTO user_connected_accounts
+          (user_id, platform, account_handle, account_url, followers_count, is_primary)
+        VALUES
+          (${req.user.id}, ${platform}, ${handle}, ${accountUrl || null}, ${followersCount || null}, ${isPrimary || false})
+        RETURNING *
+      `);
+      // Ensure platform is in user active_platform if not already set
+      await db.execute(sql`
+        UPDATE users SET active_platform = ${platform}
+        WHERE id = ${req.user.id} AND (active_platform IS NULL OR active_platform = 'tiktok')
+      `);
+      return res.json(result.rows[0]);
+    } catch (error: any) {
+      console.error('[POST /api/user/accounts]', error.message);
+      return res.status(500).json({ error: 'Failed to connect account' });
+    }
+  });
+
+  // ── DELETE /api/user/accounts/:id ────────────────────────────────────────
+  app.delete('/api/user/accounts/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      await db.execute(sql`
+        DELETE FROM user_connected_accounts
+        WHERE id = ${req.params.id} AND user_id = ${req.user.id}
+      `);
+      return res.json({ success: true });
+    } catch (error: any) {
+      return res.status(500).json({ error: 'Failed to delete account' });
     }
   });
 
@@ -5403,25 +5644,94 @@ JSON only, no markdown.`;
     try {
       const { db } = await import("./db");
       const { sql } = await import("drizzle-orm");
+      const specificPatternId = (req.query.patternId as string) || '';
+
       const userRes = await db.execute(sql`SELECT selected_niches, primary_niche FROM users WHERE id = ${req.user.id}`);
       const row = userRes.rows[0] as any;
-      const niches: string[] = row?.selected_niches || (row?.primary_niche ? [row.primary_niche] : []);
-      const nicheList = niches.length > 0 ? niches.map((n: string) => `'${n.replace(/'/g, "''")}'`).join(',') : "'general'";
+      const rawSelected: string[] = Array.isArray(row?.selected_niches) ? row.selected_niches : [];
+      const primaryNiche = row?.primary_niche || rawSelected[0] || null;
+      const niches: string[] = rawSelected.length > 0 ? rawSelected : (primaryNiche ? [primaryNiche] : []);
+
+      console.log(`[patterns/list] user=${req.user.id} primaryNiche=${primaryNiche} niches=${JSON.stringify(niches)}`);
+
+      if (niches.length === 0) {
+        // Fallback : top 10 toutes niches — specific pattern first if requested
+        const specificSafeId = specificPatternId ? specificPatternId.replace(/'/g, "''") : '';
+        const orderSpecificFallback = specificSafeId
+          ? `CASE WHEN p.pattern_id = '${specificSafeId}' THEN 0 ELSE 1 END,`
+          : '';
+        const fallback = await db.execute(sql.raw(`
+          SELECT p.pattern_id as id, p.pattern_id, p.pattern_label, p.hook_template, p.structure_template,
+                 p.optimal_duration, p.why_it_works, p.best_for, p.cta_suggestion,
+                 p.avg_virality_score, p.avg_engagement_rate, p.topic_cluster, p.video_count,
+                 p.predicted_views_min, p.predicted_views_max, p.confidence_score,
+                 p.sub_niche, p.hook_type_v2, p.decay_weight, p.created_at, p.velocity_7d,
+                 cc.trend_status, cc.velocity_7d as cc_velocity_7d
+          FROM patterns p
+          LEFT JOIN content_clusters cc ON cc.id::text = p.cluster_id
+          WHERE p.pattern_label IS NOT NULL AND p.hook_template IS NOT NULL
+          ORDER BY ${orderSpecificFallback} p.avg_virality_score DESC NULLS LAST
+          LIMIT 10
+        `));
+        const enrichedFallback = (fallback.rows as any[]).map(p => {
+          const clusterLevel = p.sub_niche ? 3 : 2;
+          const vel = p.velocity_7d ?? p.cc_velocity_7d ?? 0;
+          const pat_platform = p.platform || 'tiktok';
+          return {
+            ...p,
+            platform: pat_platform,
+            signal_strength: computeSignalStrength({ video_count: p.video_count, velocity_7d: vel, cluster_level: clusterLevel, platform: pat_platform }),
+            cluster_key: [p.topic_cluster, p.sub_niche, p.hook_type_v2, pat_platform].filter(Boolean).join('|'),
+            cluster_level: clusterLevel,
+            velocity_7d: vel,
+          };
+        });
+        return res.json(enrichedFallback);
+      }
+      const nichesStr = niches.map((n: string) => `'${n.replace(/'/g, "''")}'`).join(',');
+      const specificClause = specificPatternId
+        ? `OR p.pattern_id = '${specificPatternId.replace(/'/g, "''")}'`
+        : '';
+      const orderSpecific = specificPatternId
+        ? `CASE WHEN p.pattern_id = '${specificPatternId.replace(/'/g, "''")}' THEN 0 ELSE 1 END,`
+        : '';
+
       const patterns = await db.execute(sql.raw(`
-        SELECT p.id, p.pattern_label, p.hook_template, p.structure_template,
+        SELECT p.pattern_id as id, p.pattern_id, p.pattern_label, p.hook_template, p.structure_template,
                p.optimal_duration, p.why_it_works, p.best_for, p.cta_suggestion,
-               p.avg_virality_score, p.topic_cluster,
-               cc.trend_status, cc.velocity_7d
+               p.avg_virality_score, p.avg_engagement_rate, p.topic_cluster, p.video_count,
+               p.predicted_views_min, p.predicted_views_max, p.confidence_score,
+               p.sub_niche, p.hook_type_v2, p.decay_weight, p.created_at, p.velocity_7d,
+               cc.trend_status, cc.velocity_7d as cc_velocity_7d
         FROM patterns p
         LEFT JOIN content_clusters cc ON cc.id::text = p.cluster_id
         WHERE p.pattern_label IS NOT NULL AND p.hook_template IS NOT NULL
+          AND (
+            p.topic_cluster = ANY(ARRAY[${nichesStr}]::text[])
+            ${specificClause}
+          )
         ORDER BY
-          CASE WHEN p.topic_cluster = ANY(ARRAY[${nicheList}]::text[]) THEN 0 ELSE 1 END,
+          ${orderSpecific}
+          CASE WHEN p.topic_cluster = '${primaryNiche.replace(/'/g, "''")}' THEN 0 ELSE 1 END,
           p.avg_virality_score DESC NULLS LAST
         LIMIT 20
       `));
-      res.json(patterns.rows);
+      const enriched = (patterns.rows as any[]).map(p => {
+        const clusterLevel = p.sub_niche ? 3 : 2;
+        const vel = p.velocity_7d ?? p.cc_velocity_7d ?? 0;
+        const pat_platform = p.platform || 'tiktok';
+        return {
+          ...p,
+          platform: pat_platform,
+          signal_strength: computeSignalStrength({ video_count: p.video_count, velocity_7d: vel, cluster_level: clusterLevel, platform: pat_platform }),
+          cluster_key: [p.topic_cluster, p.sub_niche, p.hook_type_v2, pat_platform].filter(Boolean).join('|'),
+          cluster_level: clusterLevel,
+          velocity_7d: vel,
+        };
+      });
+      res.json(enriched);
     } catch (error: any) {
+      console.error('[patterns/list] error:', error.message);
       res.status(500).json({ error: error.message });
     }
   });
@@ -5564,6 +5874,360 @@ JSON only, no markdown.`;
       });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ── GET /api/video/:id — Page détail vidéo ──────────────────────────────────
+  app.get('/api/video/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const videoId = req.params.id;
+
+      const videoResult = await db.execute(sql`
+        SELECT
+          v.*,
+          cc.id as cluster_id, cc.trend_status, cc.velocity_7d, cc.dominant_niche,
+          p.pattern_id, p.pattern_label, p.hook_template, p.why_it_works,
+          p.cta_suggestion, p.optimal_duration, p.structure_template,
+          p.predicted_views_min, p.predicted_views_max, p.confidence_score,
+          p.video_count, p.avg_virality_score as pattern_virality
+        FROM videos v
+        LEFT JOIN content_clusters cc ON v.id = ANY(cc.video_ids)
+        LEFT JOIN patterns p ON p.cluster_id = cc.id::text
+        WHERE v.id = ${videoId}
+        LIMIT 1
+      `);
+
+      if (!videoResult.rows.length) return res.status(404).json({ error: 'Not found' });
+      const video = videoResult.rows[0] as any;
+
+      const similar = await db.execute(sql`
+        SELECT v.id, v.hook_text, v.hook_type_v2, v.niche_cluster,
+               v.virality_score, v.thumbnail_url,
+               cc.trend_status,
+               p.predicted_views_min, p.predicted_views_max, p.confidence_score
+        FROM videos v
+        LEFT JOIN content_clusters cc ON v.id = ANY(cc.video_ids)
+        LEFT JOIN patterns p ON p.cluster_id = cc.id::text
+        WHERE v.niche_cluster = ${video.niche_cluster}
+          AND v.id != ${videoId}
+          AND v.classification_status = 'completed'
+          AND v.virality_score >= 40
+        ORDER BY v.virality_score DESC NULLS LAST
+        LIMIT 10
+      `);
+
+      const patterns = await db.execute(sql`
+        SELECT pattern_id, pattern_label, hook_template, avg_virality_score,
+               predicted_views_min, predicted_views_max, confidence_score
+        FROM patterns
+        WHERE topic_cluster = ${video.niche_cluster}
+          AND pattern_label IS NOT NULL
+        ORDER BY confidence_score DESC NULLS LAST
+        LIMIT 6
+      `);
+
+      res.json({ video, similar: similar.rows, patterns: patterns.rows });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ── POST /api/video/:id/like — Toggle like on a video ─────────────────────
+  app.post('/api/video/:id/like', isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const videoId = req.params.id;
+
+      const userResult = await db.execute(sql`
+        SELECT liked_video_ids FROM users WHERE id = ${req.user.id}
+      `);
+      const likedIds: string[] = (userResult.rows[0] as any)?.liked_video_ids || [];
+      const isLiked = likedIds.includes(videoId);
+
+      if (isLiked) {
+        await db.execute(sql`
+          UPDATE users SET liked_video_ids = array_remove(liked_video_ids, ${videoId})
+          WHERE id = ${req.user.id}
+        `);
+      } else {
+        await db.execute(sql`
+          UPDATE users SET liked_video_ids = array_append(COALESCE(liked_video_ids, ARRAY[]::text[]), ${videoId})
+          WHERE id = ${req.user.id}
+        `);
+      }
+      res.json({ liked: !isLiked });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ── POST /api/patterns/compute-predictions ──────────────────────────────────
+  app.post('/api/patterns/compute-predictions', isAuthenticated, async (_req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      await db.execute(sql`
+        UPDATE patterns SET
+          predicted_views_min = (avg_virality_score * 10000)::integer,
+          predicted_views_max = (avg_virality_score * 50000)::integer,
+          confidence_score = LEAST(95, (video_count * 3) + (avg_virality_score * 0.5))
+        WHERE pattern_label IS NOT NULL AND avg_virality_score IS NOT NULL
+      `);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ── GET /api/daily-signal ────────────────────────────────────────────────────
+  app.get('/api/daily-signal', isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+
+      // Query param overrides (used during onboarding before prefs saved to DB)
+      const nicheOverride = (req.query.niche as string) || null;
+      const platformOverride = (req.query.platform as string) || null;
+      const isOnboardingPreview = !!nicheOverride;
+
+      const userResult = await db.execute(sql`
+        SELECT primary_niche, selected_niches, daily_signal_pattern_id, daily_signal_date, daily_signal_used
+        FROM users WHERE id = ${req.user.id}
+      `);
+      const u = userResult.rows[0] as any;
+      const today = new Date().toISOString().split('T')[0];
+
+      // Normalize date: DB returns date as string 'YYYY-MM-DD' or Date object
+      const signalDate = u?.daily_signal_date instanceof Date
+        ? u.daily_signal_date.toISOString().split('T')[0]
+        : typeof u?.daily_signal_date === 'string'
+          ? u.daily_signal_date.split('T')[0]
+          : null;
+
+      // Robust niche fallback — req.query.niche takes priority
+      const selectedNiches: string[] = Array.isArray(u?.selected_niches) ? u.selected_niches : [];
+      const niche = nicheOverride || u?.primary_niche || selectedNiches[0] || 'finance';
+
+      // Signal du jour déjà utilisé (skip cache for onboarding preview)
+      if (!isOnboardingPreview && u?.daily_signal_used && signalDate === today) {
+        return res.json({ used: true, message: "Come back tomorrow for your next signal 🔥" });
+      }
+
+      // Signal du jour déjà assigné (skip cache for onboarding preview)
+      if (!isOnboardingPreview && u?.daily_signal_pattern_id && signalDate === today) {
+        const existing = await db.execute(sql`
+          SELECT p.*, cc.trend_status, cc.velocity_7d
+          FROM patterns p
+          LEFT JOIN content_clusters cc ON cc.id::text = p.cluster_id
+          WHERE p.pattern_id = ${u.daily_signal_pattern_id}
+        `);
+        const existPat = existing.rows[0] as any || null;
+        if (existPat) {
+          const clusterLevel = existPat.sub_niche ? 3 : 2;
+          const pat_platform = existPat.platform || 'tiktok';
+          existPat.platform = pat_platform;
+          existPat.signal_strength = computeSignalStrength({ video_count: existPat.video_count, velocity_7d: existPat.velocity_7d, cluster_level: clusterLevel, platform: pat_platform });
+          existPat.cluster_key = [existPat.topic_cluster, existPat.sub_niche, existPat.hook_type_v2, pat_platform].filter(Boolean).join('|');
+          existPat.cluster_level = clusterLevel;
+          existPat.days_since_emerged = existPat.created_at ? Math.floor((Date.now() - new Date(existPat.created_at).getTime()) / 86400000) : null;
+          existPat.last_refreshed_at = new Date().toISOString();
+          existPat.refresh_cycle_hours = 72;
+        }
+        return res.json({ signal: existPat, used: false });
+      }
+
+      // Nouveau signal — avoid patterns shown in last 7 days
+      const recentResult = await db.execute(sql`
+        SELECT COALESCE(array_agg(daily_signal_pattern_id) FILTER (WHERE daily_signal_pattern_id IS NOT NULL), ARRAY[]::text[])
+        FROM users WHERE id = ${req.user.id} AND daily_signal_date >= CURRENT_DATE - INTERVAL '7 days'
+      `);
+      const recentIds: string[] = (recentResult.rows[0] as any)?.coalesce || [];
+      const excludeClause = recentIds.length > 0
+        ? `AND p.pattern_id != ALL(ARRAY[${recentIds.map(id => `'${id.replace(/'/g, "''")}'`).join(',')}]::text[])`
+        : '';
+
+      const signal = await db.execute(sql.raw(`
+        SELECT p.*, cc.trend_status, cc.velocity_7d
+        FROM patterns p
+        LEFT JOIN content_clusters cc ON cc.id::text = p.cluster_id
+        WHERE p.topic_cluster = '${niche.replace(/'/g, "''")}'
+          AND p.pattern_label IS NOT NULL
+          AND p.confidence_score IS NOT NULL
+          ${excludeClause}
+        ORDER BY p.confidence_score DESC, p.avg_virality_score DESC NULLS LAST
+        LIMIT 1
+      `));
+
+      if (signal.rows.length > 0) {
+        const pat = signal.rows[0] as any;
+        // Only persist the signal cache when not an onboarding preview
+        if (!isOnboardingPreview) {
+          await db.execute(sql`
+            UPDATE users SET
+              daily_signal_pattern_id = ${pat.pattern_id},
+              daily_signal_date = CURRENT_DATE,
+              daily_signal_used = false
+            WHERE id = ${req.user.id}
+          `);
+        }
+        const clusterLevel = pat.sub_niche ? 3 : 2;
+        const pat_platform = platformOverride || pat.platform || 'tiktok';
+        pat.platform = pat_platform;
+        pat.signal_strength = computeSignalStrength({ video_count: pat.video_count, velocity_7d: pat.velocity_7d, cluster_level: clusterLevel, platform: pat_platform });
+        pat.cluster_key = [pat.topic_cluster, pat.sub_niche, pat.hook_type_v2, pat_platform].filter(Boolean).join('|');
+        pat.cluster_level = clusterLevel;
+        pat.days_since_emerged = pat.created_at ? Math.floor((Date.now() - new Date(pat.created_at).getTime()) / 86400000) : null;
+        pat.last_refreshed_at = new Date().toISOString();
+        pat.refresh_cycle_hours = 72;
+        return res.json({ signal: pat, used: false });
+      }
+
+      res.json({ signal: null, used: false });
+    } catch (error: any) {
+      console.error('[daily-signal] error:', error.message);
+      res.json({ signal: null, used: false }); // graceful fallback, never 500
+    }
+  });
+
+  // ── POST /api/daily-signal/use ───────────────────────────────────────────────
+  app.post('/api/daily-signal/use', isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      await db.execute(sql`UPDATE users SET daily_signal_used = true WHERE id = ${req.user.id}`);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ── GET /api/playbook/today ──────────────────────────────────────────────────
+  app.get('/api/playbook/today', isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const userId = req.user.id;
+      const today = new Date().toISOString().split('T')[0];
+
+      let playbook = await db.execute(sql`
+        SELECT * FROM daily_playbook WHERE user_id = ${userId} AND date = ${today}
+      `);
+
+      if (!playbook.rows.length) {
+        await db.execute(sql`
+          INSERT INTO daily_playbook (user_id, date)
+          VALUES (${userId}, ${today})
+          ON CONFLICT DO NOTHING
+        `);
+        playbook = await db.execute(sql`
+          SELECT * FROM daily_playbook WHERE user_id = ${userId} AND date = ${today}
+        `);
+      }
+
+      const row = playbook.rows[0] as any;
+
+      const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+      const yesterdayRow = await db.execute(sql`
+        SELECT streak_count FROM daily_playbook WHERE user_id = ${userId} AND date = ${yesterday}
+      `);
+      const streak = yesterdayRow.rows.length > 0
+        ? ((yesterdayRow.rows[0] as any).streak_count || 0) + 1
+        : 1;
+
+      const completedCount = [row.task_signal, row.task_patterns, row.task_brief, row.task_track]
+        .filter(Boolean).length;
+
+      res.json({
+        tasks: {
+          signal: row.task_signal,
+          patterns: row.task_patterns,
+          brief: row.task_brief,
+          track: row.task_track,
+        },
+        completedCount,
+        streak,
+      });
+    } catch (error: any) {
+      console.error('[playbook/today] error:', error.message);
+      res.json({ tasks: { signal: false, patterns: false, brief: false, track: false }, completedCount: 0, streak: 1 });
+    }
+  });
+
+  // ── POST /api/playbook/complete ──────────────────────────────────────────────
+  app.post('/api/playbook/complete', isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const userId = req.user.id;
+      const today = new Date().toISOString().split('T')[0];
+      const { task } = req.body as { task: 'signal' | 'patterns' | 'brief' | 'track' };
+
+      const colMap: Record<string, string> = {
+        signal: 'task_signal',
+        patterns: 'task_patterns',
+        brief: 'task_brief',
+        track: 'task_track',
+      };
+      const col = colMap[task];
+      if (!col) return res.status(400).json({ message: 'Invalid task' });
+
+      await db.execute(sql.raw(`
+        UPDATE daily_playbook SET ${col} = true
+        WHERE user_id = '${userId.replace(/'/g, "''")}' AND date = '${today}'
+      `));
+
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error('[playbook/complete] error:', error.message);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ── POST /api/onboarding/complete ────────────────────────────────────────────
+  app.post('/api/onboarding/complete', isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const { primaryNiche, platforms, activePlatform } = req.body;
+      if (!primaryNiche || typeof primaryNiche !== 'string') {
+        return res.status(400).json({ error: 'primaryNiche required' });
+      }
+      const plats: string[] = Array.isArray(platforms) && platforms.length > 0 ? platforms : ['tiktok'];
+      const active = activePlatform || plats[0] || 'tiktok';
+      const nichesArray = `{${[primaryNiche].join(',')}}`;
+      const platsArray = `{${plats.join(',')}}`;
+      await db.execute(sql.raw(`
+        UPDATE users SET
+          primary_niche = '${primaryNiche.replace(/'/g, "''")}',
+          selected_niches = '${nichesArray}'::text[],
+          platforms = '${platsArray}'::text[],
+          active_platform = '${active.replace(/'/g, "''")}',
+          onboarding_completed = true
+        WHERE id = '${(req.user.id as string).replace(/'/g, "''")}'
+      `));
+      return res.json({ success: true });
+    } catch (error: any) {
+      console.error('[/api/onboarding/complete]', error.message);
+      return res.status(500).json({ error: 'Failed to complete onboarding' });
+    }
+  });
+
+  app.get('/api/user/streak', isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const today = new Date().toISOString().split('T')[0];
+      const row = await db.execute(sql`
+        SELECT streak_count FROM daily_playbook
+        WHERE user_id = ${req.user.id} AND date = ${today}
+      `);
+      const streak = (row.rows[0] as any)?.streak_count ?? 0;
+      return res.json({ streak });
+    } catch {
+      return res.json({ streak: 0 });
     }
   });
 

@@ -2,21 +2,55 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./app-sidebar";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
-import { useEffect } from "react";
+import { useEffect, Component, type ReactNode } from "react";
 import { Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useLanguage } from "@/hooks/use-language";
 import { SmartPopup } from "./smart-popup";
+import { PlatformToggle } from "@/components/platform-toggle";
+import { usePlatform } from "@/hooks/use-platform";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+
+class PopupErrorBoundary extends Component<{ children: ReactNode }, { crashed: boolean }> {
+  state = { crashed: false };
+  componentDidCatch() { this.setState({ crashed: true }); }
+  render() { return this.state.crashed ? null : this.props.children; }
+}
 
 const userRoutes = ["/home", "/opportunities", "/create", "/workspace", "/insights", "/settings", "/plan-billing", "/onboarding"];
 const adminRoutes = ["/system/founder", "/system/founder/waitlist", "/system/logs", "/system/settings"];
+
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading, user } = useAuth();
   const [location, setLocation] = useLocation();
   const { t } = useLanguage();
+  const { platform, setPlatform } = usePlatform();
+  const queryClient = useQueryClient();
 
   const isAdmin = (user as any)?.isAdmin === true;
+
+  const { data: streakData } = useQuery<{ streak: number }>({
+    queryKey: ['/api/user/streak'],
+    staleTime: 10 * 60 * 1000,
+    enabled: !isAdmin,
+  });
+
+  const updatePlatformMutation = useMutation({
+    mutationFn: (newPlatform: string) =>
+      apiRequest("PATCH", "/api/user/preferences", { active_platform: newPlatform }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/user/preferences"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/daily-signal"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/feed/personalized"] });
+    },
+  });
+
+  const handlePlatformChange = (p: any) => {
+    setPlatform(p);
+    updatePlatformMutation.mutate(p);
+  };
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -68,10 +102,19 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             <SidebarTrigger className="text-muted-foreground hover:text-foreground hover:bg-accent -ml-2 mr-4" />
             <div className="flex-1" />
             <div className="flex items-center gap-4">
-              <span className="flex items-center gap-2 text-xs font-medium px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 neon-border" data-testid="status-system">
-                <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                {t.common.systemOnline}
-              </span>
+              {!isAdmin && (streakData?.streak ?? 0) > 0 && (
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 5,
+                  padding: '5px 12px', borderRadius: 8,
+                  background: 'rgba(245,158,11,0.08)',
+                  border: '1px solid rgba(245,158,11,0.15)',
+                }}>
+                  <span style={{ fontSize: 12 }}>🔥</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b' }}>{streakData!.streak}</span>
+                  <span style={{ fontSize: 10, color: 'rgba(245,158,11,0.5)' }}>day streak</span>
+                </div>
+              )}
+              {!isAdmin && <PlatformToggle value={platform} onChange={handlePlatformChange} />}
             </div>
           </header>
           
@@ -87,7 +130,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           </main>
         </div>
       </div>
-      <SmartPopup />
+      <PopupErrorBoundary><SmartPopup /></PopupErrorBoundary>
     </SidebarProvider>
   );
 }

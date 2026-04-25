@@ -5,6 +5,7 @@ import { DashboardLayout } from "@/components/layout";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Copy, Check, ChevronLeft, Sparkles } from "lucide-react";
+import { PatternConfidenceBadge } from "@/components/pattern-confidence-badge";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -21,6 +22,9 @@ interface Pattern {
   topic_cluster: string | null;
   trend_status: string | null;
   velocity_7d: number | null;
+  signal_strength?: 'strong' | 'building' | 'emerging';
+  video_count?: number;
+  platform?: string;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -100,15 +104,18 @@ export default function StudioPage() {
   const [entryId, setEntryId] = useState<string | null>(null);
 
   const { data: patternsRaw, isLoading } = useQuery({
-    queryKey: ["/api/patterns/list"],
-    queryFn: () => fetch("/api/patterns/list", { credentials: "include" }).then((r) => r.json()),
+    queryKey: ["/api/patterns/list", urlPatternId],
+    queryFn: () => fetch(
+      "/api/patterns/list" + (urlPatternId ? "?patternId=" + encodeURIComponent(urlPatternId) : ""),
+      { credentials: "include" }
+    ).then((r) => r.json()),
   });
   const patterns: Pattern[] = Array.isArray(patternsRaw) ? patternsRaw : [];
 
-  // Pre-select from URL param once patterns load
+  // Pre-select from URL param once patterns load — skip step 1
   useEffect(() => {
     if (urlPatternId && patterns.length > 0 && !selected) {
-      const pre = patterns.find((p) => p.id === urlPatternId);
+      const pre = patterns.find((p) => p.id === urlPatternId || (p as any).pattern_id === urlPatternId);
       if (pre) { setSelected(pre); setVars({}); }
     }
   }, [urlPatternId, patterns, selected]);
@@ -278,18 +285,15 @@ export default function StudioPage() {
                       transition: "all 0.15s",
                     }}
                   >
-                    {p.trend_status && (
+                    {p.signal_strength && (
                       <div style={{ marginBottom: 6 }}>
-                        {p.trend_status === "emerging" && (
-                          <span style={{ background: "rgba(239,68,68,0.13)", border: "1px solid rgba(239,68,68,0.35)", color: "#ef4444", borderRadius: 20, padding: "2px 8px", fontSize: 10, fontWeight: 700 }}>
-                            🔥 Emerging
-                          </span>
-                        )}
-                        {p.trend_status === "trending" && (
-                          <span style={{ background: "rgba(124,92,255,0.13)", border: "1px solid rgba(124,92,255,0.35)", color: "#a78bfa", borderRadius: 20, padding: "2px 8px", fontSize: 10, fontWeight: 700 }}>
-                            ⚡ Trending
-                          </span>
-                        )}
+                        <PatternConfidenceBadge
+                          signal_strength={p.signal_strength}
+                          video_count={p.video_count || 0}
+                          topic_cluster={p.topic_cluster}
+                          platform={p.platform}
+                          size="sm"
+                        />
                       </div>
                     )}
 
@@ -331,6 +335,16 @@ export default function StudioPage() {
           {/* RIGHT PANEL */}
           <div style={{ flex: 1, overflowY: "auto", padding: "24px 28px 48px" }}>
             {!selected ? (
+              /* Loading state when patternId is in URL but patterns haven't loaded yet */
+              isLoading && urlPatternId ? (
+                <div style={{
+                  display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+                  height: "100%", gap: 12, color: "rgba(255,255,255,0.28)",
+                }}>
+                  <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#7C5CFF", opacity: 0.7 }} />
+                  <div style={{ fontSize: 13 }}>Loading pattern…</div>
+                </div>
+              ) : (
               /* Empty state */
               <div style={{
                 display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
@@ -352,6 +366,7 @@ export default function StudioPage() {
                   </div>
                 </div>
               </div>
+              )
             ) : (
               <div style={{ maxWidth: 700, display: "flex", flexDirection: "column", gap: 18 }}>
 

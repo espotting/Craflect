@@ -70,9 +70,22 @@ function getPerformanceBadge(predicted: number | null, actual: number | null): {
 } {
   if (actual === null) return { label: "⏳ Pending", color: "#94a3b8", bg: "rgba(148,163,184,0.1)" };
   if (!predicted) return { label: "⏳ Pending", color: "#94a3b8", bg: "rgba(148,163,184,0.1)" };
-  if (actual > predicted * 1.2) return { label: "🚀 Outperformed", color: "#10b981", bg: "rgba(16,185,129,0.1)" };
-  if (actual < predicted * 0.5) return { label: "⚠ Under", color: "#f59e0b", bg: "rgba(245,158,11,0.1)" };
-  return { label: "✓ As Expected", color: "#94a3b8", bg: "rgba(148,163,184,0.1)" };
+
+  const deltaPct = Math.round(((actual - predicted) / predicted) * 100);
+  const sign = deltaPct > 0 ? '+' : '';
+
+  if (actual > predicted * 1.2) return {
+    label: `🚀 ${sign}${deltaPct}% vs predicted`,
+    color: "#10b981", bg: "rgba(16,185,129,0.1)",
+  };
+  if (actual < predicted * 0.5) return {
+    label: `⚠ ${sign}${deltaPct}% vs predicted`,
+    color: "#f59e0b", bg: "rgba(245,158,11,0.1)",
+  };
+  return {
+    label: `✓ ${sign}${deltaPct}% vs predicted`,
+    color: "#94a3b8", bg: "rgba(148,163,184,0.1)",
+  };
 }
 
 function PendingEntry({ entry, onTrack }: {

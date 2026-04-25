@@ -32,7 +32,7 @@ export async function clusterVideos(): Promise<number> {
     embedding: number[];
     hook_type_v2: string | null;
     structure_type: string | null;
-    format_type: string | null;
+    content_format: string | null;
     virality_score: number;
     decay_weight: number | null;
     weighted_virality_score: number;
