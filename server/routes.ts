@@ -5646,6 +5646,61 @@ JSON only, no markdown.`;
       const { sql } = await import("drizzle-orm");
       const specificPatternId = (req.query.patternId as string) || '';
 
+      // ── Tab-based query for the Patterns page (/patterns?tab=trending|rising) ──
+      const tabParam = (req.query.tab as string) || '';
+      if (tabParam) {
+        const nicheRaw = (req.query.niche as string) || '';
+        const signalRaw = (req.query.signal as string) || '';
+        const platformRaw = (req.query.platform as string) || '';
+        const limitNum = Math.min(parseInt((req.query.limit as string) || '24') || 24, 50);
+        const offsetNum = Math.max(parseInt((req.query.offset as string) || '0') || 0, 0);
+
+        // Whitelist validation to prevent injection
+        const safeTab = tabParam === 'rising' ? 'rising' : 'trending';
+        const safeSignal = ['strong', 'building', 'emerging'].includes(signalRaw) ? signalRaw : '';
+        const safePlatform = ['tiktok', 'reels', 'shorts'].includes(platformRaw) ? platformRaw : '';
+        const safeNiche = /^[a-z0-9_]+$/.test(nicheRaw) ? nicheRaw : '';
+
+        const tabFilter = safeTab === 'rising'
+          ? `p.signal_strength = 'emerging'`
+          : `p.signal_strength IN ('strong', 'building')`;
+        const orderBy = safeTab === 'rising'
+          ? `p.velocity_7d DESC NULLS LAST`
+          : `p.avg_virality_score DESC NULLS LAST`;
+
+        const nicheClause = safeNiche ? `AND p.topic_cluster = '${safeNiche}'` : '';
+        const signalClause = safeSignal ? `AND p.signal_strength = '${safeSignal}'` : '';
+        const platformClause = safePlatform ? `AND (p.platform = '${safePlatform}' OR p.platform IS NULL)` : '';
+
+        const result = await db.execute(sql.raw(`
+          SELECT
+            p.pattern_id,
+            p.hook_template,
+            p.why_it_works,
+            COALESCE(p.signal_strength, 'emerging') as signal_strength,
+            p.video_count,
+            p.avg_virality_score,
+            p.avg_engagement_rate,
+            p.predicted_views_min,
+            p.predicted_views_max,
+            COALESCE(p.velocity_7d, 0) as velocity_7d,
+            p.topic_cluster,
+            p.platform,
+            p.hook_type_v2,
+            p.pattern_label
+          FROM patterns p
+          WHERE p.hook_template IS NOT NULL
+            AND (p.video_count IS NULL OR p.video_count >= 5)
+            AND ${tabFilter}
+            ${nicheClause}
+            ${signalClause}
+            ${platformClause}
+          ORDER BY ${orderBy}
+          LIMIT ${limitNum} OFFSET ${offsetNum}
+        `));
+        return res.json(result.rows);
+      }
+
       const userRes = await db.execute(sql`SELECT selected_niches, primary_niche FROM users WHERE id = ${req.user.id}`);
       const row = userRes.rows[0] as any;
       const rawSelected: string[] = Array.isArray(row?.selected_niches) ? row.selected_niches : [];

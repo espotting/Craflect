@@ -1,225 +1,246 @@
 import { useState, useEffect } from "react";
+import { useLocation, useSearch } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { useLocation } from "wouter";
 import { DashboardLayout } from "@/components/layout";
-import { PatternConfidenceBadge } from "@/components/pattern-confidence-badge";
-import { usePlaybook } from "@/hooks/use-playbook";
+import { PatternCard } from "@/components/pattern-card";
+import { usePlatform } from "@/hooks/use-platform";
 
-interface Pattern {
-  id: string;
-  pattern_id: string;
-  pattern_label: string | null;
-  hook_template: string | null;
-  structure_template: string | null;
-  optimal_duration: number | null;
-  why_it_works: string | null;
-  best_for: string | null;
-  cta_suggestion: string | null;
-  avg_virality_score: number | null;
-  topic_cluster: string | null;
-  video_count: number | null;
-  predicted_views_min: number | null;
-  predicted_views_max: number | null;
-  confidence_score: number | null;
-  sub_niche: string | null;
-  hook_type_v2: string | null;
-  decay_weight: number | null;
-  velocity_7d: number | null;
-  trend_status: string | null;
-  signal_strength: 'strong' | 'building' | 'emerging';
-  cluster_key: string | null;
-  cluster_level: 2 | 3 | null;
-  platform: string | null;
-}
-
-type Tab = 'trending' | 'rising' | 'stable' | 'fading';
-
-const TABS: { key: Tab; label: string }[] = [
-  { key: 'trending', label: 'Trending' },
-  { key: 'rising',   label: 'Rising' },
-  { key: 'stable',   label: 'Stable' },
-  { key: 'fading',   label: 'Fading' },
+const NICHES = [
+  { id: 'all',               label: 'All niches' },
+  { id: 'finance',           label: 'Finance' },
+  { id: 'ai_tools',          label: 'AI Tools' },
+  { id: 'online_business',   label: 'Online Business' },
+  { id: 'content_creation',  label: 'Content Creation' },
+  { id: 'productivity',      label: 'Productivity' },
+  { id: 'health_wellness',   label: 'Health & Wellness' },
+  { id: 'fitness',           label: 'Fitness' },
+  { id: 'mindset',           label: 'Mindset' },
+  { id: 'digital_marketing', label: 'Digital Marketing' },
+  { id: 'real_estate',       label: 'Real Estate' },
 ];
 
-function getTab(p: Pattern): Tab {
-  const ts = (p.trend_status || '').toLowerCase();
-  if (ts === 'fading' || (p.velocity_7d !== null && p.velocity_7d < 0)) return 'fading';
-  if (ts === 'stable') return 'stable';
-  if (p.signal_strength === 'strong' || ts === 'trending') return 'trending';
-  if (p.signal_strength === 'building' || ts === 'rising') return 'rising';
-  return 'stable';
-}
-
-function formatViews(n: number | null): string {
-  if (n == null) return '—';
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K`;
-  return n.toString();
-}
-
 export default function Patterns() {
-  const [tab, setTab] = useState<Tab>('trending');
   const [, navigate] = useLocation();
-  const { complete } = usePlaybook();
+  const search = useSearch();
+  const { platform } = usePlatform();
+
+  const urlNiche = new URLSearchParams(search).get('niche') || 'all';
+
+  const [activeTab, setActiveTab] = useState<'trending' | 'rising'>('trending');
+  const [selectedNiche, setSelectedNiche] = useState(urlNiche);
+  const [selectedSignal, setSelectedSignal] = useState<string>('all');
 
   useEffect(() => {
-    complete('patterns');
-  }, []);
+    if (urlNiche && urlNiche !== 'all') setSelectedNiche(urlNiche);
+  }, [urlNiche]);
 
-  const { data, isLoading } = useQuery<Pattern[]>({
-    queryKey: ['/api/patterns/list'],
-    queryFn: () => fetch('/api/patterns/list', { credentials: 'include' }).then(r => r.json()),
-    staleTime: 30 * 60 * 1000,
+  // Reset signal filter when switching tabs
+  useEffect(() => {
+    setSelectedSignal('all');
+  }, [activeTab]);
+
+  const queryParams = new URLSearchParams({
+    tab: activeTab,
+    platform,
+    ...(selectedNiche !== 'all' && { niche: selectedNiche }),
+    ...(selectedSignal !== 'all' && { signal: selectedSignal }),
+    limit: '24',
+  }).toString();
+
+  const { data: patternsRaw = [], isLoading } = useQuery({
+    queryKey: ['/api/patterns/list', activeTab, selectedNiche, selectedSignal, platform],
+    queryFn: () =>
+      fetch(`/api/patterns/list?${queryParams}`, { credentials: 'include' }).then(r => r.json()),
+    staleTime: 5 * 60 * 1000,
   });
 
-  const patterns = Array.isArray(data) ? data : [];
-
-  const byTab: Record<Tab, Pattern[]> = {
-    trending: patterns.filter(p => getTab(p) === 'trending'),
-    rising:   patterns.filter(p => getTab(p) === 'rising'),
-    stable:   patterns.filter(p => getTab(p) === 'stable'),
-    fading:   patterns.filter(p => getTab(p) === 'fading'),
-  };
-
-  // If a tab would be empty, show all patterns there so the UI is never a dead end
-  const visible = byTab[tab].length > 0 ? byTab[tab] : patterns;
+  const patterns: any[] = Array.isArray(patternsRaw) ? patternsRaw : [];
 
   return (
     <DashboardLayout>
-      <div style={{ background: '#08080f', minHeight: '100vh', padding: '28px 24px' }} data-testid="page-patterns">
+      <div style={{ minHeight: '100%' }} data-testid="page-patterns">
 
-        {/* Header */}
+        {/* ── Header ── */}
         <div style={{ marginBottom: 24 }}>
-          <div style={{ fontSize: 11, fontWeight: 800, color: '#7C5CFF', textTransform: 'uppercase', letterSpacing: '0.18em', marginBottom: 6 }}>
-            Pattern Feed
+          <div style={{ fontSize: 22, fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', marginBottom: 4 }}>
+            Patterns
           </div>
-          <div style={{ fontSize: 26, fontWeight: 800, color: '#fff', letterSpacing: '-0.02em' }}>
-            What's working right now
+          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)' }}>
+            {patterns.length} patterns detected · {platform} · updated every 6h
           </div>
         </div>
 
-        {/* Tabs */}
-        <div style={{ display: 'flex', gap: 6, marginBottom: 24, borderBottom: '1px solid rgba(255,255,255,0.07)', paddingBottom: 0 }}>
-          {TABS.map(t => {
-            const count = byTab[t.key].length;
-            const active = tab === t.key;
-            return (
-              <button
-                key={t.key}
-                onClick={() => setTab(t.key)}
-                style={{
-                  background: 'none', border: 'none', cursor: 'pointer',
-                  padding: '8px 14px', fontSize: 13, fontWeight: active ? 700 : 500,
-                  color: active ? '#fff' : 'rgba(255,255,255,0.4)',
-                  borderBottom: active ? '2px solid #7C5CFF' : '2px solid transparent',
-                  marginBottom: -1, transition: 'color 0.15s',
-                  display: 'flex', alignItems: 'center', gap: 6,
-                }}
-              >
-                {t.label}
-                {count > 0 && (
-                  <span style={{
-                    fontSize: 10, fontWeight: 700,
-                    background: active ? '#7C5CFF' : 'rgba(255,255,255,0.08)',
-                    color: active ? '#fff' : 'rgba(255,255,255,0.4)',
-                    borderRadius: 10, padding: '1px 6px',
-                  }}>
-                    {count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
+        {/* ── Tabs Trending / Rising ── */}
+        <div style={{
+          display: 'flex', gap: 0,
+          borderBottom: '1px solid rgba(255,255,255,0.08)',
+          marginBottom: 20,
+        }}>
+          {(['trending', 'rising'] as const).map(tab => (
+            <div
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              style={{
+                padding: '10px 20px',
+                fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                color: activeTab === tab ? '#a78bfa' : 'rgba(255,255,255,0.35)',
+                borderBottom: activeTab === tab ? '2px solid #7C5CFF' : '2px solid transparent',
+                marginBottom: -1,
+                display: 'flex', alignItems: 'center', gap: 8,
+              }}
+            >
+              {tab === 'trending' ? '⚡ Trending' : '🚀 Rising'}
+              {tab === 'rising' && (
+                <span style={{
+                  fontSize: 9, padding: '2px 7px', borderRadius: 10,
+                  background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)',
+                  color: '#ef4444', fontWeight: 700,
+                }}>NEW</span>
+              )}
+            </div>
+          ))}
         </div>
 
-        {/* Content */}
-        {isLoading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} style={{
-                background: 'rgba(255,255,255,0.04)', borderRadius: 12,
-                height: 100, border: '1px solid rgba(255,255,255,0.06)',
-                animation: 'pulse 1.5s ease-in-out infinite',
-              }} />
+        {/* ── Filtres ── */}
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' as const, marginBottom: 20 }}>
+
+          {/* Niche select */}
+          <select
+            value={selectedNiche}
+            onChange={e => setSelectedNiche(e.target.value)}
+            style={{
+              padding: '7px 12px', borderRadius: 8,
+              border: '1px solid rgba(255,255,255,0.1)',
+              background: 'rgba(255,255,255,0.05)',
+              color: selectedNiche !== 'all' ? '#a78bfa' : 'rgba(255,255,255,0.6)',
+              fontSize: 12, fontWeight: 500, cursor: 'pointer',
+              outline: 'none',
+            }}
+          >
+            {NICHES.map(n => (
+              <option key={n.id} value={n.id} style={{ background: '#0f1118' }}>
+                {n.label}
+              </option>
             ))}
-          </div>
-        ) : visible.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '60px 20px', color: 'rgba(255,255,255,0.3)', fontSize: 14 }}>
-            No patterns yet — check back soon.
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {visible.map((p, i) => (
-              <div
-                key={p.pattern_id || i}
-                style={{
-                  background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
-                  borderRadius: 14, padding: '16px 18px',
-                  transition: 'border-color 0.15s',
-                }}
-                data-testid={`card-pattern-${i}`}
-              >
-                {/* Badge */}
-                <div style={{ marginBottom: 10 }}>
-                  <PatternConfidenceBadge
-                    signal_strength={p.signal_strength}
-                    video_count={p.video_count ?? 0}
-                    topic_cluster={p.topic_cluster}
-                    sub_niche={p.sub_niche}
-                    cluster_level={p.cluster_level}
-                    platform={p.platform}
-                    size="sm"
-                  />
-                </div>
+          </select>
 
-                {/* Label */}
-                <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', marginBottom: 4, lineHeight: 1.3 }}>
-                  {p.pattern_label || '—'}
-                </div>
-
-                {/* Hook */}
-                {p.hook_template && (
-                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 12, lineHeight: 1.5 }}>
-                    {p.hook_template}
-                  </div>
-                )}
-
-                {/* Stats row */}
-                <div style={{ display: 'flex', gap: 16, marginBottom: 14, flexWrap: 'wrap' }}>
-                  {p.predicted_views_min != null && p.predicted_views_max != null && (
-                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>
-                      <span style={{ color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>
-                        {formatViews(p.predicted_views_min)}–{formatViews(p.predicted_views_max)}
-                      </span>
-                      {' '}predicted views
-                    </div>
-                  )}
-                  {p.avg_virality_score != null && (
-                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>
-                      Virality{' '}
-                      <span style={{ color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>
-                        {p.avg_virality_score.toFixed(1)}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                {/* CTA */}
+          {/* Signal filter — trending tab only */}
+          {activeTab === 'trending' && (
+            <div style={{ display: 'flex', gap: 4 }}>
+              {[
+                { id: 'all',      label: 'All signals', color: undefined },
+                { id: 'strong',   label: '● Strong',    color: '#22c55e' },
+                { id: 'building', label: '● Building',  color: '#f59e0b' },
+              ].map(s => (
                 <button
-                  onClick={() => navigate(`/create?patternId=${p.pattern_id}`)}
+                  key={s.id}
+                  onClick={() => setSelectedSignal(s.id)}
                   style={{
-                    background: 'rgba(124,92,255,0.12)', border: '1px solid rgba(124,92,255,0.3)',
-                    borderRadius: 8, padding: '7px 14px', fontSize: 12, fontWeight: 700,
-                    color: '#a78bfa', cursor: 'pointer', transition: 'background 0.15s',
+                    padding: '7px 12px', borderRadius: 8, cursor: 'pointer',
+                    background: selectedSignal === s.id
+                      ? 'rgba(124,92,255,0.15)'
+                      : 'rgba(255,255,255,0.05)',
+                    border: selectedSignal === s.id
+                      ? '1px solid rgba(124,92,255,0.3)'
+                      : '1px solid rgba(255,255,255,0.08)',
+                    color: selectedSignal === s.id
+                      ? (s.color || '#a78bfa')
+                      : 'rgba(255,255,255,0.5)',
+                    fontSize: 12, fontWeight: 500,
                   }}
                 >
-                  Use this pattern →
+                  {s.label}
                 </button>
-              </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* ── Grid ── */}
+        {isLoading ? (
+          <PatternGridSkeleton />
+        ) : patterns.length === 0 ? (
+          <EmptyState tab={activeTab} niche={selectedNiche} />
+        ) : (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+            gap: 10,
+          }}>
+            {patterns.map((pattern: any) => (
+              <PatternCard
+                key={pattern.pattern_id}
+                pattern={{
+                  patternId: pattern.pattern_id,
+                  hookTemplate: pattern.hook_template,
+                  whyItWorks: pattern.why_it_works,
+                  signalStrength: pattern.signal_strength || 'emerging',
+                  videoCount: pattern.video_count ?? null,
+                  predictedViewsMin: pattern.predicted_views_min ?? null,
+                  predictedViewsMax: pattern.predicted_views_max ?? null,
+                  avgViralityScore: pattern.avg_virality_score ?? null,
+                  avgEngagementRate: pattern.avg_engagement_rate ?? null,
+                  velocity7d: pattern.velocity_7d ?? null,
+                  topicCluster: pattern.topic_cluster ?? null,
+                  platform: pattern.platform ?? null,
+                }}
+              />
             ))}
           </div>
         )}
+
       </div>
     </DashboardLayout>
+  );
+}
+
+function PatternGridSkeleton() {
+  return (
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+      gap: 10,
+    }}>
+      {Array.from({ length: 12 }).map((_, i) => (
+        <div key={i} style={{
+          borderRadius: 11, border: '1px solid rgba(255,255,255,0.05)',
+          background: '#0f1118', overflow: 'hidden', height: 260,
+          display: 'flex', flexDirection: 'column', gap: 8, padding: 12,
+        }}>
+          {[80, 100, 60, 90, 50, 70].map((w, j) => (
+            <div key={j} style={{
+              height: j < 2 ? 14 : 3,
+              width: `${w}%`,
+              borderRadius: 3,
+              background: 'rgba(255,255,255,0.05)',
+              animation: 'pulse 1.5s ease-in-out infinite',
+            }} />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function EmptyState({ tab, niche }: { tab: string; niche: string }) {
+  return (
+    <div style={{
+      display: 'flex', flexDirection: 'column', alignItems: 'center',
+      justifyContent: 'center', padding: '80px 20px', textAlign: 'center',
+    }}>
+      <div style={{ fontSize: 36, marginBottom: 16 }}>
+        {tab === 'rising' ? '🚀' : '📊'}
+      </div>
+      <div style={{ fontSize: 16, fontWeight: 700, color: '#fff', marginBottom: 8 }}>
+        {tab === 'rising'
+          ? 'No emerging patterns yet'
+          : `No trending patterns for ${niche === 'all' ? 'all niches' : niche.replace(/_/g, ' ')}`}
+      </div>
+      <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)', maxWidth: 320 }}>
+        {tab === 'rising'
+          ? 'The Pattern Engine is monitoring for new signals. Check back in a few hours.'
+          : 'Try selecting a different niche or signal strength.'}
+      </div>
+    </div>
   );
 }
