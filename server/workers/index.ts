@@ -1,5 +1,7 @@
 import { setupSchedules } from './scheduler';
 import { ingestionWorker } from './ingestion.worker';
+import { reelsIngestionWorker } from './ingestion-reels.worker';
+import { shortsIngestionWorker } from './ingestion-shorts.worker';
 import { transcriptionWorker } from './transcription.worker';
 import { classificationWorker } from './classification.worker';
 import { scoringWorker } from './scoring.worker';
@@ -45,7 +47,9 @@ async function startWorkers() {
   await setupSchedules();
 
   console.log('✅ Workers actifs :');
-  console.log('  • Ingestion (toutes les 2h)');
+  console.log('  • Ingestion TikTok (toutes les 6h)');
+  console.log('  • Ingestion Reels (toutes les 12h)');
+  console.log('  • Ingestion Shorts (toutes les 12h)');
   console.log('  • Transcription (continu, concurrency: 2)');
   console.log('  • Classification (continu)');
   console.log('  • Scoring (toutes les 15min)');
@@ -55,6 +59,8 @@ async function startWorkers() {
   process.on('SIGTERM', async () => {
     console.log('Arrêt des workers...');
     await ingestionWorker.close();
+    await reelsIngestionWorker.close();
+    await shortsIngestionWorker.close();
     await transcriptionWorker.close();
     await classificationWorker.close();
     await scoringWorker.close();

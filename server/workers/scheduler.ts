@@ -4,6 +4,8 @@ import { db } from '../db';
 import { sql } from 'drizzle-orm';
 
 export const ingestionQueue = new Queue('ingestion', { connection: redisConnection });
+export const reelsIngestionQueue = new Queue('ingestion-reels', { connection: redisConnection });
+export const shortsIngestionQueue = new Queue('ingestion-shorts', { connection: redisConnection });
 export const patternDecayQueue = new Queue('pattern-decay', { connection: redisConnection });
 export const transcriptionQueue = new Queue('transcription', { connection: redisConnection });
 export const classificationQueue = new Queue('classification', { connection: redisConnection });
@@ -68,5 +70,15 @@ export async function setupSchedules() {
     removeOnFail: 3,
   });
 
-  console.log('✅ Schedules configurés : Ingestion (6h), Scoring (15min), Patterns (6h), Velocity (6h), Phase Transition (30min), Feedback (1h), Thumbnails (6h), Predictions (24h), PatternDecay (daily)');
+  await reelsIngestionQueue.add('cycle-zones', {}, {
+    repeat: { cron: '0 */12 * * *' },
+    jobId: 'scheduled-ingestion-reels',
+  });
+
+  await shortsIngestionQueue.add('cycle-zones', {}, {
+    repeat: { cron: '0 */12 * * *' },
+    jobId: 'scheduled-ingestion-shorts',
+  });
+
+  console.log('✅ Schedules configurés : Ingestion (6h), Reels (12h), Shorts (12h), Scoring (15min), Patterns (6h), Velocity (6h), Phase Transition (30min), Feedback (1h), Thumbnails (6h), Predictions (24h), PatternDecay (daily)');
 }
