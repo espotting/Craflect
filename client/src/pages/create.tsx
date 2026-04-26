@@ -103,12 +103,13 @@ export default function StudioPage() {
   const [savedOk, setSavedOk] = useState(false);
   const [entryId, setEntryId] = useState<string | null>(null);
 
-  const { data: patternsRaw, isLoading } = useQuery({
+  const { data: patternsRaw, isLoading, isError, refetch } = useQuery({
     queryKey: ["/api/patterns/list", urlPatternId],
     queryFn: () => fetch(
       "/api/patterns/list" + (urlPatternId ? "?patternId=" + encodeURIComponent(urlPatternId) : ""),
       { credentials: "include" }
     ).then((r) => r.json()),
+    staleTime: 2 * 60 * 1000,
   });
   const patterns: Pattern[] = Array.isArray(patternsRaw) ? patternsRaw : [];
 
@@ -267,9 +268,40 @@ export default function StudioPage() {
               Array.from({ length: 6 }).map((_, i) => (
                 <div key={i} style={{ height: 90, background: "rgba(255,255,255,0.03)", borderRadius: 10, marginBottom: 8 }} />
               ))
+            ) : isError ? (
+              <div style={{ textAlign: "center", padding: "40px 16px" }}>
+                <div style={{ fontSize: 13, color: "rgba(255,255,255,0.28)", marginBottom: 12 }}>
+                  Failed to load patterns
+                </div>
+                <button
+                  onClick={() => refetch()}
+                  style={{
+                    background: "rgba(124,92,255,0.12)", border: "1px solid rgba(124,92,255,0.3)",
+                    color: "#a78bfa", borderRadius: 8, padding: "7px 14px",
+                    fontSize: 12, fontWeight: 600, cursor: "pointer",
+                  }}
+                >
+                  Retry
+                </button>
+              </div>
             ) : patterns.length === 0 ? (
-              <div style={{ textAlign: "center", padding: "48px 16px", color: "rgba(255,255,255,0.22)", fontSize: 13 }}>
-                No patterns available yet
+              <div style={{ textAlign: "center", padding: "40px 16px" }}>
+                <div style={{ fontSize: 13, color: "rgba(255,255,255,0.28)", marginBottom: 6 }}>
+                  No patterns yet
+                </div>
+                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.16)", marginBottom: 16, lineHeight: 1.5 }}>
+                  Patterns are built from ingested viral videos. Browse the library to find one.
+                </div>
+                <button
+                  onClick={() => navigate("/patterns")}
+                  style={{
+                    background: "rgba(124,92,255,0.12)", border: "1px solid rgba(124,92,255,0.3)",
+                    color: "#a78bfa", borderRadius: 8, padding: "7px 14px",
+                    fontSize: 12, fontWeight: 600, cursor: "pointer",
+                  }}
+                >
+                  Browse patterns →
+                </button>
               </div>
             ) : (
               patterns.map((p) => {
@@ -359,11 +391,26 @@ export default function StudioPage() {
                 </div>
                 <div style={{ textAlign: "center" }}>
                   <div style={{ fontSize: 16, fontWeight: 600, color: "rgba(255,255,255,0.45)", marginBottom: 8 }}>
-                    Select a pattern to start
+                    {patterns.length === 0 ? "No patterns loaded yet" : "Select a pattern to start"}
                   </div>
                   <div style={{ fontSize: 13 }}>
-                    Pick a viral pattern from the left panel to build your filming brief
+                    {patterns.length === 0
+                      ? "Visit the Patterns page to browse trending patterns, then come back to build your brief."
+                      : "Pick a viral pattern from the left panel to build your filming brief"}
                   </div>
+                  {patterns.length === 0 && (
+                    <button
+                      onClick={() => navigate("/patterns")}
+                      style={{
+                        marginTop: 20,
+                        background: "linear-gradient(90deg, #7C5CFF, #c026d3)",
+                        border: "none", color: "#fff", borderRadius: 10,
+                        padding: "10px 22px", fontSize: 13, fontWeight: 600, cursor: "pointer",
+                      }}
+                    >
+                      Go to Patterns →
+                    </button>
+                  )}
                 </div>
               </div>
               )
