@@ -70,15 +70,25 @@ export async function setupSchedules() {
     removeOnFail: 3,
   });
 
-  await reelsIngestionQueue.add('cycle-zones', {}, {
-    repeat: { cron: '0 */12 * * *' },
-    jobId: 'scheduled-ingestion-reels',
-  });
+  if (process.env.ENABLE_REELS_INGESTION === 'true') {
+    await reelsIngestionQueue.add('cycle-zones', {}, {
+      repeat: { cron: '0 */12 * * *' },
+      jobId: 'scheduled-ingestion-reels',
+    });
+    console.log('  • Reels ingestion enabled (ENABLE_REELS_INGESTION=true)');
+  } else {
+    console.log('  • Reels ingestion DISABLED (set ENABLE_REELS_INGESTION=true to enable)');
+  }
 
-  await shortsIngestionQueue.add('cycle-zones', {}, {
-    repeat: { cron: '0 */12 * * *' },
-    jobId: 'scheduled-ingestion-shorts',
-  });
+  if (process.env.ENABLE_SHORTS_INGESTION === 'true') {
+    await shortsIngestionQueue.add('cycle-zones', {}, {
+      repeat: { cron: '0 */12 * * *' },
+      jobId: 'scheduled-ingestion-shorts',
+    });
+    console.log('  • Shorts ingestion enabled (ENABLE_SHORTS_INGESTION=true)');
+  } else {
+    console.log('  • Shorts ingestion DISABLED (set ENABLE_SHORTS_INGESTION=true to enable)');
+  }
 
-  console.log('✅ Schedules configurés : Ingestion (6h), Reels (12h), Shorts (12h), Scoring (15min), Patterns (6h), Velocity (6h), Phase Transition (30min), Feedback (1h), Thumbnails (6h), Predictions (24h), PatternDecay (daily)');
+  console.log('✅ Schedules configurés : Ingestion (6h), Scoring (15min), Patterns (6h), Velocity (6h), Phase Transition (30min), Feedback (1h), Thumbnails (6h), Predictions (24h), PatternDecay (daily)');
 }
