@@ -6286,6 +6286,148 @@ JSON only, no markdown.`;
     }
   });
 
+  app.get('/api/founder/platform-health', isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const result = await db.execute(sql`
+        SELECT
+          platform,
+          COUNT(*) as total_videos,
+          COUNT(CASE WHEN classification_status = 'completed' THEN 1 END) as classified,
+          COUNT(CASE WHEN collected_at > NOW() - INTERVAL '24 hours' THEN 1 END) as ingested_24h,
+          COUNT(CASE WHEN collected_at > NOW() - INTERVAL '7 days' THEN 1 END) as ingested_7d,
+          AVG(virality_score)::numeric(5,1) as avg_virality,
+          MAX(collected_at) as last_ingestion
+        FROM videos
+        GROUP BY platform
+        ORDER BY total_videos DESC
+      `);
+      return res.json(result.rows);
+    } catch (error) {
+      console.error('[/api/founder/platform-health]', error);
+      return res.json([]);
+    }
+  });
+
+  app.get('/api/founder/onboarding-funnel', isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const result = await db.execute(sql`
+        SELECT
+          COUNT(*) as total_users,
+          COUNT(CASE WHEN onboarding_completed = true THEN 1 END) as completed_onboarding,
+          COUNT(CASE WHEN onboarding_completed = false OR onboarding_completed IS NULL THEN 1 END) as pending_onboarding,
+          COUNT(CASE WHEN created_at > NOW() - INTERVAL '7 days' THEN 1 END) as new_7d,
+          COUNT(CASE WHEN created_at > NOW() - INTERVAL '24 hours' THEN 1 END) as new_24h
+        FROM users
+      `);
+
+      const nicheDistrib = await db.execute(sql`
+        SELECT primary_niche, COUNT(*) as count
+        FROM user_preferences
+        WHERE primary_niche IS NOT NULL
+        GROUP BY primary_niche
+        ORDER BY count DESC
+        LIMIT 10
+      `);
+
+      const platformDistrib = await db.execute(sql`
+        SELECT active_platform, COUNT(*) as count
+        FROM user_preferences
+        WHERE active_platform IS NOT NULL
+        GROUP BY active_platform
+        ORDER BY count DESC
+      `);
+
+      return res.json({
+        stats: result.rows[0],
+        niches: nicheDistrib.rows,
+        platforms: platformDistrib.rows,
+      });
+    } catch (error) {
+      console.error('[/api/founder/onboarding-funnel]', error);
+      return res.json({ stats: {}, niches: [], platforms: [] });
+    }
+  });
+
+  app.get('/api/founder/studio-funnel', isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const result = await db.execute(sql`
+        SELECT
+          COUNT(*) as total_entries,
+          COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending,
+          COUNT(CASE WHEN status = 'published' THEN 1 END) as published,
+          COUNT(CASE WHEN status = 'tracked' THEN 1 END) as tracked,
+          COUNT(DISTINCT user_id) as unique_users,
+          COUNT(DISTINCT pattern_id) as unique_patterns_used,
+          COUNT(CASE WHEN created_at > NOW() - INTERVAL '24 hours' THEN 1 END) as briefs_24h,
+          COUNT(CASE WHEN created_at > NOW() - INTERVAL '7 days' THEN 1 END) as briefs_7d
+        FROM video_performance
+      `);
+
+      const nicheBreakdown = await db.execute(sql`
+        SELECT niche, COUNT(*) as count
+        FROM video_performance
+        WHERE niche IS NOT NULL
+        GROUP BY niche
+        ORDER BY count DESC
+        LIMIT 5
+      `);
+
+      return res.json({
+        funnel: result.rows[0],
+        byNiche: nicheBreakdown.rows,
+      });
+    } catch (error) {
+      console.error('[/api/founder/studio-funnel]', error);
+      return res.json({ funnel: {}, byNiche: [] });
+    }
+  });
+
+  app.get('/api/founder/signal-health', isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const result = await db.execute(sql`
+        SELECT
+          topic_cluster as niche,
+          signal_strength,
+          COUNT(*) as pattern_count,
+          AVG(avg_virality_score)::numeric(5,1) as avg_score,
+          AVG(video_count)::numeric(5,1) as avg_videos
+        FROM patterns
+        WHERE topic_cluster IS NOT NULL
+          AND hook_template IS NOT NULL
+        GROUP BY topic_cluster, signal_strength
+        ORDER BY topic_cluster, signal_strength DESC
+      `);
+
+      const byNiche = await db.execute(sql`
+        SELECT
+          topic_cluster as niche,
+          COUNT(*) as total_patterns,
+          COUNT(CASE WHEN signal_strength = 'strong' THEN 1 END) as strong,
+          COUNT(CASE WHEN signal_strength = 'building' THEN 1 END) as building,
+          COUNT(CASE WHEN signal_strength = 'emerging' THEN 1 END) as emerging,
+          MAX(last_updated) as last_updated
+        FROM patterns
+        WHERE topic_cluster IS NOT NULL
+          AND hook_template IS NOT NULL
+        GROUP BY topic_cluster
+        ORDER BY strong DESC, building DESC
+      `);
+
+      return res.json({ detail: result.rows, byNiche: byNiche.rows });
+    } catch (error) {
+      console.error('[/api/founder/signal-health]', error);
+      return res.json({ detail: [], byNiche: [] });
+    }
+  });
+
   return httpServer;
 }
 

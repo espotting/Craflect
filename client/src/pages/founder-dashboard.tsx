@@ -259,6 +259,30 @@ export default function FounderDashboard() {
     enabled: !!(user as any)?.isAdmin,
   });
 
+  const { data: platformHealth = [] } = useQuery<any[]>({
+    queryKey: ['/api/founder/platform-health'],
+    enabled: !!(user as any)?.isAdmin,
+    refetchInterval: 60000,
+  });
+
+  const { data: onboardingFunnel } = useQuery<any>({
+    queryKey: ['/api/founder/onboarding-funnel'],
+    enabled: !!(user as any)?.isAdmin,
+    refetchInterval: 60000,
+  });
+
+  const { data: studioFunnel } = useQuery<any>({
+    queryKey: ['/api/founder/studio-funnel'],
+    enabled: !!(user as any)?.isAdmin,
+    refetchInterval: 30000,
+  });
+
+  const { data: signalHealth } = useQuery<any>({
+    queryKey: ['/api/founder/signal-health'],
+    enabled: !!(user as any)?.isAdmin,
+    refetchInterval: 120000,
+  });
+
   const { toast } = useToast();
 
   const actionMutation = useMutation({
@@ -498,6 +522,210 @@ export default function FounderDashboard() {
                   <ColoredMetricCard label="Total Patterns" value={pipeline.patterns?.total_patterns || 0} icon={Sparkles} color="orange" testId="rt-patterns" />
                   <ColoredMetricCard label="With Template" value={pipeline.patterns?.with_template || 0} icon={FileText} color="green" testId="rt-with-template" />
                   <ColoredMetricCard label="Phase Engine" value={pipeline.phase ? `Phase ${pipeline.phase.current_phase}` : 'Unknown'} icon={Cpu} color="blue" testId="rt-phase" />
+                </div>
+              </section>
+            )}
+
+            {/* ── Platform Health ── */}
+            {platformHealth.length > 0 && (
+              <section>
+                <SectionHeader title="Platform Health" color="blue" testId="text-section-platform" />
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {['tiktok', 'reels', 'shorts'].map(platform => {
+                    const p = platformHealth.find((r: any) => r.platform === platform);
+                    const isActive = p && parseInt(p.total_videos) > 0;
+                    return (
+                      <div key={platform} style={{
+                        padding: '16px',
+                        borderRadius: 12,
+                        border: `1px solid ${isActive ? 'rgba(124,92,255,0.25)' : 'rgba(255,255,255,0.06)'}`,
+                        background: isActive ? 'rgba(124,92,255,0.04)' : 'rgba(255,255,255,0.02)',
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span style={{ fontSize: 16 }}>
+                              {platform === 'tiktok' ? '🎵' : platform === 'reels' ? '📸' : '▶️'}
+                            </span>
+                            <span style={{ fontSize: 13, fontWeight: 700, color: '#fff', textTransform: 'capitalize' }}>{platform}</span>
+                          </div>
+                          <span style={{
+                            fontSize: 9, fontWeight: 700, padding: '2px 8px', borderRadius: 20,
+                            background: isActive ? 'rgba(34,197,94,0.12)' : 'rgba(255,255,255,0.06)',
+                            border: `1px solid ${isActive ? 'rgba(34,197,94,0.3)' : 'rgba(255,255,255,0.1)'}`,
+                            color: isActive ? '#22c55e' : 'rgba(255,255,255,0.3)',
+                            textTransform: 'uppercase',
+                          }}>
+                            {isActive ? 'Active' : 'Pending'}
+                          </span>
+                        </div>
+                        {p ? (
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                            {[
+                              { label: 'Total videos', val: parseInt(p.total_videos).toLocaleString() },
+                              { label: 'Classified', val: parseInt(p.classified).toLocaleString() },
+                              { label: 'Last 24h', val: parseInt(p.ingested_24h).toLocaleString() },
+                              { label: 'Avg virality', val: p.avg_virality ? `${p.avg_virality}/100` : '—' },
+                            ].map(m => (
+                              <div key={m.label}>
+                                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{m.label}</div>
+                                <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>{m.val}</div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.25)', fontStyle: 'italic' }}>No data yet</div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+
+            {/* ── Onboarding Funnel ── */}
+            {onboardingFunnel && (
+              <section>
+                <SectionHeader title="Onboarding Funnel" color="green" testId="text-section-onboarding" />
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                  <ColoredMetricCard label="Total Users" value={parseInt(onboardingFunnel.stats?.total_users) || 0} icon={Users} color="blue" testId="of-total" />
+                  <ColoredMetricCard label="Onboarding Done" value={parseInt(onboardingFunnel.stats?.completed_onboarding) || 0} icon={CheckCircle} color="green" testId="of-completed" />
+                  <ColoredMetricCard label="Pending Onboarding" value={parseInt(onboardingFunnel.stats?.pending_onboarding) || 0} icon={Clock} color="orange" testId="of-pending" />
+                  <ColoredMetricCard
+                    label="Conversion Rate"
+                    value={onboardingFunnel.stats?.total_users > 0
+                      ? `${Math.round((parseInt(onboardingFunnel.stats.completed_onboarding) / parseInt(onboardingFunnel.stats.total_users)) * 100)}%`
+                      : '0%'}
+                    icon={TrendingUp} color="violet" testId="of-rate" />
+                </div>
+
+                {onboardingFunnel.niches?.length > 0 && (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                    <div>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>
+                        Niche distribution
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {onboardingFunnel.niches.map((n: any) => {
+                          const max = parseInt(onboardingFunnel.niches[0].count) || 1;
+                          const pct = Math.round((parseInt(n.count) / max) * 100);
+                          return (
+                            <div key={n.primary_niche}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3, fontSize: 11 }}>
+                                <span style={{ color: 'rgba(255,255,255,0.6)', textTransform: 'capitalize' }}>
+                                  {(n.primary_niche || '').replace(/_/g, ' ')}
+                                </span>
+                                <span style={{ color: 'rgba(255,255,255,0.35)' }}>{n.count}</span>
+                              </div>
+                              <div style={{ height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 2, overflow: 'hidden' }}>
+                                <div style={{ width: `${pct}%`, height: '100%', background: 'linear-gradient(90deg,#7C5CFF,#c026d3)', borderRadius: 2 }} />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>
+                        Active platform
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {onboardingFunnel.platforms?.map((p: any) => (
+                          <div key={p.active_platform} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', textTransform: 'capitalize' }}>{p.active_platform || '—'}</span>
+                            <span style={{ fontSize: 12, fontWeight: 700, color: '#a78bfa' }}>{p.count}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </section>
+            )}
+
+            {/* ── Studio → Results Funnel ── */}
+            {studioFunnel && (
+              <section>
+                <SectionHeader title="Studio → Results Funnel" color="orange" testId="text-section-studio" />
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                  <ColoredMetricCard label="Briefs Generated" value={parseInt(studioFunnel.funnel?.total_entries) || 0} icon={FileText} color="orange" testId="sf-total" />
+                  <ColoredMetricCard label="Awaiting Publish" value={parseInt(studioFunnel.funnel?.pending) || 0} icon={Clock} color="orange" testId="sf-pending" />
+                  <ColoredMetricCard label="Published" value={parseInt(studioFunnel.funnel?.published) || 0} icon={CheckCircle} color="green" testId="sf-published" />
+                  <ColoredMetricCard label="Tracked" value={parseInt(studioFunnel.funnel?.tracked) || 0} icon={TrendingUp} color="violet" testId="sf-tracked" />
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <ColoredMetricCard label="Unique Users" value={parseInt(studioFunnel.funnel?.unique_users) || 0} icon={Users} color="blue" testId="sf-users" />
+                  <ColoredMetricCard label="Patterns Used" value={parseInt(studioFunnel.funnel?.unique_patterns_used) || 0} icon={Sparkles} color="violet" testId="sf-patterns" />
+                  <ColoredMetricCard label="Briefs Last 24h" value={parseInt(studioFunnel.funnel?.briefs_24h) || 0} icon={Activity} color="green" testId="sf-24h" />
+                  <ColoredMetricCard label="Briefs Last 7d" value={parseInt(studioFunnel.funnel?.briefs_7d) || 0} icon={Activity} color="blue" testId="sf-7d" />
+                </div>
+
+                {studioFunnel.funnel?.total_entries > 0 && (
+                  <div style={{ marginTop: 12, padding: '12px 16px', borderRadius: 10, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 6 }}>
+                      Loop completion rate (brief → tracked)
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div style={{ flex: 1, height: 6, background: 'rgba(255,255,255,0.06)', borderRadius: 3, overflow: 'hidden' }}>
+                        <div style={{
+                          height: '100%',
+                          width: `${Math.round((parseInt(studioFunnel.funnel.tracked) / parseInt(studioFunnel.funnel.total_entries)) * 100)}%`,
+                          background: 'linear-gradient(90deg,#7C5CFF,#22c55e)',
+                          borderRadius: 3,
+                        }} />
+                      </div>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>
+                        {Math.round((parseInt(studioFunnel.funnel.tracked) / parseInt(studioFunnel.funnel.total_entries)) * 100)}%
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </section>
+            )}
+
+            {/* ── Signal Health by Niche ── */}
+            {signalHealth && signalHealth.byNiche?.length > 0 && (
+              <section>
+                <SectionHeader title="Signal Health by Niche" color="violet" testId="text-section-signal-health" />
+                <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, overflow: 'hidden' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '160px 80px 80px 80px 80px 100px', gap: 8, padding: '10px 16px', borderBottom: '1px solid rgba(255,255,255,0.08)', fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    <div>Niche</div>
+                    <div style={{ textAlign: 'center' }}>Total</div>
+                    <div style={{ textAlign: 'center', color: '#22c55e' }}>Strong</div>
+                    <div style={{ textAlign: 'center', color: '#f59e0b' }}>Building</div>
+                    <div style={{ textAlign: 'center', color: '#a78bfa' }}>Emerging</div>
+                    <div style={{ textAlign: 'right' }}>Last update</div>
+                  </div>
+                  {signalHealth.byNiche.map((n: any) => {
+                    const total = parseInt(n.total_patterns) || 0;
+                    const strong = parseInt(n.strong) || 0;
+                    const building = parseInt(n.building) || 0;
+                    const emerging = parseInt(n.emerging) || 0;
+                    const readiness = total > 0 ? Math.round(((strong * 3 + building * 2 + emerging) / (total * 3)) * 100) : 0;
+                    const lastUpdated = n.last_updated ? Math.floor((Date.now() - new Date(n.last_updated).getTime()) / 3600000) : null;
+                    return (
+                      <div key={n.niche} style={{ display: 'grid', gridTemplateColumns: '160px 80px 80px 80px 80px 100px', gap: 8, padding: '10px 16px', borderBottom: '1px solid rgba(255,255,255,0.04)', alignItems: 'center' }}>
+                        <div>
+                          <div style={{ fontSize: 12, color: '#fff', textTransform: 'capitalize', fontWeight: 500 }}>
+                            {(n.niche || '').replace(/_/g, ' ')}
+                          </div>
+                          <div style={{ height: 3, background: 'rgba(255,255,255,0.06)', borderRadius: 2, marginTop: 4, overflow: 'hidden' }}>
+                            <div style={{ width: `${readiness}%`, height: '100%', background: readiness > 60 ? '#22c55e' : readiness > 30 ? '#f59e0b' : '#a78bfa', borderRadius: 2 }} />
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'center', fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>{total}</div>
+                        <div style={{ textAlign: 'center', fontSize: 12, fontWeight: 700, color: strong > 0 ? '#22c55e' : 'rgba(255,255,255,0.2)' }}>{strong}</div>
+                        <div style={{ textAlign: 'center', fontSize: 12, fontWeight: 700, color: building > 0 ? '#f59e0b' : 'rgba(255,255,255,0.2)' }}>{building}</div>
+                        <div style={{ textAlign: 'center', fontSize: 12, fontWeight: 700, color: emerging > 0 ? '#a78bfa' : 'rgba(255,255,255,0.2)' }}>{emerging}</div>
+                        <div style={{ textAlign: 'right', fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>
+                          {lastUpdated !== null ? (lastUpdated < 1 ? 'Just now' : lastUpdated < 24 ? `${lastUpdated}h ago` : `${Math.floor(lastUpdated / 24)}d ago`) : '—'}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', marginTop: 6, fontStyle: 'italic' }}>
+                  Readiness bar = weighted signal score (Strong ×3 / Building ×2 / Emerging ×1). Green = ready for beta.
                 </div>
               </section>
             )}
