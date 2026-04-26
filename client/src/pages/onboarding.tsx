@@ -18,6 +18,16 @@ const NICHES = [
   { id: 'mindset',           label: 'Mindset',           emoji: '🧠' },
   { id: 'digital_marketing', label: 'Digital Marketing', emoji: '📱' },
   { id: 'real_estate',       label: 'Real Estate',       emoji: '🏠' },
+  { id: 'crypto',            label: 'Crypto',            emoji: '₿'  },
+  { id: 'parenting',         label: 'Parenting',         emoji: '👶' },
+  { id: 'relationships',     label: 'Relationships',     emoji: '❤️' },
+  { id: 'cooking_food',      label: 'Cooking & Food',    emoji: '🍳' },
+  { id: 'travel',            label: 'Travel',            emoji: '✈️' },
+  { id: 'fashion_style',     label: 'Fashion & Style',   emoji: '👗' },
+  { id: 'personal_finance',  label: 'Personal Finance',  emoji: '💳' },
+  { id: 'side_hustle',       label: 'Side Hustle',       emoji: '🚀' },
+  { id: 'self_improvement',  label: 'Self-Improvement',  emoji: '⬆️' },
+  { id: 'education',         label: 'Education',         emoji: '📚' },
 ];
 
 const PLATFORMS = [

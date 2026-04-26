@@ -17,6 +17,16 @@ const NICHES = [
   { id: 'mindset',           label: 'Mindset' },
   { id: 'digital_marketing', label: 'Digital Marketing' },
   { id: 'real_estate',       label: 'Real Estate' },
+  { id: 'crypto',            label: 'Crypto' },
+  { id: 'parenting',         label: 'Parenting' },
+  { id: 'relationships',     label: 'Relationships' },
+  { id: 'cooking_food',      label: 'Cooking & Food' },
+  { id: 'travel',            label: 'Travel' },
+  { id: 'fashion_style',     label: 'Fashion & Style' },
+  { id: 'personal_finance',  label: 'Personal Finance' },
+  { id: 'side_hustle',       label: 'Side Hustle' },
+  { id: 'self_improvement',  label: 'Self-Improvement' },
+  { id: 'education',         label: 'Education' },
 ];
 
 export default function Patterns() {

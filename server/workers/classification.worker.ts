@@ -88,6 +88,47 @@ const NICHE_SIGNALS: Record<string, string[]> = {
     'property investment', 'cash flow', 'cap rate', 'roi property',
     'real estate agent', 'realtor', 'housing market', 'property management',
   ],
+  crypto: [
+    'crypto', 'bitcoin', 'ethereum', 'blockchain', 'defi', 'web3', 'altcoin',
+    'wallet', 'token', 'nft', 'cryptocurrency', 'satoshi', 'crypto trading',
+  ],
+  parenting: [
+    'parenting', 'baby', 'toddler', 'kids', 'mom', 'dad', 'children', 'family',
+    'gentle parenting', 'newborn', 'pregnancy', 'postpartum', 'breastfeeding',
+  ],
+  relationships: [
+    'relationship', 'dating', 'love', 'partner', 'attachment', 'red flags',
+    'communication in relationship', 'breakup', 'love language', 'toxic relationship',
+    'healthy relationship', 'attachment style',
+  ],
+  cooking_food: [
+    'recipe', 'cooking', 'food', 'meal prep', 'ingredients', 'healthy eating',
+    'food hack', 'easy meal', 'breakfast', 'dinner', 'snack', 'baking', 'chef',
+  ],
+  travel: [
+    'travel', 'trip', 'destination', 'flight', 'hotel', 'budget travel',
+    'backpacking', 'digital nomad', 'explore', 'vacation', 'itinerary', 'travel hack',
+  ],
+  fashion_style: [
+    'outfit', 'style', 'fashion', 'clothes', 'wardrobe', 'trends', 'thrift',
+    'aesthetic', 'look', 'capsule wardrobe', 'get ready with me', 'ootd',
+  ],
+  personal_finance: [
+    'budgeting', 'budget', 'savings', 'debt free', 'emergency fund', 'frugal',
+    'money habits', 'financial goal', 'net worth', 'personal finance',
+  ],
+  side_hustle: [
+    'side hustle', 'make money online', 'online income', 'passive income',
+    'etsy shop', 'dropshipping', 'print on demand', 'freelance income',
+  ],
+  self_improvement: [
+    'self improvement', 'self development', 'habits', 'discipline', 'consistency',
+    'stoicism', 'stoic', 'level up', 'personal growth', 'mindset shift',
+  ],
+  education: [
+    'study', 'studying', 'learning', 'school', 'university', 'college',
+    'self taught', 'online course', 'skills', 'learn faster', 'study tips',
+  ],
 };
 
 function classifyNiche(text: string): string | null {
@@ -122,7 +163,7 @@ FORMAT:
   "hook_type": "curiosity|list|shock|question|statement",
   "structure_type": "listicle|storytelling|tutorial|reaction|before_after",
   "format_type": "facecam|broll|captions|mixed",
-  "topic_cluster": "ai_tools|finance|online_business|content_creation|productivity|health_wellness|fitness|mindset|digital_marketing|real_estate",
+  "topic_cluster": "ai_tools|finance|online_business|content_creation|productivity|health_wellness|fitness|mindset|digital_marketing|real_estate|crypto|parenting|relationships|cooking_food|travel|fashion_style|personal_finance|side_hustle|self_improvement|education",
   "sub_niche": "see taxonomy below",
   "content_angle": "tutorial|listicle|story|reaction|comparison|transformation|rant|interview|day_in_life|case_study",
   "audience_gender": "male|female|mixed",
@@ -134,7 +175,7 @@ FORMAT:
 
 topic_cluster MUST be one of these exact values:
 - ai_tools : AI, ChatGPT, automation, machine learning
-- finance : money, investing, crypto, wealth, stocks
+- finance : money, investing, stocks, wealth, general personal finance
 - online_business : entrepreneurship, ecommerce, agency, freelance, dropshipping
 - content_creation : YouTube, TikTok growth, personal brand, creator
 - productivity : habits, time management, focus, deep work, Notion
@@ -143,6 +184,16 @@ topic_cluster MUST be one of these exact values:
 - mindset : mindset, motivation, discipline, manifestation, personal growth
 - digital_marketing : digital marketing, SEO, email marketing, social media, branding
 - real_estate : real estate, rental property, house flipping, mortgage, landlord
+- crypto : bitcoin, ethereum, blockchain, DeFi, web3, NFT, altcoins
+- parenting : baby, toddler, kids, mom, dad, family, gentle parenting
+- relationships : dating, love, partner, attachment, red flags, breakups
+- cooking_food : recipes, meal prep, food hacks, cooking, nutrition for fun
+- travel : trips, destinations, budget travel, digital nomad, travel hacks
+- fashion_style : outfits, style tips, wardrobe, fashion trends, GRWM
+- personal_finance : budgeting, savings, debt payoff, emergency fund, frugal living
+- side_hustle : side income, make money online, freelancing, Etsy, dropshipping
+- self_improvement : habits, discipline, stoicism, consistency, personal development
+- education : studying, learning, school tips, online courses, self-taught skills
 
 sub_niche taxonomy (pick ONE from the matching topic_cluster):
 - finance → stocks_trading | crypto | real_estate | budgeting | passive_income | investing_101
@@ -208,7 +259,12 @@ export const classificationWorker = new Worker('classification', async (job) => 
     }
 
     // Resolve niche: LLM result → keyword fallback → existing topicCluster → null
-    const TARGET_NICHES = ['ai_tools', 'finance', 'online_business', 'content_creation', 'productivity', 'health_wellness', 'fitness', 'mindset', 'digital_marketing', 'real_estate'];
+    const TARGET_NICHES = [
+      'ai_tools', 'finance', 'online_business', 'content_creation', 'productivity',
+      'health_wellness', 'fitness', 'mindset', 'digital_marketing', 'real_estate',
+      'crypto', 'parenting', 'relationships', 'cooking_food', 'travel',
+      'fashion_style', 'personal_finance', 'side_hustle', 'self_improvement', 'education',
+    ];
     let nicheCluster: string | null = null;
 
     // 1. LLM topic_cluster if it's a valid target niche

@@ -378,6 +378,16 @@ export const NICHE_CLUSTERS = [
   "mindset",
   "digital_marketing",
   "real_estate",
+  "crypto",
+  "parenting",
+  "relationships",
+  "cooking_food",
+  "travel",
+  "fashion_style",
+  "personal_finance",
+  "side_hustle",
+  "self_improvement",
+  "education",
 ] as const;
 
 export const NICHE_CLUSTER_LABELS: Record<string, string> = {
@@ -391,6 +401,16 @@ export const NICHE_CLUSTER_LABELS: Record<string, string> = {
   mindset: "Mindset",
   digital_marketing: "Digital Marketing",
   real_estate: "Real Estate",
+  crypto: "Crypto",
+  parenting: "Parenting",
+  relationships: "Relationships",
+  cooking_food: "Cooking & Food",
+  travel: "Travel",
+  fashion_style: "Fashion & Style",
+  personal_finance: "Personal Finance",
+  side_hustle: "Side Hustle",
+  self_improvement: "Self-Improvement",
+  education: "Education",
 };
 
 export const TOPIC_TO_NICHE_CLUSTER: Record<string, string> = {
@@ -401,7 +421,6 @@ export const TOPIC_TO_NICHE_CLUSTER: Record<string, string> = {
   saas: "ai_tools",
   // Finance
   finance: "finance",
-  crypto: "finance",
   // Online business
   online_business: "online_business",
   entrepreneurship: "online_business",
@@ -409,16 +428,12 @@ export const TOPIC_TO_NICHE_CLUSTER: Record<string, string> = {
   // Content creation
   content_creation: "content_creation",
   personal_branding: "content_creation",
-  education: "content_creation",
   coaching: "content_creation",
   entertainment: "content_creation",
   gaming: "content_creation",
   // Productivity
   productivity: "productivity",
   lifestyle: "productivity",
-  food: "productivity",
-  travel: "productivity",
-  relationships: "productivity",
   // Health & Wellness
   health_wellness: "health_wellness",
   health: "health_wellness",
@@ -432,6 +447,27 @@ export const TOPIC_TO_NICHE_CLUSTER: Record<string, string> = {
   digital_marketing: "digital_marketing",
   // Real Estate
   real_estate: "real_estate",
+  // Batch 2
+  crypto: "crypto",
+  bitcoin: "crypto",
+  web3: "crypto",
+  defi: "crypto",
+  parenting: "parenting",
+  family: "parenting",
+  relationships: "relationships",
+  dating: "relationships",
+  cooking_food: "cooking_food",
+  food: "cooking_food",
+  cooking: "cooking_food",
+  travel: "travel",
+  fashion_style: "fashion_style",
+  fashion: "fashion_style",
+  personal_finance: "personal_finance",
+  budgeting: "personal_finance",
+  side_hustle: "side_hustle",
+  self_improvement: "self_improvement",
+  education: "education",
+  learning: "education",
 };
 
 export function resolveNicheCluster(topicCluster: string | null | undefined): string | null {

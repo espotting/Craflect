@@ -24,6 +24,16 @@ const NICHE_KEYWORDS: Record<string, string[]> = {
   'mindset': ['mindset shift', 'motivation', 'success mindset', 'morning routine', 'discipline', 'personal growth', 'abundance mindset', 'manifestation'],
   'digital_marketing': ['digital marketing', 'social media marketing', 'personal branding', 'grow on instagram', 'grow on tiktok', 'email marketing', 'SEO tips', 'brand strategy'],
   'real_estate': ['real estate investing', 'rental property', 'house flipping', 'passive income real estate', 'mortgage tips', 'property investment', 'landlord tips', 'real estate agent'],
+  'crypto': ['crypto investing', 'bitcoin 2024', 'cryptocurrency beginner', 'crypto trading tips', 'ethereum explained', 'defi passive income', 'crypto portfolio', 'altcoin season', 'web3 explained'],
+  'parenting': ['parenting tips', 'toddler activities', 'mom life hacks', 'baby sleep tips', 'gentle parenting', 'new parent advice', 'kids education at home', 'parenting fails', 'dad life'],
+  'relationships': ['relationship advice', 'dating tips', 'how to attract partner', 'communication in relationships', 'red flags dating', 'attachment style', 'healthy relationships', 'breakup advice', 'love language'],
+  'cooking_food': ['easy recipes', 'meal prep ideas', 'cooking tips beginner', 'healthy recipes', '5 ingredient meals', 'food hack', 'what I eat in a day', 'recipe ideas', 'cooking at home'],
+  'travel': ['travel tips', 'budget travel', 'solo travel', 'travel hacks', 'best places to visit', 'hidden gems travel', 'travel vlog', 'digital nomad life', 'cheap flights'],
+  'fashion_style': ['outfit ideas', 'style tips', 'fashion hacks', 'how to dress better', 'wardrobe essentials', 'capsule wardrobe', 'thrift shopping', 'fashion trends 2024', 'get ready with me'],
+  'personal_finance': ['personal finance tips', 'budgeting for beginners', 'save money fast', 'debt free journey', 'investing for beginners', 'financial freedom', 'money habits', 'emergency fund', 'frugal living'],
+  'side_hustle': ['side hustle ideas', 'make money online', 'passive income ideas', 'freelancing tips', 'how I make money', 'side hustle from home', 'online income', 'etsy shop tips', 'dropshipping beginner'],
+  'self_improvement': ['self improvement tips', 'morning routine', 'habits that changed my life', 'discipline motivation', 'productivity hacks', 'how to be consistent', 'mindset shift', 'stoicism explained', 'self development books'],
+  'education': ['study tips', 'learning hacks', 'how to study effectively', 'school tips', 'learn faster', 'online learning', 'skills to learn 2024', 'free courses online', 'self taught'],
 };
 
 const ALL_NICHES = Object.keys(NICHE_KEYWORDS);
