@@ -17,6 +17,9 @@ export const feedbackQueue = new Queue('feedback', { connection: redisConnection
 export const thumbnailQueue = new Queue('thumbnail-generator', { connection: redisConnection });
 export const predictionsQueue = new Queue('compute-predictions', { connection: redisConnection });
 
+const ENABLE_REELS_INGESTION = process.env.ENABLE_REELS_INGESTION === 'true';
+const ENABLE_SHORTS_INGESTION = process.env.ENABLE_SHORTS_INGESTION === 'true';
+
 export async function setupSchedules() {
   await ingestionQueue.add('cycle-zones', {}, {
     repeat: { cron: '0 */6 * * *' },
@@ -70,24 +73,24 @@ export async function setupSchedules() {
     removeOnFail: 3,
   });
 
-  if (process.env.ENABLE_REELS_INGESTION === 'true') {
+  if (ENABLE_REELS_INGESTION) {
     await reelsIngestionQueue.add('cycle-zones', {}, {
       repeat: { cron: '0 */12 * * *' },
       jobId: 'scheduled-ingestion-reels',
     });
-    console.log('  • Reels ingestion enabled (ENABLE_REELS_INGESTION=true)');
+    console.log('  • Ingestion Reels activée');
   } else {
-    console.log('  • Reels ingestion DISABLED (set ENABLE_REELS_INGESTION=true to enable)');
+    console.log('  • Ingestion Reels désactivée');
   }
 
-  if (process.env.ENABLE_SHORTS_INGESTION === 'true') {
+  if (ENABLE_SHORTS_INGESTION) {
     await shortsIngestionQueue.add('cycle-zones', {}, {
       repeat: { cron: '0 */12 * * *' },
       jobId: 'scheduled-ingestion-shorts',
     });
-    console.log('  • Shorts ingestion enabled (ENABLE_SHORTS_INGESTION=true)');
+    console.log('  • Ingestion Shorts activée');
   } else {
-    console.log('  • Shorts ingestion DISABLED (set ENABLE_SHORTS_INGESTION=true to enable)');
+    console.log('  • Ingestion Shorts désactivée');
   }
 
   console.log('✅ Schedules configurés : Ingestion (6h), Scoring (15min), Patterns (6h), Velocity (6h), Phase Transition (30min), Feedback (1h), Thumbnails (6h), Predictions (24h), PatternDecay (daily)');
