@@ -224,34 +224,42 @@ export default function Landing() {
             >
               <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-500/10 border border-purple-500/20 rounded-full mb-8">
                 <Sparkles className="w-4 h-4 text-purple-400" />
-                <span className="text-purple-300 text-sm font-medium" data-testid="text-hero-badge">{t.landing.badge}</span>
+                <span className="text-purple-300 text-sm font-medium" data-testid="text-hero-badge">🚀 Beta launch — Limited spots available</span>
               </div>
 
               <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 leading-tight" data-testid="text-hero-headline">
-                <span className="block">{t.landing.heroLine1}</span>
+                <span className="block">Stop guessing.</span>
                 <span className="block bg-gradient-to-r from-purple-400 to-fuchsia-400 bg-clip-text text-transparent">
-                  {t.landing.heroLine2}
+                  Start knowing.
                 </span>
-                <span className="block">{t.landing.heroLine3}</span>
+                <span className="block">Before you post.</span>
               </h1>
 
               <p className="text-xl text-slate-400 mb-6 max-w-2xl mx-auto" data-testid="text-hero-subtitle">
-                {t.landing.subtitle}
+                Craflect detects viral patterns across TikTok, Reels and Shorts
+                before they peak — so you create with signal, not luck.
               </p>
 
-              <div className="flex items-center justify-center gap-2 text-slate-500 text-sm mb-4" data-testid="platforms-row">
-                <SiTiktok className="w-4 h-4" />
-                <span>TikTok</span>
-                <span className="mx-1">·</span>
-                <SiInstagram className="w-4 h-4" />
-                <span>Instagram Reels</span>
-                <span className="mx-1">·</span>
-                <SiYoutube className="w-4 h-4" />
-                <span>YouTube Shorts</span>
+              <div className="flex items-center justify-center gap-3 flex-wrap text-slate-500 text-sm mb-4" data-testid="platforms-row">
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900 border border-slate-800">
+                  <SiTiktok className="w-4 h-4 text-white" />
+                  <span className="text-white font-medium text-sm">TikTok</span>
+                  <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 text-xs rounded-full font-bold">Live</span>
+                </div>
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/50 border border-slate-800/50">
+                  <SiInstagram className="w-4 h-4 text-slate-500" />
+                  <span className="text-slate-500 text-sm">Reels</span>
+                  <span className="text-slate-600 text-xs">· Soon</span>
+                </div>
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/50 border border-slate-800/50">
+                  <SiYoutube className="w-4 h-4 text-slate-500" />
+                  <span className="text-slate-500 text-sm">Shorts</span>
+                  <span className="text-slate-600 text-xs">· Soon</span>
+                </div>
               </div>
 
               <p className="text-slate-500 text-sm mb-8" data-testid="text-proof-line">
-                {t.landing.proofLine}
+                Tens of thousands of videos analyzed · 20 niches tracked · Signals refreshed every 72 hours
               </p>
 
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -277,103 +285,147 @@ export default function Landing() {
               </div>
             </motion.div>
 
-            {/* Dashboard Preview */}
+            {/* Dashboard Preview — vrai design Craflect */}
             <div className="mt-16 relative">
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent z-10 pointer-events-none" />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent z-10 pointer-events-none" style={{ top: '60%' }} />
               <div className="bg-slate-900/80 backdrop-blur rounded-2xl border border-slate-800 p-2 shadow-2xl shadow-purple-500/10">
-                <div className="bg-slate-950 rounded-xl overflow-hidden">
-                  <div className="flex items-center gap-2 px-4 py-3 bg-slate-900 border-b border-slate-800">
+                <div className="bg-[#08080f] rounded-xl overflow-hidden">
+
+                  {/* Browser chrome */}
+                  <div className="flex items-center gap-2 px-4 py-2.5 bg-[#0c0c17] border-b border-white/5">
                     <div className="flex gap-1.5">
-                      <div className="w-3 h-3 rounded-full bg-red-500/50" />
-                      <div className="w-3 h-3 rounded-full bg-yellow-500/50" />
-                      <div className="w-3 h-3 rounded-full bg-green-500/50" />
+                      <div className="w-3 h-3 rounded-full bg-red-500/40" />
+                      <div className="w-3 h-3 rounded-full bg-yellow-500/40" />
+                      <div className="w-3 h-3 rounded-full bg-green-500/40" />
                     </div>
-                    <div className="flex-1 text-center text-xs text-slate-500">{t.landing.dashboardPreviewUrl}</div>
+                    <div className="flex-1 text-center text-xs text-slate-600">app.craflect.com</div>
                   </div>
 
-                  <div className="p-6">
-                    <div className="flex gap-6">
-                      <div className="w-48 space-y-1 hidden md:block">
-                        <div className="flex items-center gap-3 px-3 py-2 bg-purple-500/20 rounded-lg border border-purple-500/30">
-                          <div className="w-5 h-5 rounded bg-purple-500 flex items-center justify-center">
-                            <Sparkles className="w-3 h-3 text-white" />
-                          </div>
-                          <span className="text-purple-300 text-sm">Home</span>
+                  {/* App shell */}
+                  <div className="flex h-[340px]">
+
+                    {/* Sidebar 48px */}
+                    <div className="w-12 bg-[#0c0c17] border-r border-white/5 flex flex-col items-center py-3 gap-2 flex-shrink-0">
+                      <div className="w-7 h-7 rounded-lg mb-2" style={{background: 'linear-gradient(135deg,#7C5CFF,#c026d3)'}} />
+                      {[true, false, false, false, false].map((active, i) => (
+                        <div key={i} className="w-8 h-8 rounded-lg flex items-center justify-center" style={{background: active ? 'rgba(124,92,255,0.2)' : 'transparent'}}>
+                          <div className="w-3.5 h-3.5 rounded-sm" style={{background: active ? '#a78bfa' : 'rgba(255,255,255,0.15)'}} />
                         </div>
-                        {["Opportunities", "Create", "Workspace", "Insights"].map((item, i) => (
-                          <div key={i} className="flex items-center gap-3 px-3 py-2">
-                            <div className="w-5 h-5 rounded bg-slate-800" />
-                            <span className="text-slate-500 text-sm">{item}</span>
-                          </div>
-                        ))}
+                      ))}
+                    </div>
+
+                    {/* Main */}
+                    <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+
+                      {/* Topbar */}
+                      <div className="h-10 border-b border-white/5 flex items-center px-4 gap-3 flex-shrink-0">
+                        <span className="text-xs text-white/25">Today's <span className="text-white/60 font-medium">Intelligence</span></span>
+                        <div className="flex-1" />
+                        <div className="flex gap-0.5 bg-white/5 border border-white/8 rounded-md p-0.5">
+                          {['TikTok','Reels','Shorts'].map((p,i) => (
+                            <div key={i} className="px-2 py-1 rounded text-[9px] font-semibold" style={{background: i===0 ? 'rgba(124,92,255,0.25)' : 'transparent', color: i===0 ? '#a78bfa' : 'rgba(255,255,255,0.25)'}}>
+                              {p}
+                            </div>
+                          ))}
+                        </div>
+                        <div className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold text-amber-400" style={{background:'rgba(245,158,11,0.08)', border:'1px solid rgba(245,158,11,0.15)'}}>
+                          🔥 7
+                        </div>
                       </div>
 
-                      <div className="flex-1 space-y-4">
-                        <div className="bg-gradient-to-br from-purple-900/50 via-slate-900/50 to-slate-900/50 rounded-xl p-4 border border-purple-500/30 relative overflow-hidden">
-                          <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-2xl" />
-                          <div className="relative">
-                            <div className="flex items-center gap-2 mb-3">
-                              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-fuchsia-500 flex items-center justify-center">
-                                <Flame className="w-4 h-4 text-white" />
+                      {/* Content */}
+                      <div className="flex flex-1 overflow-hidden">
+
+                        {/* Feed */}
+                        <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+
+                          {/* Signal hero */}
+                          <div className="p-3 border-b border-white/5 flex-shrink-0" style={{background:'linear-gradient(135deg,#080614,#130826,#091420)'}}>
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              <div className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-bold text-emerald-400" style={{background:'rgba(34,197,94,0.12)',border:'1px solid rgba(34,197,94,0.3)'}}>
+                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                                Strong · Finance
                               </div>
-                              <span className="text-purple-300 text-xs font-medium uppercase tracking-wider">{t.landing.heroViralPlay}</span>
                             </div>
-                            <p className="text-white font-semibold text-lg mb-2">
-                              {t.landing.heroViralHook}
-                            </p>
-                            <div className="flex gap-4 mb-3 flex-wrap">
-                              <span className="text-slate-400 text-xs">{t.landing.heroViralFormat}</span>
-                              <span className="text-green-400 text-xs">{t.landing.heroViralViews}</span>
-                              <span className="text-purple-400 text-xs">{t.landing.heroViralConfidence}</span>
+                            <div className="text-sm font-bold text-white mb-1" style={{letterSpacing:'-0.02em'}}>
+                              "The #1 mistake with <span style={{color:'#a78bfa',background:'rgba(124,92,255,0.15)',padding:'0 3px',borderRadius:3}}>[savings]</span>"
+                            </div>
+                            <div className="text-[9px] text-white/35 mb-2 border-l border-purple-500/30 pl-2">
+                              Mistake framing triggers loss aversion. 2.3× above Finance avg.
+                            </div>
+                            <div className="flex gap-2 text-[9px] text-white/40 mb-2">
+                              <span className="font-bold text-white/70">1.2M–4M</span> predicted views &nbsp;·&nbsp; <span className="font-bold text-white/70">94</span> videos &nbsp;·&nbsp; <span className="font-bold text-white/70">72h</span> window
                             </div>
                             <div className="flex gap-2">
-                              <button className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm rounded-lg flex items-center gap-2">
-                                <Sparkles className="w-4 h-4" />
-                                {t.landing.heroCreateBtn}
-                              </button>
-                              <button className="px-4 py-2 bg-slate-800 text-slate-300 text-sm rounded-lg">
-                                {t.landing.heroSeeSimilar}
-                              </button>
+                              <div className="px-3 py-1.5 rounded-md text-[10px] font-bold text-white" style={{background:'linear-gradient(90deg,#7C5CFF,#c026d3)'}}>Create this video →</div>
+                              <div className="px-3 py-1.5 rounded-md text-[10px] text-white/30" style={{border:'1px solid rgba(255,255,255,0.08)'}}>Explore</div>
+                            </div>
+                          </div>
+
+                          {/* Pattern cards row */}
+                          <div className="p-3 overflow-hidden">
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-1.5 text-[8px] font-bold text-white/25 uppercase tracking-wider">
+                                <div className="w-1.5 h-1.5 rounded-full bg-red-400" />Finance
+                              </div>
+                              <span className="text-[8px] text-white/20">See all →</span>
+                            </div>
+                            <div className="flex gap-2 overflow-hidden">
+                              {[
+                                {sig:'Strong',sc:'s',hook:'#1 mistake with [savings]',v:'3.4M',e:'4.2%',vel:'+180%',vir:'87'},
+                                {sig:'Building',sc:'b',hook:'Nobody tells you [this]',v:'1.8M',e:'3.8%',vel:'+95%',vir:'74'},
+                              ].map((c,i) => (
+                                <div key={i} className="flex-shrink-0 w-36 rounded-lg overflow-hidden" style={{border:'1px solid rgba(255,255,255,0.08)',background:'#0f1118'}}>
+                                  <div className="p-2">
+                                    <div className="flex items-center gap-1 mb-1.5" style={{display:'inline-flex',padding:'1px 6px',borderRadius:20,background:c.sc==='s'?'rgba(34,197,94,0.12)':'rgba(245,158,11,0.12)',border:`1px solid ${c.sc==='s'?'rgba(34,197,94,0.3)':'rgba(245,158,11,0.3)'}`}}>
+                                      <div className="w-1.5 h-1.5 rounded-full" style={{background:c.sc==='s'?'#22c55e':'#f59e0b'}} />
+                                      <span className="text-[7px] font-bold" style={{color:c.sc==='s'?'#22c55e':'#f59e0b'}}>{c.sig}</span>
+                                    </div>
+                                    <div className="text-[9px] font-bold text-white mb-1">"{c.hook}"</div>
+                                  </div>
+                                  <div className="px-2 pb-2" style={{background:'#0b0b15'}}>
+                                    {([['Views',c.v,'#a78bfa',85],['Eng',c.e,'#22c55e',65],['Vel',c.vel,'#f59e0b',50],['Vir',c.vir+'/100','#f472b6',parseInt(c.vir)]] as [string,string,string,number][]).map(([l,v,col,w])=>(
+                                      <div key={l} className="mb-1">
+                                        <div className="flex justify-between mb-0.5">
+                                          <span className="text-[7px] text-white/20 uppercase">{l}</span>
+                                          <span className="text-[8px] font-bold" style={{color:col}}>{v}</span>
+                                        </div>
+                                        <div className="h-0.5 rounded-full" style={{background:'rgba(255,255,255,0.06)'}}>
+                                          <div className="h-full rounded-full" style={{width:`${w}%`,background:col}} />
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                  <div className="py-1 text-center text-[8px] font-semibold text-purple-400" style={{background:'rgba(124,92,255,0.06)',borderTop:'1px solid rgba(255,255,255,0.05)'}}>
+                                    Create →
+                                  </div>
+                                  <div className="h-0.5" style={{background:'linear-gradient(90deg,#7C5CFF,#c026d3)'}} />
+                                </div>
+                              ))}
                             </div>
                           </div>
                         </div>
 
-                        <div className="hidden sm:block">
-                          <div className="flex items-center gap-2 mb-3">
-                            <TrendingUp className="w-4 h-4 text-orange-400" />
-                            <span className="text-white text-sm font-medium">{t.landing.heroTrending}</span>
-                          </div>
-                          <div className="grid grid-cols-4 gap-3">
-                            {trendingVideos.map((video, i) => (
-                              <div key={i} className="relative aspect-[9/16] rounded-lg overflow-hidden group cursor-pointer">
-                                <div className={`absolute inset-0 bg-gradient-to-br ${
-                                  i === 0 ? "from-violet-600 via-purple-600 to-fuchsia-600" :
-                                  i === 1 ? "from-blue-600 via-cyan-600 to-teal-600" :
-                                  i === 2 ? "from-orange-600 via-amber-600 to-yellow-600" :
-                                  "from-rose-600 via-pink-600 to-purple-600"
-                                }`} />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-                                <div className="absolute top-2 right-2">
-                                  <span className={`px-1.5 py-0.5 text-[10px] font-bold rounded ${
-                                    video.score >= 90 ? "bg-red-500/20 text-red-400" :
-                                    video.score >= 80 ? "bg-orange-500/20 text-orange-400" :
-                                    "bg-yellow-500/20 text-yellow-400"
-                                  }`}>
-                                    <Flame className="w-2 h-2 inline mr-0.5" />
-                                    {video.score}
-                                  </span>
-                                </div>
-                                <div className="absolute bottom-0 left-0 right-0 p-2">
-                                  <p className="text-white text-[10px] line-clamp-2">{video.hook}</p>
-                                </div>
-                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/50">
-                                  <button className="px-3 py-1.5 bg-purple-600 text-white text-xs rounded-lg">
-                                    {t.landing.heroCreateSimilar}
-                                  </button>
-                                </div>
+                        {/* Right panel */}
+                        <div className="w-36 border-l border-white/5 flex-shrink-0 p-2.5" style={{background:'#09090f'}}>
+                          <div className="text-[8px] font-bold text-white/25 uppercase tracking-wider mb-2">Today's Playbook</div>
+                          {([['✓','Check signal',true],['✓','Pick a pattern',true],['○','Create video',false],['○','Track results',false]] as [string,string,boolean][]).map(([,t2,d])=>(
+                            <div key={t2} className="flex items-center gap-1.5 py-1 border-b border-white/4">
+                              <div className="w-3 h-3 rounded flex items-center justify-center text-[7px]" style={{background:d?'rgba(34,197,94,0.15)':'transparent',border:`1px solid ${d?'rgba(34,197,94,0.35)':'rgba(255,255,255,0.15)'}`,color:'#22c55e'}}>
+                                {d?'✓':''}
+                              </div>
+                              <span className="text-[9px]" style={{color:d?'rgba(255,255,255,0.2)':'rgba(255,255,255,0.55)',textDecoration:d?'line-through':'none'}}>{t2}</span>
+                            </div>
+                          ))}
+                          <div className="text-[8px] font-bold text-white/25 uppercase tracking-wider mb-2 mt-3">Streak</div>
+                          <div className="flex gap-0.5 mb-1">
+                            {['M','T','W','T','F','S','S'].map((d,i)=>(
+                              <div key={i} className="w-4 h-4 rounded text-[7px] font-bold flex items-center justify-center" style={{background:i<6?'rgba(124,92,255,0.2)':'rgba(124,92,255,0.45)',color:i<6?'#a78bfa':'#fff'}}>
+                                {d}
                               </div>
                             ))}
                           </div>
+                          <div className="text-[9px] text-amber-400 font-bold">7 days 🏆</div>
                         </div>
                       </div>
                     </div>
@@ -396,9 +448,21 @@ export default function Landing() {
 
             <div className="grid md:grid-cols-3 gap-8">
               {[
-                { icon: Compass, title: t.landing.clarityStep1, desc: t.landing.clarityStep1Desc },
-                { icon: FileText, title: t.landing.clarityStep2, desc: t.landing.clarityStep2Desc },
-                { icon: Video, title: t.landing.clarityStep3, desc: t.landing.clarityStep3Desc },
+                {
+                  icon: Compass,
+                  title: "The Engine detects a signal",
+                  desc: "Every 72 hours, Craflect scans thousands of viral videos and identifies patterns gaining momentum in your niche — before they peak.",
+                },
+                {
+                  icon: FileText,
+                  title: "You see the intelligence",
+                  desc: "Hook type, why it works, predicted views, virality score. Not a catalog of old content — a live signal of what's working right now.",
+                },
+                {
+                  icon: Video,
+                  title: "You create with precision",
+                  desc: "The Studio generates a ready-to-shoot brief using the pattern. You post. You track. The engine learns from your results.",
+                },
               ].map((step, i) => (
                 <SectionReveal key={i} delay={i * 0.12}>
                   <div className="bg-slate-900/50 rounded-2xl p-8 border border-slate-800 hover:border-purple-500/30 transition-all group" data-testid={`card-clarity-${i}`}>

@@ -19,13 +19,59 @@ interface WaitlistStats {
   count: number;
 }
 
-const NICHES = [
-  { value: "ai_tools", label: "AI Tools" },
-  { value: "online_business", label: "Online Business" },
-  { value: "finance", label: "Finance" },
-  { value: "productivity", label: "Productivity" },
-  { value: "content_creation", label: "Content Creation" },
-  { value: "other", label: "Other" },
+const MACRO_CATEGORIES = [
+  {
+    id: 'finance_business',
+    label: 'Finance & Business',
+    emoji: '💰',
+    desc: 'Money, investing, entrepreneurship',
+    niches: [
+      { value: 'finance', label: 'Finance' },
+      { value: 'crypto', label: 'Crypto' },
+      { value: 'real_estate', label: 'Real Estate' },
+      { value: 'online_business', label: 'Online Business' },
+      { value: 'side_hustle', label: 'Side Hustle' },
+      { value: 'personal_finance', label: 'Personal Finance' },
+    ],
+  },
+  {
+    id: 'tech_ai',
+    label: 'Tech & AI',
+    emoji: '🤖',
+    desc: 'AI tools, software, productivity',
+    niches: [
+      { value: 'ai_tools', label: 'AI Tools' },
+      { value: 'productivity', label: 'Productivity' },
+      { value: 'digital_marketing', label: 'Digital Marketing' },
+    ],
+  },
+  {
+    id: 'lifestyle',
+    label: 'Lifestyle',
+    emoji: '🌿',
+    desc: 'Health, fitness, mindset, relationships',
+    niches: [
+      { value: 'fitness', label: 'Fitness' },
+      { value: 'health_wellness', label: 'Health & Wellness' },
+      { value: 'mindset', label: 'Mindset' },
+      { value: 'relationships', label: 'Relationships' },
+      { value: 'self_improvement', label: 'Self-Improvement' },
+    ],
+  },
+  {
+    id: 'content_education',
+    label: 'Content & Education',
+    emoji: '🎬',
+    desc: 'Creators, education, food, travel',
+    niches: [
+      { value: 'content_creation', label: 'Content Creation' },
+      { value: 'education', label: 'Education' },
+      { value: 'cooking_food', label: 'Cooking & Food' },
+      { value: 'travel', label: 'Travel' },
+      { value: 'parenting', label: 'Parenting' },
+      { value: 'fashion_style', label: 'Fashion & Style' },
+    ],
+  },
 ];
 
 export default function WaitlistPage() {
@@ -34,6 +80,7 @@ export default function WaitlistPage() {
   const [firstName, setFirstName] = useState("");
   const [email, setEmail] = useState("");
   const [niche, setNiche] = useState("");
+  const [selectedMacro, setSelectedMacro] = useState<string | null>(null);
   const [platform, setPlatform] = useState("");
   const [followersRange, setFollowersRange] = useState("");
   const [contentGoal, setContentGoal] = useState("");
@@ -166,9 +213,9 @@ export default function WaitlistPage() {
             {/* Stats */}
             <div className="grid grid-cols-3 gap-4 mb-8">
               {[
-                { icon: BarChart3, value: "50K+", label: "Videos analyzed" },
-                { icon: TrendingUp, value: "87%", label: "Prediction accuracy" },
-                { icon: Sparkles, value: "5", label: "Niches covered" },
+                { icon: BarChart3, value: "6K+",  label: "TikTok videos analyzed" },
+                { icon: TrendingUp, value: "20",   label: "Niches tracked" },
+                { icon: Sparkles,   value: "72h",  label: "Signal cycle" },
               ].map((stat, i) => (
                 <div key={i} className="bg-slate-900/50 rounded-xl p-4 border border-slate-800 text-center">
                   <stat.icon className="w-4 h-4 text-purple-400 mx-auto mb-2" />
@@ -238,22 +285,68 @@ export default function WaitlistPage() {
                   <label className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-1.5 block">
                     Your Main Niche
                   </label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {NICHES.map((n) => (
-                      <button
-                        key={n.value}
-                        onClick={() => setNiche(n.value)}
-                        className={`px-3 py-2 rounded-lg text-sm font-medium border transition-all text-left ${
-                          niche === n.value
-                            ? "bg-purple-600/20 border-purple-500/50 text-purple-300"
-                            : "bg-slate-800/50 border-slate-700 text-slate-400 hover:border-slate-600"
-                        }`}
-                        data-testid={`niche-${n.value}`}
-                      >
-                        {n.label}
-                      </button>
-                    ))}
-                  </div>
+
+                  {/* Step 1 — 4 macro-categories */}
+                  {!selectedMacro && (
+                    <div className="grid grid-cols-2 gap-2">
+                      {MACRO_CATEGORIES.map(cat => (
+                        <button
+                          key={cat.id}
+                          onClick={() => setSelectedMacro(cat.id)}
+                          className="p-3 rounded-xl border text-left transition-all bg-slate-800/50 border-slate-700 hover:border-purple-500/50 hover:bg-purple-500/5"
+                        >
+                          <div className="text-xl mb-1">{cat.emoji}</div>
+                          <div className="text-sm font-semibold text-white mb-0.5">{cat.label}</div>
+                          <div className="text-xs text-slate-500">{cat.desc}</div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Step 2 — Niches within chosen macro */}
+                  {selectedMacro && (
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-base">{MACRO_CATEGORIES.find(c => c.id === selectedMacro)?.emoji}</span>
+                          <span className="text-sm font-semibold text-white">
+                            {MACRO_CATEGORIES.find(c => c.id === selectedMacro)?.label}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => { setSelectedMacro(null); setNiche(''); }}
+                          className="text-xs text-slate-500 hover:text-purple-400 transition-colors"
+                        >
+                          ← Change
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        {MACRO_CATEGORIES.find(c => c.id === selectedMacro)?.niches.map(n => (
+                          <button
+                            key={n.value}
+                            onClick={() => setNiche(n.value)}
+                            className={`px-3 py-2.5 rounded-lg text-sm font-medium border transition-all text-left ${
+                              niche === n.value
+                                ? 'bg-purple-600/20 border-purple-500/50 text-purple-300'
+                                : 'bg-slate-800/50 border-slate-700 text-slate-400 hover:border-slate-600'
+                            }`}
+                            data-testid={`niche-${n.value}`}
+                          >
+                            {niche === n.value && <span className="mr-1.5">✓</span>}
+                            {n.label}
+                          </button>
+                        ))}
+                      </div>
+                      {niche && (
+                        <div className="mt-2">
+                          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs" style={{background:'rgba(124,92,255,0.1)',border:'1px solid rgba(124,92,255,0.2)',color:'#a78bfa'}}>
+                            <span className="w-1.5 h-1.5 rounded-full bg-purple-400" />
+                            Selected: {MACRO_CATEGORIES.find(c => c.id === selectedMacro)?.niches.find(n2 => n2.value === niche)?.label}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Platform */}
@@ -330,21 +423,6 @@ export default function WaitlistPage() {
                       </button>
                     ))}
                   </div>
-                </div>
-
-                {/* Why */}
-                <div>
-                  <label className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-1.5 block">
-                    Why Craflect? <span className="text-slate-600 normal-case">(optional)</span>
-                  </label>
-                  <textarea
-                    placeholder="I want to stop guessing what to post..."
-                    value={why}
-                    onChange={(e) => setWhy(e.target.value)}
-                    rows={3}
-                    className="w-full bg-slate-800/50 border border-slate-700 text-white placeholder:text-slate-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-purple-500 transition-colors resize-none"
-                    data-testid="textarea-waitlist-why"
-                  />
                 </div>
 
                 {/* Submit */}
