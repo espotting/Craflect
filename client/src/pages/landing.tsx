@@ -6,7 +6,6 @@ import {
   Sparkles,
   ArrowRight,
   UserCircle2,
-  Zap,
   TrendingUp,
   BarChart3,
   FileText,
@@ -14,10 +13,7 @@ import {
   Video,
   Compass,
   Play,
-  Flame,
   Check,
-  CheckCircle2,
-  Lightbulb,
   ChevronRight,
   Menu,
   X,
@@ -49,7 +45,6 @@ export default function Landing() {
   const { t } = useLanguage();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [yearly, setYearly] = useState(true);
   const [faqOpen, setFaqOpen] = useState<number | null>(null);
 
   useEffect(() => {
@@ -77,53 +72,27 @@ export default function Landing() {
     document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const plans = [
-    {
-      name: t.landing.pricingFreeName,
-      price: 0,
-      yearlyPrice: undefined,
-      credits: 30,
-      videos: "~10",
-      rollover: 0,
-      description: t.landing.pricingFreeDesc,
-      features: t.landing.pricingFreeFeatures.split(","),
-      cta: t.landing.pricingFreeCta,
-      highlighted: false,
-      badge: undefined as string | undefined,
-    },
-    {
-      name: t.landing.pricingCreatorName,
-      price: 24,
-      yearlyPrice: 19,
-      credits: 250,
-      videos: "~80",
-      rollover: 500,
-      description: t.landing.pricingCreatorDesc,
-      features: t.landing.pricingCreatorFeatures.split(","),
-      cta: t.landing.pricingCreatorCta,
-      highlighted: true,
-      badge: t.landing.pricingCreatorBadge,
-    },
-    {
-      name: t.landing.pricingProName,
-      price: 109,
-      yearlyPrice: 99,
-      credits: 1500,
-      videos: "~500",
-      rollover: 3000,
-      description: t.landing.pricingProDesc,
-      features: t.landing.pricingProFeatures.split(","),
-      cta: t.landing.pricingProCta,
-      highlighted: false,
-      badge: undefined as string | undefined,
-    },
-  ];
-
   const faqs = [
-    { q: t.landing.faq1Q, a: t.landing.faq1A },
-    { q: t.landing.faq2Q, a: t.landing.faq2A },
-    { q: t.landing.faq3Q, a: t.landing.faq3A },
-    { q: t.landing.faq4Q, a: t.landing.faq4A },
+    {
+      q: "Is Craflect free?",
+      a: "Yes — during beta, Craflect is completely free. Founding members get full access with no credit card required.",
+    },
+    {
+      q: "Which platforms does Craflect cover?",
+      a: "TikTok is live. Instagram Reels and YouTube Shorts are coming soon.",
+    },
+    {
+      q: "How often are patterns updated?",
+      a: "The engine scans thousands of videos every 72 hours to surface fresh signals.",
+    },
+    {
+      q: "Do I need to create an account?",
+      a: "You apply via the waitlist. Once approved, you'll get immediate access with no setup required.",
+    },
+    {
+      q: "What niches are supported?",
+      a: "We currently track 20 niches — from Finance and AI Tools to Fitness, Cooking, and more. You pick yours during onboarding.",
+    },
   ];
 
   const trendingVideos = [
@@ -446,7 +415,7 @@ export default function Landing() {
               </div>
             </SectionReveal>
 
-            <div className="grid md:grid-cols-3 gap-8">
+            <div className="grid md:grid-cols-3 gap-8 items-stretch">
               {[
                 {
                   icon: Compass,
@@ -464,8 +433,8 @@ export default function Landing() {
                   desc: "The Studio generates a ready-to-shoot brief using the pattern. You post. You track. The engine learns from your results.",
                 },
               ].map((step, i) => (
-                <SectionReveal key={i} delay={i * 0.12}>
-                  <div className="bg-slate-900/50 rounded-2xl p-8 border border-slate-800 hover:border-purple-500/30 transition-all group" data-testid={`card-clarity-${i}`}>
+                <SectionReveal key={i} delay={i * 0.12} className="flex">
+                  <div className="bg-slate-900/50 rounded-2xl p-8 border border-slate-800 hover:border-purple-500/30 transition-all group flex flex-col flex-1" data-testid={`card-clarity-${i}`}>
                     <div className="relative mb-6">
                       <div className="w-16 h-16 rounded-2xl bg-purple-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
                         <step.icon className="w-8 h-8 text-purple-400" />
@@ -496,79 +465,93 @@ export default function Landing() {
             </SectionReveal>
 
             <div className="grid md:grid-cols-3 gap-6 mb-12 items-stretch">
+              {/* Block 1 — Live Signal */}
               <SectionReveal delay={0.1} className="flex">
                 <div className="bg-slate-900/50 rounded-2xl p-6 border border-slate-800 hover:border-purple-500/30 hover:shadow-lg hover:shadow-purple-500/20 transition-all flex flex-col flex-1">
-                  <div className="flex items-center gap-2 mb-6">
+                  <div className="flex items-center gap-2 mb-4">
                     <BarChart3 className="w-5 h-5 text-purple-400" />
-                    <span className="text-purple-400 font-semibold text-sm uppercase tracking-wider">{t.landing.card1Title}</span>
+                    <span className="text-purple-400 font-semibold text-sm uppercase tracking-wider">Live Signal</span>
                   </div>
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <span className="text-slate-400 text-sm">{t.landing.card1Confidence}</span>
-                      <span className="text-purple-400 font-bold">87%</span>
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold text-emerald-400" style={{ background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.3)' }}>
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                      Strong · Finance
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-slate-400 text-sm">{t.landing.card1Signal}</span>
-                      <span className="text-white font-medium">Strong</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-slate-400 text-sm">{t.landing.card1Videos}</span>
-                      <span className="text-white font-medium">2,847</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-slate-400 text-sm">{t.landing.card1TopHook}</span>
-                      <span className="text-white font-medium">Question (42%)</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-slate-400 text-sm">{t.landing.card1TopFormat}</span>
-                      <span className="text-white font-medium">Listicle (38%)</span>
-                    </div>
+                  </div>
+                  <p className="text-white font-semibold text-sm mb-2">
+                    "The #1 mistake with{" "}
+                    <span className="text-purple-300" style={{ background: 'rgba(124,92,255,0.15)', padding: '0 4px', borderRadius: 3 }}>[savings]</span>
+                    "
+                  </p>
+                  <p className="text-slate-500 text-xs mb-4 border-l-2 border-purple-500/30 pl-3">
+                    Mistake framing triggers loss aversion. 2.3× above Finance avg.
+                  </p>
+                  <div className="flex gap-3 text-xs text-slate-500 mt-auto">
+                    <span><span className="text-white font-semibold">1.2M–4M</span> views</span>
+                    <span><span className="text-white font-semibold">94</span> videos</span>
+                    <span>Virality <span className="text-white font-semibold">87/100</span></span>
                   </div>
                 </div>
               </SectionReveal>
 
+              {/* Block 2 — Hook Intelligence */}
               <SectionReveal delay={0.2} className="flex">
                 <div className="bg-slate-900/50 rounded-2xl p-6 border border-slate-800 hover:border-purple-500/30 hover:shadow-lg hover:shadow-purple-500/20 transition-all flex flex-col flex-1">
-                  <div className="flex items-center gap-2 mb-6">
+                  <div className="flex items-center gap-2 mb-4">
                     <Target className="w-5 h-5 text-purple-400" />
-                    <span className="text-purple-400 font-semibold text-sm uppercase tracking-wider">{t.landing.card2Title}</span>
+                    <span className="text-purple-400 font-semibold text-sm uppercase tracking-wider">Hook Intelligence</span>
                   </div>
-                  <div className="space-y-4">
-                    {[t.landing.card2Rec1, t.landing.card2Rec2, t.landing.card2Rec3, t.landing.card2Rec4].map((tip, i) => (
-                      <div key={i} className="flex items-start gap-3">
-                        <div className="w-5 h-5 rounded-full bg-purple-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                          <span className="text-purple-400 text-xs font-bold">{i + 1}</span>
+                  <div className="space-y-3 flex-1">
+                    {([
+                      ["Hook type", "Question", 42],
+                      ["Format", "Listicle", 38],
+                      ["Avg views", "2.4M", 72],
+                      ["Engagement", "4.2%", 65],
+                    ] as [string, string, number][]).map(([label, value, pct]) => (
+                      <div key={label}>
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="text-slate-500 text-xs">{label}</span>
+                          <span className="text-white text-xs font-semibold">{value}</span>
                         </div>
-                        <p className="text-slate-300 text-sm">{tip}</p>
+                        <div className="h-1 rounded-full" style={{ background: 'rgba(255,255,255,0.06)' }}>
+                          <div className="h-full rounded-full bg-purple-500" style={{ width: `${pct}%` }} />
+                        </div>
                       </div>
                     ))}
                   </div>
                 </div>
               </SectionReveal>
 
+              {/* Block 3 — Your Brief */}
               <SectionReveal delay={0.3} className="flex">
                 <div className="bg-slate-900/50 rounded-2xl p-6 border border-slate-800 hover:border-purple-500/30 hover:shadow-lg hover:shadow-purple-500/20 transition-all flex flex-col flex-1">
-                  <div className="flex items-center gap-2 mb-6">
+                  <div className="flex items-center gap-2 mb-4">
                     <FileText className="w-5 h-5 text-purple-400" />
-                    <span className="text-purple-400 font-semibold text-sm uppercase tracking-wider">{t.landing.card3Title}</span>
+                    <span className="text-purple-400 font-semibold text-sm uppercase tracking-wider">Your Brief</span>
                   </div>
-                  <div className="space-y-4">
+                  <div className="space-y-4 flex-1">
                     <div>
-                      <span className="text-slate-500 text-xs uppercase tracking-wider">{t.landing.card3Hook}</span>
-                      <p className="text-white text-sm mt-1 italic" data-testid="text-brief-hook">
-                        "I almost gave up on content creation until I discovered this one pattern..."
+                      <span className="text-slate-500 text-xs uppercase tracking-wider">Hook template</span>
+                      <p className="text-white text-sm mt-2 leading-relaxed" data-testid="text-brief-hook">
+                        "The #1{" "}
+                        <span className="text-purple-300 font-semibold" style={{ background: 'rgba(124,92,255,0.15)', padding: '0 4px', borderRadius: 3 }}>[mistake]</span>
+                        {" "}every{" "}
+                        <span className="text-fuchsia-300 font-semibold" style={{ background: 'rgba(192,38,211,0.15)', padding: '0 4px', borderRadius: 3 }}>[niche]</span>
+                        {" "}creator makes with{" "}
+                        <span className="text-amber-300 font-semibold" style={{ background: 'rgba(245,158,11,0.15)', padding: '0 4px', borderRadius: 3 }}>[topic]</span>
+                        "
                       </p>
                     </div>
                     <div>
-                      <span className="text-slate-500 text-xs uppercase tracking-wider">{t.landing.card3Flow}</span>
+                      <span className="text-slate-500 text-xs uppercase tracking-wider">Your angle</span>
                       <p className="text-slate-300 text-sm mt-1" data-testid="text-brief-flow">
-                        Hook → Personal story → Pattern reveal → CTA
+                        Hook → Mistake reveal → Why it matters → CTA
                       </p>
                     </div>
                     <div>
-                      <span className="text-slate-500 text-xs uppercase tracking-wider">{t.landing.card3Cta}</span>
+                      <span className="text-slate-500 text-xs uppercase tracking-wider">Your CTA</span>
                       <p className="text-slate-300 text-sm mt-1" data-testid="text-brief-cta">
-                        Comment "PATTERN" and I'll send you the full breakdown.
+                        Comment "MISTAKE" and I'll send you the full breakdown.
                       </p>
                     </div>
                   </div>
@@ -584,7 +567,7 @@ export default function Landing() {
                   className="bg-purple-600 hover:bg-purple-700 text-white px-8 h-14 text-lg rounded-full"
                   data-testid="button-generate-brief"
                 >
-                  {t.landing.generateBrief}
+                  Request early access →
                   <ArrowRight className="w-5 h-5 ml-2" />
                 </Button>
               </div>
@@ -611,10 +594,26 @@ export default function Landing() {
 
             <div className="grid md:grid-cols-2 gap-6 items-stretch">
               {[
-                { icon: BarChart3, title: t.landing.pillar1, desc: t.landing.pillar1Desc },
-                { icon: Target, title: t.landing.pillar2, desc: t.landing.pillar2Desc },
-                { icon: TrendingUp, title: t.landing.pillar3, desc: t.landing.pillar3Desc },
-                { icon: Video, title: t.landing.pillar4, desc: t.landing.pillar4Desc },
+                {
+                  icon: BarChart3,
+                  title: "Built on real performance",
+                  desc: "Every signal is backed by thousands of real videos analyzed across your niche — not generated content or guesses.",
+                },
+                {
+                  icon: Target,
+                  title: "Focused on your niche",
+                  desc: "You choose your niche once. Craflect filters every signal, pattern and brief for your specific audience.",
+                },
+                {
+                  icon: TrendingUp,
+                  title: "Updated every 72 hours",
+                  desc: "The engine re-scans every 72 hours so you're always working from fresh data — not last month's trends.",
+                },
+                {
+                  icon: Video,
+                  title: "From signal to brief in seconds",
+                  desc: "One click turns a pattern into a ready-to-shoot brief. Topic, hook, flow, CTA — all pre-filled.",
+                },
               ].map((item, i) => (
                 <SectionReveal key={i} delay={i * 0.08} className="flex">
                   <div className="bg-slate-900/50 rounded-2xl p-6 border border-slate-800 hover:border-purple-500/30 hover:shadow-lg hover:shadow-purple-500/20 transition-all group flex flex-col flex-1" data-testid={`card-pillar-${i}`}>
@@ -636,132 +635,51 @@ export default function Landing() {
             <SectionReveal>
               <div className="text-center mb-12">
                 <h2 className="text-4xl font-bold text-white mb-4">{t.landing.pricingTitle}</h2>
-                <p className="text-slate-400 text-lg mb-8">{t.landing.pricingSubtitle}</p>
-
-                <div className="inline-flex items-center gap-4 p-1 bg-slate-900 rounded-full border border-slate-800">
-                  <button
-                    onClick={() => setYearly(false)}
-                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                      !yearly ? "bg-purple-600 text-white" : "text-slate-400 hover:text-white"
-                    }`}
-                    data-testid="toggle-monthly"
-                  >
-                    {t.landing.pricingMonthly}
-                  </button>
-                  <button
-                    onClick={() => setYearly(true)}
-                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all flex items-center gap-2 ${
-                      yearly ? "bg-purple-600 text-white" : "text-slate-400 hover:text-white"
-                    }`}
-                    data-testid="toggle-yearly"
-                  >
-                    {t.landing.pricingYearly}
-                    <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded-full">
-                      {t.landing.pricingSave}
-                    </span>
-                  </button>
-                </div>
+                <p className="text-slate-400 text-lg">{t.landing.pricingSubtitle}</p>
               </div>
             </SectionReveal>
 
             <SectionReveal delay={0.1}>
-              <div className="flex items-center justify-center gap-4 mb-12 flex-wrap">
-                {[t.landing.pricingFreeTrial, t.landing.pricingNoCard, t.landing.pricingCancelAnytime].map((badge, i) => (
-                  <div key={i} className="flex items-center gap-2 px-4 py-2 bg-slate-900 rounded-full border border-slate-800">
-                    <CheckCircle2 className="w-4 h-4 text-purple-400" />
-                    <span className="text-slate-400 text-sm">{badge}</span>
+              <div className="max-w-sm mx-auto">
+                <div className="relative rounded-2xl p-8 border bg-slate-900 border-purple-500/50 shadow-xl shadow-purple-500/10">
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                    <span className="px-3 py-1 bg-purple-600 text-white text-xs font-medium rounded-full">
+                      Beta Access
+                    </span>
                   </div>
-                ))}
-              </div>
-            </SectionReveal>
 
-            <div className="grid md:grid-cols-3 gap-6">
-              {plans.map((plan, index) => (
-                <SectionReveal key={index} delay={0.1 + index * 0.1}>
-                  <div className={`relative rounded-2xl p-6 border h-full ${
-                    plan.highlighted
-                      ? "bg-slate-900 border-purple-500/50"
-                      : "bg-slate-900/50 border-slate-800"
-                  }`}>
-                    {plan.badge && (
-                      <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                        <span className="px-3 py-1 bg-purple-600 text-white text-xs font-medium rounded-full">
-                          {plan.badge}
-                        </span>
-                      </div>
-                    )}
-
-                    <div className="mb-6">
-                      <h3 className="text-xl font-semibold text-white mb-1">{plan.name}</h3>
-                      <p className="text-slate-400 text-sm">{plan.description}</p>
+                  <div className="text-center mb-6">
+                    <h3 className="text-2xl font-bold text-white mb-1">Founding Member</h3>
+                    <div className="flex items-baseline justify-center gap-1 mt-4">
+                      <span className="text-5xl font-bold text-white">Free</span>
                     </div>
-
-                    <div className="mb-6">
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-4xl font-bold text-white">
-                          ${yearly && plan.yearlyPrice ? plan.yearlyPrice : plan.price}
-                        </span>
-                        <span className="text-slate-400">{t.landing.pricingPerMonth}</span>
-                      </div>
-                      {yearly && plan.yearlyPrice && (
-                        <p className="text-slate-500 text-sm mt-1">
-                          {t.landing.pricingBilledAnnually.replace("${amount}", String(plan.yearlyPrice * 12))}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="mb-6 p-3 bg-slate-800/50 rounded-lg">
-                      <div className="flex items-center gap-2 text-sm mb-1">
-                        <Zap className="w-4 h-4 text-yellow-400" />
-                        <span className="text-white font-medium">{plan.credits}</span>
-                        <span className="text-slate-400">{t.landing.pricingCreditsPerMonth}</span>
-                      </div>
-                      <p className="text-green-400 text-sm font-medium">
-                        {t.landing.pricingVideosPerMonth.replace("{count}", plan.videos)}
-                      </p>
-                      <p className="text-slate-500 text-xs mt-1">
-                        {t.landing.pricingMaxRollover.replace("{count}", String(plan.rollover))}
-                      </p>
-                    </div>
-
-                    <ul className="space-y-3 mb-6">
-                      {plan.features.map((feature, i) => (
-                        <li key={i} className="flex items-start gap-3">
-                          <Check className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
-                          <span className="text-slate-300 text-sm">{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
-
-                    <Button
-                      onClick={handleGetStarted}
-                      className={`w-full ${
-                        plan.highlighted
-                          ? "bg-purple-600 hover:bg-purple-700 text-white"
-                          : "bg-slate-800 hover:bg-slate-700 text-white"
-                      }`}
-                      data-testid={`button-plan-${plan.name.toLowerCase()}`}
-                    >
-                      {plan.cta}
-                      <ArrowRight className="w-4 h-4 ml-2" />
-                    </Button>
+                    <p className="text-slate-400 text-sm mt-1">During beta</p>
                   </div>
-                </SectionReveal>
-              ))}
-            </div>
 
-            <SectionReveal delay={0.4}>
-              <div className="mt-12 max-w-2xl mx-auto">
-                <div className="bg-slate-900/50 rounded-xl p-6 border border-slate-800">
-                  <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center flex-shrink-0">
-                      <Lightbulb className="w-5 h-5 text-purple-400" />
-                    </div>
-                    <div>
-                      <h4 className="text-white font-semibold mb-2">{t.landing.pricingCreditsTitle}</h4>
-                      <p className="text-slate-400 text-sm">{t.landing.pricingCreditsDesc}</p>
-                    </div>
-                  </div>
+                  <ul className="space-y-3 mb-8">
+                    {[
+                      "Full access to the Pattern Engine",
+                      "20 niches tracked in real time",
+                      "Unlimited brief generation",
+                      "Priority access to new features",
+                      "Founder badge on your profile",
+                      "Locked-in pricing at launch",
+                    ].map((feature, i) => (
+                      <li key={i} className="flex items-start gap-3">
+                        <Check className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
+                        <span className="text-slate-300 text-sm">{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <Button
+                    onClick={handleGetStarted}
+                    className="w-full bg-purple-600 hover:bg-purple-700 text-white h-12 text-base font-semibold rounded-xl"
+                    data-testid="button-plan-founding"
+                  >
+                    Request early access →
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
                 </div>
               </div>
             </SectionReveal>
@@ -814,17 +732,17 @@ export default function Landing() {
           <div className="relative z-10 max-w-2xl mx-auto px-6 text-center">
             <SectionReveal>
               <h2 className="text-4xl font-bold text-white mb-4" data-testid="text-final-title">{t.landing.finalTitle}</h2>
-              <p className="text-slate-400 text-lg mb-8">{t.landing.finalSubtitle}</p>
+              <p className="text-slate-400 text-lg mb-8">Join the founding cohort. 100 spots. Full access. Free during beta.</p>
               <Button
                 size="lg"
                 onClick={handleGetStarted}
                 className="bg-purple-600 hover:bg-purple-700 text-white px-8 h-14 text-lg rounded-full shadow-lg shadow-purple-500/25"
                 data-testid="button-final-cta"
               >
-                {t.landing.finalCta}
+                Request early access →
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
-              <p className="text-slate-500 text-sm mt-4">{t.landing.finalProof}</p>
+              <p className="text-slate-500 text-sm mt-4">We review every application personally.</p>
             </SectionReveal>
           </div>
         </section>
