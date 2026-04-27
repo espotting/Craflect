@@ -13,7 +13,7 @@ import {
   BarChart3,
   Lock,
 } from "lucide-react";
-import logoPurpWhite from "@assets/Logo_PurpWhite_HD_wBG_1775302281780.png";
+import logoNew from "@/assets/Craflect_Logo_new_Transparent.png";
 
 interface WaitlistStats {
   count: number;
@@ -176,7 +176,7 @@ export default function WaitlistPage() {
           onClick={() => navigate("/")}
           className="flex items-center gap-2 text-white font-bold text-lg tracking-tight"
         >
-          <img src={logoPurpWhite} alt="Craflect" className="h-10 w-auto" />
+          <img src={logoNew} alt="Craflect" className="h-10 w-auto object-contain" />
         </button>
 
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/80 border border-slate-800 text-slate-400 text-xs">

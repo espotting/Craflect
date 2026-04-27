@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-import logoTransparent from "@/assets/logo-transparent.png";
+import logoNew from "@/assets/Craflect_Logo_new_Transparent.png";
 
 export default function ForgotPassword() {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -57,7 +57,7 @@ export default function ForgotPassword() {
     <div className="min-h-screen bg-[#0a0a0f] flex flex-col">
       <header className="p-6">
         <button onClick={() => setLocation("/")} className="flex items-center gap-2" data-testid="link-back-home">
-          <img src={logoTransparent} alt="Craflect" className="h-10 w-auto object-contain" />
+          <img src={logoNew} alt="Craflect" className="h-10 w-auto object-contain" />
         </button>
       </header>
 

@@ -1,6 +1,6 @@
+import logoNew from "@/assets/Craflect_Logo_new_Transparent.png";
 import { useLanguage } from "@/hooks/use-language";
 import { useTheme } from "@/hooks/use-theme";
-import logoTransparent from "@/assets/logo-transparent.png";
 import logoLight from "@/assets/logo-light.png";
 import { Link } from "wouter";
 import { ArrowLeft } from "lucide-react";
@@ -10,11 +10,9 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-
 export default function FaqPage() {
   const { isDark } = useTheme();
   const { t } = useLanguage();
-
   const items = [
     { value: "q1", trigger: t.faq.q1, content: t.faq.a1 },
     { value: "q2", trigger: t.faq.q2, content: t.faq.a2 },
@@ -24,13 +22,12 @@ export default function FaqPage() {
     { value: "q6", trigger: t.faq.q6, content: t.faq.a6 },
     { value: "q7", trigger: t.faq.q7, content: t.faq.a7 },
   ];
-
   return (
     <div className="min-h-screen bg-background">
       <header className="flex justify-between items-center px-6 py-4 gap-4">
         <Link href="/" data-testid="link-logo-home">
           <img
-            src={isDark ? logoTransparent : logoLight}
+            src={isDark ? logoNew : logoLight}
             alt="Craflect"
             className="h-10"
             data-testid="img-logo"
@@ -45,7 +42,6 @@ export default function FaqPage() {
           {t.legal.backToHome}
         </Link>
       </header>
-
       <main className="max-w-3xl mx-auto px-4 py-16">
         <h1 className="text-3xl font-bold mb-2" data-testid="text-faq-title">
           {t.faq.title}
@@ -53,7 +49,6 @@ export default function FaqPage() {
         <p className="text-muted-foreground mb-10" data-testid="text-faq-subtitle">
           {t.faq.subtitle}
         </p>
-
         <Accordion type="single" collapsible data-testid="accordion-faq">
           {items.map((item) => (
             <AccordionItem

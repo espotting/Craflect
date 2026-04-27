@@ -1,7 +1,8 @@
+import logoNew from "@/assets/Craflect_Logo_new_Transparent.png";
 import { useEffect, useCallback } from "react";
 import { useLanguage } from "@/hooks/use-language";
 import { useTheme } from "@/hooks/use-theme";
-import logoTransparent from "@/assets/logo-transparent.png";
+
 import logoLight from "@/assets/logo-light.png";
 import { Link, useLocation } from "wouter";
 import { ArrowLeft } from "lucide-react";
@@ -45,7 +46,7 @@ function LegalPage({ page }: { page: LegalPageType }) {
       <header className="flex justify-between items-center gap-4 px-4 py-4">
         <Link href="/" data-testid="link-logo-home">
           <img
-            src={isDark ? logoTransparent : logoLight}
+            src={isDark ? logoNew : logoLight}
             alt="Craflect"
             className="h-10"
           />
