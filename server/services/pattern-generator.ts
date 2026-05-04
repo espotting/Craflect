@@ -38,14 +38,17 @@ RÈGLES :
 export async function generatePatternFromCluster(clusterId: string): Promise<boolean> {
   try {
     const clusterResult = await db.execute(sql`
-      SELECT 
+      SELECT
         cc.*,
         array_length(cc.video_ids, 1) as video_count
       FROM content_clusters cc
       WHERE cc.id = ${clusterId}
     `);
 
-    if (!clusterResult.rows.length) return false;
+    if (!clusterResult.rows.length) {
+      console.warn(`[PatternGen] Cluster ${clusterId} not found`);
+      return false;
+    }
     const cluster = clusterResult.rows[0] as any;
 
     // Build video_ids as a raw SQL literal — passing a JS array as a pg parameter
@@ -75,7 +78,7 @@ export async function generatePatternFromCluster(clusterId: string): Promise<boo
 
     const videos = videosResult.rows as any[];
     if (videos.length === 0) {
-      console.warn(`[PatternGen] Cluster ${clusterId}: no hook_text videos found (niche=${cluster.dominant_niche})`);
+      console.warn(`[PatternGen] Cluster ${clusterId}: no hook_text videos (niche=${cluster.dominant_niche}, video_ids.length=${cluster.video_ids?.length ?? 0})`);
       return false;
     }
 
@@ -101,6 +104,8 @@ export async function generatePatternFromCluster(clusterId: string): Promise<boo
       .replace('{hook_examples}', hookExamples || 'N/A')
       .replace('{transcript_examples}', transcriptExamples || 'N/A');
 
+    console.log(`[PatternGen] Calling OpenAI for cluster ${clusterId} (${cluster.dominant_hook_type}/${cluster.dominant_niche})...`);
+
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [{ role: 'user', content: prompt }],
@@ -108,12 +113,16 @@ export async function generatePatternFromCluster(clusterId: string): Promise<boo
       temperature: 0.3,
     });
 
-    const patternData = JSON.parse(completion.choices[0].message.content || '{}');
+    const raw = completion.choices[0].message.content || '{}';
+    const patternData = JSON.parse(raw);
+
+    console.log(`[PatternGen] OpenAI response for cluster ${clusterId}:`, {
+      pattern_label: patternData.pattern_label,
+      hook_template: patternData.hook_template?.substring(0, 80),
+      why_it_works: patternData.why_it_works?.substring(0, 80),
+    });
 
     // GPT sometimes returns fields as arrays/objects instead of strings.
-    // pg sends JS arrays/objects as a "record" composite type → PostgreSQL
-    // throws "cannot cast type record to text[]" for any text column.
-    // Coerce every field to a scalar string before binding.
     const s = (v: any): string | null => {
       if (v === null || v === undefined) return null;
       if (Array.isArray(v)) return v.join('\n');
@@ -127,76 +136,125 @@ export async function generatePatternFromCluster(clusterId: string): Promise<boo
     const dimKey2 = String(cluster.dominant_niche || 'general').replace(/'/g, "''");
     const dimKeysRaw = sql.raw(`ARRAY['${dimKey0}','${dimKey1}','${dimKey2}']`);
 
-    console.log(`[PatternGen] Inserting pattern for cluster ${clusterId}:`, {
-      pattern_label: s(patternData.pattern_label),
-      hook_template: s(patternData.hook_template)?.substring(0, 60),
-    });
-
-    await db.execute(sql`
-      INSERT INTO patterns (
-        pattern_id,
-        dimension_keys,
-        hook_type,
-        structure_type,
-        topic_cluster,
-        pattern_label,
-        hook_template,
-        structure_template,
-        optimal_duration,
-        why_it_works,
-        best_for,
-        content_angle,
-        cta_suggestion,
-        video_count,
-        avg_virality_score,
-        pattern_score,
-        cluster_id,
-        trend_classification,
-        last_updated
-      ) VALUES (
-        gen_random_uuid(),
-        ${dimKeysRaw},
-        ${s(cluster.dominant_hook_type)},
-        ${s(cluster.dominant_structure)},
-        ${s(cluster.dominant_niche)},
-        ${s(patternData.pattern_label)},
-        ${s(patternData.hook_template)},
-        ${s(patternData.structure_template)},
-        ${parseInt(s(patternData.optimal_duration) || '60') || 60},
-        ${s(patternData.why_it_works)},
-        ${s(patternData.best_for)},
-        ${s(patternData.content_angle)},
-        ${s(patternData.cta_suggestion)},
-        ${cluster.video_count || 0},
-        ${cluster.avg_virality_score || 0},
-        ${Math.min(100, Math.round((cluster.avg_virality_score || 0) * 1.1))},
-        ${clusterId},
-        ${s(cluster.trend_status) || 'stable'},
-        NOW()
-      )
-      ON CONFLICT DO NOTHING
+    // ── Upsert: check if a pattern with same dimension_keys already exists ─────
+    // Root cause fix: Phase 1 (statistical) inserts patterns with the same
+    // dimension_keys but no hook_template/why_it_works. ON CONFLICT DO NOTHING
+    // would silently drop the LLM-generated row. We do an explicit check+upsert.
+    const existing = await db.execute(sql`
+      SELECT pattern_id FROM patterns WHERE dimension_keys = ${dimKeysRaw} LIMIT 1
     `);
 
+    if (existing.rows.length > 0) {
+      console.log(`[PatternGen] Pattern with same dimension_keys exists — updating with LLM fields (cluster ${clusterId})`);
+      await db.execute(sql`
+        UPDATE patterns SET
+          pattern_label      = ${s(patternData.pattern_label)},
+          hook_template      = ${s(patternData.hook_template)},
+          structure_template = ${s(patternData.structure_template)},
+          optimal_duration   = ${parseInt(s(patternData.optimal_duration) || '60') || 60},
+          why_it_works       = ${s(patternData.why_it_works)},
+          best_for           = ${s(patternData.best_for)},
+          content_angle      = ${s(patternData.content_angle)},
+          cta_suggestion     = ${s(patternData.cta_suggestion)},
+          cluster_id         = ${clusterId},
+          last_updated       = NOW()
+        WHERE dimension_keys = ${dimKeysRaw}
+      `);
+    } else {
+      console.log(`[PatternGen] No existing pattern — inserting new LLM pattern (cluster ${clusterId})`);
+      await db.execute(sql`
+        INSERT INTO patterns (
+          pattern_id,
+          dimension_keys,
+          hook_type,
+          structure_type,
+          topic_cluster,
+          pattern_label,
+          hook_template,
+          structure_template,
+          optimal_duration,
+          why_it_works,
+          best_for,
+          content_angle,
+          cta_suggestion,
+          video_count,
+          avg_virality_score,
+          pattern_score,
+          cluster_id,
+          trend_classification,
+          last_updated
+        ) VALUES (
+          gen_random_uuid(),
+          ${dimKeysRaw},
+          ${s(cluster.dominant_hook_type)},
+          ${s(cluster.dominant_structure)},
+          ${s(cluster.dominant_niche)},
+          ${s(patternData.pattern_label)},
+          ${s(patternData.hook_template)},
+          ${s(patternData.structure_template)},
+          ${parseInt(s(patternData.optimal_duration) || '60') || 60},
+          ${s(patternData.why_it_works)},
+          ${s(patternData.best_for)},
+          ${s(patternData.content_angle)},
+          ${s(patternData.cta_suggestion)},
+          ${cluster.video_count || 0},
+          ${cluster.avg_virality_score || 0},
+          ${Math.min(100, Math.round((cluster.avg_virality_score || 0) * 1.1))},
+          ${clusterId},
+          ${s(cluster.trend_status) || 'stable'},
+          NOW()
+        )
+        ON CONFLICT DO NOTHING
+      `);
+    }
+
     await db.execute(sql`
-      UPDATE content_clusters 
-      SET analyzed_by_llm = true 
+      UPDATE content_clusters
+      SET analyzed_by_llm = true
       WHERE id = ${clusterId}
     `);
 
     return true;
   } catch (error: any) {
-    console.error(`[PatternGen] Erreur cluster ${clusterId}: ${error.message}`);
+    console.error(`[PatternGen] Error cluster ${clusterId}: ${error.message}`);
+    if (error.message?.includes('API key')) {
+      console.error('[PatternGen] FATAL: OpenAI API key issue — check OPENAI_API_KEY env var');
+    }
     return false;
   }
 }
 
 export async function generateAllPatterns(): Promise<number> {
-  console.log('[PatternGen] Starting generateAllPatterns...');
+  console.log('[PatternGen] ══ generateAllPatterns START ══');
+
   if (!process.env.OPENAI_API_KEY) {
     console.error('[PatternGen] FATAL: OPENAI_API_KEY is not set — aborting');
     return 0;
   }
 
+  // ── Debug snapshot ────────────────────────────────────────────────────────
+  try {
+    const snap = await db.execute(sql`
+      SELECT
+        (SELECT COUNT(*) FROM content_clusters)                                            AS total_clusters,
+        (SELECT COUNT(*) FROM content_clusters WHERE analyzed_by_llm = true)               AS analyzed_clusters,
+        (SELECT COUNT(*) FROM content_clusters WHERE analyzed_by_llm = false
+           AND array_length(video_ids, 1) >= 3 AND dominant_hook_type IS NOT NULL)         AS eligible_clusters,
+        (SELECT COUNT(*) FROM patterns)                                                    AS total_patterns,
+        (SELECT COUNT(*) FROM patterns WHERE hook_template IS NULL)                        AS patterns_missing_hook,
+        (SELECT COUNT(*) FROM patterns WHERE hook_template IS NOT NULL)                    AS patterns_with_hook,
+        (SELECT COUNT(*) FROM videos WHERE hook_text IS NOT NULL AND virality_score >= 20) AS videos_with_hook_text
+    `);
+    const r = snap.rows[0] as any;
+    console.log(`[PatternGen] DB snapshot:`);
+    console.log(`  clusters  : ${r.total_clusters} total / ${r.analyzed_clusters} analyzed / ${r.eligible_clusters} eligible`);
+    console.log(`  patterns  : ${r.total_patterns} total / ${r.patterns_with_hook} with hook / ${r.patterns_missing_hook} missing hook`);
+    console.log(`  videos    : ${r.videos_with_hook_text} with hook_text + virality≥20`);
+  } catch (snapErr: any) {
+    console.warn('[PatternGen] Could not fetch DB snapshot:', snapErr.message);
+  }
+
+  // ── Pass 1: unanalyzed clusters ───────────────────────────────────────────
   const clusters = await db.execute(sql`
     SELECT id, video_ids, dominant_hook_type, dominant_niche, dominant_structure,
            dominant_format, avg_virality_score, trend_status, confidence_score
@@ -208,34 +266,61 @@ export async function generateAllPatterns(): Promise<number> {
     LIMIT 20
   `);
 
-  console.log(`[PatternGen] Clusters found: ${clusters.rows.length} (unanalyzed, hook_type != null, >= 3 videos)`);
-
-  if (clusters.rows.length === 0) {
-    console.log('[PatternGen] No eligible clusters — check analyzed_by_llm flags and dominant_hook_type population');
-    return 0;
-  }
+  console.log(`[PatternGen] Pass 1 — ${clusters.rows.length} unanalyzed clusters`);
 
   let generated = 0;
   for (const cluster of clusters.rows as any[]) {
-    console.log(`[PatternGen] Processing cluster ${cluster.id} (${cluster.dominant_hook_type}/${cluster.dominant_niche}, virality=${cluster.avg_virality_score})`);
-    const success = await generatePatternFromCluster(cluster.id);
-    if (success) {
+    console.log(`[PatternGen] P1 cluster ${cluster.id} (${cluster.dominant_hook_type}/${cluster.dominant_niche}, virality=${cluster.avg_virality_score})`);
+    const ok = await generatePatternFromCluster(cluster.id);
+    if (ok) {
       generated++;
-      console.log(`[PatternGen] ✓ Pattern generated for cluster ${cluster.id}`);
+      console.log(`[PatternGen] ✓ P1 done cluster ${cluster.id}`);
     } else {
-      console.warn(`[PatternGen] ✗ Failed for cluster ${cluster.id}`);
+      console.warn(`[PatternGen] ✗ P1 failed cluster ${cluster.id}`);
     }
     await new Promise(r => setTimeout(r, 500));
   }
 
-  console.log(`[PatternGen] Done — ${generated}/${clusters.rows.length} patterns generated`);
+  // ── Pass 2: already-analyzed clusters whose pattern still lacks hook_template
+  // This repairs patterns created by Phase 1 (statistical) that were skipped
+  // by LLM due to the ON CONFLICT DO NOTHING / dimension_keys unique constraint bug.
+  const needRefresh = await db.execute(sql`
+    SELECT cc.id, cc.video_ids, cc.dominant_hook_type, cc.dominant_niche, cc.dominant_structure,
+           cc.dominant_format, cc.avg_virality_score, cc.trend_status, cc.confidence_score
+    FROM content_clusters cc
+    WHERE cc.analyzed_by_llm = true
+      AND array_length(cc.video_ids, 1) >= 3
+      AND cc.dominant_hook_type IS NOT NULL
+      AND EXISTS (
+        SELECT 1 FROM patterns p
+        WHERE p.cluster_id = cc.id::text
+          AND p.hook_template IS NULL
+      )
+    LIMIT 20
+  `);
+
+  console.log(`[PatternGen] Pass 2 — ${needRefresh.rows.length} analyzed clusters with patterns still missing hook_template`);
+
+  for (const cluster of needRefresh.rows as any[]) {
+    console.log(`[PatternGen] P2 cluster ${cluster.id} (${cluster.dominant_hook_type}/${cluster.dominant_niche})`);
+    const ok = await generatePatternFromCluster(cluster.id);
+    if (ok) {
+      generated++;
+      console.log(`[PatternGen] ✓ P2 hook refreshed for cluster ${cluster.id}`);
+    } else {
+      console.warn(`[PatternGen] ✗ P2 failed cluster ${cluster.id}`);
+    }
+    await new Promise(r => setTimeout(r, 500));
+  }
+
+  console.log(`[PatternGen] ══ Done — ${generated} patterns generated/updated ══`);
 
   await recalibratePatternScores();
 
   return generated;
 }
 
-// Sprint 4: apply feedback-loop weight and update signal_strength for all patterns
+// Apply feedback-loop weight and update signal_strength for all patterns
 async function recalibratePatternScores(): Promise<void> {
   await db.execute(sql`
     UPDATE patterns

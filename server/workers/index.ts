@@ -7,7 +7,7 @@ import { classificationWorker } from './classification.worker';
 import { scoringWorker } from './scoring.worker';
 import { patternWorker } from './pattern.worker';
 import { phaseTransitionWorker } from './phase-transition.worker';
-import './sync-to-replit.worker';
+// import './sync-to-replit.worker'; // disabled — Replit sync not needed in production
 import './velocity.worker';
 import './feedback.worker';
 import './thumbnail-generator.worker';
