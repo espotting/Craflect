@@ -284,10 +284,11 @@ export const classificationWorker = new Worker('classification', async (job) => 
       nicheCluster = resolveNicheCluster(video.topicCluster);
     }
 
-    // topicCluster: use LLM value if canonical, else keep existing ingestion value
+    // topicCluster MUST be one of TARGET_NICHES — never fall back to raw ingestion value.
+    // nicheCluster is already validated (LLM → keyword classifier → schema resolver).
     const topicCluster = (dna.topic_cluster && TARGET_NICHES.includes(dna.topic_cluster))
       ? dna.topic_cluster
-      : (video.topicCluster || null);
+      : nicheCluster;
 
     // Validate new dimension fields
     const VALID_CONTENT_ANGLES = ['tutorial', 'listicle', 'story', 'reaction', 'comparison', 'transformation', 'rant', 'interview', 'day_in_life', 'case_study'];
