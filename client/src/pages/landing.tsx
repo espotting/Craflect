@@ -22,7 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useLanguage } from "@/hooks/use-language";
 import { SiTiktok, SiInstagram, SiYoutube } from "react-icons/si";
-import logoNew from "@/assets/Logo_Craflect_Transp_Tag.png";
+import logoNew from "@/assets/Logo_Craflect_v2.png";
 
 function SectionReveal({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
   return (

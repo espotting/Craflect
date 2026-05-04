@@ -8,7 +8,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { FcGoogle } from "react-icons/fc";
-import logoNew from "@/assets/Logo_Craflect_Transp_Tag.png";
+import logoNew from "@/assets/Logo_Craflect_v2.png";
 
 export default function SignIn() {
   const { isAuthenticated, isLoading, user } = useAuth();

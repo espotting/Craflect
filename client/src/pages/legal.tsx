@@ -1,4 +1,4 @@
-import logoNew from "@/assets/Logo_Craflect_Transp_Tag.png";
+import logoNew from "@/assets/Logo_Craflect_v2.png";
 import { useEffect, useCallback } from "react";
 import { useLanguage } from "@/hooks/use-language";
 import { useTheme } from "@/hooks/use-theme";

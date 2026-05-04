@@ -5,7 +5,7 @@ import { Sparkles, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { FcGoogle } from "react-icons/fc";
-import logoNew from "@/assets/Logo_Craflect_Transp_Tag.png";
+import logoNew from "@/assets/Logo_Craflect_v2.png";
 
 export default function AuthWelcome() {
   const { isAuthenticated, isLoading, user } = useAuth();

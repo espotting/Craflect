@@ -5,7 +5,7 @@ import { ArrowLeft, Shield, RefreshCw, AlertCircle, CheckCircle } from "lucide-r
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import logoNew from "@/assets/Logo_Craflect_Transp_Tag.png";
+import logoNew from "@/assets/Logo_Craflect_v2.png";
 
 export default function AdminVerification() {
   const [, setLocation] = useLocation();
