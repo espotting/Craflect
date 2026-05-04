@@ -21,9 +21,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useLanguage } from "@/hooks/use-language";
-import { LanguageSwitcher } from "@/components/language-switcher";
 import { SiTiktok, SiInstagram, SiYoutube } from "react-icons/si";
-import logoNew from "@/assets/Craflect_Logo_new_Transparent.png";
+import logoNew from "@/assets/Logo_Craflect_Transp_Tag.png";
 
 function SectionReveal({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
   return (
@@ -124,17 +123,13 @@ export default function Landing() {
                 {t.nav.pricing}
               </button>
 
-              <div className="flex items-center gap-1.5">
-                <LanguageSwitcher variant="icon" className="!bg-slate-800/80 !border-slate-700 !text-slate-400 hover:!bg-slate-700 hover:!border-slate-600 hover:!text-white" />
-
-                <button
-                  onClick={handleSignIn}
-                  className="w-9 h-9 rounded-full bg-slate-800/80 border border-slate-700 flex items-center justify-center hover:bg-slate-700 hover:border-slate-600 transition-colors group"
-                  data-testid="button-login-nav"
-                >
-                  <UserCircle2 className="w-4 h-4 text-slate-400 group-hover:text-white transition-colors" />
-                </button>
-              </div>
+              <button
+                onClick={handleSignIn}
+                className="w-9 h-9 rounded-full bg-slate-800/80 border border-slate-700 flex items-center justify-center hover:bg-slate-700 hover:border-slate-600 transition-colors group"
+                data-testid="button-login-nav"
+              >
+                <UserCircle2 className="w-4 h-4 text-slate-400 group-hover:text-white transition-colors" />
+              </button>
 
               <Button
                 onClick={handleGetStarted}

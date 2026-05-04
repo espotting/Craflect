@@ -22,7 +22,6 @@ import {
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/hooks/use-auth";
 import { useLanguage } from "@/hooks/use-language";
-import { LanguageSwitcher } from "@/components/language-switcher";
 import { Progress } from "@/components/ui/progress";
 import { useQuery } from "@tanstack/react-query";
 
@@ -286,12 +285,12 @@ export function AppSidebar() {
 
       {/* ── Footer ── */}
       <SidebarFooter style={{ padding: '12px 0', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-        {/* Avatar */}
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}>
+        {/* Avatar + Name row — left-aligned with menu items */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 12px 8px' }}>
           {user?.profileImageUrl ? (
             <img
               src={user.profileImageUrl}
-              style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover' }}
+              style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
               alt=""
             />
           ) : (
@@ -304,57 +303,47 @@ export function AppSidebar() {
               {user?.firstName?.[0] || user?.email?.[0] || 'U'}
             </div>
           )}
-        </div>
-
-        {/* Name + niche — hidden in icon mode */}
-        <div
-          className="group-data-[collapsible=icon]:hidden"
-          style={{ padding: '0 12px 8px', textAlign: 'center' }}
-        >
-          <div style={{ fontSize: 12, fontWeight: 500, color: '#fff', marginBottom: 2 }} data-testid="text-username">
-            {user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : 'Creator'}
+          <div className="group-data-[collapsible=icon]:hidden" style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 12, fontWeight: 500, color: '#fff', marginBottom: 1 }} data-testid="text-username">
+              {user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : 'Creator'}
+            </div>
+            {prefs?.primaryNiche ? (
+              <div style={{ fontSize: 11, fontWeight: 600, color: '#7C5CFF' }}>
+                {prefs.primaryNiche.replace(/_/g, ' ')}
+              </div>
+            ) : (
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {user?.email || ''}
+              </div>
+            )}
           </div>
-          {prefs?.primaryNiche ? (
-            <div style={{ fontSize: 11, fontWeight: 600, color: '#7C5CFF' }}>
-              {prefs.primaryNiche.replace(/_/g, ' ')}
-            </div>
-          ) : (
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>
-              {user?.email || ''}
-            </div>
-          )}
         </div>
 
-        {/* Logout button */}
-        <div style={{ display: 'flex', justifyContent: 'center' }}>
-          <button
-            onClick={() => logout()}
-            title="Log out"
-            data-testid="button-logout"
-            style={{
-              width: 32, height: 32, borderRadius: 8,
-              border: '1px solid rgba(255,255,255,0.08)',
-              background: 'transparent', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: 'rgba(255,255,255,0.3)', transition: 'all .15s',
-            }}
-            onMouseEnter={e => {
-              (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.06)';
-              (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.7)';
-            }}
-            onMouseLeave={e => {
-              (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
-              (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.3)';
-            }}
-          >
+        {/* Logout — left-aligned like a menu item */}
+        <button
+          onClick={() => logout()}
+          title="Log out"
+          data-testid="button-logout"
+          style={{
+            display: 'flex', alignItems: 'center', gap: 10,
+            padding: '6px 12px', width: '100%', borderRadius: 6,
+            border: 'none', background: 'transparent', cursor: 'pointer',
+            color: 'rgba(255,255,255,0.3)', transition: 'all .15s',
+          }}
+          onMouseEnter={e => {
+            (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.06)';
+            (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.7)';
+          }}
+          onMouseLeave={e => {
+            (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
+            (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.3)';
+          }}
+        >
+          <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', width: 16, height: 16 }}>
             <IconLogout />
-          </button>
-        </div>
-
-        {/* Language switcher */}
-        <div className="group-data-[collapsible=icon]:hidden" style={{ marginTop: 8, display: 'flex', justifyContent: 'center' }}>
-          <LanguageSwitcher variant="pill" />
-        </div>
+          </div>
+          <span className="group-data-[collapsible=icon]:hidden" style={{ fontSize: 13, fontWeight: 500 }}>Log out</span>
+        </button>
       </SidebarFooter>
 
     </Sidebar>

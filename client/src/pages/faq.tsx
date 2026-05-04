@@ -1,4 +1,4 @@
-import logoNew from "@/assets/Craflect_Logo_new_Transparent.png";
+import logoNew from "@/assets/Logo_Craflect_Transp_Tag.png";
 import { useLanguage } from "@/hooks/use-language";
 import { useTheme } from "@/hooks/use-theme";
 import logoLight from "@/assets/logo-light.png";

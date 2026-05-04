@@ -13,7 +13,7 @@ import {
   BarChart3,
   Lock,
 } from "lucide-react";
-import logoNew from "@/assets/Craflect_Logo_new_Transparent.png";
+import logoNew from "@/assets/Logo_Craflect_Transp_Tag.png";
 
 interface WaitlistStats {
   count: number;
