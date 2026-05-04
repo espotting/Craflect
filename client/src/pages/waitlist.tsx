@@ -176,7 +176,7 @@ export default function WaitlistPage() {
           onClick={() => navigate("/")}
           className="flex items-center gap-2 text-white font-bold text-lg tracking-tight"
         >
-          <img src={logoNew} alt="Craflect" className="h-10 w-auto object-contain" />
+          <img src={logoNew} alt="Craflect" className="h-14 w-auto object-contain" />
         </button>
 
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/80 border border-slate-800 text-slate-400 text-xs">

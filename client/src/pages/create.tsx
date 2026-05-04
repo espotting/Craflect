@@ -108,16 +108,24 @@ export default function StudioPage() {
     queryFn: () => fetch(
       "/api/patterns/list" + (urlPatternId ? "?patternId=" + encodeURIComponent(urlPatternId) : ""),
       { credentials: "include" }
-    ).then((r) => r.json()),
+    ).then((r) => r.json()).then((data) => {
+      console.log("[Studio] /api/patterns/list response:", data);
+      return data;
+    }),
     staleTime: 2 * 60 * 1000,
   });
   const patterns: Pattern[] = Array.isArray(patternsRaw) ? patternsRaw : [];
 
   // Pre-select from URL param once patterns load — skip step 1
   useEffect(() => {
-    if (urlPatternId && patterns.length > 0 && !selected) {
+    if (patterns.length === 0 || selected) return;
+    if (urlPatternId) {
       const pre = patterns.find((p) => p.id === urlPatternId || (p as any).pattern_id === urlPatternId);
       if (pre) { setSelected(pre); setVars({}); }
+    } else {
+      // No patternId in URL: auto-select the best pattern so the brief is never empty
+      setSelected(patterns[0]);
+      setVars({});
     }
   }, [urlPatternId, patterns, selected]);
 

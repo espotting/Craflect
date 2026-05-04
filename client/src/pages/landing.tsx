@@ -111,7 +111,7 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <a href="#" className="flex items-center" data-testid="logo-landing">
-              <img src={logoNew} alt="Craflect" className="h-10 w-auto object-contain" />
+              <img src={logoNew} alt="Craflect" className="h-14 w-auto object-contain" />
             </a>
 
             <div className="hidden md:flex items-center gap-4">
