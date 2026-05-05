@@ -36,7 +36,7 @@ export default function Dashboard() {
     enabled: !!primaryNiche,
   });
 
-  const { data: patternsRaw, isLoading: patternsLoading } = useQuery<any[]>({
+  const { data: patternsRaw } = useQuery<any[]>({
     queryKey: ['/api/patterns/list', activePlatform],
     queryFn: () => fetch(
       `/api/patterns/list?platform=${encodeURIComponent(activePlatform)}`,
@@ -55,7 +55,7 @@ export default function Dashboard() {
             Today's Intelligence
           </div>
           <DailySignalHero signal={signalError ? { signal: null } : signal} niche={primaryNiche} />
-          <FeedSection niches={selectedNiches} platform={activePlatform} patterns={patterns} isLoading={patternsLoading} />
+          <FeedSection niches={selectedNiches} platform={activePlatform} patterns={patterns} />
         </div>
         {/* Right panel */}
         <RightPanel />

@@ -443,26 +443,11 @@ export default function StudioPage() {
 
                   {/* Highlighted template */}
                   <div style={{ marginBottom: 20, lineHeight: 1.55 }}>
-                    {selected.hook_template
-                      ? <HighlightedTemplate template={selected.hook_template} values={vars} />
-                      : (
-                        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderRadius: 10, background: "rgba(255,255,255,0.03)", border: "1px dashed rgba(124,92,255,0.2)" }}>
-                          <span style={{ fontSize: 16 }}>⏳</span>
-                          <div>
-                            <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.45)", marginBottom: 2 }}>
-                              {selected.pattern_label || selected.topic_cluster || "Pattern selected"}
-                            </div>
-                            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.25)", fontStyle: "italic" }}>
-                              Hook template is being generated — check back after the next analysis run.
-                            </div>
-                          </div>
-                        </div>
-                      )
-                    }
+                    <HighlightedTemplate template={selected.hook_template || ""} values={vars} />
                   </div>
 
                   {/* Variable inputs */}
-                  {selected.hook_template && variables.length > 0 ? (
+                  {variables.length > 0 ? (
                     <div style={{ display: "grid", gridTemplateColumns: variables.length === 1 ? "1fr" : "1fr 1fr", gap: 10 }}>
                       {variables.map((v) => (
                         <div key={v}>
@@ -483,11 +468,11 @@ export default function StudioPage() {
                         </div>
                       ))}
                     </div>
-                  ) : selected.hook_template ? (
+                  ) : (
                     <div style={{ fontSize: 12, color: "rgba(255,255,255,0.22)", fontStyle: "italic" }}>
                       This template is ready to use as-is — no customization needed
                     </div>
-                  ) : null}
+                  )}
                 </div>
 
                 {/* ── ZONE 2: Live Preview ── */}
@@ -502,8 +487,8 @@ export default function StudioPage() {
                       Your hook — live preview
                     </span>
                   </div>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: hookFinal || selected.hook_template ? "#fff" : "rgba(255,255,255,0.25)", lineHeight: 1.55, fontStyle: hookFinal || selected.hook_template ? "normal" : "italic" }}>
-                    {hookFinal || selected.hook_template || "Hook template pending…"}
+                  <div style={{ fontSize: 16, fontWeight: 700, color: "#fff", lineHeight: 1.55 }}>
+                    "{hookFinal || selected.hook_template}"
                   </div>
                 </div>
 
@@ -558,8 +543,8 @@ export default function StudioPage() {
                   {/* Hook with left border */}
                   <div style={{ borderLeft: "3px solid #7C5CFF", paddingLeft: 14, marginBottom: 14 }}>
                     <div style={{ fontSize: 10, fontWeight: 600, color: "rgba(255,255,255,0.28)", letterSpacing: 1, marginBottom: 5 }}>HOOK</div>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: hookFinal || selected.hook_template ? "#fff" : "rgba(255,255,255,0.3)", fontStyle: hookFinal || selected.hook_template ? "normal" : "italic", lineHeight: 1.55 }}>
-                      {hookFinal || selected.hook_template || "Hook template pending…"}
+                    <div style={{ fontSize: 14, fontWeight: 600, color: "#fff", lineHeight: 1.55 }}>
+                      "{hookFinal || selected.hook_template}"
                     </div>
                   </div>
 
