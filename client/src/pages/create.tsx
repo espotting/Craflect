@@ -129,14 +129,17 @@ export default function StudioPage() {
     }
   }, [urlPatternId, patterns, selected]);
 
-  const variables = useMemo(() => extractVars(selected?.hook_template ?? null), [selected]);
-  const hookFinal = useMemo(() => fillTemplate(selected?.hook_template ?? null, vars), [selected, vars]);
+  // effectiveSelected: always show the form — use patterns[0] while selected is null
+  const effectiveSelected = selected ?? (patterns.length > 0 ? patterns[0] : null);
+
+  const variables = useMemo(() => extractVars(effectiveSelected?.hook_template ?? null), [effectiveSelected]);
+  const hookFinal = useMemo(() => fillTemplate(effectiveSelected?.hook_template ?? null, vars), [effectiveSelected, vars]);
   const allVarsFilled = variables.length === 0 || variables.every((v) => (vars[v] || "").trim().length > 0);
-  const timeline = useMemo(() => buildTimeline(selected?.optimal_duration ?? null), [selected]);
-  const duration = formatDuration(selected?.optimal_duration ?? null);
+  const timeline = useMemo(() => buildTimeline(effectiveSelected?.optimal_duration ?? null), [effectiveSelected]);
+  const duration = formatDuration(effectiveSelected?.optimal_duration ?? null);
 
   // Stepper: 0=no pattern, 1=pattern+vars pending, 2=vars filled
-  const step = !selected ? 0 : !allVarsFilled ? 1 : 2;
+  const step = !effectiveSelected ? 0 : !allVarsFilled ? 1 : 2;
 
   const handleSelect = (p: Pattern) => { setSelected(p); setVars({}); };
   const handleVarChange = (key: string, val: string) => setVars((prev) => ({ ...prev, [key]: val }));
@@ -151,7 +154,7 @@ export default function StudioPage() {
     mutationFn: () =>
       apiRequest("POST", "/api/workspace/save-brief", {
         hookFinal,
-        patternId: selected?.id,
+        patternId: effectiveSelected?.id,
         duration,
       }),
     onSuccess: () => {
@@ -159,24 +162,24 @@ export default function StudioPage() {
       toast({ title: "Brief saved to workspace!" });
       setTimeout(() => setSavedOk(false), 2500);
       briefGeneratedMutation.mutate({
-        patternId: selected?.id,
-        hookUsed: hookFinal || selected?.hook_template || undefined,
-        platform: selected?.platform || 'tiktok',
-        niche: selected?.topic_cluster || undefined,
+        patternId: effectiveSelected?.id,
+        hookUsed: hookFinal || effectiveSelected?.hook_template || undefined,
+        platform: effectiveSelected?.platform || 'tiktok',
+        niche: effectiveSelected?.topic_cluster || undefined,
       });
     },
     onError: () => toast({ title: "Failed to save", variant: "destructive" }),
   });
 
   const copyBrief = () => {
-    if (!selected) return;
+    if (!effectiveSelected) return;
     const steps = timeline.map((t) => `${t.n}. ${t.title} (${t.range})`).join("\n   ");
     const text = [
-      `HOOK: "${hookFinal || selected.hook_template}"`,
+      `HOOK: "${hookFinal || effectiveSelected.hook_template}"`,
       `DURATION: ${duration}`,
       `STRUCTURE:\n   ${steps}`,
-      selected.why_it_works ? `WHY IT WORKS: ${selected.why_it_works}` : null,
-      selected.cta_suggestion ? `CTA: ${selected.cta_suggestion}` : null,
+      effectiveSelected.why_it_works ? `WHY IT WORKS: ${effectiveSelected.why_it_works}` : null,
+      effectiveSelected.cta_suggestion ? `CTA: ${effectiveSelected.cta_suggestion}` : null,
     ]
       .filter(Boolean)
       .join("\n\n");
@@ -186,8 +189,7 @@ export default function StudioPage() {
   };
 
   const niche =
-    selected?.topic_cluster?.replace(/_/g, " ") ||
-    patterns[0]?.topic_cluster?.replace(/_/g, " ") ||
+    effectiveSelected?.topic_cluster?.replace(/_/g, " ") ||
     "your niche";
 
   return (
@@ -374,54 +376,48 @@ export default function StudioPage() {
 
           {/* RIGHT PANEL */}
           <div style={{ flex: 1, overflowY: "auto", padding: "24px 28px 48px" }}>
-            {!selected ? (
-              /* Loading state when patternId is in URL but patterns haven't loaded yet */
-              isLoading && urlPatternId ? (
-                <div style={{
-                  display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-                  height: "100%", gap: 12, color: "rgba(255,255,255,0.28)",
-                }}>
-                  <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#7C5CFF", opacity: 0.7 }} />
-                  <div style={{ fontSize: 13 }}>Loading pattern…</div>
-                </div>
-              ) : (
-              /* Empty state */
+            {!effectiveSelected ? (
+              /* Loading — no patterns available at all */
               <div style={{
                 display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
                 height: "100%", gap: 16, color: "rgba(255,255,255,0.28)",
               }}>
-                <div style={{
-                  width: 64, height: 64, background: "rgba(124,92,255,0.08)", borderRadius: 18,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  border: "1px solid rgba(124,92,255,0.2)",
-                }}>
-                  <Sparkles size={26} color="rgba(124,92,255,0.5)" />
-                </div>
-                <div style={{ textAlign: "center" }}>
-                  <div style={{ fontSize: 16, fontWeight: 600, color: "rgba(255,255,255,0.45)", marginBottom: 8 }}>
-                    {patterns.length === 0 ? "No patterns loaded yet" : "Select a pattern to start"}
-                  </div>
-                  <div style={{ fontSize: 13 }}>
-                    {patterns.length === 0
-                      ? "Visit the Patterns page to browse trending patterns, then come back to build your brief."
-                      : "Pick a viral pattern from the left panel to build your filming brief"}
-                  </div>
-                  {patterns.length === 0 && (
-                    <button
-                      onClick={() => navigate("/patterns")}
-                      style={{
-                        marginTop: 20,
-                        background: "linear-gradient(90deg, #7C5CFF, #c026d3)",
-                        border: "none", color: "#fff", borderRadius: 10,
-                        padding: "10px 22px", fontSize: 13, fontWeight: 600, cursor: "pointer",
-                      }}
-                    >
-                      Go to Patterns →
-                    </button>
-                  )}
-                </div>
+                {isLoading ? (
+                  <>
+                    <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#7C5CFF", opacity: 0.7 }} />
+                    <div style={{ fontSize: 13 }}>Loading patterns…</div>
+                  </>
+                ) : (
+                  <>
+                    <div style={{
+                      width: 64, height: 64, background: "rgba(124,92,255,0.08)", borderRadius: 18,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      border: "1px solid rgba(124,92,255,0.2)",
+                    }}>
+                      <Sparkles size={26} color="rgba(124,92,255,0.5)" />
+                    </div>
+                    <div style={{ textAlign: "center" }}>
+                      <div style={{ fontSize: 16, fontWeight: 600, color: "rgba(255,255,255,0.45)", marginBottom: 8 }}>
+                        No patterns available yet
+                      </div>
+                      <div style={{ fontSize: 13, color: "rgba(255,255,255,0.28)", maxWidth: 300 }}>
+                        Visit the Patterns page to browse trending patterns, then come back to build your brief.
+                      </div>
+                      <button
+                        onClick={() => navigate("/patterns")}
+                        style={{
+                          marginTop: 20,
+                          background: "linear-gradient(90deg, #7C5CFF, #c026d3)",
+                          border: "none", color: "#fff", borderRadius: 10,
+                          padding: "10px 22px", fontSize: 13, fontWeight: 600, cursor: "pointer",
+                        }}
+                      >
+                        Go to Patterns →
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
-              )
             ) : (
               <div style={{ maxWidth: 700, display: "flex", flexDirection: "column", gap: 18 }}>
 
@@ -443,11 +439,26 @@ export default function StudioPage() {
 
                   {/* Highlighted template */}
                   <div style={{ marginBottom: 20, lineHeight: 1.55 }}>
-                    <HighlightedTemplate template={selected.hook_template || ""} values={vars} />
+                    {effectiveSelected.hook_template
+                      ? <HighlightedTemplate template={effectiveSelected.hook_template} values={vars} />
+                      : (
+                        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderRadius: 10, background: "rgba(255,255,255,0.03)", border: "1px dashed rgba(124,92,255,0.2)" }}>
+                          <span style={{ fontSize: 16 }}>⏳</span>
+                          <div>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.45)", marginBottom: 2 }}>
+                              {effectiveSelected.pattern_label || effectiveSelected.topic_cluster || "Pattern selected"}
+                            </div>
+                            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.25)", fontStyle: "italic" }}>
+                              Hook template is being generated — check back after the next analysis run.
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    }
                   </div>
 
                   {/* Variable inputs */}
-                  {variables.length > 0 ? (
+                  {effectiveSelected.hook_template && variables.length > 0 ? (
                     <div style={{ display: "grid", gridTemplateColumns: variables.length === 1 ? "1fr" : "1fr 1fr", gap: 10 }}>
                       {variables.map((v) => (
                         <div key={v}>
@@ -468,11 +479,11 @@ export default function StudioPage() {
                         </div>
                       ))}
                     </div>
-                  ) : (
+                  ) : effectiveSelected.hook_template ? (
                     <div style={{ fontSize: 12, color: "rgba(255,255,255,0.22)", fontStyle: "italic" }}>
                       This template is ready to use as-is — no customization needed
                     </div>
-                  )}
+                  ) : null}
                 </div>
 
                 {/* ── ZONE 2: Live Preview ── */}
@@ -487,8 +498,8 @@ export default function StudioPage() {
                       Your hook — live preview
                     </span>
                   </div>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: "#fff", lineHeight: 1.55 }}>
-                    "{hookFinal || selected.hook_template}"
+                  <div style={{ fontSize: 16, fontWeight: 700, color: hookFinal || effectiveSelected.hook_template ? "#fff" : "rgba(255,255,255,0.28)", lineHeight: 1.55, fontStyle: hookFinal || effectiveSelected.hook_template ? "normal" : "italic" }}>
+                    {hookFinal || effectiveSelected.hook_template || "Hook template pending…"}
                   </div>
                 </div>
 
@@ -543,34 +554,34 @@ export default function StudioPage() {
                   {/* Hook with left border */}
                   <div style={{ borderLeft: "3px solid #7C5CFF", paddingLeft: 14, marginBottom: 14 }}>
                     <div style={{ fontSize: 10, fontWeight: 600, color: "rgba(255,255,255,0.28)", letterSpacing: 1, marginBottom: 5 }}>HOOK</div>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: "#fff", lineHeight: 1.55 }}>
-                      "{hookFinal || selected.hook_template}"
+                    <div style={{ fontSize: 14, fontWeight: 600, color: hookFinal || effectiveSelected.hook_template ? "#fff" : "rgba(255,255,255,0.3)", fontStyle: hookFinal || effectiveSelected.hook_template ? "normal" : "italic", lineHeight: 1.55 }}>
+                      {hookFinal || effectiveSelected.hook_template || "Hook template pending…"}
                     </div>
                   </div>
 
                   {/* Why it works */}
-                  {selected.why_it_works && (
+                  {effectiveSelected.why_it_works && (
                     <div style={{
                       background: "rgba(16,185,129,0.06)", border: "1px solid rgba(16,185,129,0.15)",
                       borderRadius: 10, padding: "12px 14px", marginBottom: 10,
                     }}>
                       <div style={{ fontSize: 12, fontWeight: 600, color: "#10b981", marginBottom: 5 }}>💡 Why this works</div>
-                      <div style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", lineHeight: 1.55 }}>{selected.why_it_works}</div>
+                      <div style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", lineHeight: 1.55 }}>{effectiveSelected.why_it_works}</div>
                     </div>
                   )}
 
                   {/* Suggested CTA */}
-                  {selected.cta_suggestion && (
+                  {effectiveSelected.cta_suggestion && (
                     <div style={{
                       background: "rgba(124,92,255,0.06)", border: "1px solid rgba(124,92,255,0.16)",
                       borderRadius: 10, padding: "12px 14px", marginBottom: 18,
                     }}>
                       <div style={{ fontSize: 12, fontWeight: 600, color: "#a78bfa", marginBottom: 5 }}>🎯 Suggested CTA</div>
-                      <div style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", lineHeight: 1.55 }}>{selected.cta_suggestion}</div>
+                      <div style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", lineHeight: 1.55 }}>{effectiveSelected.cta_suggestion}</div>
                     </div>
                   )}
 
-                  {!selected.why_it_works && !selected.cta_suggestion && (
+                  {!effectiveSelected.why_it_works && !effectiveSelected.cta_suggestion && (
                     <div style={{ height: 10 }} />
                   )}
 

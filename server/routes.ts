@@ -5662,8 +5662,8 @@ JSON only, no markdown.`;
         const safeNiche = /^[a-z0-9_]+$/.test(nicheRaw) ? nicheRaw : '';
 
         const tabFilter = safeTab === 'rising'
-          ? `p.signal_strength = 'emerging'`
-          : `p.signal_strength IN ('strong', 'building')`;
+          ? `p.velocity_7d > 0`
+          : `p.signal_strength IN ('strong', 'building', 'emerging')`;
         const orderBy = safeTab === 'rising'
           ? `p.velocity_7d DESC NULLS LAST`
           : `p.avg_virality_score DESC NULLS LAST`;
@@ -5751,16 +5751,17 @@ JSON only, no markdown.`;
         ? `CASE WHEN p.pattern_id = '${specificPatternId.replace(/'/g, "''")}' THEN 0 ELSE 1 END,`
         : '';
 
-      const patterns = await db.execute(sql.raw(`
-        SELECT p.pattern_id as id, p.pattern_id, p.pattern_label, p.hook_template, p.structure_template,
+      const SEL_COLS = `p.pattern_id as id, p.pattern_id, p.pattern_label, p.hook_template, p.structure_template,
                p.optimal_duration, p.why_it_works, p.best_for, p.cta_suggestion,
                p.avg_virality_score, p.avg_engagement_rate, p.topic_cluster, p.video_count,
                p.predicted_views_min, p.predicted_views_max, p.confidence_score,
                p.sub_niche, p.hook_type_v2, p.decay_weight, p.created_at, p.velocity_7d,
-               cc.trend_status, cc.velocity_7d as cc_velocity_7d
+               cc.trend_status, cc.velocity_7d as cc_velocity_7d`;
+      let patterns = await db.execute(sql.raw(`
+        SELECT ${SEL_COLS}
         FROM patterns p
         LEFT JOIN content_clusters cc ON cc.id::text = p.cluster_id
-        WHERE p.pattern_label IS NOT NULL AND p.hook_template IS NOT NULL
+        WHERE p.hook_template IS NOT NULL
           AND (
             p.topic_cluster = ANY(ARRAY[${nichesStr}]::text[])
             ${specificClause}
@@ -5771,6 +5772,17 @@ JSON only, no markdown.`;
           p.avg_virality_score DESC NULLS LAST
         LIMIT 20
       `));
+      // Fallback: if niche query returned nothing, surface top patterns regardless of niche
+      if (patterns.rows.length === 0) {
+        patterns = await db.execute(sql.raw(`
+          SELECT ${SEL_COLS}
+          FROM patterns p
+          LEFT JOIN content_clusters cc ON cc.id::text = p.cluster_id
+          WHERE p.hook_template IS NOT NULL
+          ORDER BY p.avg_virality_score DESC NULLS LAST
+          LIMIT 20
+        `));
+      }
       const enriched = (patterns.rows as any[]).map(p => {
         const clusterLevel = p.sub_niche ? 3 : 2;
         const vel = p.velocity_7d ?? p.cc_velocity_7d ?? 0;
