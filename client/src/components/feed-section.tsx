@@ -64,10 +64,11 @@ function PatternCardSkeleton() {
   );
 }
 
-function NicheRow({ niche, patterns, isFirst }: {
+function NicheRow({ niche, patterns, isFirst, isLoading }: {
   niche: string;
   patterns: PatternCardPattern[];
   isFirst: boolean;
+  isLoading?: boolean;
 }) {
   const [, navigate] = useLocation();
   const dotColor = isFirst ? '#ef4444' : '#7C5CFF';
@@ -97,9 +98,20 @@ function NicheRow({ niche, patterns, isFirst }: {
         </span>
       </div>
       <div style={scrollStyle}>
-        {patterns.length > 0
-          ? patterns.slice(0, 6).map(p => <PatternCard key={p.patternId} pattern={p} />)
-          : Array.from({ length: 3 }).map((_, i) => <PatternCardSkeleton key={i} />)
+        {isLoading
+          ? Array.from({ length: 3 }).map((_, i) => <PatternCardSkeleton key={i} />)
+          : patterns.length > 0
+            ? patterns.slice(0, 6).map(p => <PatternCard key={p.patternId} pattern={p} />)
+            : (
+              <div style={{
+                padding: '18px 20px', borderRadius: 12,
+                border: '1px dashed rgba(255,255,255,0.07)',
+                color: 'rgba(255,255,255,0.22)', fontSize: 12,
+                background: 'rgba(255,255,255,0.015)',
+              }}>
+                No patterns yet for this niche — check back after next analysis run.
+              </div>
+            )
         }
       </div>
     </div>
@@ -110,10 +122,12 @@ export function FeedSection({
   niches,
   platform: _platform,
   patterns: rawPatterns,
+  isLoading,
 }: {
   niches: string[];
   platform: string;
   patterns: RawPattern[];
+  isLoading?: boolean;
 }) {
   const patterns = rawPatterns.map(toCard);
 
@@ -136,6 +150,7 @@ export function FeedSection({
           niche={niche}
           patterns={patternsByNiche[niche] || []}
           isFirst={idx === 0}
+          isLoading={isLoading}
         />
       ))}
     </div>
