@@ -141,6 +141,7 @@ export default function Patterns() {
                 { id: 'all',      label: 'All signals', color: undefined },
                 { id: 'strong',   label: '● Strong',    color: '#22c55e' },
                 { id: 'building', label: '● Building',  color: '#f59e0b' },
+                { id: 'emerging', label: '● Emerging',  color: '#a78bfa' },
               ].map(s => (
                 <button
                   key={s.id}

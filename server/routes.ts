@@ -4959,7 +4959,6 @@ ${input.cta ? `CTA: ${input.cta}` : ""}`;
           FROM patterns p
           LEFT JOIN content_clusters cc ON cc.id::text = p.cluster_id
           WHERE p.topic_cluster = ANY(${nichesArr}::text[])
-            AND p.pattern_label IS NOT NULL
           ORDER BY p.avg_virality_score DESC NULLS LAST
           LIMIT 20
         `);
@@ -5663,7 +5662,7 @@ JSON only, no markdown.`;
 
         const tabFilter = safeTab === 'rising'
           ? `p.velocity_7d > 0`
-          : `p.signal_strength IN ('strong', 'building', 'emerging')`;
+          : `COALESCE(p.signal_strength, 'emerging') IN ('strong', 'building', 'emerging')`;
         const orderBy = safeTab === 'rising'
           ? `p.velocity_7d DESC NULLS LAST`
           : `p.avg_virality_score DESC NULLS LAST`;
@@ -5724,7 +5723,7 @@ JSON only, no markdown.`;
                  cc.trend_status, cc.velocity_7d as cc_velocity_7d
           FROM patterns p
           LEFT JOIN content_clusters cc ON cc.id::text = p.cluster_id
-          WHERE p.pattern_label IS NOT NULL AND p.hook_template IS NOT NULL
+          WHERE p.hook_template IS NOT NULL
           ORDER BY ${orderSpecificFallback} p.avg_virality_score DESC NULLS LAST
           LIMIT 10
         `));
@@ -6121,7 +6120,6 @@ JSON only, no markdown.`;
         FROM patterns p
         LEFT JOIN content_clusters cc ON cc.id::text = p.cluster_id
         WHERE p.topic_cluster = '${niche.replace(/'/g, "''")}'
-          AND p.pattern_label IS NOT NULL
           AND p.confidence_score IS NOT NULL
           ${excludeClause}
         ORDER BY p.confidence_score DESC, p.avg_virality_score DESC NULLS LAST
