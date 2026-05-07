@@ -53,6 +53,7 @@ async function getTopicClusterCount(topicCluster: string): Promise<number> {
 }
 
 async function scrapeVideos(zone: any, niche: string): Promise<any[]> {
+  return []; // APIFY DISABLED
   const keywords = NICHE_KEYWORDS[niche] || [];
 
   if (keywords.length === 0) {

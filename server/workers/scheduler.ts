@@ -21,10 +21,11 @@ const ENABLE_REELS_INGESTION = process.env.ENABLE_REELS_INGESTION === 'true';
 const ENABLE_SHORTS_INGESTION = process.env.ENABLE_SHORTS_INGESTION === 'true';
 
 export async function setupSchedules() {
-  await ingestionQueue.add('cycle-zones', {}, {
-    repeat: { cron: '0 */6 * * *' },
-    jobId: 'scheduled-ingestion'
-  });
+  // INGESTION DISABLED - switching to custom scraper
+  // await ingestionQueue.add('cycle-zones', {}, {
+  //   repeat: { cron: '0 */6 * * *' },
+  //   jobId: 'scheduled-ingestion'
+  // });
 
   await scoringQueue.add('batch-scoring', {}, {
     repeat: { every: 15 * 60 * 1000 },
@@ -73,25 +74,27 @@ export async function setupSchedules() {
     removeOnFail: 3,
   });
 
-  if (ENABLE_REELS_INGESTION) {
-    await reelsIngestionQueue.add('cycle-zones', {}, {
-      repeat: { cron: '0 */12 * * *' },
-      jobId: 'scheduled-ingestion-reels',
-    });
-    console.log('  • Ingestion Reels activée');
-  } else {
-    console.log('  • Ingestion Reels désactivée');
-  }
+  // INGESTION DISABLED - switching to custom scraper
+  // if (ENABLE_REELS_INGESTION) {
+  //   await reelsIngestionQueue.add('cycle-zones', {}, {
+  //     repeat: { cron: '0 */12 * * *' },
+  //     jobId: 'scheduled-ingestion-reels',
+  //   });
+  //   console.log('  • Ingestion Reels activée');
+  // } else {
+  //   console.log('  • Ingestion Reels désactivée');
+  // }
 
-  if (ENABLE_SHORTS_INGESTION) {
-    await shortsIngestionQueue.add('cycle-zones', {}, {
-      repeat: { cron: '0 */12 * * *' },
-      jobId: 'scheduled-ingestion-shorts',
-    });
-    console.log('  • Ingestion Shorts activée');
-  } else {
-    console.log('  • Ingestion Shorts désactivée');
-  }
+  // INGESTION DISABLED - switching to custom scraper
+  // if (ENABLE_SHORTS_INGESTION) {
+  //   await shortsIngestionQueue.add('cycle-zones', {}, {
+  //     repeat: { cron: '0 */12 * * *' },
+  //     jobId: 'scheduled-ingestion-shorts',
+  //   });
+  //   console.log('  • Ingestion Shorts activée');
+  // } else {
+  //   console.log('  • Ingestion Shorts désactivée');
+  // }
 
   console.log('✅ Schedules configurés : Ingestion (6h), Scoring (15min), Patterns (6h), Velocity (6h), Phase Transition (30min), Feedback (1h), Thumbnails (6h), Predictions (24h), PatternDecay (daily)');
 }
