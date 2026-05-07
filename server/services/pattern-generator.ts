@@ -191,7 +191,7 @@ async function generatePatternFromDimensions(
       FROM videos
       WHERE classification_status = 'completed'
         AND hook_mechanism_primary = '${hookTypeSafe}'
-        AND structure_type         = '${structSafe}'
+        AND (structure_type = '${structSafe}' OR '${structSafe}' = 'null' OR structure_type IS NULL)
         AND topic_cluster          = '${nicheSafe}'
         AND hook_text IS NOT NULL
         AND virality_score >= 20

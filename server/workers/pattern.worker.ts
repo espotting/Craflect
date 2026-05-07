@@ -55,5 +55,5 @@ export const patternWorker = new Worker('pattern', async () => {
   console.log('[PatternWorker] Starting LLM generation phase...');
   const patternsGenerated = await generateAllPatterns();
   console.log(`[PatternWorker] Done — ${patternsGenerated} LLM patterns generated`);
-}, { connection: redisConnection, concurrency: 1 });
+}, { connection: redisConnection, concurrency: 1, lockDuration: 120000 });
 
