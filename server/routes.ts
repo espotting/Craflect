@@ -5714,11 +5714,13 @@ JSON only, no markdown.`;
         ? `CASE WHEN p.pattern_id = '${specificSafeId}' THEN 0 ELSE 1 END,`
         : '';
 
+      // SEL_COLS: only columns that actually exist in the patterns table
+      // (predicted_views_min/max, confidence_score, sub_niche, hook_type_v2, decay_weight do NOT exist in patterns)
       const SEL_COLS = `p.pattern_id as id, p.pattern_id, p.pattern_label, p.hook_template, p.structure_template,
                p.optimal_duration, p.why_it_works, p.best_for, p.cta_suggestion,
                p.avg_virality_score, p.avg_engagement_rate, p.topic_cluster, p.video_count,
-               p.predicted_views_min, p.predicted_views_max, p.confidence_score,
-               p.sub_niche, p.hook_type_v2, p.decay_weight, p.created_at, p.velocity_7d,
+               p.signal_strength, p.platform, p.cluster_id, p.velocity_7d,
+               p.hook_type as hook_type_v2, p.last_updated as created_at,
                cc.trend_status, cc.velocity_7d as cc_velocity_7d`;
 
       let nicheBoost = '';
@@ -5731,7 +5733,7 @@ JSON only, no markdown.`;
                ELSE 2 END,`;
       }
 
-      const patterns = await db.execute(sql.raw(`
+      const unifiedSql = `
         SELECT ${SEL_COLS}
         FROM patterns p
         LEFT JOIN content_clusters cc ON cc.id::text = p.cluster_id
@@ -5741,7 +5743,10 @@ JSON only, no markdown.`;
           ${nicheBoost}
           p.avg_virality_score DESC NULLS LAST
         LIMIT 20
-      `));
+      `;
+      console.log(`[patterns/list] unified query (first 400 chars): ${unifiedSql.replace(/\s+/g, ' ').trim().slice(0, 400)}`);
+
+      const patterns = await db.execute(sql.raw(unifiedSql));
 
       const enriched = (patterns.rows as any[]).map(p => {
         const clusterLevel = p.sub_niche ? 3 : 2;
