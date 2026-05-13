@@ -5708,46 +5708,10 @@ JSON only, no markdown.`;
 
       console.log(`[patterns/list] user=${req.user.id} primaryNiche=${primaryNiche} niches=${JSON.stringify(niches)}`);
 
-      if (niches.length === 0) {
-        // Fallback : top 10 toutes niches — specific pattern first if requested
-        const specificSafeId = specificPatternId ? specificPatternId.replace(/'/g, "''") : '';
-        const orderSpecificFallback = specificSafeId
-          ? `CASE WHEN p.pattern_id = '${specificSafeId}' THEN 0 ELSE 1 END,`
-          : '';
-        const fallback = await db.execute(sql.raw(`
-          SELECT p.pattern_id as id, p.pattern_id, p.pattern_label, p.hook_template, p.structure_template,
-                 p.optimal_duration, p.why_it_works, p.best_for, p.cta_suggestion,
-                 p.avg_virality_score, p.avg_engagement_rate, p.topic_cluster, p.video_count,
-                 p.predicted_views_min, p.predicted_views_max, p.confidence_score,
-                 p.sub_niche, p.hook_type_v2, p.decay_weight, p.created_at, p.velocity_7d,
-                 cc.trend_status, cc.velocity_7d as cc_velocity_7d
-          FROM patterns p
-          LEFT JOIN content_clusters cc ON cc.id::text = p.cluster_id
-          WHERE p.hook_template IS NOT NULL
-          ORDER BY ${orderSpecificFallback} p.avg_virality_score DESC NULLS LAST
-          LIMIT 10
-        `));
-        const enrichedFallback = (fallback.rows as any[]).map(p => {
-          const clusterLevel = p.sub_niche ? 3 : 2;
-          const vel = p.velocity_7d ?? p.cc_velocity_7d ?? 0;
-          const pat_platform = p.platform || 'tiktok';
-          return {
-            ...p,
-            platform: pat_platform,
-            signal_strength: computeSignalStrength({ video_count: p.video_count, velocity_7d: vel, cluster_level: clusterLevel, platform: pat_platform }),
-            cluster_key: [p.topic_cluster, p.sub_niche, p.hook_type_v2, pat_platform].filter(Boolean).join('|'),
-            cluster_level: clusterLevel,
-            velocity_7d: vel,
-          };
-        });
-        return res.json(enrichedFallback);
-      }
-      const nichesStr = niches.map((n: string) => `'${n.replace(/'/g, "''")}'`).join(',');
-      const specificClause = specificPatternId
-        ? `OR p.pattern_id = '${specificPatternId.replace(/'/g, "''")}'`
-        : '';
-      const orderSpecific = specificPatternId
-        ? `CASE WHEN p.pattern_id = '${specificPatternId.replace(/'/g, "''")}' THEN 0 ELSE 1 END,`
+      // ── Single unified query: always 20 patterns with hooks, niche-preferred ──
+      const specificSafeId = specificPatternId ? specificPatternId.replace(/'/g, "''") : '';
+      const specificBoost = specificSafeId
+        ? `CASE WHEN p.pattern_id = '${specificSafeId}' THEN 0 ELSE 1 END,`
         : '';
 
       const SEL_COLS = `p.pattern_id as id, p.pattern_id, p.pattern_label, p.hook_template, p.structure_template,
@@ -5756,32 +5720,29 @@ JSON only, no markdown.`;
                p.predicted_views_min, p.predicted_views_max, p.confidence_score,
                p.sub_niche, p.hook_type_v2, p.decay_weight, p.created_at, p.velocity_7d,
                cc.trend_status, cc.velocity_7d as cc_velocity_7d`;
-      let patterns = await db.execute(sql.raw(`
+
+      let nicheBoost = '';
+      if (niches.length > 0) {
+        const nichesStr = niches.map((n: string) => `'${n.replace(/'/g, "''")}'`).join(',');
+        const primaryEsc = (primaryNiche || '').replace(/'/g, "''");
+        nicheBoost = `
+          CASE WHEN p.topic_cluster = '${primaryEsc}' THEN 0
+               WHEN p.topic_cluster IN (${nichesStr}) THEN 1
+               ELSE 2 END,`;
+      }
+
+      const patterns = await db.execute(sql.raw(`
         SELECT ${SEL_COLS}
         FROM patterns p
         LEFT JOIN content_clusters cc ON cc.id::text = p.cluster_id
         WHERE p.hook_template IS NOT NULL
-          AND (
-            p.topic_cluster = ANY(ARRAY[${nichesStr}]::text[])
-            ${specificClause}
-          )
         ORDER BY
-          ${orderSpecific}
-          CASE WHEN p.topic_cluster = '${primaryNiche.replace(/'/g, "''")}' THEN 0 ELSE 1 END,
+          ${specificBoost}
+          ${nicheBoost}
           p.avg_virality_score DESC NULLS LAST
         LIMIT 20
       `));
-      // Fallback: if niche query returned nothing, surface top patterns regardless of niche
-      if (patterns.rows.length === 0) {
-        patterns = await db.execute(sql.raw(`
-          SELECT ${SEL_COLS}
-          FROM patterns p
-          LEFT JOIN content_clusters cc ON cc.id::text = p.cluster_id
-          WHERE p.hook_template IS NOT NULL
-          ORDER BY p.avg_virality_score DESC NULLS LAST
-          LIMIT 20
-        `));
-      }
+
       const enriched = (patterns.rows as any[]).map(p => {
         const clusterLevel = p.sub_niche ? 3 : 2;
         const vel = p.velocity_7d ?? p.cc_velocity_7d ?? 0;

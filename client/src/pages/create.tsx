@@ -116,18 +116,18 @@ export default function StudioPage() {
   });
   const patterns: Pattern[] = Array.isArray(patternsRaw) ? patternsRaw : [];
 
-  // Pre-select from URL param once patterns load — skip step 1
+  // Pre-select from URL param whenever patterns load or urlPatternId changes
   useEffect(() => {
-    if (patterns.length === 0 || selected) return;
+    if (patterns.length === 0) return;
     if (urlPatternId) {
       const pre = patterns.find((p) => p.id === urlPatternId || (p as any).pattern_id === urlPatternId);
-      if (pre) { setSelected(pre); setVars({}); }
-    } else {
-      // No patternId in URL: auto-select the best pattern so the brief is never empty
+      if (pre && pre.id !== selected?.id) { setSelected(pre); setVars({}); }
+    } else if (!selected) {
       setSelected(patterns[0]);
       setVars({});
     }
-  }, [urlPatternId, patterns, selected]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [urlPatternId, patterns]);
 
   // effectiveSelected: always show the form — use patterns[0] while selected is null
   const effectiveSelected = selected ?? (patterns.length > 0 ? patterns[0] : null);
@@ -173,12 +173,14 @@ export default function StudioPage() {
 
   const copyBrief = () => {
     if (!effectiveSelected) return;
-    const steps = timeline.map((t) => `${t.n}. ${t.title} (${t.range})`).join("\n   ");
+    const steps = timeline.map((t) => `${t.n}. ${t.title} (${t.range})\n      → ${t.desc}`).join("\n\n   ");
     const text = [
       `HOOK: "${hookFinal || effectiveSelected.hook_template}"`,
       `DURATION: ${duration}`,
       `STRUCTURE:\n   ${steps}`,
+      effectiveSelected.structure_template ? `SCRIPT STRUCTURE:\n${effectiveSelected.structure_template}` : null,
       effectiveSelected.why_it_works ? `WHY IT WORKS: ${effectiveSelected.why_it_works}` : null,
+      effectiveSelected.best_for ? `BEST FOR: ${effectiveSelected.best_for}` : null,
       effectiveSelected.cta_suggestion ? `CTA: ${effectiveSelected.cta_suggestion}` : null,
     ]
       .filter(Boolean)
@@ -559,6 +561,19 @@ export default function StudioPage() {
                     </div>
                   </div>
 
+                  {/* Script structure */}
+                  {effectiveSelected.structure_template && (
+                    <div style={{
+                      background: "rgba(124,92,255,0.04)", border: "1px solid rgba(124,92,255,0.12)",
+                      borderRadius: 10, padding: "12px 14px", marginBottom: 10,
+                    }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: "#a78bfa", marginBottom: 8 }}>📝 Script structure</div>
+                      <pre style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", lineHeight: 1.65, margin: 0, whiteSpace: "pre-wrap", fontFamily: "monospace" }}>
+                        {effectiveSelected.structure_template}
+                      </pre>
+                    </div>
+                  )}
+
                   {/* Why it works */}
                   {effectiveSelected.why_it_works && (
                     <div style={{
@@ -570,18 +585,29 @@ export default function StudioPage() {
                     </div>
                   )}
 
+                  {/* Best for */}
+                  {effectiveSelected.best_for && (
+                    <div style={{
+                      background: "rgba(251,146,60,0.05)", border: "1px solid rgba(251,146,60,0.15)",
+                      borderRadius: 10, padding: "10px 14px", marginBottom: 10,
+                    }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: "#fb923c", marginBottom: 4 }}>🎯 Best for</div>
+                      <div style={{ fontSize: 12, color: "rgba(255,255,255,0.45)", lineHeight: 1.5 }}>{effectiveSelected.best_for}</div>
+                    </div>
+                  )}
+
                   {/* Suggested CTA */}
                   {effectiveSelected.cta_suggestion && (
                     <div style={{
                       background: "rgba(124,92,255,0.06)", border: "1px solid rgba(124,92,255,0.16)",
                       borderRadius: 10, padding: "12px 14px", marginBottom: 18,
                     }}>
-                      <div style={{ fontSize: 12, fontWeight: 600, color: "#a78bfa", marginBottom: 5 }}>🎯 Suggested CTA</div>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: "#a78bfa", marginBottom: 5 }}>📢 Suggested CTA</div>
                       <div style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", lineHeight: 1.55 }}>{effectiveSelected.cta_suggestion}</div>
                     </div>
                   )}
 
-                  {!effectiveSelected.why_it_works && !effectiveSelected.cta_suggestion && (
+                  {!effectiveSelected.structure_template && !effectiveSelected.why_it_works && !effectiveSelected.best_for && !effectiveSelected.cta_suggestion && (
                     <div style={{ height: 10 }} />
                   )}
 
